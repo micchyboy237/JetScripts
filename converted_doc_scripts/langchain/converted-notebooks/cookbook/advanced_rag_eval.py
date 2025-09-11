@@ -3,7 +3,7 @@ from PIL import Image
 from base64 import b64decode
 from io import BytesIO
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 from langchain.smith import RunEvalConfig
@@ -140,8 +140,6 @@ table_summaries = summarize_chain.batch(tables, {"max_concurrency": 5})
 logger.info("#### Image Summary")
 
 
-
-
 def encode_image(image_path):
     """Getting the base64 string"""
     with open(image_path, "rb") as image_file:
@@ -189,8 +187,6 @@ for img_file in sorted(os.listdir(path)):
 * Return images to LLM for answer synthesis
 """
 logger.info("### Option 2a: Multi-vector retriever w/ raw images")
-
-
 
 
 def create_multi_vector_retriever(
@@ -241,7 +237,6 @@ retriever_multi_vector_img = create_multi_vector_retriever(
 query = "What percentage of CPI is dedicated to Housing, and how does it compare to the combined percentage of Medical Care, Apparel, and Other Goods and Services?"
 suffix_for_images = " Include any pie charts, graphs, or tables."
 docs = retriever_multi_vector_img.invoke(query + suffix_for_images)
-
 
 
 def plt_img_base64(img_base64):
@@ -308,7 +303,6 @@ retriever_multimodal_embd = multimodal_embd.as_retriever()
 logger.info("## RAG")
 
 
-
 template = """Answer the question based only on the following context, which can include text and tables:
 {context}
 Question: {question}
@@ -330,12 +324,11 @@ def text_rag_chain(retriever):
 
     return chain
 
+
 """
 ### Multi-modal Pipeline
 """
 logger.info("### Multi-modal Pipeline")
-
-
 
 
 def looks_like_base64(sb):
@@ -352,7 +345,8 @@ def is_image_data(b64data):
         b"\x52\x49\x46\x46": "webp",
     }
     try:
-        header = base64.b64decode(b64data)[:8]  # Decode and get the first 8 bytes
+        # Decode and get the first 8 bytes
+        header = base64.b64decode(b64data)[:8]
         for sig, format in image_signatures.items():
             if header.startswith(sig):
                 return True
@@ -419,6 +413,7 @@ def multi_modal_rag_chain(retriever):
 
     return chain
 
+
 """
 ### Build RAG Pipelines
 """
@@ -460,7 +455,8 @@ eval_config = RunEvalConfig(
 def run_eval(chain, run_name, dataset_name):
     _ = client.run_on_dataset(
         dataset_name=dataset_name,
-        llm_or_chain_factory=lambda: (lambda x: x["question"] + suffix_for_images)
+        llm_or_chain_factory=lambda: (
+            lambda x: x["question"] + suffix_for_images)
         | chain,
         evaluation=eval_config,
         project_name=run_name,

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import USearch
@@ -31,13 +31,13 @@ logger.info("# USearch")
 """
 We want to use OllamaEmbeddings so we have to get the Ollama API Key.
 """
-logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
-
 
 
 loader = TextLoader("../../../extras/modules/state_of_the_union.txt")

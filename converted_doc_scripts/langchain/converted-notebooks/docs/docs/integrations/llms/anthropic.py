@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaLLM
+from jet.adapters.langchain.chat_ollama import ChatOllamaLLM
 from jet.logger import logger
 from langchain_core.prompts import PromptTemplate
 import os

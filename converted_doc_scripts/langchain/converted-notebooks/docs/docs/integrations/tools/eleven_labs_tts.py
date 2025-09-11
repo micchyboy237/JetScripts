@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain_community.tools import ElevenLabsText2SpeechTool
@@ -45,7 +45,8 @@ tts.name
 """
 We can generate audio, save it to the temporary file and then play it.
 """
-logger.info("We can generate audio, save it to the temporary file and then play it.")
+logger.info(
+    "We can generate audio, save it to the temporary file and then play it.")
 
 speech_file = tts.run(text_to_speak)
 tts.play(speech_file)
@@ -63,7 +64,7 @@ tts.stream_speech(text_to_speak)
 logger.info("## Use within an Agent")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 tools = load_tools(["eleven_labs_text2speech"])
 agent = initialize_agent(
     tools=tools,

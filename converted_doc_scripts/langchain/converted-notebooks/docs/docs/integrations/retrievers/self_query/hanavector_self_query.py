@@ -1,10 +1,10 @@
 from hdbcli import dbapi
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.base import (
-StructuredQueryOutputParser,
-get_query_constructor_prompt,
+    StructuredQueryOutputParser,
+    get_query_constructor_prompt,
 )
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -36,7 +36,6 @@ We use the same setup here:
 logger.info("# SAP HANA Cloud Vector Engine")
 
 
-
 connection = dbapi.connect(
     address=os.environ.get("HANA_DB_ADDRESS"),
     port=os.environ.get("HANA_DB_PORT"),
@@ -50,7 +49,8 @@ connection = dbapi.connect(
 To be able to self query with good performance we create additional metadata fields
 for our vectorstore table in HANA:
 """
-logger.info("To be able to self query with good performance we create additional metadata fields")
+logger.info(
+    "To be able to self query with good performance we create additional metadata fields")
 
 cur = connection.cursor()
 cur.execute("DROP TABLE LANGCHAIN_DEMO_SELF_QUERY", ignoreErrors=True)
@@ -172,6 +172,7 @@ sq = query_constructor.invoke(input=query_prompt)
 
 logger.debug("Structured query: ", sq)
 
-logger.debug("Translated for hana vector store: ", hana_translator.visit_structured_query(sq))
+logger.debug("Translated for hana vector store: ",
+             hana_translator.visit_structured_query(sq))
 
 logger.info("\n\n[DONE]", bright=True)

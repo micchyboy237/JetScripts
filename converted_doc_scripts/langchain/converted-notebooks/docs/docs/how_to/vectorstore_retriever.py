@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
@@ -61,9 +61,11 @@ retriever = vectorstore.as_retriever()
 """
 This creates a retriever (specifically a [VectorStoreRetriever](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStoreRetriever.html)), which we can use in the usual way:
 """
-logger.info("This creates a retriever (specifically a [VectorStoreRetriever](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStoreRetriever.html)), which we can use in the usual way:")
+logger.info(
+    "This creates a retriever (specifically a [VectorStoreRetriever](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStoreRetriever.html)), which we can use in the usual way:")
 
-docs = retriever.invoke("what did the president say about ketanji brown jackson?")
+docs = retriever.invoke(
+    "what did the president say about ketanji brown jackson?")
 
 """
 ## Maximum marginal relevance retrieval
@@ -75,7 +77,8 @@ logger.info("## Maximum marginal relevance retrieval")
 
 retriever = vectorstore.as_retriever(search_type="mmr")
 
-docs = retriever.invoke("what did the president say about ketanji brown jackson?")
+docs = retriever.invoke(
+    "what did the president say about ketanji brown jackson?")
 
 """
 ## Passing search parameters
@@ -92,7 +95,8 @@ retriever = vectorstore.as_retriever(
     search_type="similarity_score_threshold", search_kwargs={"score_threshold": 0.5}
 )
 
-docs = retriever.invoke("what did the president say about ketanji brown jackson?")
+docs = retriever.invoke(
+    "what did the president say about ketanji brown jackson?")
 
 """
 ### Specifying top k
@@ -103,7 +107,8 @@ logger.info("### Specifying top k")
 
 retriever = vectorstore.as_retriever(search_kwargs={"k": 1})
 
-docs = retriever.invoke("what did the president say about ketanji brown jackson?")
+docs = retriever.invoke(
+    "what did the president say about ketanji brown jackson?")
 len(docs)
 
 logger.info("\n\n[DONE]", bright=True)

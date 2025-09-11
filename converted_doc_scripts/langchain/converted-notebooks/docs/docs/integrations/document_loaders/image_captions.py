@@ -1,6 +1,6 @@
 from PIL import Image
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -68,9 +68,11 @@ Image.open(requests.get(list_image_urls[0], stream=True).raw).convert("RGB")
 logger.info("### Create the index")
 
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(list_docs)
-vectorstore = Chroma.from_documents(documents=splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma.from_documents(
+    documents=splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
 
 retriever = vectorstore.as_retriever(k=2)
 

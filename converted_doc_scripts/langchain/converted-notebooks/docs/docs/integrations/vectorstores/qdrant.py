@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_qdrant import FastEmbedSparse, QdrantVectorStore, RetrievalMode
@@ -11,7 +11,7 @@ from qdrant_client import models
 from qdrant_client.http.models import Distance, SparseVectorParams, VectorParams
 from qdrant_client.http.models import Distance, VectorParams
 from uuid import uuid4
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -46,7 +46,7 @@ Please see the installation instructions [here](https://qdrant.tech/documentatio
 """
 logger.info("# Qdrant")
 
-pip install -qU langchain-qdrant
+pip install - qU langchain-qdrant
 
 """
 ### Credentials
@@ -56,7 +56,6 @@ There are no credentials needed to run the code in this notebook.
 If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
 logger.info("### Credentials")
-
 
 
 """
@@ -171,7 +170,6 @@ Once you have created your vector store, we can interact with it by adding and d
 We can add items to our vector store by using the `add_documents` function.
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -324,7 +322,8 @@ client = QdrantClient(path="/tmp/langchain_qdrant")
 
 client.create_collection(
     collection_name="my_documents",
-    vectors_config={"dense": VectorParams(size=3072, distance=Distance.COSINE)},
+    vectors_config={"dense": VectorParams(
+        size=3072, distance=Distance.COSINE)},
     sparse_vectors_config={
         "sparse": SparseVectorParams(index=models.SparseIndexParams(on_disk=False))
     },
@@ -364,7 +363,8 @@ client = QdrantClient(path="/tmp/langchain_qdrant")
 
 client.create_collection(
     collection_name="my_documents",
-    vectors_config={"dense": VectorParams(size=3072, distance=Distance.COSINE)},
+    vectors_config={"dense": VectorParams(
+        size=3072, distance=Distance.COSINE)},
     sparse_vectors_config={
         "sparse": SparseVectorParams(index=models.SparseIndexParams(on_disk=False))
     },
@@ -389,7 +389,8 @@ found_docs
 """
 If you want to execute a similarity search and receive the corresponding scores you can run:
 """
-logger.info("If you want to execute a similarity search and receive the corresponding scores you can run:")
+logger.info(
+    "If you want to execute a similarity search and receive the corresponding scores you can run:")
 
 results = vector_store.similarity_search_with_score(
     query="Will it be hot tomorrow", k=1
@@ -431,7 +432,8 @@ You can also transform the vector store into a retriever for easier usage in you
 """
 logger.info("### Query by turning into retriever")
 
-retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 1})
+retriever = vector_store.as_retriever(
+    search_type="mmr", search_kwargs={"k": 1})
 retriever.invoke("Stealing from the bank is a crime")
 
 """

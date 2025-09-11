@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
@@ -9,7 +9,7 @@ from langchain_core.runnables import RunnableConfig
 from langchain_pinecone import PineconeVectorStore
 from langgraph.graph import START, StateGraph
 from typing_extensions import List, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
 import os
 import shutil
 
@@ -56,7 +56,8 @@ logger.info("# How to do per-user retrieval")
 
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-vectorstore = PineconeVectorStore(index_name="test-example", embedding=embeddings)
+vectorstore = PineconeVectorStore(
+    index_name="test-example", embedding=embeddings)
 
 vectorstore.add_texts(["I worked at Kensho"], namespace="harrison")
 vectorstore.add_texts(["I worked at Facebook"], namespace="ankush")
@@ -64,7 +65,8 @@ vectorstore.add_texts(["I worked at Facebook"], namespace="ankush")
 """
 The pinecone kwarg for `namespace` can be used to separate documents
 """
-logger.info("The pinecone kwarg for `namespace` can be used to separate documents")
+logger.info(
+    "The pinecone kwarg for `namespace` can be used to separate documents")
 
 vectorstore.as_retriever(search_kwargs={"namespace": "ankush"}).invoke(
     "where did i work?"
@@ -82,7 +84,8 @@ Let's first select a LLM.
 
 <ChatModelTabs customVarName="llm" />
 """
-logger.info("We can now create the chain that we will use to do question-answering over.")
+logger.info(
+    "We can now create the chain that we will use to do question-answering over.")
 
 
 llm = ChatOllama(model="llama3.2")
@@ -90,7 +93,8 @@ llm = ChatOllama(model="llama3.2")
 """
 This will follow the basic implementation from the [RAG tutorial](/docs/tutorials/rag), but we will allow the retrieval step to be configurable.
 """
-logger.info("This will follow the basic implementation from the [RAG tutorial](/docs/tutorials/rag), but we will allow the retrieval step to be configurable.")
+logger.info(
+    "This will follow the basic implementation from the [RAG tutorial](/docs/tutorials/rag), but we will allow the retrieval step to be configurable.")
 
 
 template = """Answer the question based only on the following context:
@@ -122,7 +126,6 @@ We can now create the chain using our configurable retriever.
 logger.info("We can now create the chain using our configurable retriever.")
 
 
-
 class State(TypedDict):
     question: str
     context: List[Document]
@@ -136,7 +139,8 @@ def retrieve(state: State, config: RunnableConfig):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
 
@@ -170,6 +174,7 @@ result
 """
 For details operating your specific vector store, see the [integration pages](/docs/integrations/vectorstores/).
 """
-logger.info("For details operating your specific vector store, see the [integration pages](/docs/integrations/vectorstores/).")
+logger.info(
+    "For details operating your specific vector store, see the [integration pages](/docs/integrations/vectorstores/).")
 
 logger.info("\n\n[DONE]", bright=True)

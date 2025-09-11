@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain_community.document_loaders import TextLoader
@@ -42,14 +42,14 @@ logger.info("# Marqo")
 # %pip install --upgrade --quiet  marqo
 
 
-
 loader = TextLoader("../../how_to/state_of_the_union.txt")
 documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 
 
-marqo_url = "http://localhost:8882"  # if using marqo cloud replace with your endpoint (console.marqo.ai)
+# if using marqo cloud replace with your endpoint (console.marqo.ai)
+marqo_url = "http://localhost:8882"
 marqo_  # if using marqo cloud replace with your api key (console.marqo.ai)
 
 client = marqo.Client(url=marqo_url, api_key=marqo_api_key)
@@ -103,6 +103,7 @@ client.index(index_name).add_documents(
     ],
 )
 
+
 def get_content(res):
     """Helper to format Marqo's documents into text to be used as page_content"""
     return f"{res['caption']}: {res['image']}"
@@ -145,6 +146,7 @@ client.index(index_name).add_documents(
     ],
 )
 
+
 def get_content(res):
     """Helper to format Marqo's documents into text to be used as page_content"""
     if "text" in res:
@@ -162,7 +164,8 @@ doc_results = docsearch.similarity_search(query)
 logger.debug(doc_results[0].page_content)
 
 query = "elephants"
-doc_results = docsearch.similarity_search(query, page_content_builder=get_content)
+doc_results = docsearch.similarity_search(
+    query, page_content_builder=get_content)
 
 logger.debug(doc_results[0].page_content)
 

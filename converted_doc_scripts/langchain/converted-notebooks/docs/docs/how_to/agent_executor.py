@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.agents import AgentExecutor
@@ -14,10 +14,10 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-import ChatModelTabs from "@theme/ChatModelTabs";
-import CodeBlock from "@theme/CodeBlock";
-import TabItem from '@theme/TabItem';
-import Tabs from '@theme/Tabs';
+import ChatModelTabs from "@theme/ChatModelTabs"
+import CodeBlock from "@theme/CodeBlock"
+import TabItem from '@theme/TabItem'
+import Tabs from '@theme/Tabs'
 import os
 import shutil
 
@@ -143,7 +143,8 @@ docs = loader.load()
 documents = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200
 ).split_documents(docs)
-vector = FAISS.from_documents(documents, OllamaEmbeddings(model="mxbai-embed-large"))
+vector = FAISS.from_documents(
+    documents, OllamaEmbeddings(model="mxbai-embed-large"))
 retriever = vector.as_retriever()
 
 retriever.invoke("how to upload a dataset")[0]
@@ -211,9 +212,11 @@ logger.debug(f"ToolCalls: {response.tool_calls}")
 """
 Now, let's try calling it with some input that would expect a tool to be called.
 """
-logger.info("Now, let's try calling it with some input that would expect a tool to be called.")
+logger.info(
+    "Now, let's try calling it with some input that would expect a tool to be called.")
 
-response = model_with_tools.invoke([HumanMessage(content="What's the weather in SF?")])
+response = model_with_tools.invoke(
+    [HumanMessage(content="What's the weather in SF?")])
 
 logger.debug(f"ContentString: {response.content}")
 logger.debug(f"ToolCalls: {response.tool_calls}")
@@ -244,7 +247,8 @@ Now, we can initialize the agent with the LLM, the prompt, and the tools. The ag
 
 Note that we are passing in the `model`, not `model_with_tools`. That is because `create_tool_calling_agent` will call `.bind_tools` for us under the hood.
 """
-logger.info("Now, we can initialize the agent with the LLM, the prompt, and the tools. The agent is responsible for taking in input and deciding what actions to take. Crucially, the Agent does not execute those actions - that is done by the AgentExecutor (next step). For more information about how to think about these components, see our [conceptual guide](/docs/concepts/agents).")
+logger.info(
+    "Now, we can initialize the agent with the LLM, the prompt, and the tools. The agent is responsible for taking in input and deciding what actions to take. Crucially, the Agent does not execute those actions - that is done by the AgentExecutor (next step). For more information about how to think about these components, see our [conceptual guide](/docs/concepts/agents).")
 
 
 agent = create_tool_calling_agent(model, tools, prompt)
@@ -273,7 +277,8 @@ In order to see exactly what is happening under the hood (and to make sure it's 
 
 Let's now try it out on an example where it should be invoking the retriever
 """
-logger.info("In order to see exactly what is happening under the hood (and to make sure it's not calling a tool) we can take a look at the [LangSmith trace](https://smith.langchain.com/public/8441812b-94ce-4832-93ec-e1114214553a/r)")
+logger.info(
+    "In order to see exactly what is happening under the hood (and to make sure it's not calling a tool) we can take a look at the [LangSmith trace](https://smith.langchain.com/public/8441812b-94ce-4832-93ec-e1114214553a/r)")
 
 agent_executor.invoke({"input": "how can langsmith help with testing?"})
 
@@ -282,7 +287,8 @@ Let's take a look at the [LangSmith trace](https://smith.langchain.com/public/76
 
 Now let's try one where it needs to call the search tool:
 """
-logger.info("Let's take a look at the [LangSmith trace](https://smith.langchain.com/public/762153f6-14d4-4c98-8659-82650f860c62/r) to make sure it's actually calling that.")
+logger.info(
+    "Let's take a look at the [LangSmith trace](https://smith.langchain.com/public/762153f6-14d4-4c98-8659-82650f860c62/r) to make sure it's actually calling that.")
 
 agent_executor.invoke({"input": "whats the weather in sf?"})
 
@@ -311,7 +317,8 @@ agent_executor.invoke(
 """
 If we want to keep track of these messages automatically, we can wrap this in a RunnableWithMessageHistory. For more information on how to use this, see [this guide](/docs/how_to/message_history).
 """
-logger.info("If we want to keep track of these messages automatically, we can wrap this in a RunnableWithMessageHistory. For more information on how to use this, see [this guide](/docs/how_to/message_history).")
+logger.info(
+    "If we want to keep track of these messages automatically, we can wrap this in a RunnableWithMessageHistory. For more information on how to use this, see [this guide](/docs/how_to/message_history).")
 
 
 store = {}
@@ -321,6 +328,7 @@ def get_session_history(session_id: str) -> BaseChatMessageHistory:
     if session_id not in store:
         store[session_id] = ChatMessageHistory()
     return store[session_id]
+
 
 """
 Because we have multiple inputs, we need to specify two things:

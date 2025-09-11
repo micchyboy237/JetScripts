@@ -1,5 +1,5 @@
 from IPython import display
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain import hub
 from langchain.agents import AgentExecutor, create_structured_chat_agent
@@ -65,7 +65,7 @@ toolkit = AzureAiServicesToolkit()
 logger.info("## Use within an Agent")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 tools = toolkit.get_tools()
 prompt = hub.pull("hwchase17/structured-chat-agent")
 agent = create_structured_chat_agent(llm, tools, prompt)
@@ -81,7 +81,8 @@ agent_executor.invoke(
     }
 )
 
-tts_result = agent_executor.invoke({"input": "Tell me a joke and read it out for me."})
+tts_result = agent_executor.invoke(
+    {"input": "Tell me a joke and read it out for me."})
 audio_file = tts_result.get("output")
 
 

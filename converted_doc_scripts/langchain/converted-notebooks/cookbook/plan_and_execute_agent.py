@@ -4,9 +4,9 @@ from langchain.chains import LLMMathChain
 from langchain_community.utilities import DuckDuckGoSearchAPIWrapper
 from langchain_core.tools import Tool
 from langchain_experimental.plan_and_execute import (
-PlanAndExecute,
-load_agent_executor,
-load_chat_planner,
+    PlanAndExecute,
+    load_agent_executor,
+    load_chat_planner,
 )
 import os
 import shutil
@@ -43,7 +43,7 @@ logger.info("# Plan-and-execute")
 logger.info("## Tools")
 
 search = DuckDuckGoSearchAPIWrapper()
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 llm_math_chain = LLMMathChain.from_llm(llm=llm, verbose=True)
 tools = [
     Tool(

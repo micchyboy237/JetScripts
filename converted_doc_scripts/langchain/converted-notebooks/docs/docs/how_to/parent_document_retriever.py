@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers import ParentDocumentRetriever
 from langchain.storage import InMemoryStore
@@ -41,7 +41,6 @@ originated from. This can either be the whole raw document OR a larger
 chunk.
 """
 logger.info("# How to use the Parent Document Retriever")
-
 
 
 loaders = [
@@ -123,14 +122,16 @@ retriever.add_documents(docs)
 """
 We can see that there are much more than two documents now - these are the larger chunks.
 """
-logger.info("We can see that there are much more than two documents now - these are the larger chunks.")
+logger.info(
+    "We can see that there are much more than two documents now - these are the larger chunks.")
 
 len(list(store.yield_keys()))
 
 """
 Let's make sure the underlying vector store still retrieves the small chunks.
 """
-logger.info("Let's make sure the underlying vector store still retrieves the small chunks.")
+logger.info(
+    "Let's make sure the underlying vector store still retrieves the small chunks.")
 
 sub_docs = vectorstore.similarity_search("justice breyer")
 

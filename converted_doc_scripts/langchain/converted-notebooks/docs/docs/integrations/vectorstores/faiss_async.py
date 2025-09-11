@@ -1,6 +1,6 @@
 from jet.models.config import MODELS_CACHE_DIR
 from jet.transformers.formatters import format_json
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import FAISS
@@ -46,13 +46,13 @@ logger.info("# Faiss (Async)")
 """
 We want to use OllamaEmbeddings so we have to get the Ollama API Key.
 """
-logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
-
 
 
 loader = TextLoader("../../../extras/modules/state_of_the_union.txt")
@@ -160,7 +160,8 @@ list_of_documents = [
 db = FAISS.from_documents(list_of_documents, embeddings)
 results_with_scores = db.similarity_search_with_score("foo")
 for doc, score in results_with_scores:
-    logger.debug(f"Content: {doc.page_content}, Metadata: {doc.metadata}, Score: {score}")
+    logger.debug(
+        f"Content: {doc.page_content}, Metadata: {doc.metadata}, Score: {score}")
 
 """
 Now we make the same query call but we filter for only `page = 1`
@@ -170,12 +171,14 @@ logger.info("Now we make the same query call but we filter for only `page = 1`")
 results_with_scores = await db.asimilarity_search_with_score("foo", filter=dict(page=1))
 logger.success(format_json(results_with_scores))
 for doc, score in results_with_scores:
-    logger.debug(f"Content: {doc.page_content}, Metadata: {doc.metadata}, Score: {score}")
+    logger.debug(
+        f"Content: {doc.page_content}, Metadata: {doc.metadata}, Score: {score}")
 
 """
 Same thing can be done with the `max_marginal_relevance_search` as well.
 """
-logger.info("Same thing can be done with the `max_marginal_relevance_search` as well.")
+logger.info(
+    "Same thing can be done with the `max_marginal_relevance_search` as well.")
 
 results = await db.amax_marginal_relevance_search("foo", filter=dict(page=1))
 logger.success(format_json(results))
@@ -211,8 +214,8 @@ Performing the same above similarity search with advanced metadata filtering can
 logger.info("Some [MongoDB query and projection operators](https://www.mongodb.com/docs/manual/reference/operator/query/) are supported for more advanced metadata filtering. The current list of supported operators are as follows:")
 
 results = await db.asimilarity_search(
-        "foo", filter={"page": {"$eq": 1}}, k=1, fetch_k=4
-    )
+    "foo", filter={"page": {"$eq": 1}}, k=1, fetch_k=4
+)
 logger.success(format_json(results))
 for doc in results:
     logger.debug(f"Content: {doc.page_content}, Metadata: {doc.metadata}")

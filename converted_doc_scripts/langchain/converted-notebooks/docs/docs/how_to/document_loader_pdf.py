@@ -3,7 +3,7 @@ from IPython.display import Image as IPImage
 from IPython.display import display
 from PIL import Image
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.messages import HumanMessage
@@ -96,7 +96,8 @@ logger.info("### Vector search over PDFs")
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 
-vector_store = InMemoryVectorStore.from_documents(pages, OllamaEmbeddings(model="mxbai-embed-large"))
+vector_store = InMemoryVectorStore.from_documents(
+    pages, OllamaEmbeddings(model="mxbai-embed-large"))
 docs = vector_store.similarity_search("What is LayoutParser?", k=2)
 for doc in docs:
     logger.debug(f"Page {doc.metadata['page']}: {doc.page_content[:300]}\n")
@@ -121,7 +122,7 @@ logger.info("## Layout analysis and extraction of text from images")
 # import getpass
 
 if "UNSTRUCTURED_API_KEY" not in os.environ:
-#     os.environ["UNSTRUCTURED_API_KEY"] = getpass.getpass("Unstructured API Key:")
+    #     os.environ["UNSTRUCTURED_API_KEY"] = getpass.getpass("Unstructured API Key:")
 
 """
 As before, we initialize a loader and load documents lazily:
@@ -149,7 +150,8 @@ logger.debug(len(docs))
 """
 We can use the document metadata to recover content from a single page:
 """
-logger.info("We can use the document metadata to recover content from a single page:")
+logger.info(
+    "We can use the document metadata to recover content from a single page:")
 
 first_page_docs = [doc for doc in docs if doc.metadata.get("page_number") == 1]
 
@@ -173,7 +175,6 @@ Below, we identify and extract a table:
 %pip install -qU matplotlib PyMuPDF pillow
 """
 logger.info("### Extracting tables and other structures")
-
 
 
 def plot_pdf_with_boxes(pdf_page, segments):
@@ -207,7 +208,8 @@ def plot_pdf_with_boxes(pdf_page, segments):
     for category in ["Title", "Image", "Table"]:
         if category in categories:
             legend_handles.append(
-                patches.Patch(color=category_to_color[category], label=category)
+                patches.Patch(
+                    color=category_to_color[category], label=category)
             )
     ax.axis("off")
     ax.legend(handles=legend_handles, loc="upper right")
@@ -225,6 +227,7 @@ def render_page(doc_list: list, page_number: int, print_text=True) -> None:
     if print_text:
         for doc in page_docs:
             logger.debug(f"{doc.page_content}\n")
+
 
 """
 </details>
@@ -331,8 +334,6 @@ logger.info("## Use of multimodal models")
 # %pip install -qU PyMuPDF pillow langchain-ollama
 
 
-
-
 def pdf_page_to_base64(pdf_path: str, page_number: int):
     pdf_document = fitz.open(pdf_path)
     page = pdf_document.load_page(page_number - 1)  # input is one-indexed
@@ -351,7 +352,8 @@ display(IPImage(data=base64.b64decode(base64_image)))
 """
 We can then query the model in the [usual way](/docs/how_to/multimodal_inputs/). Below we ask it a question on related to the diagram on the page.
 """
-logger.info("We can then query the model in the [usual way](/docs/how_to/multimodal_inputs/). Below we ask it a question on related to the diagram on the page.")
+logger.info(
+    "We can then query the model in the [usual way](/docs/how_to/multimodal_inputs/). Below we ask it a question on related to the diagram on the page.")
 
 
 llm = ChatOllama(model="llama3.2")

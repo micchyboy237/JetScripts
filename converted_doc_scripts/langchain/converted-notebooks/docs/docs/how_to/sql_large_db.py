@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import create_sql_query_chain
 from langchain_community.utilities import SQLDatabase
@@ -10,7 +10,7 @@ from langchain_core.runnables import RunnablePassthrough
 from operator import itemgetter
 from pydantic import BaseModel, Field
 from typing import List
-import ChatModelTabs from "@theme/ChatModelTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
 import ast
 import os
 import re
@@ -43,7 +43,8 @@ In this guide we demonstrate methods for identifying such relevant information, 
 
 First, get required packages and set environment variables:
 """
-logger.info("# How to deal with large databases when doing SQL question-answering")
+logger.info(
+    "# How to deal with large databases when doing SQL question-answering")
 
 # %pip install --upgrade --quiet  langchain langchain-community langchain-ollama
 
@@ -58,7 +59,8 @@ The below example will use a SQLite connection with Chinook database. Follow [th
 
 Now, `Chinook.db` is in our directory and we can interface with it using the SQLAlchemy-driven [SQLDatabase](https://python.langchain.com/api_reference/community/utilities/langchain_community.utilities.sql_database.SQLDatabase.html) class:
 """
-logger.info("The below example will use a SQLite connection with Chinook database. Follow [these installation steps](https://database.guide/2-sample-databases-sqlite/) to create `Chinook.db` in the same directory as this notebook:")
+logger.info(
+    "The below example will use a SQLite connection with Chinook database. Follow [these installation steps](https://database.guide/2-sample-databases-sqlite/) to create `Chinook.db` in the same directory as this notebook:")
 
 
 db = SQLDatabase.from_uri("sqlite:///Chinook.db")
@@ -80,7 +82,6 @@ logger.info("## Many tables")
 
 
 llm = ChatOllama(model="llama3.2")
-
 
 
 class Table(BaseModel):
@@ -108,7 +109,8 @@ output_parser = PydanticToolsParser(tools=[Table])
 
 table_chain = prompt | llm_with_tools | output_parser
 
-table_chain.invoke({"input": "What are all the genres of Alanis Morissette songs"})
+table_chain.invoke(
+    {"input": "What are all the genres of Alanis Morissette songs"})
 
 """
 This works pretty well! Except, as we'll see below, we actually need a few other tables as well. This would be pretty difficult for the model to know based just on the user question. In this case, we might think to simplify our model's job by grouping the tables together. We'll just ask the model to choose between categories "Music" and "Business", and then take care of selecting all the relevant tables from there:
@@ -130,8 +132,8 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 category_chain = prompt | llm_with_tools | output_parser
-category_chain.invoke({"input": "What are all the genres of Alanis Morissette songs"})
-
+category_chain.invoke(
+    {"input": "What are all the genres of Alanis Morissette songs"})
 
 
 def get_tables(categories: List[Table]) -> List[str]:
@@ -155,18 +157,20 @@ def get_tables(categories: List[Table]) -> List[str]:
 
 
 table_chain = category_chain | get_tables
-table_chain.invoke({"input": "What are all the genres of Alanis Morissette songs"})
+table_chain.invoke(
+    {"input": "What are all the genres of Alanis Morissette songs"})
 
 """
 Now that we've got a chain that can output the relevant tables for any query we can combine this with our [create_sql_query_chain](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.sql_database.query.create_sql_query_chain.html), which can accept a list of `table_names_to_use` to determine which table schemas are included in the prompt:
 """
-logger.info("Now that we've got a chain that can output the relevant tables for any query we can combine this with our [create_sql_query_chain](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.sql_database.query.create_sql_query_chain.html), which can accept a list of `table_names_to_use` to determine which table schemas are included in the prompt:")
-
+logger.info(
+    "Now that we've got a chain that can output the relevant tables for any query we can combine this with our [create_sql_query_chain](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.sql_database.query.create_sql_query_chain.html), which can accept a list of `table_names_to_use` to determine which table schemas are included in the prompt:")
 
 
 query_chain = create_sql_query_chain(llm, db)
 table_chain = {"input": itemgetter("question")} | table_chain
-full_chain = RunnablePassthrough.assign(table_names_to_use=table_chain) | query_chain
+full_chain = RunnablePassthrough.assign(
+    table_names_to_use=table_chain) | query_chain
 
 query = full_chain.invoke(
     {"question": "What are all the genres of Alanis Morissette songs"}
@@ -191,7 +195,6 @@ First we need the unique values for each entity we want, for which we define a f
 logger.info("## High-cardinality columns")
 
 
-
 def query_as_list(db, query):
     res = db.run(query)
     res = [el for sub in ast.literal_eval(res) for el in sub if el]
@@ -211,14 +214,14 @@ Now we can embed and store all of our values in a vector database:
 logger.info("Now we can embed and store all of our values in a vector database:")
 
 
-vector_db = FAISS.from_texts(proper_nouns, OllamaEmbeddings(model="mxbai-embed-large"))
+vector_db = FAISS.from_texts(
+    proper_nouns, OllamaEmbeddings(model="mxbai-embed-large"))
 retriever = vector_db.as_retriever(search_kwargs={"k": 15})
 
 """
 And put together a query construction chain that first retrieves values from the database and inserts them into the prompt:
 """
 logger.info("And put together a query construction chain that first retrieves values from the database and inserts them into the prompt:")
-
 
 
 system = """You are a SQLite expert. Given an input question, create a syntactically
@@ -235,7 +238,8 @@ value make sure to check its spelling against this list first:
 {proper_nouns}
 """
 
-prompt = ChatPromptTemplate.from_messages([("system", system), ("human", "{input}")])
+prompt = ChatPromptTemplate.from_messages(
+    [("system", system), ("human", "{input}")])
 
 query_chain = create_sql_query_chain(llm, db, prompt=prompt)
 retriever_chain = (
@@ -256,7 +260,8 @@ query = query_chain.invoke(
 logger.debug(query)
 db.run(query)
 
-query = chain.invoke({"question": "What are all the genres of elenis moriset songs"})
+query = chain.invoke(
+    {"question": "What are all the genres of elenis moriset songs"})
 logger.debug(query)
 db.run(query)
 

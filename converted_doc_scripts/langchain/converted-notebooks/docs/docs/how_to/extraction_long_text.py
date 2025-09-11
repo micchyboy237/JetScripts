@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import BSHTMLLoader
 from langchain_community.vectorstores import FAISS
@@ -10,7 +10,7 @@ from langchain_text_splitters import CharacterTextSplitter
 from langchain_text_splitters import TokenTextSplitter
 from pydantic import BaseModel, Field
 from typing import List, Optional
-import ChatModelTabs from "@theme/ChatModelTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
 import os
 import re
 import requests
@@ -52,8 +52,8 @@ logger.info("# How to handle long text when doing extraction")
 """
 Now we need some example data! Let's download an article about [cars from wikipedia](https://en.wikipedia.org/wiki/Car) and load it as a LangChain [Document](https://python.langchain.com/api_reference/core/documents/langchain_core.documents.base.Document.html).
 """
-logger.info("Now we need some example data! Let's download an article about [cars from wikipedia](https://en.wikipedia.org/wiki/Car) and load it as a LangChain [Document](https://python.langchain.com/api_reference/core/documents/langchain_core.documents.base.Document.html).")
-
+logger.info(
+    "Now we need some example data! Let's download an article about [cars from wikipedia](https://en.wikipedia.org/wiki/Car) and load it as a LangChain [Document](https://python.langchain.com/api_reference/core/documents/langchain_core.documents.base.Document.html).")
 
 
 response = requests.get("https://en.wikipedia.org/wiki/Car")
@@ -73,8 +73,6 @@ Following the [extraction tutorial](/docs/tutorials/extraction), we will use Pyd
 Note that we also include an `evidence` key and instruct the model to provide in verbatim the relevant sentences of text from the article. This allows us to compare the extraction results to (the model's reconstruction of) text from the original document.
 """
 logger.info("## Define the schema")
-
-
 
 
 class KeyDevelopment(BaseModel):
@@ -202,7 +200,8 @@ logger.info("## RAG based approach")
 
 
 texts = text_splitter.split_text(document.page_content)
-vectorstore = FAISS.from_texts(texts, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = FAISS.from_texts(
+    texts, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
 
 retriever = vectorstore.as_retriever(
     search_kwargs={"k": 1}
@@ -214,7 +213,8 @@ In this case the RAG extractor is only looking at the top document.
 logger.info("In this case the RAG extractor is only looking at the top document.")
 
 rag_extractor = {
-    "text": retriever | (lambda docs: docs[0].page_content)  # fetch content of top doc
+    # fetch content of top doc
+    "text": retriever | (lambda docs: docs[0].page_content)
 } | extractor
 
 results = rag_extractor.invoke("Key developments associated with cars")

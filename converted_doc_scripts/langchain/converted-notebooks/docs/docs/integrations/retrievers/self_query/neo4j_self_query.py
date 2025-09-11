@@ -1,5 +1,5 @@
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -42,11 +42,11 @@ logger.info("# Neo4j")
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 if "NEO4J_URI" not in os.environ:
-#     os.environ["NEO4J_URI"] = getpass.getpass("Neo4j URL:")
+    #     os.environ["NEO4J_URI"] = getpass.getpass("Neo4j URL:")
 if "NEO4J_USERNAME" not in os.environ:
-#     os.environ["NEO4J_USERNAME"] = getpass.getpass("Neo4j User Name:")
+    #     os.environ["NEO4J_USERNAME"] = getpass.getpass("Neo4j User Name:")
 if "NEO4J_PASSWORD" not in os.environ:
-#     os.environ["NEO4J_PASSWORD"] = getpass.getpass("Neo4j Password:")
+    #     os.environ["NEO4J_PASSWORD"] = getpass.getpass("Neo4j Password:")
 
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
@@ -112,7 +112,7 @@ metadata_field_info = [
     ),
 ]
 document_content_description = "Brief summary of a movie"
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 retriever = SelfQueryRetriever.from_llm(
     llm, vectorstore, document_content_description, metadata_field_info, verbose=True
 )
@@ -154,7 +154,6 @@ retriever = SelfQueryRetriever.from_llm(
 )
 
 retriever.invoke("what are two movies about dinosaurs")
-
 
 
 logger.info("\n\n[DONE]", bright=True)

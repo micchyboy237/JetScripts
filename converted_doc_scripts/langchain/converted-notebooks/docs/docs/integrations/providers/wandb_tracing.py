@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain_community.callbacks import wandb_tracing_enabled
@@ -30,13 +30,12 @@ There are two recommended ways to trace your LangChains:
 logger.info("# Weights & Biases tracing")
 
 
-
 os.environ["LANGCHAIN_WANDB_TRACING"] = "true"
 
 os.environ["WANDB_PROJECT"] = "langchain-tracing"
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 tools = load_tools(["llm-math"], llm=llm)
 
 agent = initialize_agent(

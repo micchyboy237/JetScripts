@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain_community.agent_toolkits.nasa.toolkit import NasaToolkit
@@ -34,7 +34,7 @@ logger.info("# NASA Toolkit")
 # %pip install -qU langchain-community
 
 
-llm = Ollama(temperature=0, ollama_)
+llm = ChatOllama(temperature=0, ollama_)
 nasa = NasaAPIWrapper()
 toolkit = NasaToolkit.from_nasa_api_wrapper(nasa)
 agent = initialize_agent(

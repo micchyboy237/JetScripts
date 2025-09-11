@@ -1,9 +1,9 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_chroma import Chroma
 from langchain_core.documents import Document
 from uuid import uuid4
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import chromadb
 import os
 import shutil
@@ -41,7 +41,7 @@ To access `Chroma` vector stores you'll need to install the `langchain-chroma` i
 """
 logger.info("# Chroma")
 
-pip install -qU "langchain-chroma>=0.1.2"
+pip install - qU "langchain-chroma>=0.1.2"
 
 """
 ### Credentials
@@ -59,7 +59,6 @@ chroma db connect [db_name] --env-file
 If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
 logger.info("### Credentials")
-
 
 
 """
@@ -209,7 +208,6 @@ Once you have created your vector store, we can interact with it by adding and d
 We can add items to our vector store by using the `add_documents` function.
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -403,7 +401,8 @@ logger.info("#### Other search methods")
 retriever = vector_store.as_retriever(
     search_type="mmr", search_kwargs={"k": 1, "fetch_k": 5}
 )
-retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+retriever.invoke("Stealing from the bank is a crime",
+                 filter={"source": "news"})
 
 """
 ## Usage for retrieval-augmented generation

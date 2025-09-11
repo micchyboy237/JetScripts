@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Milvus
@@ -36,18 +36,20 @@ logger.info("# Zilliz")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
-ZILLIZ_CLOUD_URI = ""  # example: "https://in01-17f69c292d4a5sa.aws-us-west-2.vectordb.zillizcloud.com:19536"
+# example: "https://in01-17f69c292d4a5sa.aws-us-west-2.vectordb.zillizcloud.com:19536"
+ZILLIZ_CLOUD_URI = ""
 ZILLIZ_CLOUD_USERNAME = ""  # example: "username"
 ZILLIZ_CLOUD_PASSWORD = ""  # example: "*********"
-ZILLIZ_CLOUD_API_KEY = ""  # example: "*********" (for serverless clusters which can be used as replacements for user and password)
-
+# example: "*********" (for serverless clusters which can be used as replacements for user and password)
+ZILLIZ_CLOUD_API_KEY = ""
 
 
 loader = TextLoader("../../how_to/state_of_the_union.txt")

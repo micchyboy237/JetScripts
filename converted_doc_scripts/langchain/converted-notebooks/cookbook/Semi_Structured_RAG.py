@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.retrievers.multi_vector import MultiVectorRetriever
@@ -86,7 +86,6 @@ logger.info("## Data Loading")
 path = "/Users/rlm/Desktop/Papers/LLaMA2/"
 
 
-
 raw_pdf_elements = partition_pdf(
     filename=path + "LLaMA2.pdf",
     extract_images_in_pdf=False,
@@ -116,6 +115,7 @@ for element in raw_pdf_elements:
 
 unique_categories = set(category_counts.keys())
 category_counts
+
 
 class Element(BaseModel):
     type: str
@@ -186,8 +186,8 @@ Use [Multi Vector Retriever](https://python.langchain.com/docs/modules/data_conn
 logger.info("### Add to vectorstore")
 
 
-
-vectorstore = Chroma(collection_name="summaries", embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma(collection_name="summaries",
+                     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
 
 store = InMemoryStore()
 id_key = "doc_id"
@@ -248,6 +248,7 @@ This includes Table 1 of the paper, showing the Tokens used for training.
 Training Data Params Context GQA Tokens LR Length 7B 2k 1.0T 3.0x 10-4 See Touvron et al. 13B 2k 1.0T 3.0 x 10-4 LiaMa 1 (2023) 33B 2k 14T 1.5 x 10-4 65B 2k 1.4T 1.5 x 10-4 7B 4k 2.0T 3.0x 10-4 Liama 2 A new mix of publicly 13B 4k 2.0T 3.0 x 10-4 available online data 34B 4k v 2.0T 1.5 x 10-4 70B 4k v 2.0T 1.5 x 10-4
 ```
 """
-logger.info("We can check the [trace](https://smith.langchain.com/public/4739ae7c-1a13-406d-bc4e-3462670ebc01/r) to see what chunks were retrieved:")
+logger.info(
+    "We can check the [trace](https://smith.langchain.com/public/4739ae7c-1a13-406d-bc4e-3462670ebc01/r) to see what chunks were retrieved:")
 
 logger.info("\n\n[DONE]", bright=True)

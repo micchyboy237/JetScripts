@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.agent_toolkits import OpenAPIToolkit, create_openapi_agent
 from langchain_community.agent_toolkits.openapi import planner
@@ -49,11 +49,11 @@ In the initial implementation, the planner is an LLM chain that has the name and
 logger.info("## 1st example: hierarchical planning agent")
 
 
-
 """
 You will be able to get OpenAPI specs from here: [APIs-guru/openapi-directory](https://github.com/APIs-guru/openapi-directory)
 """
-logger.info("You will be able to get OpenAPI specs from here: [APIs-guru/openapi-directory](https://github.com/APIs-guru/openapi-directory)")
+logger.info(
+    "You will be able to get OpenAPI specs from here: [APIs-guru/openapi-directory](https://github.com/APIs-guru/openapi-directory)")
 
 # !wget https://raw.githubusercontent.com/ollama/ollama-openapi/master/openapi.yaml -O ollama_openapi.yaml
 # !wget https://www.klarna.com/us/shopping/public/ollama/v0/api-docs -O klarna_openapi.yaml
@@ -81,7 +81,6 @@ We'll work with the Spotify API as one of the examples of a somewhat complex API
 - To get an access tokens (and keep them fresh), you can implement the oauth flows, or you can use `spotipy`. If you've set your Spotify creedentials as environment variables `SPOTIPY_CLIENT_ID`, `SPOTIPY_CLIENT_SECRET`, and `SPOTIPY_REDIRECT_URI`, you can use the helper functions below:
 """
 logger.info("We'll work with the Spotify API as one of the examples of a somewhat complex API. There's a bit of auth-related setup to do if you want to replicate this.")
-
 
 
 def construct_spotify_auth_headers(raw_spec: dict):

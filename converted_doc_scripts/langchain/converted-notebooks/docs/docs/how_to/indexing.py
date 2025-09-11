@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.indexes import SQLRecordManager, index
 from langchain_core.document_loaders import BaseLoader
@@ -141,9 +141,12 @@ Indexing into an empty vector store:
 """
 logger.info("Indexing into an empty vector store:")
 
+
 def _clear():
     """Hacky helper method to clear content. See the `full` mode section to understand why it works."""
-    index([], record_manager, vectorstore, cleanup="full", source_id_key="source")
+    index([], record_manager, vectorstore,
+          cleanup="full", source_id_key="source")
+
 
 """
 ### ``None`` deletion mode
@@ -164,14 +167,16 @@ index(
 
 _clear()
 
-index([doc1, doc2], record_manager, vectorstore, cleanup=None, source_id_key="source")
+index([doc1, doc2], record_manager, vectorstore,
+      cleanup=None, source_id_key="source")
 
 """
 Second time around all content will be skipped:
 """
 logger.info("Second time around all content will be skipped:")
 
-index([doc1, doc2], record_manager, vectorstore, cleanup=None, source_id_key="source")
+index([doc1, doc2], record_manager, vectorstore,
+      cleanup=None, source_id_key="source")
 
 """
 ### ``"incremental"`` deletion mode
@@ -204,16 +209,19 @@ index(
 """
 If we provide no documents with incremental indexing mode, nothing will change.
 """
-logger.info("If we provide no documents with incremental indexing mode, nothing will change.")
+logger.info(
+    "If we provide no documents with incremental indexing mode, nothing will change.")
 
-index([], record_manager, vectorstore, cleanup="incremental", source_id_key="source")
+index([], record_manager, vectorstore,
+      cleanup="incremental", source_id_key="source")
 
 """
 If we mutate a document, the new version will be written and all old versions sharing the same source will be deleted.
 """
 logger.info("If we mutate a document, the new version will be written and all old versions sharing the same source will be deleted.")
 
-changed_doc_2 = Document(page_content="puppy", metadata={"source": "doggy.txt"})
+changed_doc_2 = Document(page_content="puppy", metadata={
+                         "source": "doggy.txt"})
 
 index(
     [changed_doc_2],
@@ -238,7 +246,8 @@ _clear()
 
 all_docs = [doc1, doc2]
 
-index(all_docs, record_manager, vectorstore, cleanup="full", source_id_key="source")
+index(all_docs, record_manager, vectorstore,
+      cleanup="full", source_id_key="source")
 
 """
 Say someone deleted the first doc:
@@ -254,7 +263,8 @@ Using full mode will clean up the deleted content as well.
 """
 logger.info("Using full mode will clean up the deleted content as well.")
 
-index(all_docs, record_manager, vectorstore, cleanup="full", source_id_key="source")
+index(all_docs, record_manager, vectorstore,
+      cleanup="full", source_id_key="source")
 
 """
 ## Source
@@ -271,7 +281,8 @@ logger.info("## Source")
 doc1 = Document(
     page_content="kitty kitty kitty kitty kitty", metadata={"source": "kitty.txt"}
 )
-doc2 = Document(page_content="doggy doggy the doggy", metadata={"source": "doggy.txt"})
+doc2 = Document(page_content="doggy doggy the doggy",
+                metadata={"source": "doggy.txt"})
 
 new_docs = CharacterTextSplitter(
     separator="t", keep_separator=True, chunk_size=12, chunk_overlap=2
@@ -318,20 +329,22 @@ Indexing can accept either an iterable of documents or else any loader.
 logger.info("## Using with loaders")
 
 
-
 class MyCustomLoader(BaseLoader):
     def lazy_load(self):
         text_splitter = CharacterTextSplitter(
             separator="t", keep_separator=True, chunk_size=12, chunk_overlap=2
         )
         docs = [
-            Document(page_content="woof woof", metadata={"source": "doggy.txt"}),
-            Document(page_content="woof woof woof", metadata={"source": "doggy.txt"}),
+            Document(page_content="woof woof",
+                     metadata={"source": "doggy.txt"}),
+            Document(page_content="woof woof woof",
+                     metadata={"source": "doggy.txt"}),
         ]
         yield from text_splitter.split_documents(docs)
 
     def load(self):
         return list(self.lazy_load())
+
 
 _clear()
 
@@ -339,7 +352,8 @@ loader = MyCustomLoader()
 
 loader.load()
 
-index(loader, record_manager, vectorstore, cleanup="full", source_id_key="source")
+index(loader, record_manager, vectorstore,
+      cleanup="full", source_id_key="source")
 
 vectorstore.similarity_search("dog", k=30)
 

@@ -1,5 +1,5 @@
 from dingodb import DingoDB
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Dingo
@@ -38,13 +38,13 @@ logger.info("# DingoDB")
 """
 We want to use OllamaEmbeddings so we have to get the Ollama API Key.
 """
-logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
-
 
 
 loader = TextLoader("../../how_to/state_of_the_union.txt")
@@ -83,7 +83,8 @@ More text can embedded and upserted to an existing Dingo index using the `add_te
 """
 logger.info("### Adding More Text to an Existing Index")
 
-vectorstore = Dingo(embeddings, "text", client=dingo_client, index_name=index_name)
+vectorstore = Dingo(embeddings, "text", client=dingo_client,
+                    index_name=index_name)
 
 vectorstore.add_texts(["More text!"])
 

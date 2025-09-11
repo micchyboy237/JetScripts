@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.utilities import SearchApiAPIWrapper
 from langchain_core.tools import Tool
@@ -42,7 +42,7 @@ logger.info("## Using as part of a Self Ask With Search Chain")
 # os.environ["OPENAI_API_KEY"] = ""
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 search = SearchApiAPIWrapper()
 tools = [
     Tool(

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.chat_ollama.embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.schema import AttributeInfo
@@ -39,13 +39,14 @@ NOTE: The self-query retriever requires the `lark` package installed (`pip insta
 logger.info("# Astra DB")
 
 # !pip install "langchain-astradb>=0.6,<0.7" \
-  "jet.adapters.langchain.chat_ollama>=0.3,<0.4" \
-  "lark>=1.2,<2.0"
+"jet.adapters.langchain.chat_ollama>=0.3,<0.4" \
+    "lark>=1.2,<2.0"
 
 """
 In this example, you'll use the `OllamaEmbeddings`. Please enter an Ollama API Key.
 """
-logger.info("In this example, you'll use the `OllamaEmbeddings`. Please enter an Ollama API Key.")
+logger.info(
+    "In this example, you'll use the `OllamaEmbeddings`. Please enter an Ollama API Key.")
 
 # from getpass import getpass
 
@@ -140,7 +141,7 @@ metadata_field_info = [
     ),
 ]
 document_content_description = "Brief summary of a movie"
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 retriever = SelfQueryRetriever.from_llm(
     llm,

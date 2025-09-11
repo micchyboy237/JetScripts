@@ -1,6 +1,6 @@
 from infinopy import InfinoClient
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains.summarize import load_summarize_chain
 from langchain_community.callbacks.infino_callback import InfinoCallbackHandler
@@ -49,8 +49,6 @@ logger.info("# Infino")
 # %pip install --upgrade --quiet  beautifulsoup4
 
 
-
-
 """
 ## Start Infino server, initialize the Infino client
 """
@@ -91,13 +89,14 @@ questions = data.split("\n")
 """
 ## Example 1: LangChain Ollama Q&A; Publish metrics and logs to Infino
 """
-logger.info("## Example 1: LangChain Ollama Q&A; Publish metrics and logs to Infino")
+logger.info(
+    "## Example 1: LangChain Ollama Q&A; Publish metrics and logs to Infino")
 
 handler = InfinoCallbackHandler(
     model_id="test_ollama", model_version="0.1", verbose=False
 )
 
-llm = Ollama(temperature=0.1)
+llm = ChatOllama(temperature=0.1)
 
 num_questions = 10
 
@@ -114,6 +113,7 @@ for question in questions:
 We now use matplotlib to create graphs of latency, errors and tokens consumed.
 """
 logger.info("## Create Metric Charts")
+
 
 def plot(data, title):
     data = json.loads(data)
@@ -137,6 +137,7 @@ def plot(data, title):
 
     plt.show()
 
+
 response = client.search_ts("__name__", "latency", 0, int(time.time()))
 plot(response.text, "Latency")
 
@@ -146,7 +147,8 @@ plot(response.text, "Errors")
 response = client.search_ts("__name__", "prompt_tokens", 0, int(time.time()))
 plot(response.text, "Prompt Tokens")
 
-response = client.search_ts("__name__", "completion_tokens", 0, int(time.time()))
+response = client.search_ts(
+    "__name__", "completion_tokens", 0, int(time.time()))
 plot(response.text, "Completion Tokens")
 
 response = client.search_ts("__name__", "total_tokens", 0, int(time.time()))
@@ -206,9 +208,9 @@ plot(response.text, "Errors")
 response = client.search_ts("__name__", "prompt_tokens", 0, int(time.time()))
 plot(response.text, "Prompt Tokens")
 
-response = client.search_ts("__name__", "completion_tokens", 0, int(time.time()))
+response = client.search_ts(
+    "__name__", "completion_tokens", 0, int(time.time()))
 plot(response.text, "Completion Tokens")
-
 
 
 query = "machine learning"
@@ -216,7 +218,6 @@ response = client.search_log(query, 0, int(time.time()))
 
 
 logger.debug("===")
-
 
 
 # !docker rm -f infino-example

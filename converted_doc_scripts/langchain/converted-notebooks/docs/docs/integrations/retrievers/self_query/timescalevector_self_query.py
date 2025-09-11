@@ -1,6 +1,6 @@
 from dotenv import find_dotenv, load_dotenv
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -67,8 +67,8 @@ logger.info("# Timescale Vector (Postgres)")
 """
 In this example, we'll use `OllamaEmbeddings`, so let's load your Ollama API key.
 """
-logger.info("In this example, we'll use `OllamaEmbeddings`, so let's load your Ollama API key.")
-
+logger.info(
+    "In this example, we'll use `OllamaEmbeddings`, so let's load your Ollama API key.")
 
 
 _ = load_dotenv(find_dotenv())
@@ -169,7 +169,7 @@ metadata_field_info = [
 ]
 document_content_description = "Brief summary of a movie"
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 retriever = SelfQueryRetriever.from_llm(
     llm, vectorstore, document_content_description, metadata_field_info, verbose=True
 )

@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from langchain_community.retrievers import WikipediaRetriever
@@ -12,8 +12,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import START, StateGraph
 from pydantic import BaseModel, Field
 from typing_extensions import List, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -68,7 +68,8 @@ llm = ChatOllama(model="llama3.2")
 """
 We can now load a [retriever](/docs/concepts/retrievers/) and construct our [prompt](/docs/concepts/prompt_templates/):
 """
-logger.info("We can now load a [retriever](/docs/concepts/retrievers/) and construct our [prompt](/docs/concepts/prompt_templates/):")
+logger.info(
+    "We can now load a [retriever](/docs/concepts/retrievers/) and construct our [prompt](/docs/concepts/prompt_templates/):")
 
 
 system_prompt = (
@@ -95,7 +96,6 @@ Now that we've got a [model](/docs/concepts/chat_models/), [retriever](/docs/con
 logger.info("Now that we've got a [model](/docs/concepts/chat_models/), [retriever](/docs/concepts/retrievers/) and [prompt](/docs/concepts/prompt_templates/), let's chain them all together. Following the how-to guide on [adding citations](/docs/how_to/qa_citations) to a RAG application, we'll make it so our chain returns both the answer and the retrieved Documents. This uses the same [LangGraph](/docs/concepts/architecture/#langgraph) implementation as in the [RAG Tutorial](/docs/tutorials/rag).")
 
 
-
 class State(TypedDict):
     question: str
     context: List[Document]
@@ -109,7 +109,8 @@ def retrieve(state: State):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
 
@@ -143,7 +144,6 @@ First we define a schema for the output. The `.with_structured_output` supports 
 logger.info("## Tool-calling")
 
 
-
 class CitedAnswer(BaseModel):
     """Answer the user question based only on the given sources, and cite the sources used."""
 
@@ -156,10 +156,12 @@ class CitedAnswer(BaseModel):
         description="The integer IDs of the SPECIFIC sources which justify the answer.",
     )
 
+
 """
 Let's see what the model output is like when we pass in our functions and a user input:
 """
-logger.info("Let's see what the model output is like when we pass in our functions and a user input:")
+logger.info(
+    "Let's see what the model output is like when we pass in our functions and a user input:")
 
 structured_llm = llm.with_structured_output(CitedAnswer)
 
@@ -193,6 +195,7 @@ Now we structure the source identifiers into the prompt to replicate with our ch
 """
 logger.info("Now we structure the source identifiers into the prompt to replicate with our chain. We will make three changes:")
 
+
 def format_docs_with_id(docs: List[Document]) -> str:
     formatted = [
         f"Source ID: {i}\nArticle Title: {doc.metadata['title']}\nArticle Snippet: {doc.page_content}"
@@ -209,7 +212,8 @@ class State(TypedDict):
 
 def generate(state: State):
     formatted_docs = format_docs_with_id(state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": formatted_docs})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": formatted_docs})
     structured_llm = llm.with_structured_output(CitedAnswer)
     response = structured_llm.invoke(messages)
     return {"answer": response}
@@ -241,6 +245,7 @@ To return text spans (perhaps in addition to source identifiers), we can use the
 """
 logger.info("### Cite snippets")
 
+
 class Citation(BaseModel):
     source_id: int = Field(
         ...,
@@ -263,6 +268,7 @@ class QuotedAnswer(BaseModel):
         ..., description="Citations from the given sources that justify the answer."
     )
 
+
 class State(TypedDict):
     question: str
     context: List[Document]
@@ -271,7 +277,8 @@ class State(TypedDict):
 
 def generate(state: State):
     formatted_docs = format_docs_with_id(state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": formatted_docs})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": formatted_docs})
     structured_llm = llm.with_structured_output(QuotedAnswer)
     response = structured_llm.invoke(messages)
     return {"answer": response}
@@ -284,7 +291,8 @@ graph = graph_builder.compile()
 """
 Here we see that the model has extracted a relevant snippet of text from source 0:
 """
-logger.info("Here we see that the model has extracted a relevant snippet of text from source 0:")
+logger.info(
+    "Here we see that the model has extracted a relevant snippet of text from source 0:")
 
 result = graph.invoke({"question": "How fast are cheetahs?"})
 
@@ -328,7 +336,6 @@ We now make similar small updates to our chain:
 3. We use [XMLOutputParser](https://python.langchain.com/api_reference/core/output_parsers/langchain_core.output_parsers.xml.XMLOutputParser.html) to parse the answer into a dict.
 """
 logger.info("We now make similar small updates to our chain:")
-
 
 
 def format_docs_xml(docs: List[Document]) -> str:
@@ -413,8 +420,10 @@ class State(TypedDict):
 def retrieve(state: State):
     retrieved_docs = retriever.invoke(state["question"])
     split_docs = splitter.split_documents(retrieved_docs)
-    stateful_docs = compressor.compress_documents(split_docs, state["question"])
+    stateful_docs = compressor.compress_documents(
+        split_docs, state["question"])
     return {"context": stateful_docs}
+
 
 """
 Let's test this out:
@@ -431,9 +440,11 @@ Next, we assemble it into our chain as before:
 """
 logger.info("Next, we assemble it into our chain as before:")
 
+
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
 
@@ -453,7 +464,8 @@ logger.info("Note that the document content is now compressed, although the docu
 
 result["context"][0].page_content  # passed to model
 
-result["context"][0].metadata["summary"]  # original document  # original document
+# original document  # original document
+result["context"][0].metadata["summary"]
 
 """
 LangSmith trace: https://smith.langchain.com/public/21b0dc15-d70a-4293-9402-9c70f9178e66/r
@@ -465,6 +477,7 @@ Another approach is to post-process our model generation. In this example we'll 
 Let's apply this to our initial chain. If desired, we can implement this via a third step in our application.
 """
 logger.info("## Generation post-processing")
+
 
 class Citation(BaseModel):
     source_id: int = Field(
@@ -487,6 +500,7 @@ class AnnotatedAnswer(BaseModel):
 
 structured_llm = llm.with_structured_output(AnnotatedAnswer)
 
+
 class State(TypedDict):
     question: str
     context: List[Document]
@@ -501,7 +515,8 @@ def retrieve(state: State):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
 
@@ -533,7 +548,8 @@ result["annotations"]
 """
 LangSmith trace: https://smith.langchain.com/public/b8257417-573b-47c4-a750-74e542035f19/r
 """
-logger.info("LangSmith trace: https://smith.langchain.com/public/b8257417-573b-47c4-a750-74e542035f19/r")
+logger.info(
+    "LangSmith trace: https://smith.langchain.com/public/b8257417-573b-47c4-a750-74e542035f19/r")
 
 
 logger.info("\n\n[DONE]", bright=True)

@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.retrievers import ContextualCompressionRetriever
@@ -33,12 +33,15 @@ logger.info("# LLMLingua Document Compressor")
 
 # %pip install --upgrade --quiet  llmlingua accelerate
 
+
 def pretty_print_docs(docs):
     logger.debug(
         f"\n{'-' * 100}\n".join(
-            [f"Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]
+            [f"Document {i + 1}:\n\n" +
+                d.page_content for i, d in enumerate(docs)]
         )
     )
+
 
 """
 ## Set up the base vector store retriever
@@ -51,11 +54,13 @@ documents = TextLoader(
     "../../how_to/state_of_the_union.txt",
 ).load()
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500, chunk_overlap=100)
 texts = text_splitter.split_documents(documents)
 
 embedding = OllamaEmbeddings(model="mxbai-embed-large")
-retriever = FAISS.from_documents(texts, embedding).as_retriever(search_kwargs={"k": 20})
+retriever = FAISS.from_documents(
+    texts, embedding).as_retriever(search_kwargs={"k": 20})
 
 query = "What did the president say about Ketanji Brown Jackson"
 docs = retriever.invoke(query)
@@ -70,7 +75,8 @@ logger.info("## Doing compression with LLMLingua")
 
 llm = ChatOllama(model="llama3.2")
 
-compressor = LLMLinguaCompressor(model_name="ollama-community/gpt2", device_map="cpu")
+compressor = LLMLinguaCompressor(
+    model_name="ollama-community/gpt2", device_map="cpu")
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=compressor, base_retriever=retriever
 )

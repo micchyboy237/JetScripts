@@ -1,8 +1,8 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.callbacks.labelstudio_callback import (
-LabelStudioCallbackHandler,
+    LabelStudioCallbackHandler,
 )
 from langchain_core.messages import HumanMessage, SystemMessage
 import os
@@ -49,10 +49,12 @@ Open your LabelStudio instance in your browser, go to `Account & Settings > Acce
 
 Set environment variables with your LabelStudio URL, API key and Ollama API key:
 """
-logger.info("Next, run `label-studio` on the command line to start the local LabelStudio instance at `http://localhost:8080`. See the [Label Studio installation guide](https://labelstud.io/guide/install) for more options.")
+logger.info(
+    "Next, run `label-studio` on the command line to start the local LabelStudio instance at `http://localhost:8080`. See the [Label Studio installation guide](https://labelstud.io/guide/install) for more options.")
 
 
-os.environ["LABEL_STUDIO_URL"] = "<YOUR-LABEL-STUDIO-URL>"  # e.g. http://localhost:8080
+# e.g. http://localhost:8080
+os.environ["LABEL_STUDIO_URL"] = "<YOUR-LABEL-STUDIO-URL>"
 os.environ["LABEL_STUDIO_API_KEY"] = "<YOUR-LABEL-STUDIO-API-KEY>"
 # os.environ["OPENAI_API_KEY"] = "<YOUR-OPENAI-API-KEY>"
 
@@ -95,8 +97,7 @@ You can collect input LLM prompts and output responses in a LabelStudio project,
 logger.info("## Collecting LLMs prompts and responses")
 
 
-
-llm = Ollama(
+llm = ChatOllama(
     temperature=0, callbacks=[LabelStudioCallbackHandler(project_name="My Project")]
 )
 logger.debug(llm.invoke("Tell me a joke"))

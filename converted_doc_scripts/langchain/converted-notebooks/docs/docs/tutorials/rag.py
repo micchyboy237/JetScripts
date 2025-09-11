@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain_community.document_loaders import WebBaseLoader
@@ -13,12 +13,12 @@ from typing import Literal
 from typing_extensions import Annotated
 from typing_extensions import Annotated, List, TypedDict
 from typing_extensions import List, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import CodeBlock from "@theme/CodeBlock";
-import EmbeddingTabs from "@theme/EmbeddingTabs";
-import TabItem from '@theme/TabItem';
-import Tabs from '@theme/Tabs';
-import VectorStoreTabs from "@theme/VectorStoreTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
+import CodeBlock from "@theme/CodeBlock"
+import EmbeddingTabs from "@theme/EmbeddingTabs"
+import TabItem from '@theme/TabItem'
+import Tabs from '@theme/Tabs'
+import VectorStoreTabs from "@theme/VectorStoreTabs"
 import bs4
 import os
 import shutil
@@ -274,7 +274,8 @@ In this case only HTML tags with class “post-content”, “post-title”, or
 logger.info("## Preview")
 
 
-bs4_strainer = bs4.SoupStrainer(class_=("post-title", "post-header", "post-content"))
+bs4_strainer = bs4.SoupStrainer(
+    class_=("post-title", "post-header", "post-content"))
 loader = WebBaseLoader(
     web_paths=("https://lilianweng.github.io/posts/2023-06-23-agent/",),
     bs_kwargs={"parse_only": bs4_strainer},
@@ -431,11 +432,11 @@ For a simple RAG application, we can just keep track of the input question, retr
 logger.info("#### State:")
 
 
-
 class State(TypedDict):
     question: str
     context: List[Document]
     answer: str
+
 
 """
 #### Nodes (application steps)
@@ -444,6 +445,7 @@ Let's start with a simple sequence of two steps: retrieval and generation.
 """
 logger.info("#### Nodes (application steps)")
 
+
 def retrieve(state: State):
     retrieved_docs = vector_store.similarity_search(state["question"])
     return {"context": retrieved_docs}
@@ -451,9 +453,11 @@ def retrieve(state: State):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
+
 
 """
 Our retrieval step simply runs a similarity search using the input question, and the generation step formats the retrieved context and original question into a prompt for the chat model.
@@ -472,7 +476,8 @@ graph = graph_builder.compile()
 """
 LangGraph also comes with built-in utilities for visualizing the control flow of your application:
 """
-logger.info("LangGraph also comes with built-in utilities for visualizing the control flow of your application:")
+logger.info(
+    "LangGraph also comes with built-in utilities for visualizing the control flow of your application:")
 
 
 display(Image(graph.get_graph().draw_mermaid_png()))
@@ -626,8 +631,6 @@ Let's next define a schema for our search query. We will use [structured output]
 logger.info("Let's next define a schema for our search query. We will use [structured output](/docs/concepts/structured_outputs/) for this purpose. Here we define a query as containing a string query and a document section (either "beginning", "middle", or "end"), but this can be defined however you like.")
 
 
-
-
 class Search(TypedDict):
     """Search query."""
 
@@ -638,10 +641,13 @@ class Search(TypedDict):
         "Section to query.",
     ]
 
+
 """
 Finally, we add a step to our LangGraph application to generate a query from the user's raw input:
 """
-logger.info("Finally, we add a step to our LangGraph application to generate a query from the user's raw input:")
+logger.info(
+    "Finally, we add a step to our LangGraph application to generate a query from the user's raw input:")
+
 
 class State(TypedDict):
     question: str
@@ -667,12 +673,14 @@ def retrieve(state: State):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
 
 
-graph_builder = StateGraph(State).add_sequence([analyze_query, retrieve, generate])
+graph_builder = StateGraph(State).add_sequence(
+    [analyze_query, retrieve, generate])
 graph_builder.add_edge(START, "analyze_query")
 graph = graph_builder.compile()
 

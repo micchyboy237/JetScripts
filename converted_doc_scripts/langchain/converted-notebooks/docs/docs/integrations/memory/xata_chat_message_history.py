@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain.agents.agent_toolkits import create_retriever_tool
@@ -47,7 +47,8 @@ logger.info("# Xata")
 """
 Next, we need to get the environment variables for Xata. You can create a new API key by visiting your [account settings](https://app.xata.io/settings). To find the database URL, go to the Settings page of the database that you have created. The database URL should look something like this: `https://demo-uni3q8.eu-west-1.xata.sh/db/langchain`.
 """
-logger.info("Next, we need to get the environment variables for Xata. You can create a new API key by visiting your [account settings](https://app.xata.io/settings). To find the database URL, go to the Settings page of the database that you have created. The database URL should look something like this: `https://demo-uni3q8.eu-west-1.xata.sh/db/langchain`.")
+logger.info(
+    "Next, we need to get the environment variables for Xata. You can create a new API key by visiting your [account settings](https://app.xata.io/settings). To find the database URL, go to the Settings page of the database that you have created. The database URL should look something like this: `https://demo-uni3q8.eu-west-1.xata.sh/db/langchain`.")
 
 # import getpass
 
@@ -123,7 +124,6 @@ Let's now create a ConversationBufferMemory to store the chat messages from both
 logger.info("After running the above command, if you go to the Xata UI, you should see the documents loaded together with their embeddings in the `docs` table.")
 
 
-
 chat_memory = XataChatMessageHistory(
     session_id=str(uuid4()),  # needs to be unique per user session
     api_key=api_key,
@@ -137,7 +137,8 @@ memory = ConversationBufferMemory(
 """
 Now it's time to create an Agent to use both the vector store and the chat memory together.
 """
-logger.info("Now it's time to create an Agent to use both the vector store and the chat memory together.")
+logger.info(
+    "Now it's time to create an Agent to use both the vector store and the chat memory together.")
 
 
 tool = create_retriever_tool(

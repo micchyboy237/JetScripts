@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Rockset
@@ -60,7 +60,6 @@ Start using Rockset to search for documents similar to your search queries.
 ### 1. Define Key Variables
 """
 logger.info("## LangChain Tutorial")
-
 
 
 ROCKSET_API_KEY = os.environ.get(

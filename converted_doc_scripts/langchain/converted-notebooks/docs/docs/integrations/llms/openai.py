@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_core.prompts import PromptTemplate
 import httpx
@@ -171,7 +171,6 @@ y
 logger.info("T")
 
 
-
 """
 ### Installation
 
@@ -198,7 +197,7 @@ Now we can instantiate our model object and generate chat completions:
 logger.info("## Instantiation")
 
 
-llm = Ollama()
+llm = ChatOllama()
 
 """
 ## Invocation
@@ -213,7 +212,8 @@ llm.invoke("Hello how are you?")
 logger.info("## Chaining")
 
 
-prompt = PromptTemplate.from_template("How to say {input} in {output_language}:\n")
+prompt = PromptTemplate.from_template(
+    "How to say {input} in {output_language}:\n")
 
 chain = prompt | llm
 chain.invoke(

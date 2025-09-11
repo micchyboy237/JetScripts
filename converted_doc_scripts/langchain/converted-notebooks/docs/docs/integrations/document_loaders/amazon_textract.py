@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains.question_answering import load_qa_chain
 from langchain_community.document_loaders import AmazonTextractPDFLoader
@@ -47,7 +47,8 @@ Multi-page documents have to reside on S3. This sample file is a jpeg.
 logger.info("## Example 1: Loading from a local file")
 
 
-loader = AmazonTextractPDFLoader("example_data/alejandro_rosalez_sample-small.jpeg")
+loader = AmazonTextractPDFLoader(
+    "example_data/alejandro_rosalez_sample-small.jpeg")
 documents = loader.load()
 
 """
@@ -123,9 +124,8 @@ documents = loader.load()
 The AmazonTextractPDFLoader can be used in a chain the same way the other loaders are used.
 Textract itself does have a [Query feature](https://docs.aws.amazon.com/textract/latest/dg/API_Query.html), which offers similar functionality to the QA chain in this example, which is worth checking out as well.
 """
-logger.info("## Using the AmazonTextractPDFLoader in a LangChain chain (e.g. Ollama)")
-
-
+logger.info(
+    "## Using the AmazonTextractPDFLoader in a LangChain chain (e.g. Ollama)")
 
 
 # os.environ["OPENAI_API_KEY"] = "your-Ollama-API-key"

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from lemonai import execute_workflow
 import os
@@ -69,7 +69,6 @@ Your model will have access to these functions and will prefer them over self-se
 #### Include Lemon AI in your Langchain project
 """
 logger.info("# Lemon Agent")
-
 
 
 """

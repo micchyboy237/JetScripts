@@ -1,9 +1,9 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.vectorstores import Clickhouse, ClickhouseSettings
 from langchain_core.documents import Document
 from uuid import uuid4
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -37,9 +37,10 @@ logger.info("# ClickHouse")
 """
 You'll need to install `langchain-community` and `clickhouse-connect` to use this integration
 """
-logger.info("You'll need to install `langchain-community` and `clickhouse-connect` to use this integration")
+logger.info(
+    "You'll need to install `langchain-community` and `clickhouse-connect` to use this integration")
 
-pip install -qU langchain-community clickhouse-connect
+pip install - qU langchain-community clickhouse-connect
 
 """
 ### Credentials
@@ -49,7 +50,6 @@ There are no credentials for this notebook, just make sure you have installed th
 If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
 logger.info("### Credentials")
-
 
 
 """
@@ -77,7 +77,6 @@ Once you have created your vector store, we can interact with it by adding and d
 We can add items to our vector store by using the `add_documents` function.
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -181,7 +180,8 @@ You can also search with score:
 """
 logger.info("#### Similarity search with score")
 
-results = vector_store.similarity_search_with_score("Will it be hot tomorrow?", k=1)
+results = vector_store.similarity_search_with_score(
+    "Will it be hot tomorrow?", k=1)
 for res, score in results:
     logger.debug(f"* [SIM={score:3f}] {res.page_content} [{res.metadata}]")
 
@@ -223,7 +223,8 @@ retriever = vector_store.as_retriever(
     search_type="similarity_score_threshold",
     search_kwargs={"k": 1, "score_threshold": 0.5},
 )
-retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+retriever.invoke("Stealing from the bank is a crime",
+                 filter={"source": "news"})
 
 """
 ## Usage for retrieval-augmented generation

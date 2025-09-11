@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.agents import Tool
 from langchain.docstore import InMemoryDocstore
@@ -60,7 +60,8 @@ embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
 
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
-vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+vectorstore = FAISS(embeddings_model.embed_query,
+                    index, InMemoryDocstore({}), {})
 
 """
 ## Setup model and AutoGPT

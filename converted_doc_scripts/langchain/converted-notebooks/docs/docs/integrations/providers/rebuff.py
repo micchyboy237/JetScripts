@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMChain
 from langchain.chains import SimpleSequentialChain, TransformChain
@@ -37,7 +37,6 @@ It is designed to protect AI applications from prompt injection (PI) attacks thr
 logger.info("# Rebuff")
 
 
-
 REBUFF_API_KEY = ""  # Use playground.rebuff.ai to get your API key
 
 """
@@ -60,7 +59,7 @@ logger.debug()
 logger.debug(detection_metrics.json())
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 prompt_template = PromptTemplate(
     input_variables=["user_query"],
@@ -77,7 +76,8 @@ chain = LLMChain(llm=llm, prompt=buffed_prompt)
 
 completion = chain.run(user_input).strip()
 
-is_canary_word_detected = rb.is_canary_word_leaked(user_input, completion, canary_word)
+is_canary_word_detected = rb.is_canary_word_leaked(
+    user_input, completion, canary_word)
 
 logger.debug(f"Canary word detected: {is_canary_word_detected}")
 logger.debug(f"Canary word: {canary_word}")
@@ -95,15 +95,17 @@ logger.info("## Use in a chain")
 
 
 db = SQLDatabase.from_uri("sqlite:///../../notebooks/Chinook.db")
-llm = Ollama(temperature=0, verbose=True)
+llm = ChatOllama(temperature=0, verbose=True)
 
 db_chain = SQLDatabaseChain.from_llm(llm, db, verbose=True)
+
 
 def rebuff_func(inputs):
     detection_metrics, is_injection = rb.detect_injection(inputs["query"])
     if is_injection:
         raise ValueError(f"Injection detected! Details {detection_metrics}")
     return {"rebuffed_query": inputs["query"]}
+
 
 transformation_chain = TransformChain(
     input_variables=["query"],

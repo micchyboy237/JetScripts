@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.retrievers import ContextualCompressionRetriever
@@ -47,6 +47,7 @@ def pretty_print_docs(docs):
         )
     )
 
+
 """
 ## Set up the base vector store retriever
 Let's start by initializing a simple vector store retriever and storing the 2023 State of the Union speech (in chunks). We can set up the retriever to retrieve a high number (20) of docs.
@@ -61,13 +62,15 @@ logger.info("## Set up the base vector store retriever")
 documents = TextLoader(
     "../../how_to/state_of_the_union.txt",
 ).load()
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500, chunk_overlap=100)
 texts = text_splitter.split_documents(documents)
 for idx, text in enumerate(texts):
     text.metadata["id"] = idx
 
 embedding = OllamaEmbeddings(model="mxbai-embed-large")
-retriever = FAISS.from_documents(texts, embedding).as_retriever(search_kwargs={"k": 20})
+retriever = FAISS.from_documents(
+    texts, embedding).as_retriever(search_kwargs={"k": 20})
 
 query = "What did the president say about Ketanji Brown Jackson"
 docs = retriever.invoke(query)

@@ -1,6 +1,6 @@
 from dingodb import DingoDB
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -43,7 +43,8 @@ logger.info("# DingoDB")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 
 # OPENAI_API_KEY = ""
@@ -71,7 +72,8 @@ if (
 docs = [
     Document(
         page_content="A bunch of scientists bring back dinosaurs and mayhem breaks loose",
-        metadata={"year": 1993, "rating": 7.7, "genre": '"action", "science fiction"'},
+        metadata={"year": 1993, "rating": 7.7,
+                  "genre": '"action", "science fiction"'},
     ),
     Document(
         page_content="Leo DiCaprio gets lost in a dream within a dream within a dream within a ...",
@@ -136,7 +138,7 @@ metadata_field_info = [
     ),
 ]
 document_content_description = "Brief summary of a movie"
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 retriever = SelfQueryRetriever.from_llm(
     llm, vectorstore, document_content_description, metadata_field_info, verbose=True
 )

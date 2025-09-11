@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_surrealdb.vectorstores import SurrealDBVectorStore
@@ -93,7 +93,8 @@ logger.info("#")
 conn = Surreal("ws://localhost:8000/rpc")
 conn.signin({"username": "root", "password": "root"})
 conn.use("langchain", "demo")
-vector_store = SurrealDBVectorStore(OllamaEmbeddings(model="mxbai-embed-large"), conn)
+vector_store = SurrealDBVectorStore(
+    OllamaEmbeddings(model="mxbai-embed-large"), conn)
 
 """
 ## Manage vector store
@@ -109,7 +110,8 @@ d2 = Document(page_content="SurrealDB", metadata={"source": _url})
 d3 = Document(page_content="bar", metadata={"source": _url})
 d4 = Document(page_content="this is surreal", metadata={"source": _url})
 
-vector_store.add_documents(documents=[d1, d2, d3, d4], ids=["1", "2", "3", "4"])
+vector_store.add_documents(
+    documents=[d1, d2, d3, d4], ids=["1", "2", "3", "4"])
 
 """
 #

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain.chains import LLMChain
@@ -73,7 +73,6 @@ To use the `ArgillaCallbackHandler` we will need to create a new `FeedbackDatase
 logger.info("### Setup Argilla")
 
 
-
 if parse_version(rg.__version__) < parse_version("1.8.0"):
     raise RuntimeError(
         "`FeedbackDataset` is only available in Argilla v1.8.0 or higher, please "
@@ -139,7 +138,7 @@ argilla_callback = ArgillaCallbackHandler(
 )
 callbacks = [StdOutCallbackHandler(), argilla_callback]
 
-llm = Ollama(temperature=0.9, callbacks=callbacks)
+llm = ChatOllama(temperature=0.9, callbacks=callbacks)
 llm.generate(["Tell me a joke", "Tell me a poem"] * 3)
 
 """
@@ -158,7 +157,7 @@ argilla_callback = ArgillaCallbackHandler(
     api_key=os.environ["ARGILLA_API_KEY"],
 )
 callbacks = [StdOutCallbackHandler(), argilla_callback]
-llm = Ollama(temperature=0.9, callbacks=callbacks)
+llm = ChatOllama(temperature=0.9, callbacks=callbacks)
 
 template = """You are a playwright. Given the title of play, it is your job to write a synopsis for that title.
 Title: {title}
@@ -187,7 +186,7 @@ argilla_callback = ArgillaCallbackHandler(
     api_key=os.environ["ARGILLA_API_KEY"],
 )
 callbacks = [StdOutCallbackHandler(), argilla_callback]
-llm = Ollama(temperature=0.9, callbacks=callbacks)
+llm = ChatOllama(temperature=0.9, callbacks=callbacks)
 
 tools = load_tools(["serpapi"], llm=llm, callbacks=callbacks)
 agent = initialize_agent(

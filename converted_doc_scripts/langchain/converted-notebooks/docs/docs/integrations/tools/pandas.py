@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
@@ -33,7 +33,6 @@ pip install --upgrade jet.adapters.langchain.chat_ollama
 pip install --upgrade langchain
 """
 logger.info("# Pandas Dataframe")
-
 
 
 df = pd.read_csv(
@@ -79,7 +78,8 @@ logger.info("## Multi DataFrame Example")
 df1 = df.copy()
 df1["Age"] = df1["Age"].fillna(df1["Age"].mean())
 
-agent = create_pandas_dataframe_agent(Ollama(temperature=0), [df, df1], verbose=True)
+agent = create_pandas_dataframe_agent(
+    Ollama(temperature=0), [df, df1], verbose=True)
 agent.invoke("how many rows in the age column are different?")
 
 logger.info("\n\n[DONE]", bright=True)

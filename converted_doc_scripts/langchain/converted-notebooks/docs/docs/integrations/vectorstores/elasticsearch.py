@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.vectorstores.elastic_vector_search import ElasticKNNSearch
 from langchain_community.vectorstores.elastic_vector_search import ElasticVectorSearch
@@ -11,7 +11,7 @@ from langchain_elasticsearch import ElasticsearchStore, DenseVectorStrategy
 from langchain_elasticsearch import SparseVectorStrategy
 from typing import Dict
 from uuid import uuid4
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -120,8 +120,8 @@ elastic_vector_search = ElasticsearchStore(
 """
 If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
-logger.info("If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
-
+logger.info(
+    "If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
 
 
 """
@@ -142,7 +142,6 @@ vector_store = ElasticsearchStore(
 ### Add items to vector store
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -382,7 +381,8 @@ To use this, specify the model_id in `DenseVectorStrategy` constructor via the `
 
 **NOTE**: This requires the model to be deployed and running in Elasticsearch ML node. See [notebook example](https://github.com/elastic/elasticsearch-labs/blob/main/notebooks/integrations/hugging-face/loading-model-from-hugging-face.ipynb) on how to deploy the model with `eland`.
 """
-logger.info("#### Example: Dense vector search with Embedding Model in Elasticsearch")
+logger.info(
+    "#### Example: Dense vector search with Embedding Model in Elasticsearch")
 
 DENSE_SELF_DEPLOYED_INDEX_NAME = "test-dense-self-deployed"
 
@@ -393,7 +393,8 @@ db = ElasticsearchStore(
     index_name=DENSE_SELF_DEPLOYED_INDEX_NAME,
     query_field="text_field",
     vector_query_field="vector_query_field.predicted_value",
-    strategy=DenseVectorStrategy(model_id="sentence-transformers__all-minilm-l6-v2"),
+    strategy=DenseVectorStrategy(
+        model_id="sentence-transformers__all-minilm-l6-v2"),
 )
 
 db.client.ingest.put_pipeline(
@@ -437,7 +438,8 @@ db.from_texts(
     index_name=DENSE_SELF_DEPLOYED_INDEX_NAME,
     query_field="text_field",
     vector_query_field="vector_query_field.predicted_value",
-    strategy=DenseVectorStrategy(model_id="sentence-transformers__all-minilm-l6-v2"),
+    strategy=DenseVectorStrategy(
+        model_id="sentence-transformers__all-minilm-l6-v2"),
 )
 
 db.similarity_search("hello world", k=10)
@@ -537,6 +539,7 @@ With `custom_query` parameter at search, you are able to adjust the query that i
 """
 logger.info("## Customise the Query")
 
+
 def custom_query(query_body: dict, query: str):
     """Custom query to be used in Elasticsearch.
     Args:
@@ -572,8 +575,6 @@ logger.debug(results[0])
 With `doc_builder` parameter at search, you are able to adjust how a Document is being built using data retrieved from Elasticsearch. This is especially useful if you have indices which were not created using Langchain.
 """
 logger.info("## Customize the Document Builder")
-
-
 
 
 def custom_document_builder(hit: Dict) -> Document:

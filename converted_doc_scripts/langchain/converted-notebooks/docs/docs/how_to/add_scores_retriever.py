@@ -1,6 +1,6 @@
 from collections import defaultdict
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.base import AttributeInfo
 from langchain.retrievers import MultiVectorRetriever
@@ -90,8 +90,6 @@ We add a `@chain` decorator to the function to create a [Runnable](/docs/concept
 logger.info("## Retriever")
 
 
-
-
 @chain
 def retriever(query: str) -> List[Document]:
     docs, scores = zip(*vectorstore.similarity_search_with_score(query))
@@ -99,6 +97,7 @@ def retriever(query: str) -> List[Document]:
         doc.metadata["score"] = score
 
     return docs
+
 
 result = retriever.invoke("dinosaur")
 result
@@ -146,7 +145,6 @@ We then override the `_get_docs_with_query` to use the `similarity_search_with_s
 logger.info("We then override the `_get_docs_with_query` to use the `similarity_search_with_score` method of the underlying vector store:")
 
 
-
 class CustomSelfQueryRetriever(SelfQueryRetriever):
     def _get_docs_with_query(
         self, query: str, search_kwargs: Dict[str, Any]
@@ -159,6 +157,7 @@ class CustomSelfQueryRetriever(SelfQueryRetriever):
             doc.metadata["score"] = score
 
         return docs
+
 
 """
 Invoking this retriever will now include similarity scores in the document metadata. Note that the underlying structured-query capabilities of `SelfQueryRetriever` are retained.
@@ -226,8 +225,6 @@ To propagate the scores, we subclass `MultiVectorRetriever` and override its `_g
 logger.info("To propagate the scores, we subclass `MultiVectorRetriever` and override its `_get_relevant_documents` method. Here we will make two changes:")
 
 
-
-
 class CustomMultiVectorRetriever(MultiVectorRetriever):
     def _get_relevant_documents(
         self, query: str, *, run_manager: CallbackManagerForRetrieverRun
@@ -260,12 +257,14 @@ class CustomMultiVectorRetriever(MultiVectorRetriever):
 
         return docs
 
+
 """
 Invoking this retriever, we can see that it identifies the correct parent document, including the relevant snippet from the sub-document with similarity score.
 """
 logger.info("Invoking this retriever, we can see that it identifies the correct parent document, including the relevant snippet from the sub-document with similarity score.")
 
-retriever = CustomMultiVectorRetriever(vectorstore=vectorstore, docstore=docstore)
+retriever = CustomMultiVectorRetriever(
+    vectorstore=vectorstore, docstore=docstore)
 
 retriever.invoke("cat")
 

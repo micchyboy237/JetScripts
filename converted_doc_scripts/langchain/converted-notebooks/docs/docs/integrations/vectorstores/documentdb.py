@@ -1,10 +1,10 @@
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.vectorstores.documentdb import (
-DocumentDBSimilarityType,
-DocumentDBVectorSearch,
+    DocumentDBSimilarityType,
+    DocumentDBVectorSearch,
 )
 from langchain_community.document_loaders import TextLoader
 from langchain_core.prompts import PromptTemplate
@@ -54,7 +54,8 @@ DB_NAME, COLLECTION_NAME = NAMESPACE.split(".")
 """
 We want to use `OllamaEmbeddings` so we need to set up our Ollama environment variables.
 """
-logger.info("We want to use `OllamaEmbeddings` so we need to set up our Ollama environment variables.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we need to set up our Ollama environment variables.")
 
 # import getpass
 
@@ -63,7 +64,8 @@ logger.info("We want to use `OllamaEmbeddings` so we need to set up our Ollama e
 os.environ["OPENAI_EMBEDDINGS_DEPLOYMENT"] = (
     "smart-agent-embedding-ada"  # the deployment name for the embedding model
 )
-os.environ["OPENAI_EMBEDDINGS_MODEL_NAME"] = "text-embedding-ada-002"  # the model name
+# the model name
+os.environ["OPENAI_EMBEDDINGS_MODEL_NAME"] = "text-embedding-ada-002"
 
 """
 Now, we will load the documents into the collection, create the index, and then perform queries against the index.
@@ -83,7 +85,8 @@ docs = text_splitter.split_documents(documents)
 model_deployment = os.getenv(
     "OPENAI_EMBEDDINGS_DEPLOYMENT", "smart-agent-embedding-ada"
 )
-model_name = os.getenv("OPENAI_EMBEDDINGS_MODEL_NAME", "text-embedding-ada-002")
+model_name = os.getenv("OPENAI_EMBEDDINGS_MODEL_NAME",
+                       "text-embedding-ada-002")
 
 
 ollama_embeddings: OllamaEmbeddings = OllamaEmbeddings(
@@ -101,7 +104,8 @@ collection = client[DB_NAME][COLLECTION_NAME]
 model_deployment = os.getenv(
     "OPENAI_EMBEDDINGS_DEPLOYMENT", "smart-agent-embedding-ada"
 )
-model_name = os.getenv("OPENAI_EMBEDDINGS_MODEL_NAME", "text-embedding-ada-002")
+model_name = os.getenv("OPENAI_EMBEDDINGS_MODEL_NAME",
+                       "text-embedding-ada-002")
 
 vectorstore = DocumentDBVectorSearch.from_documents(
     documents=docs,

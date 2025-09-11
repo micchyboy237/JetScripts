@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain_community.agent_toolkits.gitlab.toolkit import GitLabToolkit
@@ -80,7 +80,6 @@ Before initializing your agent, the following environmental variables need to be
 logger.info("### 2. Create a Gitlab personal access token")
 
 
-
 os.environ["GITLAB_URL"] = "https://gitlab.example.org"
 os.environ["GITLAB_PERSONAL_ACCESS_TOKEN"] = ""
 os.environ["GITLAB_REPOSITORY"] = "username/repo-name"
@@ -89,7 +88,7 @@ os.environ["GITLAB_BASE_BRANCH"] = "main"
 
 # os.environ["OPENAI_API_KEY"] = ""
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 gitlab = GitLabAPIWrapper()
 toolkit = GitLabToolkit.from_gitlab_api_wrapper(gitlab)
 agent = initialize_agent(

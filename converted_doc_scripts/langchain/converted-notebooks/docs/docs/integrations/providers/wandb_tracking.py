@@ -1,5 +1,5 @@
 from datetime import datetime
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain.chains import LLMChain
@@ -53,7 +53,6 @@ logger.info("# Weights & Biases tracking")
 os.environ["WANDB_API_KEY"] = ""
 
 
-
 """
 ```
 Callback Handler that logs to Weights and Biases.
@@ -100,7 +99,7 @@ wandb_callback = WandbCallbackHandler(
     tags=["test"],
 )
 callbacks = [StdOutCallbackHandler(), wandb_callback]
-llm = Ollama(temperature=0, callbacks=callbacks)
+llm = ChatOllama(temperature=0, callbacks=callbacks)
 
 """
 ```

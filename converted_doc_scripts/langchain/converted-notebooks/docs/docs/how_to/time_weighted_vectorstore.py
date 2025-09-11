@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain_community.docstore import InMemoryDocstore
@@ -38,7 +38,6 @@ Notably, `hours_passed` refers to the hours passed since the object in the retri
 logger.info("# How to use a time-weighted vector store retriever")
 
 
-
 """
 ## Low decay rate
 
@@ -56,7 +55,8 @@ retriever = TimeWeightedVectorStoreRetriever(
 
 yesterday = datetime.now() - timedelta(days=1)
 retriever.add_documents(
-    [Document(page_content="hello world", metadata={"last_accessed_at": yesterday})]
+    [Document(page_content="hello world", metadata={
+              "last_accessed_at": yesterday})]
 )
 retriever.add_documents([Document(page_content="hello foo")])
 
@@ -79,7 +79,8 @@ retriever = TimeWeightedVectorStoreRetriever(
 
 yesterday = datetime.now() - timedelta(days=1)
 retriever.add_documents(
-    [Document(page_content="hello world", metadata={"last_accessed_at": yesterday})]
+    [Document(page_content="hello world", metadata={
+              "last_accessed_at": yesterday})]
 )
 retriever.add_documents([Document(page_content="hello foo")])
 

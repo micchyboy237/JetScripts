@@ -1,15 +1,15 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers import (
-ContextualCompressionRetriever,
-DocumentCompressorPipeline,
-MergerRetriever,
+    ContextualCompressionRetriever,
+    DocumentCompressorPipeline,
+    MergerRetriever,
 )
 from langchain_chroma import Chroma
 from langchain_community.document_transformers import (
-EmbeddingsClusteringFilter,
-EmbeddingsRedundantFilter,
+    EmbeddingsClusteringFilter,
+    EmbeddingsRedundantFilter,
 )
 from langchain_community.document_transformers import LongContextReorder
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -37,7 +37,6 @@ os.makedirs(PERSIST_DIR, exist_ok=True)
 The `MergerRetriever` class can be used to improve the accuracy of document retrieval in a number of ways. First, it can combine the results of multiple retrievers, which can help to reduce the risk of bias in the results. Second, it can rank the results of the different retrievers, which can help to ensure that the most relevant documents are returned first.
 """
 logger.info("# LOTR (Merger Retriever)")
-
 
 
 all_mini = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
@@ -88,7 +87,8 @@ compression_retriever = ContextualCompressionRetriever(
 """
 ## Pick a representative sample of documents from the merged retrievers.
 """
-logger.info("## Pick a representative sample of documents from the merged retrievers.")
+logger.info(
+    "## Pick a representative sample of documents from the merged retrievers.")
 
 filter_ordered_cluster = EmbeddingsClusteringFilter(
     embeddings=filter_embeddings,
@@ -103,7 +103,8 @@ filter_ordered_by_retriever = EmbeddingsClusteringFilter(
     sorted=True,
 )
 
-pipeline = DocumentCompressorPipeline(transformers=[filter_ordered_by_retriever])
+pipeline = DocumentCompressorPipeline(
+    transformers=[filter_ordered_by_retriever])
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=pipeline, base_retriever=lotr
 )

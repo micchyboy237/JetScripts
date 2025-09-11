@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama, Ollama, OllamaEmbeddings
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain_community.document_loaders import TextLoader

@@ -1,5 +1,5 @@
 from IPython import display
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain_community.agent_toolkits import AzureCognitiveServicesToolkit
@@ -66,7 +66,7 @@ toolkit = AzureCognitiveServicesToolkit()
 logger.info("## Use within an Agent")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 agent = initialize_agent(
     tools=toolkit.get_tools(),
     llm=llm,

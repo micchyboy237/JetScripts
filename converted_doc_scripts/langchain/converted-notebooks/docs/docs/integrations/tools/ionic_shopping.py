@@ -1,5 +1,5 @@
 from ionic_langchain.tool import Ionic, IonicTool
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain import hub
 from langchain.agents import AgentExecutor, Tool, create_react_agent
@@ -48,16 +48,15 @@ pip install ionic-langchain
 logger.info("## Setup Agent")
 
 
-
 ollama_key = "YOUR KEY HERE"
 model = "gpt-3.5-turbo-instruct"
 temperature = 0.6
 
-llm = Ollama(ollama_api_key=ollama_key, model_name=model, temperature=temperature)
+llm = ChatOllama(ollama_api_key=ollama_key,
+                 model_name=model, temperature=temperature)
 
 
 ionic_tool = IonicTool().tool()
-
 
 
 ionic_tool.description = str(

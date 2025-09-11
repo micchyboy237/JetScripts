@@ -1,9 +1,9 @@
 from astrapy.info import VectorServiceOptions
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_astradb import AstraDBVectorStore
 from langchain_core.documents import Document
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -37,7 +37,7 @@ Use of the integration requires the `langchain-astradb` partner package:
 logger.info("# Astra DB Vector Store")
 
 # !pip install \
-    "langchain>=0.3.23,<0.4" \
+"langchain>=0.3.23,<0.4" \
     "langchain-core>=0.3.52,<0.4" \
     "langchain-astradb>=0.6,<0.7"
 
@@ -68,8 +68,8 @@ else:
 """
 If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
-logger.info("If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
-
+logger.info(
+    "If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
 
 
 """
@@ -135,7 +135,7 @@ ollama_vectorize_options = VectorServiceOptions(
     provider="ollama",
     model_name="mxbai-embed-large",
     authentication={
-#         "providerKey": "OPENAI_API_KEY",
+        #         "providerKey": "OPENAI_API_KEY",
     },
 )
 
@@ -299,7 +299,8 @@ results = vector_store.similarity_search_with_score(
     filter={"source": "tweet"},
 )
 for res, score in results:
-    logger.debug(f'* [SIM={score:.2f}] "{res.page_content}", metadata={res.metadata}')
+    logger.debug(
+        f'* [SIM={score:.2f}] "{res.page_content}", metadata={res.metadata}')
 
 """
 #### Specify a different keyword query (requires hybrid search)
@@ -342,7 +343,8 @@ retriever = vector_store.as_retriever(
     search_type="similarity_score_threshold",
     search_kwargs={"k": 1, "score_threshold": 0.5},
 )
-retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+retriever.invoke("Stealing from the bank is a crime",
+                 filter={"source": "news"})
 
 """
 ## Usage for retrieval-augmented generation

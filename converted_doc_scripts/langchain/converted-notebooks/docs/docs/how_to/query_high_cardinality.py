@@ -1,6 +1,6 @@
 from faker import Faker
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
@@ -35,7 +35,8 @@ In this notebook we take a look at how to approach this.
 ## Setup
 #### Install dependencies
 """
-logger.info("# How to deal with high-cardinality categoricals when doing query analysis")
+logger.info(
+    "# How to deal with high-cardinality categoricals when doing query analysis")
 
 # %pip install -qU langchain langchain-community langchain-ollama faker langchain-chroma
 
@@ -99,14 +100,16 @@ query_analyzer = {"question": RunnablePassthrough()} | prompt | structured_llm
 """
 We can see that if we spell the name exactly correctly, it knows how to handle it
 """
-logger.info("We can see that if we spell the name exactly correctly, it knows how to handle it")
+logger.info(
+    "We can see that if we spell the name exactly correctly, it knows how to handle it")
 
 query_analyzer.invoke("what are books about aliens by Jesse Knight")
 
 """
 The issue is that the values you want to filter on may NOT be spelled exactly correctly
 """
-logger.info("The issue is that the values you want to filter on may NOT be spelled exactly correctly")
+logger.info(
+    "The issue is that the values you want to filter on may NOT be spelled exactly correctly")
 
 query_analyzer.invoke("what are books about aliens by jess knight")
 
@@ -132,15 +135,18 @@ base_prompt = ChatPromptTemplate.from_messages(
 )
 prompt = base_prompt.partial(authors=", ".join(names))
 
-query_analyzer_all = {"question": RunnablePassthrough()} | prompt | structured_llm
+query_analyzer_all = {
+    "question": RunnablePassthrough()} | prompt | structured_llm
 
 """
 However... if the list of categoricals is long enough, it may error!
 """
-logger.info("However... if the list of categoricals is long enough, it may error!")
+logger.info(
+    "However... if the list of categoricals is long enough, it may error!")
 
 try:
-    res = query_analyzer_all.invoke("what are books about aliens by jess knight")
+    res = query_analyzer_all.invoke(
+        "what are books about aliens by jess knight")
 except Exception as e:
     logger.debug(e)
 
@@ -151,7 +157,8 @@ logger.info("We can try to use a longer context window... but with so much infor
 
 llm_long = ChatOllama(model="llama3.2")
 structured_llm_long = llm_long.with_structured_output(Search)
-query_analyzer_all = {"question": RunnablePassthrough()} | prompt | structured_llm_long
+query_analyzer_all = {
+    "question": RunnablePassthrough()} | prompt | structured_llm_long
 
 query_analyzer_all.invoke("what are books about aliens by jess knight")
 
@@ -164,12 +171,15 @@ logger.info("### Find and all relevant values")
 
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-vectorstore = Chroma.from_texts(names, embeddings, collection_name="author_names")
+vectorstore = Chroma.from_texts(
+    names, embeddings, collection_name="author_names")
+
 
 def select_names(question):
     _docs = vectorstore.similarity_search(question, k=10)
     _names = [d.page_content for d in _docs]
     return ", ".join(_names)
+
 
 create_prompt = {
     "question": RunnablePassthrough(),
@@ -190,6 +200,7 @@ This can actually be done with the Pydantic class itself!
 """
 logger.info("### Replace after selection")
 
+
 class Search(BaseModel):
     query: str
     author: str
@@ -203,6 +214,7 @@ class Search(BaseModel):
         ].page_content
         values["author"] = closest_valid_author
         return values
+
 
 system = """Generate a relevant search query for a library system"""
 prompt = ChatPromptTemplate.from_messages(

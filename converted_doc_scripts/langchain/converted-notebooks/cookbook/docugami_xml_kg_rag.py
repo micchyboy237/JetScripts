@@ -2,13 +2,13 @@ from dgml_utils.segmentation import get_chunks_str
 from docugami import Docugami
 from docugami.lib.upload import upload_to_named_docset, wait_for_dgml
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.prompts import (
-ChatPromptTemplate,
-HumanMessagePromptTemplate,
-SystemMessagePromptTemplate,
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
 )
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 from langchain.storage import InMemoryStore
@@ -85,7 +85,6 @@ First, let's define two simple helper methods to upload files and wait for them 
 logger.info("## Data Loading")
 
 
-
 DOCSET_NAME = "NTSB Aviation Incident Reports"
 FILE_PATHS = [
     "/Users/tjaffri/ntsb/Report_CEN23LA277_192541.pdf",
@@ -114,7 +113,6 @@ You can use the [Docugami Loader](https://python.langchain.com/docs/integrations
 logger.info("### Partition PDF tables and text")
 
 
-
 dgml_path = dgml_paths[Path(FILE_PATHS[0]).name]
 
 with open(dgml_path, "r") as file:
@@ -122,7 +120,8 @@ with open(dgml_path, "r") as file:
 
     chunks = get_chunks_str(
         contents,
-        include_xml_tags=True,  # Ensures Docugami XML semantic tags are included in the chunked output (set to False for text-only chunks and tables as Markdown)
+        # Ensures Docugami XML semantic tags are included in the chunked output (set to False for text-only chunks and tables as Markdown)
+        include_xml_tags=True,
         max_text_length=1024 * 8,  # 8k chars are ~2k tokens for Ollama.
     )
 
@@ -135,7 +134,8 @@ The file processed by Docugami in the example above was [this one](https://data.
 
 If you want text based chunks instead, Docugami also supports those and renders tables as markdown:
 """
-logger.info("The file processed by Docugami in the example above was [this one](https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/192541/pdf) from the NTSB and you can look at the PDF side by side to compare the XML chunks above.")
+logger.info(
+    "The file processed by Docugami in the example above was [this one](https://data.ntsb.gov/carol-repgen/api/Aviation/ReportMain/GenerateNewestReport/192541/pdf) from the NTSB and you can look at the PDF side by side to compare the XML chunks above.")
 
 with open(dgml_path, "r") as file:
     contents = file.read().encode("utf-8")
@@ -200,7 +200,8 @@ If you prefer, you can set `include_xml_tags=False` in the `get_chunks_str` call
 logger.info("The XML markup contains structural as well as semantic tags, which provide additional semantics to the LLM for improved retrieval and generation.")
 
 chunks_as_text = get_chunks_str(dgml, include_xml_tags=False)
-table_elements_as_text = [c for c in chunks_as_text if "table" in c.structure.split()]
+table_elements_as_text = [
+    c for c in chunks_as_text if "table" in c.structure.split()]
 
 logger.debug(table_elements_as_text[0].text)
 
@@ -250,8 +251,6 @@ Use [Multi Vector Retriever](https://python.langchain.com/docs/modules/data_conn
 * `vectorstore` stores the embedded summaries
 """
 logger.info("### Add to vectorstore")
-
-
 
 
 def build_retriever(text_elements, tables, table_summaries):
@@ -346,14 +345,17 @@ dgml = requests.get(
 llama2_chunks = get_chunks_str(dgml, include_xml_tags=True)
 len(llama2_chunks)
 
-llama2_table_elements = [c for c in llama2_chunks if "table" in c.structure.split()]
+llama2_table_elements = [
+    c for c in llama2_chunks if "table" in c.structure.split()]
 logger.debug(f"There are {len(llama2_table_elements)} tables")
 
-llama2_text_elements = [c for c in llama2_chunks if "table" not in c.structure.split()]
+llama2_text_elements = [
+    c for c in llama2_chunks if "table" not in c.structure.split()]
 logger.debug(f"There are {len(llama2_text_elements)} text elements")
 
 llama2_tables = [i.text for i in llama2_table_elements]
-llama2_table_summaries = summarize_chain.batch(llama2_tables, {"max_concurrency": 5})
+llama2_table_summaries = summarize_chain.batch(
+    llama2_tables, {"max_concurrency": 5})
 
 llama2_retriever = build_retriever(
     llama2_text_elements, llama2_tables, llama2_table_summaries
@@ -449,7 +451,8 @@ This includes Table 1 in the doc, showing the tokens used for training table as 
 
 Finally, you can ask other questions that rely on more subtle parsing of the table, e.g.:
 """
-logger.info("We can check the [trace](https://smith.langchain.com/public/5de100c3-bb40-4234-bf02-64bc708686a1/r) to see what chunks were retrieved.")
+logger.info(
+    "We can check the [trace](https://smith.langchain.com/public/5de100c3-bb40-4234-bf02-64bc708686a1/r) to see what chunks were retrieved.")
 
 llama2_chain.invoke("What was the learning rate for LLaMA2?")
 

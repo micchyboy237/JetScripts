@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_chroma import Chroma
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
@@ -66,7 +66,8 @@ logger.info("# How to use few shot examples in chat models")
 """
 If we try to ask the model what the result of this expression is, it will fail:
 """
-logger.info("If we try to ask the model what the result of this expression is, it will fail:")
+logger.info(
+    "If we try to ask the model what the result of this expression is, it will fail:")
 
 
 model = ChatOllama(model="llama3.2")
@@ -76,7 +77,8 @@ model.invoke("What is 2 🦜 9?")
 """
 Now let's see what happens if we give the LLM some examples to work with. We'll define some below:
 """
-logger.info("Now let's see what happens if we give the LLM some examples to work with. We'll define some below:")
+logger.info(
+    "Now let's see what happens if we give the LLM some examples to work with. We'll define some below:")
 
 
 examples = [
@@ -118,7 +120,8 @@ final_prompt = ChatPromptTemplate.from_messages(
 """
 And now let's ask the model the initial question and see how it does:
 """
-logger.info("And now let's ask the model the initial question and see how it does:")
+logger.info(
+    "And now let's ask the model the initial question and see how it does:")
 
 
 chain = final_prompt | model
@@ -192,7 +195,8 @@ logger.debug(few_shot_prompt.invoke(input="What's 3 🦜 3?").to_messages())
 """
 And we can pass this few-shot chat message prompt template into another chat prompt template:
 """
-logger.info("And we can pass this few-shot chat message prompt template into another chat prompt template:")
+logger.info(
+    "And we can pass this few-shot chat message prompt template into another chat prompt template:")
 
 final_prompt = ChatPromptTemplate.from_messages(
     [

@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import SupabaseVectorStore
@@ -84,7 +84,8 @@ logger.info("# Supabase (Postgres)")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -92,10 +93,10 @@ logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API 
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 if "SUPABASE_URL" not in os.environ:
-#     os.environ["SUPABASE_URL"] = getpass.getpass("Supabase URL:")
+    #     os.environ["SUPABASE_URL"] = getpass.getpass("Supabase URL:")
 
 if "SUPABASE_SERVICE_KEY" not in os.environ:
-#     os.environ["SUPABASE_SERVICE_KEY"] = getpass.getpass("Supabase Service Key:")
+    #     os.environ["SUPABASE_SERVICE_KEY"] = getpass.getpass("Supabase Service Key:")
 
 
 load_dotenv()
@@ -103,8 +104,8 @@ load_dotenv()
 """
 First we'll create a Supabase client and instantiate a Ollama embeddings class.
 """
-logger.info("First we'll create a Supabase client and instantiate a Ollama embeddings class.")
-
+logger.info(
+    "First we'll create a Supabase client and instantiate a Ollama embeddings class.")
 
 
 supabase_url = os.environ.get("SUPABASE_URL")

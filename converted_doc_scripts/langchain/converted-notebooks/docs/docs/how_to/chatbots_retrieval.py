@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_chroma import Chroma
@@ -51,7 +51,8 @@ dotenv.load_dotenv()
 """
 Let's also set up a chat model that we'll use for the below examples.
 """
-logger.info("Let's also set up a chat model that we'll use for the below examples.")
+logger.info(
+    "Let's also set up a chat model that we'll use for the below examples.")
 
 
 chat = ChatOllama(model="llama3.2")
@@ -84,12 +85,14 @@ Then we embed and store those chunks in a vector database:
 logger.info("Then we embed and store those chunks in a vector database:")
 
 
-vectorstore = Chroma.from_documents(documents=all_splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma.from_documents(
+    documents=all_splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
 
 """
 And finally, let's create a retriever from our initialized vectorstore:
 """
-logger.info("And finally, let's create a retriever from our initialized vectorstore:")
+logger.info(
+    "And finally, let's create a retriever from our initialized vectorstore:")
 
 retriever = vectorstore.as_retriever(k=4)
 
@@ -140,7 +143,8 @@ document_chain.invoke(
     {
         "context": docs,
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?")
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?")
         ],
     }
 )
@@ -148,13 +152,15 @@ document_chain.invoke(
 """
 Looks good! For comparison, we can try it with no context docs and compare the result:
 """
-logger.info("Looks good! For comparison, we can try it with no context docs and compare the result:")
+logger.info(
+    "Looks good! For comparison, we can try it with no context docs and compare the result:")
 
 document_chain.invoke(
     {
         "context": [],
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?")
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?")
         ],
     }
 )
@@ -167,8 +173,6 @@ We can see that the LLM does not return any results.
 Let's combine this document chain with the retriever. Here's one way this can look:
 """
 logger.info("## Retrieval chains")
-
-
 
 
 def parse_retriever_input(params: Dict):
@@ -191,7 +195,8 @@ logger.info("Given a list of input messages, we extract the content of the last 
 retrieval_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?")
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?")
         ],
     }
 )
@@ -232,7 +237,8 @@ query_transformation_chain = query_transform_prompt | chat
 query_transformation_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
             AIMessage(
                 content="Yes, LangSmith can help test and evaluate your LLM applications. It allows you to quickly edit examples and add them to datasets to expand the surface area of your evaluation sets or to fine-tune a model for improved quality or reduced costs. Additionally, LangSmith can be used to monitor your application, log all traces, visualize latency and token usage statistics, and troubleshoot specific issues as they arise."
             ),
@@ -246,7 +252,8 @@ Awesome! That transformed query would pull up context documents related to LLM a
 
 Let's add this to our retrieval chain. We can wrap our retriever as follows:
 """
-logger.info("Awesome! That transformed query would pull up context documents related to LLM application testing.")
+logger.info(
+    "Awesome! That transformed query would pull up context documents related to LLM application testing.")
 
 
 query_transforming_retriever_chain = RunnableBranch(
@@ -292,12 +299,14 @@ conversational_retrieval_chain = RunnablePassthrough.assign(
 """
 Awesome! Let's invoke this new chain with the same inputs as earlier:
 """
-logger.info("Awesome! Let's invoke this new chain with the same inputs as earlier:")
+logger.info(
+    "Awesome! Let's invoke this new chain with the same inputs as earlier:")
 
 conversational_retrieval_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
         ]
     }
 )
@@ -305,7 +314,8 @@ conversational_retrieval_chain.invoke(
 conversational_retrieval_chain.invoke(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
             AIMessage(
                 content="Yes, LangSmith can help test and evaluate your LLM applications. It allows you to quickly edit examples and add them to datasets to expand the surface area of your evaluation sets or to fine-tune a model for improved quality or reduced costs. Additionally, LangSmith can be used to monitor your application, log all traces, visualize latency and token usage statistics, and troubleshoot specific issues as they arise."
             ),
@@ -326,7 +336,8 @@ logger.info("## Streaming")
 stream = conversational_retrieval_chain.stream(
     {
         "messages": [
-            HumanMessage(content="Can LangSmith help test my LLM applications?"),
+            HumanMessage(
+                content="Can LangSmith help test my LLM applications?"),
             AIMessage(
                 content="Yes, LangSmith can help test and evaluate your LLM applications. It allows you to quickly edit examples and add them to datasets to expand the surface area of your evaluation sets or to fine-tune a model for improved quality or reduced costs. Additionally, LangSmith can be used to monitor your application, log all traces, visualize latency and token usage statistics, and troubleshoot specific issues as they arise."
             ),

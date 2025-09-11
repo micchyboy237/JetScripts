@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 from langchain.storage import InMemoryStore
@@ -87,7 +87,6 @@ logger.info("## Data Loading")
 path = "/Users/rlm/Desktop/Papers/LLaVA/"
 
 
-
 raw_pdf_elements = partition_pdf(
     filename=path + "LLaVA.pdf",
     extract_images_in_pdf=True,
@@ -110,6 +109,7 @@ for element in raw_pdf_elements:
 
 unique_categories = set(category_counts.keys())
 category_counts
+
 
 class Element(BaseModel):
     type: str
@@ -185,14 +185,15 @@ logger.info("### Images")
 
 # %%bash
 
-IMG_DIR=~/Desktop/Papers/LLaVA/
+IMG_DIR = ~/Desktop/Papers/LLaVA/
 
-for img in "${IMG_DIR}"*.jpg; do
-    base_name=$(basename "$img" .jpg)
+for img in "${IMG_DIR}"*.jpg
+do
+base_name = $(basename "$img" .jpg)
 
-    output_file="${IMG_DIR}${base_name}.txt"
+output_file = "${IMG_DIR}${base_name}.txt"
 
-    /Users/rlm/Desktop/Code/llama.cpp/bin/llava -m ../models/llava-7b/ggml-model-q5_k.gguf --mmproj ../models/llava-7b/mmproj-model-f16.gguf --temp 0.1 -p "Describe the image in detail. Be specific about graphs, such as bar plots." --image "$img" > "$output_file"
+/Users/rlm/Desktop/Code/llama.cpp/bin/llava - m ../models/llava-7b/ggml-model-q5_k.gguf - -mmproj ../models/llava-7b/mmproj-model-f16.gguf - -temp 0.1 - p "Describe the image in detail. Be specific about graphs, such as bar plots." - -image "$img" > "$output_file"
 
 done
 
@@ -216,7 +217,8 @@ for file_path in file_paths:
         img_summaries.append(file.read())
 
 logging_header = "clip_model_load: total allocated memory: 201.27 MB\n\n"
-cleaned_img_summary = [s.split(logging_header, 1)[1].strip() for s in img_summaries]
+cleaned_img_summary = [s.split(logging_header, 1)[1].strip()
+                       for s in img_summaries]
 
 """
 ### Add to vectorstore
@@ -226,8 +228,8 @@ Use [Multi Vector Retriever](https://python.langchain.com/docs/modules/data_conn
 logger.info("### Add to vectorstore")
 
 
-
-vectorstore = Chroma(collection_name="summaries", embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma(collection_name="summaries",
+                     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
 
 store = InMemoryStore()
 id_key = "doc_id"
@@ -311,9 +313,11 @@ table_summaries[2]
 """
 Here is our retrieval of that table from the natural language query:
 """
-logger.info("Here is our retrieval of that table from the natural language query:")
+logger.info(
+    "Here is our retrieval of that table from the natural language query:")
 
-retriever.invoke("What are results for LLaMA across across domains / subjects?")[1]
+retriever.invoke(
+    "What are results for LLaMA across across domains / subjects?")[1]
 
 """
 Image:
@@ -366,7 +370,8 @@ chain.invoke(
 """
 We can check the [trace](https://smith.langchain.com/public/85a7180e-0dd1-44d9-996f-6cb9c6f53205/r) to see retrieval of tables and text.
 """
-logger.info("We can check the [trace](https://smith.langchain.com/public/85a7180e-0dd1-44d9-996f-6cb9c6f53205/r) to see retrieval of tables and text.")
+logger.info(
+    "We can check the [trace](https://smith.langchain.com/public/85a7180e-0dd1-44d9-996f-6cb9c6f53205/r) to see retrieval of tables and text.")
 
 chain.invoke("Explain images / figures with playful and creative examples.")
 

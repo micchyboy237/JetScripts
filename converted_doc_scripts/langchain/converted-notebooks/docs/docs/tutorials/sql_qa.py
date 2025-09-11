@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.agents.agent_toolkits import create_retriever_tool
 from langchain_community.agent_toolkits import SQLDatabaseToolkit
@@ -14,9 +14,9 @@ from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import create_react_agent
 from typing_extensions import Annotated
 from typing_extensions import TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import EmbeddingTabs from "@theme/EmbeddingTabs";
-import VectorStoreTabs from "@theme/VectorStoreTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
+import EmbeddingTabs from "@theme/EmbeddingTabs"
+import VectorStoreTabs from "@theme/VectorStoreTabs"
 import ast
 import os
 import re
@@ -94,7 +94,8 @@ curl -s https://raw.githubusercontent.com/lerocha/chinook-database/master/Chinoo
 
 Now, `Chinook.db` is in our directory and we can interface with it using the SQLAlchemy-driven `SQLDatabase` class:
 """
-logger.info("# Comment out the below to opt-out of using LangSmith in this notebook. Not required.")
+logger.info(
+    "# Comment out the below to opt-out of using LangSmith in this notebook. Not required.")
 
 
 db = SQLDatabase.from_uri("sqlite:///Chinook.db")
@@ -123,12 +124,12 @@ For this application, we can just keep track of the input question, generated qu
 logger.info("## Chains {#chains}")
 
 
-
 class State(TypedDict):
     question: str
     query: str
     result: str
     answer: str
+
 
 """
 Now we just need functions that operate on this state and populate its contents.
@@ -183,8 +184,8 @@ for message in query_prompt_template.messages:
 """
 The prompt includes several parameters we will need to populate, such as the SQL dialect and table schemas. LangChain's [SQLDatabase](https://python.langchain.com/api_reference/community/utilities/langchain_community.utilities.sql_database.SQLDatabase.html) object includes methods to help with this. Our `write_query` step will just populate these parameters and prompt a model to generate the SQL query:
 """
-logger.info("The prompt includes several parameters we will need to populate, such as the SQL dialect and table schemas. LangChain's [SQLDatabase](https://python.langchain.com/api_reference/community/utilities/langchain_community.utilities.sql_database.SQLDatabase.html) object includes methods to help with this. Our `write_query` step will just populate these parameters and prompt a model to generate the SQL query:")
-
+logger.info(
+    "The prompt includes several parameters we will need to populate, such as the SQL dialect and table schemas. LangChain's [SQLDatabase](https://python.langchain.com/api_reference/community/utilities/langchain_community.utilities.sql_database.SQLDatabase.html) object includes methods to help with this. Our `write_query` step will just populate these parameters and prompt a model to generate the SQL query:")
 
 
 class QueryOutput(TypedDict):
@@ -207,6 +208,7 @@ def write_query(state: State):
     result = structured_llm.invoke(prompt)
     return {"query": result["query"]}
 
+
 """
 Let's test it out:
 """
@@ -224,18 +226,19 @@ To execute the query, we will load a tool from [langchain-community](/docs/conce
 logger.info("### Execute query")
 
 
-
 def execute_query(state: State):
     """Execute SQL query."""
     execute_query_tool = QuerySQLDatabaseTool(db=db)
     return {"result": execute_query_tool.invoke(state["query"])}
+
 
 """
 Testing this step:
 """
 logger.info("Testing this step:")
 
-execute_query({"query": "SELECT COUNT(EmployeeId) AS EmployeeCount FROM Employee;"})
+execute_query(
+    {"query": "SELECT COUNT(EmployeeId) AS EmployeeCount FROM Employee;"})
 
 """
 ### Generate answer
@@ -243,6 +246,7 @@ execute_query({"query": "SELECT COUNT(EmployeeId) AS EmployeeCount FROM Employee
 Finally, our last step generates an answer to the question given the information pulled from the database:
 """
 logger.info("### Generate answer")
+
 
 def generate_answer(state: State):
     """Answer question using retrieved information as context."""
@@ -255,6 +259,7 @@ def generate_answer(state: State):
     )
     response = llm.invoke(prompt)
     return {"answer": response.content}
+
 
 """
 ### Orchestrating with LangGraph
@@ -273,7 +278,8 @@ graph = graph_builder.compile()
 """
 LangGraph also comes with built-in utilities for visualizing the control flow of your application:
 """
-logger.info("LangGraph also comes with built-in utilities for visualizing the control flow of your application:")
+logger.info(
+    "LangGraph also comes with built-in utilities for visualizing the control flow of your application:")
 
 
 display(Image(graph.get_graph().draw_mermaid_png()))
@@ -281,7 +287,8 @@ display(Image(graph.get_graph().draw_mermaid_png()))
 """
 Let's test our application! Note that we can stream the results of individual steps:
 """
-logger.info("Let's test our application! Note that we can stream the results of individual steps:")
+logger.info(
+    "Let's test our application! Note that we can stream the results of individual steps:")
 
 for step in graph.stream(
     {"question": "How many employees are there?"}, stream_mode="updates"
@@ -299,7 +306,8 @@ logger.info("### Human-in-the-loop")
 
 
 memory = MemorySaver()
-graph = graph_builder.compile(checkpointer=memory, interrupt_before=["execute_query"])
+graph = graph_builder.compile(
+    checkpointer=memory, interrupt_before=["execute_query"])
 
 config = {"configurable": {"thread_id": "1"}}
 
@@ -440,7 +448,8 @@ The agent is then able to use the result of the final query to generate an answe
 
 The agent can similarly handle qualitative questions:
 """
-logger.info("You can also use the [LangSmith trace](https://smith.langchain.com/public/8af422aa-b651-4bfe-8683-e2a7f4ccd82c/r) to visualize these steps and associated metadata.")
+logger.info(
+    "You can also use the [LangSmith trace](https://smith.langchain.com/public/8af422aa-b651-4bfe-8683-e2a7f4ccd82c/r) to visualize these steps and associated metadata.")
 
 question = "Describe the playlisttrack table"
 
@@ -460,7 +469,6 @@ We can achieve this by creating a vector store with all the distinct proper noun
 First we need the unique values for each entity we want, for which we define a function that parses the result into a list of elements:
 """
 logger.info("### Dealing with high-cardinality columns")
-
 
 
 def query_as_list(db, query):
@@ -503,7 +511,8 @@ vector_store = InMemoryVectorStore(embeddings)
 """
 We can now construct a retrieval tool that can search over relevant proper nouns in the database:
 """
-logger.info("We can now construct a retrieval tool that can search over relevant proper nouns in the database:")
+logger.info(
+    "We can now construct a retrieval tool that can search over relevant proper nouns in the database:")
 
 
 _ = vector_store.add_texts(artists + albums)
@@ -556,6 +565,7 @@ for step in agent.stream(
 """
 As we can see, both in the streamed steps and in the [LangSmith trace](https://smith.langchain.com/public/1d757ed2-5688-4458-9400-023594e2c5a7/r), the agent used the `search_proper_nouns` tool in order to check how to correctly query the database for this specific artist.
 """
-logger.info("As we can see, both in the streamed steps and in the [LangSmith trace](https://smith.langchain.com/public/1d757ed2-5688-4458-9400-023594e2c5a7/r), the agent used the `search_proper_nouns` tool in order to check how to correctly query the database for this specific artist.")
+logger.info(
+    "As we can see, both in the streamed steps and in the [LangSmith trace](https://smith.langchain.com/public/1d757ed2-5688-4458-9400-023594e2c5a7/r), the agent used the `search_proper_nouns` tool in order to check how to correctly query the database for this specific artist.")
 
 logger.info("\n\n[DONE]", bright=True)

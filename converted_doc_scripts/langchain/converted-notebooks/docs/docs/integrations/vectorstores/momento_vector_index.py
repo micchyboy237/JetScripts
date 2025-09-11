@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import TextLoader
@@ -55,7 +55,7 @@ Visit the [Momento Console](https://console.gomomento.com) to get your API key.
 logger.info("### Momento: for indexing data")
 
 if "MOMENTO_API_KEY" not in os.environ:
-#     os.environ["MOMENTO_API_KEY"] = getpass.getpass("Momento API Key:")
+    #     os.environ["MOMENTO_API_KEY"] = getpass.getpass("Momento API Key:")
 
 """
 ### Ollama: for text embeddings

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import PGEmbedding
@@ -45,7 +45,8 @@ logger.info("# Postgres Embedding")
 """
 Add the Ollama API Key to the environment variables to use `OllamaEmbeddings`.
 """
-logger.info("Add the Ollama API Key to the environment variables to use `OllamaEmbeddings`.")
+logger.info(
+    "Add the Ollama API Key to the environment variables to use `OllamaEmbeddings`.")
 
 # import getpass
 
@@ -53,9 +54,8 @@ logger.info("Add the Ollama API Key to the environment variables to use `OllamaE
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 
-
 if "DATABASE_URL" not in os.environ:
-#     os.environ["DATABASE_URL"] = getpass.getpass("Database Url:")
+    #     os.environ["DATABASE_URL"] = getpass.getpass("Database Url:")
 
 loader = TextLoader("state_of_the_union.txt")
 documents = loader.load()
@@ -74,7 +74,8 @@ db = PGEmbedding.from_documents(
 )
 
 query = "What did the president say about Ketanji Brown Jackson"
-docs_with_score: List[Tuple[Document, float]] = db.similarity_search_with_score(query)
+docs_with_score: List[Tuple[Document, float]
+                      ] = db.similarity_search_with_score(query)
 
 for doc, score in docs_with_score:
     logger.debug("-" * 80)
@@ -145,7 +146,8 @@ db1 = PGEmbedding.from_existing_index(
 )
 
 query = "What did the president say about Ketanji Brown Jackson"
-docs_with_score: List[Tuple[Document, float]] = db1.similarity_search_with_score(query)
+docs_with_score: List[Tuple[Document, float]
+                      ] = db1.similarity_search_with_score(query)
 
 for doc, score in docs_with_score:
     logger.debug("-" * 80)

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMChain
 from langchain.globals import set_debug, set_verbose
@@ -39,8 +39,8 @@ logger.info("# OpaquePrompts")
 """
 Accessing the OpaquePrompts API requires an API key, which you can get by creating an account on [the OpaquePrompts website](https://opaqueprompts.opaque.co/). Once you have an account, you can find your API key on [the API Keys page](https:opaqueprompts.opaque.co/api-keys).
 """
-logger.info("Accessing the OpaquePrompts API requires an API key, which you can get by creating an account on [the OpaquePrompts website](https://opaqueprompts.opaque.co/). Once you have an account, you can find your API key on [the API Keys page](https:opaqueprompts.opaque.co/api-keys).")
-
+logger.info(
+    "Accessing the OpaquePrompts API requires an API key, which you can get by creating an account on [the OpaquePrompts website](https://opaqueprompts.opaque.co/). Once you have an account, you can find your API key on [the API Keys page](https:opaqueprompts.opaque.co/api-keys).")
 
 
 os.environ["OPAQUEPROMPTS_API_KEY"] = "<OPAQUEPROMPTS_API_KEY>"
@@ -150,11 +150,12 @@ logger.info("# Context from user input")
 
 
 prompt = (PromptTemplate.from_template(prompt_template),)
-llm = Ollama()
+llm = ChatOllama()
 pg_chain = (
     op.sanitize
     | RunnablePassthrough.assign(
-        response=(lambda x: x["sanitized_input"]) | prompt | llm | StrOutputParser(),
+        response=(lambda x: x["sanitized_input"]
+                  ) | prompt | llm | StrOutputParser(),
     )
     | (lambda x: op.desanitize(x["response"], x["secure_context"]))
 )

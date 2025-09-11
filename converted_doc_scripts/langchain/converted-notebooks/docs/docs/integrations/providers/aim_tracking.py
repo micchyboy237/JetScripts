@@ -1,5 +1,5 @@
 from datetime import datetime
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain.chains import LLMChain
@@ -50,7 +50,6 @@ logger.info("# Aim")
 # %pip install --upgrade --quiet  google-search-results
 
 
-
 """
 Our examples use a GPT model as the LLM, and Ollama offers an API for this purpose. You can obtain the key from the following link: https://platform.ollama.com/account/api-keys .
 
@@ -73,7 +72,7 @@ aim_callback = AimCallbackHandler(
 )
 
 callbacks = [StdOutCallbackHandler(), aim_callback]
-llm = Ollama(temperature=0, callbacks=callbacks)
+llm = ChatOllama(temperature=0, callbacks=callbacks)
 
 """
 The `flush_tracker` function is used to record LangChain assets on Aim. By default, the session is reset rather than being terminated outright.

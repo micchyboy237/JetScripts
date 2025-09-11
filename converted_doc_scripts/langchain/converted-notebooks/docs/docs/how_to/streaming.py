@@ -1,147 +1,146 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.vectorstores import FAISS
 from langchain_core.output_parsers import (
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnableLambda
-from langchain_core.runnables import RunnablePassthrough
-from langchain_core.runnables import chain
-from langchain_core.tools import tool
-import ChatModelTabs from "@theme/ChatModelTabs";
-import langchain_core
-import os
-import shutil
+    from langchain_core.output_parsers import JsonOutputParser
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.runnables import RunnableLambda
+    from langchain_core.runnables import RunnablePassthrough
+    from langchain_core.runnables import chain
+    from langchain_core.tools import tool
+    import ChatModelTabs from "@theme/ChatModelTabs";
+    import langchain_core
+    import os
+    import shutil
 
-async def main():
+    async def main():
     JsonOutputParser,
-    )
-    
-    
-    OUTPUT_DIR = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    log_file = os.path.join(OUTPUT_DIR, "main.log")
-    logger.basicConfig(filename=log_file)
-    logger.info(f"Logs: {log_file}")
-    
-    PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-    os.makedirs(PERSIST_DIR, exist_ok=True)
-    
-    """
+)
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
     ---
     keywords: [stream]
     ---
-    
+
     # How to stream runnables
-    
+
     :::info Prerequisites
-    
+
     This guide assumes familiarity with the following concepts:
     - [Chat models](/docs/concepts/chat_models)
     - [LangChain Expression Language](/docs/concepts/lcel)
     - [Output parsers](/docs/concepts/output_parsers)
-    
+
     :::
-    
+
     Streaming is critical in making applications based on LLMs feel responsive to end-users.
-    
+
     Important LangChain primitives like [chat models](/docs/concepts/chat_models), [output parsers](/docs/concepts/output_parsers), [prompts](/docs/concepts/prompt_templates), [retrievers](/docs/concepts/retrievers), and [agents](/docs/concepts/agents) implement the LangChain [Runnable Interface](/docs/concepts/runnables).
-    
+
     This interface provides two general approaches to stream content:
-    
+
     1. sync `stream` and async `astream`: a **default implementation** of streaming that streams the **final output** from the chain.
     2. async `astream_events` and async `astream_log`: these provide a way to stream both **intermediate steps** and **final output** from the chain.
-    
+
     Let's take a look at both approaches, and try to understand how to use them.
-    
+
     :::info
     For a higher-level overview of streaming techniques in LangChain, see [this section of the conceptual guide](/docs/concepts/streaming).
     :::
-    
+
     ## Using Stream
-    
-    All `Runnable` objects implement a sync method called `stream` and an async variant called `astream`. 
-    
+
+    All `Runnable` objects implement a sync method called `stream` and an async variant called `astream`.
+
     These methods are designed to stream the final output in chunks, yielding each chunk as soon as it is available.
-    
+
     Streaming is only possible if all steps in the program know how to process an **input stream**; i.e., process an input chunk one at a time, and yield a corresponding output chunk.
-    
+
     The complexity of this processing can vary, from straightforward tasks like emitting tokens produced by an LLM, to more challenging ones like streaming parts of JSON results before the entire JSON is complete.
-    
+
     The best place to start exploring streaming is with the single most important components in LLMs apps-- the LLMs themselves!
-    
+
     ### LLMs and Chat Models
-    
+
     Large language models and their chat variants are the primary bottleneck in LLM based apps.
-    
+
     Large language models can take **several seconds** to generate a complete response to a query. This is far slower than the **~200-300 ms** threshold at which an application feels responsive to an end user.
-    
+
     The key strategy to make the application feel more responsive is to show intermediate progress; viz., to stream the output from the model **token by token**.
-    
+
     We will show examples of streaming using a chat model. Choose one from the options below:
-    
-    
+
+
     <ChatModelTabs
       customVarName="model"
     />
     """
-    logger.info("# How to stream runnables")
-    
-    # from getpass import getpass
-    
-    keys = [
-    #     "ANTHROPIC_API_KEY",
-    #     "OPENAI_API_KEY",
-    ]
-    
-    for key in keys:
+ logger.info("# How to stream runnables")
+
+  # from getpass import getpass
+
+  keys = [
+       #     "ANTHROPIC_API_KEY",
+        #     "OPENAI_API_KEY",
+       ]
+
+   for key in keys:
         if key not in os.environ:
-    #         os.environ[key] = getpass(f"Enter API Key for {key}=?")
-    
-    
-    
+           #         os.environ[key] = getpass(f"Enter API Key for {key}=?")
+
     model = ChatOllama(model="llama3.2")
-    
+
     """
     Let's start with the sync `stream` API:
     """
     logger.info("Let's start with the sync `stream` API:")
-    
+
     chunks = []
     for chunk in model.stream("what color is the sky?"):
         chunks.append(chunk)
         logger.debug(chunk.content, end="|", flush=True)
-    
+
     """
     Alternatively, if you're working in an async environment, you may consider using the async `astream` API:
     """
-    logger.info("Alternatively, if you're working in an async environment, you may consider using the async `astream` API:")
-    
+    logger.info(
+        "Alternatively, if you're working in an async environment, you may consider using the async `astream` API:")
+
     chunks = []
     for chunk in model.stream("what color is the sky?"):
         chunks.append(chunk)
         logger.debug(chunk.content, end="|", flush=True)
-    
+
     """
     Let's inspect one of the chunks
     """
     logger.info("Let's inspect one of the chunks")
-    
+
     chunks[0]
-    
+
     """
     We got back something called an `AIMessageChunk`. This chunk represents a part of an `AIMessage`.
     
     Message chunks are additive by design -- one can simply add them up to get the state of the response so far!
     """
-    logger.info("We got back something called an `AIMessageChunk`. This chunk represents a part of an `AIMessage`.")
-    
+    logger.info(
+        "We got back something called an `AIMessageChunk`. This chunk represents a part of an `AIMessage`.")
+
     chunks[0] + chunks[1] + chunks[2] + chunks[3] + chunks[4]
-    
+
     """
     ### Chains
     
@@ -156,15 +155,14 @@ async def main():
     :::
     """
     logger.info("### Chains")
-    
-    
+
     prompt = ChatPromptTemplate.from_template("tell me a joke about {topic}")
     parser = StrOutputParser()
     chain = prompt | model | parser
-    
+
     for chunk in chain.stream({"topic": "parrot"}):
         logger.debug(chunk, end="|", flush=True)
-    
+
     """
     Note that we're getting streaming output even though we're using `parser` at the end of the chain above. The `parser` operates on each streaming chunk individidually. Many of the [LCEL primitives](/docs/how_to#langchain-expression-language-lcel) also support this kind of transform-style passthrough streaming, which can be very convenient when constructing apps. 
     
@@ -191,8 +189,7 @@ async def main():
     Let's see such a parser in action to understand what this means.
     """
     logger.info("### Working with Input Streams")
-    
-    
+
     chain = (
         model | JsonOutputParser()
     )  # Due to a bug in older versions of Langchain, JsonOutputParser did not stream results from some models
@@ -202,7 +199,7 @@ async def main():
         "Each country should have the key `name` and `population`"
     ):
         logger.debug(text, flush=True)
-    
+
     """
     Now, let's **break** streaming. We'll use the previous example and append an extraction function at the end that extracts the country names from the finalized JSON.
     
@@ -215,37 +212,34 @@ async def main():
     :::
     """
     logger.info("Now, let's **break** streaming. We'll use the previous example and append an extraction function at the end that extracts the country names from the finalized JSON.")
-    
-    
-    
+
     def _extract_country_names(inputs):
         """A function that does not operates on input streams and breaks streaming."""
         if not isinstance(inputs, dict):
             return ""
-    
+
         if "countries" not in inputs:
             return ""
-    
+
         countries = inputs["countries"]
-    
+
         if not isinstance(countries, list):
             return ""
-    
+
         country_names = [
             country.get("name") for country in countries if isinstance(country, dict)
         ]
         return country_names
-    
-    
+
     chain = model | JsonOutputParser() | _extract_country_names
-    
+
     for text in chain.stream(
         "output a list of the countries france, spain and japan and their populations in JSON format. "
         'Use a dict with an outer key of "countries" which contains a list of countries. '
         "Each country should have the key `name` and `population`"
     ):
         logger.debug(text, end="|", flush=True)
-    
+
     """
     #### Generator Functions
     
@@ -256,25 +250,23 @@ async def main():
     :::
     """
     logger.info("#### Generator Functions")
-    
-    
-    
+
     async def _extract_country_names_streaming(input_stream):
         """A function that operates on input streams."""
         country_names_so_far = set()
-    
+
         async for input in input_stream:
             if not isinstance(input, dict):
                 continue
-    
+
             if "countries" not in input:
                 continue
-    
+
             countries = input["countries"]
-    
+
             if not isinstance(countries, list):
                 continue
-    
+
             for country in countries:
                 name = country.get("name")
                 if not name:
@@ -282,17 +274,16 @@ async def main():
                 if name not in country_names_so_far:
                     yield name
                     country_names_so_far.add(name)
-    
-    
+
     chain = model | JsonOutputParser() | _extract_country_names_streaming
-    
+
     for text in chain.stream(
         "output a list of the countries france, spain and japan and their populations in JSON format. "
         'Use a dict with an outer key of "countries" which contains a list of countries. '
         "Each country should have the key `name` and `population`",
     ):
         logger.debug(text, end="|", flush=True)
-    
+
     """
     :::note
     Because the code above is relying on JSON auto-completion, you may see partial names of countries (e.g., `Sp` and `Spain`), which is not what one would want for an extraction result!
@@ -305,24 +296,23 @@ async def main():
     Some built-in components like Retrievers do not offer any `streaming`. What happens if we try to `stream` them? 🤨
     """
     logger.info("### Non-streaming components")
-    
-    
+
     template = """Answer the question based only on the following context:
     {context}
     
     Question: {question}
     """
     prompt = ChatPromptTemplate.from_template(template)
-    
+
     vectorstore = FAISS.from_texts(
         ["harrison worked at kensho", "harrison likes spicy food"],
         embedding=OllamaEmbeddings(model="mxbai-embed-large"),
     )
     retriever = vectorstore.as_retriever()
-    
+
     chunks = [chunk for chunk in retriever.stream("where did harrison work?")]
     chunks
-    
+
     """
     Stream just yielded the final result from that component.
     
@@ -333,7 +323,7 @@ async def main():
     :::
     """
     logger.info("Stream just yielded the final result from that component.")
-    
+
     retrieval_chain = (
         {
             "context": retriever.with_config(run_name="Docs"),
@@ -343,12 +333,12 @@ async def main():
         | model
         | StrOutputParser()
     )
-    
+
     for chunk in retrieval_chain.stream(
         "Where did harrison work? Write 3 made up sentences about this place."
     ):
         logger.debug(chunk, end="|", flush=True)
-    
+
     """
     Now that we've seen how `stream` and `astream` work, let's venture into the world of streaming events. 🏞️
     
@@ -362,10 +352,9 @@ async def main():
     :::
     """
     logger.info("## Using Stream Events")
-    
-    
+
     langchain_core.__version__
-    
+
     """
     For the `astream_events` API to work properly:
     
@@ -406,11 +395,11 @@ async def main():
     Let's start off by looking at the events produced by a chat model.
     """
     logger.info("### Event Reference")
-    
+
     events = []
     for event in model.stream_events("hello"):
         events.append(event)
-    
+
     """
     :::note
     
@@ -421,22 +410,22 @@ async def main():
     Let's take a look at the few of the start event and a few of the end events.
     """
     logger.info("For `langchain-core<0.3.37`, set the `version` kwarg explicitly (e.g., `model.astream_events("hello", version="v2")`).")
-    
+
     events[:3]
-    
+
     events[-2:]
-    
+
     """
     ### Chain
     
     Let's revisit the example chain that parsed streaming JSON to explore the streaming events API.
     """
     logger.info("### Chain")
-    
+
     chain = (
         model | JsonOutputParser()
     )  # Due to a bug in older versions of Langchain, JsonOutputParser did not stream results from some models
-    
+
     events = [
         event
         for event in chain.stream_events(
@@ -445,7 +434,7 @@ async def main():
             "Each country should have the key `name` and `population`",
         )
     ]
-    
+
     """
     If you examine at the first few events, you'll notice that there are **3** different start events rather than **2** start events.
     
@@ -456,18 +445,19 @@ async def main():
     3. The parser
     """
     logger.info("If you examine at the first few events, you'll notice that there are **3** different start events rather than **2** start events.")
-    
+
     events[:3]
-    
+
     """
     What do you think you'd see if you looked at the last 3 events? what about the middle?
     
     Let's use this API to take output the stream events from the model and the parser. We're ignoring start events, end events and events from the chain.
     """
-    logger.info("What do you think you'd see if you looked at the last 3 events? what about the middle?")
-    
+    logger.info(
+        "What do you think you'd see if you looked at the last 3 events? what about the middle?")
+
     num_events = 0
-    
+
     for event in chain.stream_events(
         "output a list of the countries france, spain and japan and their populations in JSON format. "
         'Use a dict with an outer key of "countries" which contains a list of countries. '
@@ -485,7 +475,7 @@ async def main():
         if num_events > 30:
             logger.debug("...")
             break
-    
+
     """
     Because both the model and the parser support streaming, we see streaming events from both components in real time! Kind of cool isn't it? 🦜
     
@@ -498,11 +488,11 @@ async def main():
     #### By Name
     """
     logger.info("### Filtering Events")
-    
+
     chain = model.with_config({"run_name": "model"}) | JsonOutputParser().with_config(
         {"run_name": "my_parser"}
     )
-    
+
     max_events = 0
     for event in chain.stream_events(
         "output a list of the countries france, spain and japan and their populations in JSON format. "
@@ -515,16 +505,16 @@ async def main():
         if max_events > 10:
             logger.debug("...")
             break
-    
+
     """
     #### By Type
     """
     logger.info("#### By Type")
-    
+
     chain = model.with_config({"run_name": "model"}) | JsonOutputParser().with_config(
         {"run_name": "my_parser"}
     )
-    
+
     max_events = 0
     for event in chain.stream_events(
         'output a list of the countries france, spain and japan and their populations in JSON format. Use a dict with an outer key of "countries" which contains a list of countries. Each country should have the key `name` and `population`',
@@ -535,7 +525,7 @@ async def main():
         if max_events > 10:
             logger.debug("...")
             break
-    
+
     """
     #### By Tags
     
@@ -547,9 +537,9 @@ async def main():
     :::
     """
     logger.info("#### By Tags")
-    
+
     chain = (model | JsonOutputParser()).with_config({"tags": ["my_chain"]})
-    
+
     max_events = 0
     for event in chain.stream_events(
         'output a list of the countries france, spain and japan and their populations in JSON format. Use a dict with an outer key of "countries" which contains a list of countries. Each country should have the key `name` and `population`',
@@ -560,7 +550,7 @@ async def main():
         if max_events > 10:
             logger.debug("...")
             break
-    
+
     """
     ### Non-streaming components
     
@@ -569,49 +559,50 @@ async def main():
     While such components can break streaming of the final output when using `astream`, `astream_events` will still yield streaming events from intermediate steps that support streaming!
     """
     logger.info("### Non-streaming components")
-    
+
     def _extract_country_names(inputs):
         """A function that does not operates on input streams and breaks streaming."""
         if not isinstance(inputs, dict):
             return ""
-    
+
         if "countries" not in inputs:
             return ""
-    
+
         countries = inputs["countries"]
-    
+
         if not isinstance(countries, list):
             return ""
-    
+
         country_names = [
             country.get("name") for country in countries if isinstance(country, dict)
         ]
         return country_names
-    
-    
+
     chain = (
         model | JsonOutputParser() | _extract_country_names
     )  # This parser only works with Ollama right now
-    
+
     """
     As expected, the `astream` API doesn't work correctly because `_extract_country_names` doesn't operate on streams.
     """
-    logger.info("As expected, the `astream` API doesn't work correctly because `_extract_country_names` doesn't operate on streams.")
-    
+    logger.info(
+        "As expected, the `astream` API doesn't work correctly because `_extract_country_names` doesn't operate on streams.")
+
     for chunk in chain.stream(
         "output a list of the countries france, spain and japan and their populations in JSON format. "
         'Use a dict with an outer key of "countries" which contains a list of countries. '
         "Each country should have the key `name` and `population`",
     ):
         logger.debug(chunk, flush=True)
-    
+
     """
     Now, let's confirm that with astream_events we're still seeing streaming output from the model and the parser.
     """
-    logger.info("Now, let's confirm that with astream_events we're still seeing streaming output from the model and the parser.")
-    
+    logger.info(
+        "Now, let's confirm that with astream_events we're still seeing streaming output from the model and the parser.")
+
     num_events = 0
-    
+
     for event in chain.stream_events(
         "output a list of the countries france, spain and japan and their populations in JSON format. "
         'Use a dict with an outer key of "countries" which contains a list of countries. '
@@ -629,7 +620,7 @@ async def main():
         if num_events > 30:
             logger.debug("...")
             break
-    
+
     """
     ### Propagating Callbacks
     
@@ -642,74 +633,62 @@ async def main():
     :::
     """
     logger.info("### Propagating Callbacks")
-    
-    
-    
+
     def reverse_word(word: str):
         return word[::-1]
-    
-    
+
     reverse_word = RunnableLambda(reverse_word)
-    
-    
+
     @tool
     def bad_tool(word: str):
         """Custom tool that doesn't propagate callbacks."""
         return reverse_word.invoke(word)
-    
-    
+
     for event in bad_tool.stream_events("hello"):
         logger.debug(event)
-    
+
     """
     Here's a re-implementation that does propagate callbacks correctly. You'll notice that now we're getting events from the `reverse_word` runnable as well.
     """
     logger.info("Here's a re-implementation that does propagate callbacks correctly. You'll notice that now we're getting events from the `reverse_word` runnable as well.")
-    
+
     @tool
     def correct_tool(word: str, callbacks):
         """A tool that correctly propagates callbacks."""
         return reverse_word.invoke(word, {"callbacks": callbacks})
-    
-    
+
     for event in correct_tool.stream_events("hello"):
         logger.debug(event)
-    
+
     """
     If you're invoking runnables from within Runnable Lambdas or `@chains`, then callbacks will be passed automatically on your behalf.
     """
     logger.info("If you're invoking runnables from within Runnable Lambdas or `@chains`, then callbacks will be passed automatically on your behalf.")
-    
-    
-    
+
     async def reverse_and_double(word: str):
         return await reverse_word.ainvoke(word) * 2
-    
-    
+
     reverse_and_double = RunnableLambda(reverse_and_double)
-    
+
     await reverse_and_double.ainvoke("1234")
-    
+
     for event in reverse_and_double.stream_events("1234"):
         logger.debug(event)
-    
+
     """
     And with the `@chain` decorator:
     """
     logger.info("And with the `@chain` decorator:")
-    
-    
-    
+
     @chain
     async def reverse_and_double(word: str):
         return await reverse_word.ainvoke(word) * 2
-    
-    
+
     await reverse_and_double.ainvoke("1234")
-    
+
     for event in reverse_and_double.stream_events("1234"):
         logger.debug(event)
-    
+
     """
     ## Next steps
     
@@ -718,7 +697,7 @@ async def main():
     To learn more, check out the other how-to guides in this section, or the [conceptual guide on Langchain Expression Language](/docs/concepts/lcel/).
     """
     logger.info("## Next steps")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

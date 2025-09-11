@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMChain
 from langchain.memory import ConversationBufferWindowMemory
@@ -118,8 +118,10 @@ def get_chat_history(chain_memory):
 
 def get_new_instructions(meta_output):
     delimiter = "Instructions: "
-    new_instructions = meta_output[meta_output.find(delimiter) + len(delimiter) :]
+    new_instructions = meta_output[meta_output.find(
+        delimiter) + len(delimiter):]
     return new_instructions
+
 
 def main(task, max_iters=3, max_meta_iters=5):
     failed_phrase = "task failed"
@@ -143,12 +145,14 @@ def main(task, max_iters=3, max_meta_iters=5):
             logger.debug("You succeeded! Thanks for playing!")
             return
         meta_chain = initialize_meta_chain()
-        meta_output = meta_chain.predict(chat_history=get_chat_history(chain.memory))
+        meta_output = meta_chain.predict(
+            chat_history=get_chat_history(chain.memory))
         logger.debug(f"Feedback: {meta_output}")
         instructions = get_new_instructions(meta_output)
         logger.debug(f"New Instructions: {instructions}")
         logger.debug("\n" + "#" * 80 + "\n")
     logger.debug("You failed! Thanks for playing!")
+
 
 """
 ## Specify a task and interact with the agent

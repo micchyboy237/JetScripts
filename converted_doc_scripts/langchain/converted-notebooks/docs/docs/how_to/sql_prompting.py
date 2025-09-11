@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import create_sql_query_chain
 from langchain.chains.sql_database.prompt import SQL_PROMPTS
@@ -7,7 +7,7 @@ from langchain_community.utilities import SQLDatabase
 from langchain_community.vectorstores import FAISS
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
 from langchain_core.prompts import FewShotPromptTemplate, PromptTemplate
-import ChatModelTabs from "@theme/ChatModelTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
 import os
 import shutil
 
@@ -53,7 +53,8 @@ The below example will use a SQLite connection with Chinook database. Follow [th
 
 Now, `Chinook.db` is in our directory and we can interface with it using the SQLAlchemy-driven `SQLDatabase` class:
 """
-logger.info("The below example will use a SQLite connection with Chinook database. Follow [these installation steps](https://database.guide/2-sample-databases-sqlite/) to create `Chinook.db` in the same directory as this notebook:")
+logger.info(
+    "The below example will use a SQLite connection with Chinook database. Follow [these installation steps](https://database.guide/2-sample-databases-sqlite/) to create `Chinook.db` in the same directory as this notebook:")
 
 
 db = SQLDatabase.from_uri("sqlite:///Chinook.db", sample_rows_in_table_info=3)
@@ -77,7 +78,8 @@ For example, using our current DB we can see that we'll get a SQLite-specific pr
 
 <ChatModelTabs customVarName="llm" />
 """
-logger.info("For example, using our current DB we can see that we'll get a SQLite-specific prompt.")
+logger.info(
+    "For example, using our current DB we can see that we'll get a SQLite-specific prompt.")
 
 
 llm = ChatOllama(model="llama3.2")
@@ -104,7 +106,8 @@ When we don't have too many, or too wide of, tables, we can just insert the enti
 """
 logger.info("When we don't have too many, or too wide of, tables, we can just insert the entirety of this information in our prompt:")
 
-prompt_with_context = chain.get_prompts()[0].partial(table_info=context["table_info"])
+prompt_with_context = chain.get_prompts()[0].partial(
+    table_info=context["table_info"])
 logger.debug(prompt_with_context.pretty_repr()[:1500])
 
 """
@@ -168,7 +171,8 @@ We can create a few-shot prompt with them like so:
 logger.info("We can create a few-shot prompt with them like so:")
 
 
-example_prompt = PromptTemplate.from_template("User input: {input}\nSQL query: {query}")
+example_prompt = PromptTemplate.from_template(
+    "User input: {input}\nSQL query: {query}")
 prompt = FewShotPromptTemplate(
     examples=examples[:5],
     example_prompt=example_prompt,
@@ -177,7 +181,8 @@ prompt = FewShotPromptTemplate(
     input_variables=["input", "top_k", "table_info"],
 )
 
-logger.debug(prompt.format(input="How many artists are there?", top_k=3, table_info="foo"))
+logger.debug(prompt.format(
+    input="How many artists are there?", top_k=3, table_info="foo"))
 
 """
 ## Dynamic few-shot examples
@@ -204,7 +209,8 @@ example_selector.select_examples({"input": "how many artists are there?"})
 """
 To use it, we can pass the ExampleSelector directly in to our FewShotPromptTemplate:
 """
-logger.info("To use it, we can pass the ExampleSelector directly in to our FewShotPromptTemplate:")
+logger.info(
+    "To use it, we can pass the ExampleSelector directly in to our FewShotPromptTemplate:")
 
 prompt = FewShotPromptTemplate(
     example_selector=example_selector,
@@ -214,7 +220,8 @@ prompt = FewShotPromptTemplate(
     input_variables=["input", "top_k", "table_info"],
 )
 
-logger.debug(prompt.format(input="how many artists are there?", top_k=3, table_info="foo"))
+logger.debug(prompt.format(
+    input="how many artists are there?", top_k=3, table_info="foo"))
 
 """
 Trying it out, we see that the model identifies the relevant table:

@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
@@ -98,10 +98,9 @@ Each node in our graph will append to it.
 logger.info("## Agent state")
 
 
-
-
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
+
 
 """
 ## Nodes and Edges
@@ -119,9 +118,6 @@ We can lay out an agentic RAG graph like this:
 ![Screenshot 2024-02-02 at 1.36.50 PM.png](attachment:f886806c-0aec-4c2a-8027-67339530cb60.png)
 """
 logger.info("## Nodes and Edges")
-
-
-
 
 
 def should_retrieve(state):
@@ -207,8 +203,6 @@ def check_relevance(state):
         return "no"
 
 
-
-
 def call_model(state):
     """
     Invokes the agent model to generate a response based on the current state.
@@ -259,6 +253,7 @@ def call_tool(state):
 
     return {"messages": [function_message]}
 
+
 """
 ## Graph
 
@@ -296,7 +291,6 @@ workflow.add_conditional_edges(
 )
 
 app = workflow.compile()
-
 
 
 inputs = {

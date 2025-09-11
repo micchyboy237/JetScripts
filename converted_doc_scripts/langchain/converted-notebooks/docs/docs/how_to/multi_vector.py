@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 from langchain.retrievers.multi_vector import SearchType
@@ -12,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pydantic import BaseModel, Field
 from typing import List
-import ChatModelTabs from "@theme/ChatModelTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
 import os
 import shutil
 import uuid
@@ -75,7 +75,6 @@ We will make a distinction between the vector store, which indexes embeddings of
 logger.info("## Smaller chunks")
 
 
-
 store = InMemoryByteStore()
 id_key = "doc_id"
 
@@ -105,7 +104,8 @@ for i, doc in enumerate(docs):
 """
 Finally, we index the documents in our vector store and document store:
 """
-logger.info("Finally, we index the documents in our vector store and document store:")
+logger.info(
+    "Finally, we index the documents in our vector store and document store:")
 
 retriever.vectorstore.add_documents(sub_docs)
 retriever.docstore.mset(list(zip(doc_ids, docs)))
@@ -127,7 +127,8 @@ len(retriever.invoke("justice breyer")[0].page_content)
 """
 The default search type the retriever performs on the vector database is a similarity search. LangChain vector stores also support searching via [Max Marginal Relevance](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore.max_marginal_relevance_search). This can be controlled via the `search_type` parameter of the retriever:
 """
-logger.info("The default search type the retriever performs on the vector database is a similarity search. LangChain vector stores also support searching via [Max Marginal Relevance](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore.max_marginal_relevance_search). This can be controlled via the `search_type` parameter of the retriever:")
+logger.info(
+    "The default search type the retriever performs on the vector database is a similarity search. LangChain vector stores also support searching via [Max Marginal Relevance](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStore.html#langchain_core.vectorstores.base.VectorStore.max_marginal_relevance_search). This can be controlled via the `search_type` parameter of the retriever:")
 
 
 retriever.search_type = SearchType.mmr
@@ -150,7 +151,6 @@ logger.info("## Associating summaries with a document for retrieval")
 llm = ChatOllama(model="llama3.2")
 
 
-
 chain = (
     {"doc": lambda x: x.page_content}
     | ChatPromptTemplate.from_template("Summarize the following document:\n\n{doc}")
@@ -170,7 +170,8 @@ We can then initialize a `MultiVectorRetriever` as before, indexing the summarie
 """
 logger.info("We can then initialize a `MultiVectorRetriever` as before, indexing the summaries in our vector store, and retaining the original documents in our document store:")
 
-vectorstore = Chroma(collection_name="summaries", embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma(collection_name="summaries",
+                     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
 store = InMemoryByteStore()
 id_key = "doc_id"
 retriever = MultiVectorRetriever(
@@ -217,8 +218,6 @@ Below, we use the [with_structured_output](/docs/how_to/structured_output/) meth
 logger.info("## Hypothetical Queries")
 
 
-
-
 class HypotheticalQuestions(BaseModel):
     """Generate hypothetical questions."""
 
@@ -239,7 +238,8 @@ chain = (
 """
 Invoking the chain on a single document demonstrates that it outputs a list of questions:
 """
-logger.info("Invoking the chain on a single document demonstrates that it outputs a list of questions:")
+logger.info(
+    "Invoking the chain on a single document demonstrates that it outputs a list of questions:")
 
 chain.invoke(docs[0])
 
@@ -267,7 +267,8 @@ doc_ids = [str(uuid.uuid4()) for _ in docs]
 question_docs = []
 for i, question_list in enumerate(hypothetical_questions):
     question_docs.extend(
-        [Document(page_content=s, metadata={id_key: doc_ids[i]}) for s in question_list]
+        [Document(page_content=s, metadata={
+                  id_key: doc_ids[i]}) for s in question_list]
     )
 
 

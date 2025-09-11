@@ -3,8 +3,8 @@ from jet.adapters.langchain.chat_ollama.llms import Ollama
 from jet.logger import logger
 from langchain_community.chains import PebbloRetrievalQA
 from langchain_community.chains.pebblo_retrieval.models import (
-ChainInput,
-SemanticContext,
+    ChainInput,
+    SemanticContext,
 )
 from langchain_community.chains.pebblo_retrieval.models import AuthContext, ChainInput
 from langchain_community.vectorstores.qdrant import Qdrant
@@ -78,7 +78,7 @@ In this step, we capture the authorization and semantic information of the sourc
 logger.info("### Identity-aware Data Ingestion")
 
 
-llm = Ollama()
+llm = ChatOllama()
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 collection_name = "pebblo-identity-and-semantic-rag"
 
@@ -162,6 +162,7 @@ def ask(question: str, auth_context: dict):
     auth_context_obj = AuthContext(**auth_context) if auth_context else None
     chain_input_obj = ChainInput(query=question, auth_context=auth_context_obj)
     return qa_chain.invoke(chain_input_obj.dict())
+
 
 """
 ### 1. Questions by Authorized User
@@ -259,7 +260,6 @@ Below is a sample code for PebbloRetrievalQA with `topics_to_deny` and `entities
 logger.info("## Retrieval with Semantic Enforcement")
 
 
-
 qa_chain = PebbloRetrievalQA.from_chain_type(
     llm=llm,
     retriever=vectordb.as_retriever(),
@@ -281,13 +281,16 @@ def ask(
     if topics_to_deny:
         semantic_context["pebblo_semantic_topics"] = {"deny": topics_to_deny}
     if entities_to_deny:
-        semantic_context["pebblo_semantic_entities"] = {"deny": entities_to_deny}
+        semantic_context["pebblo_semantic_entities"] = {
+            "deny": entities_to_deny}
 
     semantic_context_obj = (
         SemanticContext(**semantic_context) if semantic_context else None
     )
-    chain_input_obj = ChainInput(query=question, semantic_context=semantic_context_obj)
+    chain_input_obj = ChainInput(
+        query=question, semantic_context=semantic_context_obj)
     return qa_chain.invoke(chain_input_obj.dict())
+
 
 """
 ### 1. Without semantic enforcement
@@ -299,7 +302,8 @@ logger.info("### 1. Without semantic enforcement")
 topic_to_deny = []
 entities_to_deny = []
 question = "Share the financial performance of ACME Corp for the year 2020"
-resp = ask(question, topics_to_deny=topic_to_deny, entities_to_deny=entities_to_deny)
+resp = ask(question, topics_to_deny=topic_to_deny,
+           entities_to_deny=entities_to_deny)
 logger.debug(
     f"Topics to deny: {topic_to_deny}\nEntities to deny: {entities_to_deny}\n"
     f"Question: {question}\nAnswer: {resp['result']}"
@@ -316,7 +320,8 @@ logger.info("### 2. Deny financial-report topic")
 topic_to_deny = ["financial-report"]
 entities_to_deny = []
 question = "Share the financial performance of ACME Corp for the year 2020"
-resp = ask(question, topics_to_deny=topic_to_deny, entities_to_deny=entities_to_deny)
+resp = ask(question, topics_to_deny=topic_to_deny,
+           entities_to_deny=entities_to_deny)
 logger.debug(
     f"Topics to deny: {topic_to_deny}\nEntities to deny: {entities_to_deny}\n"
     f"Question: {question}\nAnswer: {resp['result']}"
@@ -331,7 +336,8 @@ logger.info("### 3. Deny us-bank-account-number entity")
 topic_to_deny = []
 entities_to_deny = ["us-bank-account-number"]
 question = "Share the financial performance of ACME Corp for the year 2020"
-resp = ask(question, topics_to_deny=topic_to_deny, entities_to_deny=entities_to_deny)
+resp = ask(question, topics_to_deny=topic_to_deny,
+           entities_to_deny=entities_to_deny)
 logger.debug(
     f"Topics to deny: {topic_to_deny}\nEntities to deny: {entities_to_deny}\n"
     f"Question: {question}\nAnswer: {resp['result']}"

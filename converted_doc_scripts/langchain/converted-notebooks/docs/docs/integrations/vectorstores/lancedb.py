@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from lancedb.rerankers import LinearCombinationReranker
 from langchain_community.document_loaders import TextLoader
@@ -39,7 +39,8 @@ logger.info("# LanceDB")
 """
 We want to use OllamaEmbeddings so we have to get the Ollama API Key.
 """
-logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -75,7 +76,8 @@ vector_store = LanceDB(
 
 You can also add `region`, `api_key`, `uri` to `from_documents()` classmethod
 """
-logger.info("##### For LanceDB cloud, you can invoke the vector store as follows :")
+logger.info(
+    "##### For LanceDB cloud, you can invoke the vector store as follows :")
 
 
 reranker = LinearCombinationReranker(weight=0.3)
@@ -87,7 +89,8 @@ docs = docsearch.similarity_search_with_relevance_scores(query)
 logger.debug("relevance score - ", docs[0][1])
 logger.debug("text- ", docs[0][0].page_content[:1000])
 
-docs = docsearch.similarity_search_with_score(query="Headaches", query_type="hybrid")
+docs = docsearch.similarity_search_with_score(
+    query="Headaches", query_type="hybrid")
 logger.debug("distance - ", docs[0][1])
 logger.debug("text- ", docs[0][0].page_content[:1000])
 
@@ -108,14 +111,16 @@ vector_store = LanceDB(connection=tbl, embedding=embeddings)
 logger.info("# pd_df.to_csv("docsearch.csv", index=False)")
 
 docs = docsearch.similarity_search(
-    query=query, filter={"metadata.source": "../../how_to/state_of_the_union.txt"}
+    query=query, filter={
+        "metadata.source": "../../how_to/state_of_the_union.txt"}
 )
 
 logger.debug("metadata :", docs[0].metadata)
 
 
 logger.debug("\nSQL filtering :\n")
-docs = docsearch.similarity_search(query=query, filter="text LIKE '%Officer Rivera%'")
+docs = docsearch.similarity_search(
+    query=query, filter="text LIKE '%Officer Rivera%'")
 logger.debug(docs[0].page_content)
 
 """
@@ -128,8 +133,6 @@ logger.info("## Adding images")
 # ! pip install open_clip_torch torch
 
 # ! rm -rf '/tmp/multimmodal_lance'
-
-
 
 
 image_urls = [

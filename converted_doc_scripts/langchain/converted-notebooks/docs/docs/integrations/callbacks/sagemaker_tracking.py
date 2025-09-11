@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import initialize_agent, load_tools
 from langchain.chains import LLMChain, SimpleSequentialChain
@@ -59,7 +59,6 @@ logger.info("First, setup the required API keys")
 os.environ["SERPAPI_API_KEY"] = "<ADD-KEY-HERE>"
 
 
-
 """
 ## LLM Prompt Tracking
 """
@@ -90,7 +89,7 @@ with Run(
 ) as run:
     sagemaker_callback = SageMakerCallbackHandler(run)
 
-    llm = Ollama(callbacks=[sagemaker_callback], **HPARAMS)
+    llm = ChatOllama(callbacks=[sagemaker_callback], **HPARAMS)
 
     prompt = PromptTemplate.from_template(template=PROMPT_TEMPLATE)
 
@@ -126,11 +125,13 @@ with Run(
     prompt_template1 = PromptTemplate.from_template(template=PROMPT_TEMPLATE_1)
     prompt_template2 = PromptTemplate.from_template(template=PROMPT_TEMPLATE_2)
 
-    llm = Ollama(callbacks=[sagemaker_callback], **HPARAMS)
+    llm = ChatOllama(callbacks=[sagemaker_callback], **HPARAMS)
 
-    chain1 = LLMChain(llm=llm, prompt=prompt_template1, callbacks=[sagemaker_callback])
+    chain1 = LLMChain(llm=llm, prompt=prompt_template1,
+                      callbacks=[sagemaker_callback])
 
-    chain2 = LLMChain(llm=llm, prompt=prompt_template2, callbacks=[sagemaker_callback])
+    chain2 = LLMChain(llm=llm, prompt=prompt_template2,
+                      callbacks=[sagemaker_callback])
 
     overall_chain = SimpleSequentialChain(
         chains=[chain1, chain2], callbacks=[sagemaker_callback]
@@ -153,9 +154,10 @@ with Run(
 ) as run:
     sagemaker_callback = SageMakerCallbackHandler(run)
 
-    llm = Ollama(callbacks=[sagemaker_callback], **HPARAMS)
+    llm = ChatOllama(callbacks=[sagemaker_callback], **HPARAMS)
 
-    tools = load_tools(["serpapi", "llm-math"], llm=llm, callbacks=[sagemaker_callback])
+    tools = load_tools(["serpapi", "llm-math"], llm=llm,
+                       callbacks=[sagemaker_callback])
 
     agent = initialize_agent(
         tools, llm, agent="zero-shot-react-description", callbacks=[sagemaker_callback]

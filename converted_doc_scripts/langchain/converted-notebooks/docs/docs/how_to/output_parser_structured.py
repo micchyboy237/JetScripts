@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.output_parsers.json import SimpleJsonOutputParser
 from langchain_core.output_parsers import PydanticOutputParser
@@ -41,7 +41,8 @@ And then one optional one:
 
 Below we go over the main type of output parser, the `PydanticOutputParser`.
 """
-logger.info("# How to use output parsers to parse an LLM response into structured format")
+logger.info(
+    "# How to use output parsers to parse an LLM response into structured format")
 
 
 model = Ollama(model_name="gpt-3.5-turbo-instruct", temperature=0.0)
@@ -65,7 +66,8 @@ parser = PydanticOutputParser(pydantic_object=Joke)
 prompt = PromptTemplate(
     template="Answer the user query.\n{format_instructions}\n{query}\n",
     input_variables=["query"],
-    partial_variables={"format_instructions": parser.get_format_instructions()},
+    partial_variables={
+        "format_instructions": parser.get_format_instructions()},
 )
 
 prompt_and_model = prompt | model
@@ -86,7 +88,8 @@ parser.invoke(output)
 """
 Instead of manually invoking the parser, we also could've just added it to our `Runnable` sequence:
 """
-logger.info("Instead of manually invoking the parser, we also could've just added it to our `Runnable` sequence:")
+logger.info(
+    "Instead of manually invoking the parser, we also could've just added it to our `Runnable` sequence:")
 
 chain = prompt | model | parser
 chain.invoke({"query": "Tell me a joke."})

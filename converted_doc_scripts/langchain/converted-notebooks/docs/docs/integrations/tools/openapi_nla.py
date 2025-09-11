@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain_community.agent_toolkits import NLAToolkit
@@ -30,7 +30,7 @@ This notebook demonstrates a sample composition of the `Speak`, `Klarna`, and `S
 logger.info("# Natural Language API Toolkits")
 
 
-llm = Ollama(
+llm = ChatOllama(
     temperature=0, max_tokens=700, model_name="gpt-3.5-turbo-instruct"
 )  # You can swap between different core LLM's here.
 
@@ -39,7 +39,8 @@ llm = Ollama(
 """
 logger.info("### Next, load the Natural Language API Toolkits")
 
-speak_toolkit = NLAToolkit.from_llm_and_url(llm, "https://api.speak.com/openapi.yaml")
+speak_toolkit = NLAToolkit.from_llm_and_url(
+    llm, "https://api.speak.com/openapi.yaml")
 klarna_toolkit = NLAToolkit.from_llm_and_url(
     llm, "https://www.klarna.com/us/shopping/public/ollama/v0/api-docs/"
 )

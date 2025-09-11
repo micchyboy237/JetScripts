@@ -1,7 +1,7 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.retrievers import (
-PineconeHybridSearchRetriever,
+    PineconeHybridSearchRetriever,
 )
 from pinecone import Pinecone, ServerlessSpec
 from pinecone_notebooks.colab import Authenticate
@@ -47,7 +47,8 @@ api_key = os.environ["PINECONE_API_KEY"]
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -60,7 +61,6 @@ logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API 
 You should only have to do this part once.
 """
 logger.info("## Setup Pinecone")
-
 
 
 index_name = "langchain-pinecone-hybrid-search"
@@ -98,7 +98,6 @@ To encode the text to sparse values you can either choose SPLADE or BM25. For ou
 For more information about the sparse encoders you can checkout pinecone-text library [docs](https://pinecone-io.github.io/pinecone-text/pinecone_text.html).
 """
 logger.info("To encode the text to sparse values you can either choose SPLADE or BM25. For out of domain tasks we recommend using BM25.")
-
 
 
 bm25_encoder = BM25Encoder().default()

@@ -1,6 +1,6 @@
 from docugami_langchain.document_loaders import DocugamiLoader
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.chains.query_constructor.schema import AttributeInfo
@@ -58,7 +58,6 @@ Appropriate chunking of your documents is critical for retrieval from documents.
 4. **Additional Metadata:** Chunks are also annotated with additional metadata, if a user has been using Docugami. This additional metadata can be used for high-accuracy Document QA without context window restrictions. See detailed code walk-through below.
 """
 logger.info("## Quick start")
-
 
 
 """
@@ -147,7 +146,8 @@ For example, if we ask a more complex question that requires the LLM to draw on 
 """
 logger.info("## Using Docugami Knowledge Graph for High Accuracy Document QA")
 
-chain_response = qa_chain("What is rentable area for the property owned by DHA Group?")
+chain_response = qa_chain(
+    "What is rentable area for the property owned by DHA Group?")
 chain_response["result"]  # correct answer should be 13,500 sq ft
 
 chain_response["source_documents"]
@@ -171,7 +171,8 @@ logger.debug(chunks[0].metadata)
 """
 We can use a [self-querying retriever](/docs/how_to/self_query) to improve our query accuracy, using this additional metadata:
 """
-logger.info("We can use a [self-querying retriever](/docs/how_to/self_query) to improve our query accuracy, using this additional metadata:")
+logger.info(
+    "We can use a [self-querying retriever](/docs/how_to/self_query) to improve our query accuracy, using this additional metadata:")
 
 # !poetry run pip install --upgrade lark --quiet
 
@@ -188,7 +189,7 @@ metadata_field_info = [
 ]
 
 document_content_description = "Contents of this chunk"
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 vectordb = Chroma.from_documents(documents=chunks, embedding=embedding)
 retriever = SelfQueryRetriever.from_llm(
@@ -220,8 +221,8 @@ Documents are inherently semi-structured and the DocugamiLoader is able to navig
 
 To get parent chunk references, you can set `loader.parent_hierarchy_levels` to a non-zero value.
 """
-logger.info("# Advanced Topic: Small-to-Big Retrieval with Document Knowledge Graph Hierarchy")
-
+logger.info(
+    "# Advanced Topic: Small-to-Big Retrieval with Document Knowledge Graph Hierarchy")
 
 
 loader = DocugamiLoader(docset_id="zo954yqy53wp")
@@ -231,7 +232,8 @@ loader.include_xml_tags = (
 loader.parent_hierarchy_levels = 3  # for expanded context
 loader.max_text_length = (
     1024 * 8
-)  # 8K chars are roughly 2K tokens (ref: https://help.ollama.com/en/articles/4936856-what-are-tokens-and-how-to-count-them)
+    # 8K chars are roughly 2K tokens (ref: https://help.ollama.com/en/articles/4936856-what-are-tokens-and-how-to-count-them)
+)
 loader.include_project_metadata_in_doc_metadata = (
     False  # Not filtering on vector metadata, so remove to lighten the vectors
 )
@@ -250,11 +252,13 @@ for chunk in chunks:
 for id, chunk in list(children_by_id.items())[:5]:
     parent_chunk_id = chunk.metadata.get(loader.parent_id_key)
     if parent_chunk_id:
-        logger.debug(f"PARENT CHUNK {parent_chunk_id}: {parents_by_id[parent_chunk_id]}")
+        logger.debug(
+            f"PARENT CHUNK {parent_chunk_id}: {parents_by_id[parent_chunk_id]}")
         logger.debug(f"CHUNK {id}: {chunk}")
 
 
-vectorstore = Chroma(collection_name="big2small", embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma(collection_name="big2small",
+                     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
 
 store = InMemoryStore()
 

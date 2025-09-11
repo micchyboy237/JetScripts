@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import initialize_agent
 from langchain.agents import load_tools
@@ -51,7 +51,7 @@ The tool can be used in any LangChain agent as follows:
 logger.info("## Usage in an Agent")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 memory = ConversationBufferMemory(memory_key="chat_history")
 agent = initialize_agent(
     tools, llm, memory=memory, agent="conversational-react-description", verbose=True

@@ -1,9 +1,9 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.base import (
-StructuredQueryOutputParser,
-get_query_constructor_prompt,
+    StructuredQueryOutputParser,
+    get_query_constructor_prompt,
 )
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -79,7 +79,8 @@ docs = [
         },
     ),
 ]
-vectorstore = Chroma.from_documents(docs, OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma.from_documents(
+    docs, OllamaEmbeddings(model="mxbai-embed-large"))
 
 """
 ### Creating our self-querying retriever
@@ -194,7 +195,8 @@ The query constructor is the key element of the self-query retriever. To make a 
 
 The next key element is the structured query translator. This is the object responsible for translating the generic `StructuredQuery` object into a metadata filter in the syntax of the vector store you're using. LangChain comes with a number of built-in translators. To see them all head to the [Integrations section](/docs/integrations/retrievers/self_query).
 """
-logger.info("The query constructor is the key element of the self-query retriever. To make a great retrieval system you'll need to make sure your query constructor works well. Often this requires adjusting the prompt, the examples in the prompt, the attribute descriptions, etc. For an example that walks through refining a query constructor on some hotel inventory data, [check out this cookbook](https://github.com/langchain-ai/langchain/blob/master/cookbook/self_query_hotel_search.ipynb).")
+logger.info(
+    "The query constructor is the key element of the self-query retriever. To make a great retrieval system you'll need to make sure your query constructor works well. Often this requires adjusting the prompt, the examples in the prompt, the attribute descriptions, etc. For an example that walks through refining a query constructor on some hotel inventory data, [check out this cookbook](https://github.com/langchain-ai/langchain/blob/master/cookbook/self_query_hotel_search.ipynb).")
 
 
 retriever = SelfQueryRetriever(

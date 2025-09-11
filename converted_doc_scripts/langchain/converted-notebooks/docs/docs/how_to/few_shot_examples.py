@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_chroma import Chroma
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
@@ -132,7 +132,8 @@ prompt = FewShotPromptTemplate(
 )
 
 logger.debug(
-    prompt.invoke({"input": "Who was the father of Mary Ball Washington?"}).to_string()
+    prompt.invoke(
+        {"input": "Who was the father of Mary Ball Washington?"}).to_string()
 )
 
 """
@@ -175,7 +176,8 @@ prompt = FewShotPromptTemplate(
 )
 
 logger.debug(
-    prompt.invoke({"input": "Who was the father of Mary Ball Washington?"}).to_string()
+    prompt.invoke(
+        {"input": "Who was the father of Mary Ball Washington?"}).to_string()
 )
 
 """

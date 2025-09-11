@@ -1,9 +1,9 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.vectorstores import InMemoryVectorStore
 import os
 import shutil
-import { ItemTable } from "@theme/FeatureTables";
+import {ItemTable} from "@theme/FeatureTables"
 
 
 OUTPUT_DIR = os.path.join(
@@ -55,7 +55,6 @@ First, follow [these instructions](https://github.com/ollama/ollama?tab=readme-o
 To enable automated tracing of your model calls, set your [LangSmith](https://docs.smith.langchain.com/) API key:
 """
 logger.info("# OllamaEmbeddings")
-
 
 
 """
@@ -116,7 +115,8 @@ You can embed single texts or documents with `embed_query`:
 logger.info("## Direct Usage")
 
 single_vector = embeddings.embed_query(text)
-logger.debug(str(single_vector)[:100])  # Show the first 100 characters of the vector
+# Show the first 100 characters of the vector
+logger.debug(str(single_vector)[:100])
 
 """
 ### Embed multiple texts
@@ -130,7 +130,8 @@ text2 = (
 )
 two_vectors = embeddings.embed_documents([text, text2])
 for vector in two_vectors:
-    logger.debug(str(vector)[:100])  # Show the first 100 characters of the vector
+    # Show the first 100 characters of the vector
+    logger.debug(str(vector)[:100])
 
 """
 ## API Reference

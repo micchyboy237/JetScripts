@@ -1,6 +1,6 @@
 from datasets import load_dataset
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.globals import set_llm_cache
 from langchain_core.output_parsers import StrOutputParser
@@ -49,7 +49,8 @@ In this notebook, we will see how to use the new MongoDBCache and MongoDBChatMes
 
 - **pandas**: Python library for data analysis, exploration, and manipulation
 """
-logger.info("# Adding Semantic Caching and Memory to your RAG Application using MongoDB and LangChain")
+logger.info(
+    "# Adding Semantic Caching and Memory to your RAG Application using MongoDB and LangChain")
 
 # ! pip install -qU datasets langchain langchain-mongodb langchain-ollama pymongo pandas
 
@@ -100,7 +101,8 @@ df.rename(columns={"plot_embedding": "embedding"}, inplace=True)
 """
 ## Step 5: Create a simple RAG chain using MongoDB as the vector store
 """
-logger.info("## Step 5: Create a simple RAG chain using MongoDB as the vector store")
+logger.info(
+    "## Step 5: Create a simple RAG chain using MongoDB as the vector store")
 
 
 client = MongoClient(MONGODB_URI, appname="devrel.content.python")
@@ -119,7 +121,7 @@ logger.debug("Data ingestion into MongoDB completed")
 
 
 embeddings = OllamaEmbeddings(
-#     ollama_api_key=OPENAI_API_KEY, model="text-embedding-ada-002"
+    #     ollama_api_key=OPENAI_API_KEY, model="text-embedding-ada-002"
 )
 
 vector_store = MongoDBAtlasVectorSearch.from_connection_string(
@@ -130,7 +132,8 @@ vector_store = MongoDBAtlasVectorSearch.from_connection_string(
     text_key="fullplot",
 )
 
-retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+retriever = vector_store.as_retriever(
+    search_type="similarity", search_kwargs={"k": 5})
 
 
 retrieve = {
@@ -160,6 +163,7 @@ def get_session_history(session_id: str) -> MongoDBChatMessageHistory:
     return MongoDBChatMessageHistory(
         MONGODB_URI, session_id, database_name=DB_NAME, collection_name="history"
     )
+
 
 standalone_system_prompt = """
 Given a chat history and a follow-up question, rephrase the follow-up question to be a standalone question. \

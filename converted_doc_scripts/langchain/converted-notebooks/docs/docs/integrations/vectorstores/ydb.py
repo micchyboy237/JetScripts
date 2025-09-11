@@ -1,9 +1,9 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_ydb.vectorstores import YDB, YDBSearchStrategy, YDBSettings
 from uuid import uuid4
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -51,7 +51,6 @@ If you want to get best in-class automated tracing of your model calls you can a
 logger.info("### Credentials")
 
 
-
 """
 ## Initialization
 
@@ -80,7 +79,6 @@ Once you have created your vector store, you can interact with it by adding and 
 Prepare documents to work with:
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -150,7 +148,8 @@ uuids = [str(uuid4()) for _ in range(len(documents))]
 """
 You can add items to your vector store by using the `add_documents` function.
 """
-logger.info("You can add items to your vector store by using the `add_documents` function.")
+logger.info(
+    "You can add items to your vector store by using the `add_documents` function.")
 
 vector_store.add_documents(documents=documents, ids=uuids)
 
@@ -189,7 +188,8 @@ You can also perform a search with a score:
 """
 logger.info("#### Similarity search with score")
 
-results = vector_store.similarity_search_with_score("Will it be hot tomorrow?", k=3)
+results = vector_store.similarity_search_with_score(
+    "Will it be hot tomorrow?", k=3)
 for res, score in results:
     logger.debug(f"* [SIM={score:.3f}] {res.page_content} [{res.metadata}]")
 

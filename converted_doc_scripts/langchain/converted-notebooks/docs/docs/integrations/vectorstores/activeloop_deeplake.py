@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import TextLoader
@@ -53,7 +53,7 @@ logger.info("## Example provided by Activeloop")
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 if "ACTIVELOOP_TOKEN" not in os.environ:
-#     os.environ["ACTIVELOOP_TOKEN"] = getpass.getpass("activeloop token:")
+    #     os.environ["ACTIVELOOP_TOKEN"] = getpass.getpass("activeloop token:")
 
 
 loader = TextLoader("../../how_to/state_of_the_union.txt")
@@ -163,12 +163,14 @@ db.delete_dataset()
 ## Deep Lake datasets on cloud (Activeloop, AWS, GCS, etc.) or in memory
 By default, Deep Lake datasets are stored locally. To store them in memory, in the Deep Lake Managed DB, or in any object storage, you can provide the [corresponding path and credentials when creating the vector store](https://docs.deeplake.ai/latest/getting-started/storage-and-creds/storage-options/). Some paths require registration with Activeloop and creation of an API token that can be [retrieved here](https://app.activeloop.ai/)
 """
-logger.info("## Deep Lake datasets on cloud (Activeloop, AWS, GCS, etc.) or in memory")
+logger.info(
+    "## Deep Lake datasets on cloud (Activeloop, AWS, GCS, etc.) or in memory")
 
 os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
 
 username = "<USERNAME_OR_ORG>"  # your username on app.activeloop.ai
-dataset_path = f"hub://{username}/langchain_testing_python"  # could be also ./local/path (much faster locally), s3://bucket/path/to/dataset, gcs://path/to/dataset, etc.
+# could be also ./local/path (much faster locally), s3://bucket/path/to/dataset, gcs://path/to/dataset, etc.
+dataset_path = f"hub://{username}/langchain_testing_python"
 
 docs = text_splitter.split_documents(documents)
 
@@ -216,7 +218,8 @@ db.dataset.summary()
 """
 logger.info("### Creating vector stores on AWS S3")
 
-dataset_path = "s3://BUCKET/langchain_test"  # could be also ./local/path (much faster locally), hub://bucket/path/to/dataset, gcs://path/to/dataset, etc.
+# could be also ./local/path (much faster locally), hub://bucket/path/to/dataset, gcs://path/to/dataset, etc.
+dataset_path = "s3://BUCKET/langchain_test"
 
 embedding = OllamaEmbeddings(model="mxbai-embed-large")
 db = DeeplakeVectorStore.from_documents(
@@ -250,12 +253,14 @@ logger.info("### Transfer local dataset to cloud")
 
 username = "<USERNAME_OR_ORG>"  # your username on app.activeloop.ai
 source = f"hub://{username}/langchain_testing"  # could be local, s3, gcs, etc.
-destination = f"hub://{username}/langchain_test_copy"  # could be local, s3, gcs, etc.
+# could be local, s3, gcs, etc.
+destination = f"hub://{username}/langchain_test_copy"
 
 
 deeplake.copy(src=source, dst=destination)
 
-db = DeeplakeVectorStore(dataset_path=destination, embedding_function=embeddings)
+db = DeeplakeVectorStore(dataset_path=destination,
+                         embedding_function=embeddings)
 db.add_documents(docs)
 
 logger.info("\n\n[DONE]", bright=True)

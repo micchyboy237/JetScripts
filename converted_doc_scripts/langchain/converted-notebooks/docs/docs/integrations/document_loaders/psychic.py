@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain_chroma import Chroma

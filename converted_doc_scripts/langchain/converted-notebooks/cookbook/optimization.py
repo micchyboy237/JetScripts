@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.base import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -88,7 +88,6 @@ retriever = SelfQueryRetriever.from_llm(
 )
 
 
-
 prompt = ChatPromptTemplate.from_template(
     """Answer the user's question based on the below information:
 
@@ -103,7 +102,8 @@ generator = (prompt | ChatOllama(model="llama3.2") | StrOutputParser()).with_con
 )
 
 chain = (
-    RunnablePassthrough.assign(info=(lambda x: x["question"]) | retriever) | generator
+    RunnablePassthrough.assign(
+        info=(lambda x: x["question"]) | retriever) | generator
 )
 
 """
@@ -197,7 +197,8 @@ client.create_dataset("movie-generator")
 inputs = [r.inputs for r in gen_runs]
 outputs = [r.outputs for r in gen_runs]
 
-client.create_examples(inputs=inputs, outputs=outputs, dataset_name="movie-generator")
+client.create_examples(inputs=inputs, outputs=outputs,
+                       dataset_name="movie-generator")
 
 """
 ## Use as few shot examples
@@ -209,7 +210,6 @@ logger.info("## Use as few shot examples")
 examples = list(client.list_examples(dataset_name="movie-query_constructor"))
 
 
-
 def filter_to_string(_filter):
     if "operator" in _filter:
         args = [filter_to_string(f) for f in _filter["arguments"]]
@@ -219,6 +219,7 @@ def filter_to_string(_filter):
         attribute = json.dumps(_filter["attribute"])
         value = json.dumps(_filter["value"])
         return f"{comparator}({attribute}, {value})"
+
 
 model_examples = []
 
@@ -244,7 +245,8 @@ retriever1 = SelfQueryRetriever.from_llm(
 )
 
 chain1 = (
-    RunnablePassthrough.assign(info=(lambda x: x["question"]) | retriever1) | generator
+    RunnablePassthrough.assign(
+        info=(lambda x: x["question"]) | retriever1) | generator
 )
 
 chain1.invoke(

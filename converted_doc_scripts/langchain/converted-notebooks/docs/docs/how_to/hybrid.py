@@ -1,13 +1,13 @@
 from cassio.table.cql import STANDARD_ANALYZER
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.vectorstores import Cassandra
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import (
-ConfigurableField,
-RunnablePassthrough,
+    ConfigurableField,
+    RunnablePassthrough,
 )
 import cassio
 import os
@@ -59,7 +59,8 @@ Get the [connection secrets](https://docs.datastax.com/en/astra/astra-db-vector/
 
 Initialize cassio:
 """
-logger.info("Get the [connection secrets](https://docs.datastax.com/en/astra/astra-db-vector/get-started/quickstart.html).")
+logger.info(
+    "Get the [connection secrets](https://docs.datastax.com/en/astra/astra-db-vector/get-started/quickstart.html).")
 
 
 cassio.init(
@@ -71,7 +72,8 @@ cassio.init(
 """
 Create the Cassandra VectorStore with a standard [index analyzer](https://docs.datastax.com/en/astra/astra-db-vector/cql/use-analyzers-with-cql.html). The index analyzer is needed to enable term matching.
 """
-logger.info("Create the Cassandra VectorStore with a standard [index analyzer](https://docs.datastax.com/en/astra/astra-db-vector/cql/use-analyzers-with-cql.html). The index analyzer is needed to enable term matching.")
+logger.info(
+    "Create the Cassandra VectorStore with a standard [index analyzer](https://docs.datastax.com/en/astra/astra-db-vector/cql/use-analyzers-with-cql.html). The index analyzer is needed to enable term matching.")
 
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
@@ -101,7 +103,8 @@ vectorstore.as_retriever().invoke("What city did I visit last?")
 """
 The Astra DB vectorstore `body_search` argument can be used to filter the search on the term `new`.
 """
-logger.info("The Astra DB vectorstore `body_search` argument can be used to filter the search on the term `new`.")
+logger.info(
+    "The Astra DB vectorstore `body_search` argument can be used to filter the search on the term `new`.")
 
 vectorstore.as_retriever(search_kwargs={"body_search": "new"}).invoke(
     "What city did I visit last?"
@@ -110,7 +113,8 @@ vectorstore.as_retriever(search_kwargs={"body_search": "new"}).invoke(
 """
 We can now create the chain that we will use to do question-answering over
 """
-logger.info("We can now create the chain that we will use to do question-answering over")
+logger.info(
+    "We can now create the chain that we will use to do question-answering over")
 
 
 """

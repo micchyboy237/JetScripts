@@ -1,10 +1,10 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.docstore.in_memory import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from uuid import uuid4
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import faiss
 import os
 import shutil
@@ -40,13 +40,13 @@ Note that you can also install `faiss-gpu` if you want to use the GPU enabled ve
 """
 logger.info("# Faiss")
 
-pip install -qU langchain-community faiss-cpu
+pip install - qU langchain-community faiss-cpu
 
 """
 If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
-logger.info("If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
-
+logger.info(
+    "If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
 
 
 """
@@ -76,7 +76,6 @@ vector_store = FAISS(
 ### Add items to vector store
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -224,8 +223,10 @@ You can also transform the vector store into a retriever for easier usage in you
 """
 logger.info("#### Other search methods")
 
-retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 1})
-retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+retriever = vector_store.as_retriever(
+    search_type="mmr", search_kwargs={"k": 1})
+retriever.invoke("Stealing from the bank is a crime",
+                 filter={"source": "news"})
 
 """
 ## Usage for retrieval-augmented generation

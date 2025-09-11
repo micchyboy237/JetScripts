@@ -1,7 +1,7 @@
 from IPython.display import HTML, display
 from PIL import Image
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers.multi_vector import MultiVectorRetriever
 from langchain.storage import InMemoryStore
@@ -115,7 +115,6 @@ texts = [d.page_content for d in docs]
 logger.info("## Data Loading")
 
 
-
 def extract_pdf_elements(path, fname):
     """
     Extract images, tables, and chunk text from a PDF file.
@@ -178,7 +177,6 @@ Summaries are used to retrieve raw tables and / or raw chunks of text.
 logger.info("## Multi-vector retriever")
 
 
-
 def generate_text_summaries(texts, tables, summarize_texts=False):
     """
     Summarize text elements
@@ -193,7 +191,8 @@ def generate_text_summaries(texts, tables, summarize_texts=False):
     prompt = ChatPromptTemplate.from_template(prompt_text)
 
     model = ChatOllama(model="llama3.2")
-    summarize_chain = {"element": lambda x: x} | prompt | model | StrOutputParser()
+    summarize_chain = {
+        "element": lambda x: x} | prompt | model | StrOutputParser()
 
     text_summaries = []
     table_summaries = []
@@ -223,8 +222,6 @@ The API docs [here](https://platform.ollama.com/docs/guides/vision):
 * We pass base64 encoded images
 """
 logger.info("### Image summaries")
-
-
 
 
 def encode_image(image_path):
@@ -290,8 +287,6 @@ Add raw docs and doc summaries to [Multi Vector Retriever](https://python.langch
 logger.info("### Add to vectorstore")
 
 
-
-
 def create_multi_vector_retriever(
     vectorstore, text_summaries, texts, table_summaries, tables, image_summaries, images
 ):
@@ -351,8 +346,6 @@ We need to bin the retrieved doc(s) into the correct parts of the GPT-4V prompt 
 logger.info("## RAG")
 
 
-
-
 def plt_img_base64(img_base64):
     """Disply base64 encoded string as image"""
     image_html = f'<img src="data:image/jpeg;base64,{img_base64}" />'
@@ -375,7 +368,8 @@ def is_image_data(b64data):
         b"\x52\x49\x46\x46": "webp",
     }
     try:
-        header = base64.b64decode(b64data)[:8]  # Decode and get the first 8 bytes
+        # Decode and get the first 8 bytes
+        header = base64.b64decode(b64data)[:8]
         for sig, format in image_signatures.items():
             if header.startswith(sig):
                 return True

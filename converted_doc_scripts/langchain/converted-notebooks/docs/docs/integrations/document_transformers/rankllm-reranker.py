@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.retrievers.contextual_compression import ContextualCompressionRetriever
@@ -43,12 +43,15 @@ logger.info("# RankLLM Reranker")
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
+
 def pretty_print_docs(docs):
     logger.debug(
         f"\n{'-' * 100}\n".join(
-            [f"Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]
+            [f"Document {i + 1}:\n\n" +
+                d.page_content for i, d in enumerate(docs)]
         )
     )
+
 
 """
 ## Set up the base vector store retriever
@@ -57,14 +60,17 @@ Let's start by initializing a simple vector store retriever and storing the 2023
 logger.info("## Set up the base vector store retriever")
 
 
-documents = TextLoader("../document_loaders/example_data/state_of_the_union.txt").load()
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+documents = TextLoader(
+    "../document_loaders/example_data/state_of_the_union.txt").load()
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500, chunk_overlap=100)
 texts = text_splitter.split_documents(documents)
 for idx, text in enumerate(texts):
     text.metadata["id"] = idx
 
 embedding = OllamaEmbeddings(model="mxbai-embed-large")
-retriever = FAISS.from_documents(texts, embedding).as_retriever(search_kwargs={"k": 20})
+retriever = FAISS.from_documents(
+    texts, embedding).as_retriever(search_kwargs={"k": 20})
 
 """
 # Retrieval + RankLLM Reranking (RankZephyr)

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Tigris
@@ -39,18 +39,19 @@ logger.info("# Tigris")
 """
 We will load the `Ollama` api key and `Tigris` credentials in our environment
 """
-logger.info("We will load the `Ollama` api key and `Tigris` credentials in our environment")
+logger.info(
+    "We will load the `Ollama` api key and `Tigris` credentials in our environment")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 if "TIGRIS_PROJECT" not in os.environ:
-#     os.environ["TIGRIS_PROJECT"] = getpass.getpass("Tigris Project Name:")
+    #     os.environ["TIGRIS_PROJECT"] = getpass.getpass("Tigris Project Name:")
 if "TIGRIS_CLIENT_ID" not in os.environ:
-#     os.environ["TIGRIS_CLIENT_ID"] = getpass.getpass("Tigris Client Id:")
+    #     os.environ["TIGRIS_CLIENT_ID"] = getpass.getpass("Tigris Client Id:")
 if "TIGRIS_CLIENT_SECRET" not in os.environ:
-#     os.environ["TIGRIS_CLIENT_SECRET"] = getpass.getpass("Tigris Client Secret:")
+    #     os.environ["TIGRIS_CLIENT_SECRET"] = getpass.getpass("Tigris Client Secret:")
 
 
 """
@@ -66,7 +67,8 @@ docs = text_splitter.split_documents(documents)
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
-vector_store = Tigris.from_documents(docs, embeddings, index_name="my_embeddings")
+vector_store = Tigris.from_documents(
+    docs, embeddings, index_name="my_embeddings")
 
 """
 ### Similarity Search

@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -119,16 +119,17 @@ Since we are using `SupabaseVectorStore` and `OllamaEmbeddings`, we have to load
 
 # - To get your `OPENAI_API_KEY`, navigate to [API keys](https://platform.ollama.com/account/api-keys) on your Ollama account and create a new secret key.
 """
-logger.info("Since we are using `SupabaseVectorStore` and `OllamaEmbeddings`, we have to load their API keys.")
+logger.info(
+    "Since we are using `SupabaseVectorStore` and `OllamaEmbeddings`, we have to load their API keys.")
 
 # import getpass
 
 if "SUPABASE_URL" not in os.environ:
-#     os.environ["SUPABASE_URL"] = getpass.getpass("Supabase URL:")
+    #     os.environ["SUPABASE_URL"] = getpass.getpass("Supabase URL:")
 if "SUPABASE_SERVICE_KEY" not in os.environ:
-#     os.environ["SUPABASE_SERVICE_KEY"] = getpass.getpass("Supabase Service Key:")
-# if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
+    #     os.environ["SUPABASE_SERVICE_KEY"] = getpass.getpass("Supabase Service Key:")
+    # if "OPENAI_API_KEY" not in os.environ:
+    #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 """
 _Optional:_ If you're storing your Supabase and Ollama API keys in a `.env` file, you can load them with [`dotenv`](https://github.com/theskumar/python-dotenv).
@@ -142,8 +143,8 @@ load_dotenv()
 """
 First we'll create a Supabase client and instantiate a Ollama embeddings class.
 """
-logger.info("First we'll create a Supabase client and instantiate a Ollama embeddings class.")
-
+logger.info(
+    "First we'll create a Supabase client and instantiate a Ollama embeddings class.")
 
 
 supabase_url = os.environ.get("SUPABASE_URL")
@@ -225,7 +226,7 @@ metadata_field_info = [
     ),
 ]
 document_content_description = "Brief summary of a movie"
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 retriever = SelfQueryRetriever.from_llm(
     llm, vectorstore, document_content_description, metadata_field_info, verbose=True
 )

@@ -1,8 +1,8 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_gel import GelVectorStore
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -92,7 +92,8 @@ with open("dbschema/default.gel", "w") as f:
 """
 In order to apply schema changes to the database, run a migration using Gel's [migration mechanism](https://docs.geldata.com/reference/datamodel/migrations):
 """
-logger.info("In order to apply schema changes to the database, run a migration using Gel's [migration mechanism](https://docs.geldata.com/reference/datamodel/migrations):")
+logger.info(
+    "In order to apply schema changes to the database, run a migration using Gel's [migration mechanism](https://docs.geldata.com/reference/datamodel/migrations):")
 
 # ! gel migration create --non-interactive
 # ! gel migrate
@@ -164,7 +165,8 @@ docs = [
     ),
     Document(
         page_content="a cooking class for beginners is offered at the community center",
-        metadata={"id": "10", "location": "community center", "topic": "classes"},
+        metadata={"id": "10", "location": "community center",
+                  "topic": "classes"},
     ),
 ]
 
@@ -242,7 +244,8 @@ vector_store.similarity_search(
 """
 If you want to execute a similarity search and receive the corresponding scores you can run:
 """
-logger.info("If you want to execute a similarity search and receive the corresponding scores you can run:")
+logger.info(
+    "If you want to execute a similarity search and receive the corresponding scores you can run:")
 
 results = vector_store.similarity_search_with_score(query="cats", k=1)
 for doc, score in results:

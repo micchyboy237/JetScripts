@@ -1,6 +1,6 @@
 from jet.transformers.formatters import format_json
 from collections import defaultdict
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
@@ -143,8 +143,6 @@ As an example, below we load the content of the "Setup" sections for two web pag
 logger.info("Elements may also have parent-child relationships -- for example, a paragraph might belong to a section with a title. If a section is of particular interest (e.g., for indexing) we can isolate the corresponding `Document` objects.")
 
 
-
-
 async def _get_setup_docs_from_url(url: str) -> List[Document]:
     loader = UnstructuredLoader(web_url=url)
 
@@ -193,7 +191,8 @@ logger.info("### Vector search over page content")
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 
-vector_store = InMemoryVectorStore.from_documents(setup_docs, OllamaEmbeddings(model="mxbai-embed-large"))
+vector_store = InMemoryVectorStore.from_documents(
+    setup_docs, OllamaEmbeddings(model="mxbai-embed-large"))
 retrieved_docs = vector_store.similarity_search("Install Tavily", k=2)
 for doc in retrieved_docs:
     logger.debug(f"Page {doc.metadata['url']}: {doc.page_content[:300]}\n")

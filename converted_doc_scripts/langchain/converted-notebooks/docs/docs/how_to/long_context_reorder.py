@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.document_transformers import LongContextReorder
@@ -38,7 +38,8 @@ logger.info("# How to reorder retrieved results to mitigate the "lost in the mid
 """
 First we embed some artificial documents and index them in a basic in-memory vector store. We will use [Ollama](/docs/integrations/providers/ollama/) embeddings, but any LangChain vector store or embeddings model will suffice.
 """
-logger.info("First we embed some artificial documents and index them in a basic in-memory vector store. We will use [Ollama](/docs/integrations/providers/ollama/) embeddings, but any LangChain vector store or embeddings model will suffice.")
+logger.info(
+    "First we embed some artificial documents and index them in a basic in-memory vector store. We will use [Ollama](/docs/integrations/providers/ollama/) embeddings, but any LangChain vector store or embeddings model will suffice.")
 
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
@@ -80,7 +81,8 @@ for doc in reordered_docs:
 """
 Below, we show how to incorporate the re-ordered documents into a simple question-answering chain:
 """
-logger.info("Below, we show how to incorporate the re-ordered documents into a simple question-answering chain:")
+logger.info(
+    "Below, we show how to incorporate the re-ordered documents into a simple question-answering chain:")
 
 
 llm = ChatOllama(model="llama3.2")

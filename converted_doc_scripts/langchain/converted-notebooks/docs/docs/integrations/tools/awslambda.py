@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 import os
@@ -44,7 +44,7 @@ Note that because this tool is effectively just a wrapper around the boto3 libra
 logger.info("In order for an agent to use the tool, you must provide it with the name and description that match the functionality of you lambda function's logic.")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 tools = load_tools(
     ["awslambda"],

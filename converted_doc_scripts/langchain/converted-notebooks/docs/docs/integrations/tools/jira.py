@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain_community.agent_toolkits.jira.toolkit import JiraToolkit
@@ -40,7 +40,6 @@ logger.info("# Jira Toolkit")
 # %pip install --upgrade --quiet  atlassian-python-api
 
 # %pip install -qU langchain-community langchain-ollama
-
 
 
 """
@@ -131,7 +130,7 @@ os.environ["JIRA_INSTANCE_URL"] = "https://jira.atlassian.com"
 # os.environ["OPENAI_API_KEY"] = "xyz"
 os.environ["JIRA_CLOUD"] = "True"
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 jira = JiraAPIWrapper()
 toolkit = JiraToolkit.from_jira_api_wrapper(jira)
 

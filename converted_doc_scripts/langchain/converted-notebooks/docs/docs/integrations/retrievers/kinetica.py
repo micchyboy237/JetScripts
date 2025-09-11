@@ -1,10 +1,10 @@
 from dotenv import load_dotenv
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import (
-Kinetica,
-KineticaSettings,
+    Kinetica,
+    KineticaSettings,
 )
 from langchain_core.documents import Document
 from langchain_text_splitters import CharacterTextSplitter
@@ -41,7 +41,8 @@ logger.info("# Kinetica Vectorstore based Retriever")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -60,6 +61,7 @@ PASSWORD = os.getenv("KINETICA_PASSWORD", "")
 
 def create_config() -> KineticaSettings:
     return KineticaSettings(host=HOST, username=USERNAME, password=PASSWORD)
+
 
 """
 ## Create Retriever from vector store

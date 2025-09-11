@@ -1,9 +1,9 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.base import (
-get_query_constructor_prompt,
-load_query_constructor_runnable,
+    get_query_constructor_prompt,
+    load_query_constructor_runnable,
 )
 from langchain.retrievers import SelfQueryRetriever
 from langchain_elasticsearch import ElasticsearchStore
@@ -66,7 +66,8 @@ latest_price["ratedescription"] = attributes.loc[latest_price.index]["ratedescri
 latest_price = latest_price.join(
     details[["hotelname", "city", "country", "starrating"]], on="hotelcode"
 )
-latest_price = latest_price.rename({"ratedescription": "roomdescription"}, axis=1)
+latest_price = latest_price.rename(
+    {"ratedescription": "roomdescription"}, axis=1)
 latest_price["mealsincluded"] = ~latest_price["mealinclusiontype"].isnull()
 latest_price.pop("hotelcode")
 latest_price.pop("mealinclusiontype")
@@ -98,7 +99,8 @@ attribute_info
 """
 For low cardinality features, let's include the valid values in the description
 """
-logger.info("For low cardinality features, let's include the valid values in the description")
+logger.info(
+    "For low cardinality features, let's include the valid values in the description")
 
 latest_price.nunique()[latest_price.nunique() < 40]
 
@@ -132,7 +134,8 @@ chain = load_query_constructor_runnable(
     ChatOllama(model="llama3.2"), doc_contents, attribute_info
 )
 
-chain.invoke({"query": "I want a hotel in Southern Europe and my budget is 200 bucks."})
+chain.invoke(
+    {"query": "I want a hotel in Southern Europe and my budget is 200 bucks."})
 
 chain.invoke(
     {
@@ -158,7 +161,8 @@ chain = load_query_constructor_runnable(
     attribute_info,
 )
 
-chain.invoke({"query": "I want a hotel in Southern Europe and my budget is 200 bucks."})
+chain.invoke(
+    {"query": "I want a hotel in Southern Europe and my budget is 200 bucks."})
 
 """
 ## Refining which attributes to filter on
@@ -273,7 +277,6 @@ embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 The first time you run this, uncomment the below cell to first index the data.
 """
 logger.info("## Populating vectorstore")
-
 
 
 vecstore = ElasticsearchStore(

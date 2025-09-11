@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain_community.memory.zep_cloud_memory import ZepCloudMemory
@@ -46,7 +46,6 @@ We'll demonstrate:
 logger.info("# Zep Cloud Memory")
 
 
-
 session_id = str(uuid4())  # This is a unique identifier for the session
 
 # import getpass
@@ -58,7 +57,8 @@ session_id = str(uuid4())  # This is a unique identifier for the session
 """
 ### Initialize the Zep Chat Message History Class and initialize the Agent
 """
-logger.info("### Initialize the Zep Chat Message History Class and initialize the Agent")
+logger.info(
+    "### Initialize the Zep Chat Message History Class and initialize the Agent")
 
 search = WikipediaAPIWrapper()
 tools = [
@@ -79,7 +79,7 @@ memory = ZepCloudMemory(
     memory_key="chat_history",
 )
 
-llm = Ollama(temperature=0, ollama_api_key=ollama_key)
+llm = ChatOllama(temperature=0, ollama_api_key=ollama_key)
 agent_chain = initialize_agent(
     tools,
     llm,
@@ -183,6 +183,7 @@ Summaries are biased towards the most recent messages.
 """
 logger.info("### Inspect the Zep memory")
 
+
 def print_messages(messages):
     for m in messages:
         logger.debug(m.type, ":\n", m.dict())
@@ -210,7 +211,8 @@ retriever = ZepCloudRetriever(
     api_key=zep_api_key,
 )
 
-search_results = memory.chat_memory.search("who are some famous women sci-fi authors?")
+search_results = memory.chat_memory.search(
+    "who are some famous women sci-fi authors?")
 for r in search_results:
     if r.score > 0.8:  # Only print results with similarity of 0.8 or higher
         logger.debug(r.message, r.score)

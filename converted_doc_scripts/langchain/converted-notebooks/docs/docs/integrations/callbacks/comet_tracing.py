@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain_community.callbacks.tracers.comet import CometTracer
@@ -29,7 +29,6 @@ There are two ways to trace your LangChains executions with Comet:
 logger.info("# Comet Tracing")
 
 
-
 os.environ["LANGCHAIN_COMET_TRACING"] = "true"
 
 comet_llm.init()
@@ -37,7 +36,7 @@ comet_llm.init()
 os.environ["COMET_PROJECT_NAME"] = "comet-example-langchain-tracing"
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 tools = load_tools(["llm-math"], llm=llm)
 
 agent = initialize_agent(
@@ -52,7 +51,7 @@ if "LANGCHAIN_COMET_TRACING" in os.environ:
 
 tracer = CometTracer()
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 tools = load_tools(["llm-math"], llm=llm)
 agent = initialize_agent(
     tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True

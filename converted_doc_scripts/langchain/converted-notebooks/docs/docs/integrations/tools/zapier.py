@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain.chains import LLMChain, SimpleSequentialChain, TransformChain
@@ -56,9 +56,7 @@ Zapier tools can be used with an agent. See the example below.
 logger.info("## Example with Agent")
 
 
-
-
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 zapier = ZapierNLAWrapper()
 toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
 agent = initialize_agent(
@@ -83,7 +81,8 @@ GMAIL_SEARCH_INSTRUCTIONS = "Grab the latest email from Silicon Valley Bank"
 
 def nla_gmail(inputs):
     action = next(
-        (a for a in actions if a["description"].startswith("Gmail: Find Email")), None
+        (a for a in actions if a["description"].startswith(
+            "Gmail: Find Email")), None
     )
     return {
         "email_data": ZapierNLARunAction(
@@ -107,7 +106,8 @@ Incoming email:
 
 Draft email reply:"""
 
-prompt_template = PromptTemplate(input_variables=["email_data"], template=template)
+prompt_template = PromptTemplate(
+    input_variables=["email_data"], template=template)
 reply_chain = LLMChain(llm=Ollama(temperature=0.7), prompt=prompt_template)
 
 SLACK_HANDLE = "@Ankush Gola"
@@ -151,8 +151,9 @@ The developer is tasked with handling the OAuth handshaking to procure and refre
 """
 logger.info("## Example Using OAuth Access Token{#oauth}")
 
-llm = Ollama(temperature=0)
-zapier = ZapierNLAWrapper(zapier_nla_oauth_access_token="<fill in access token here>")
+llm = ChatOllama(temperature=0)
+zapier = ZapierNLAWrapper(
+    zapier_nla_oauth_access_token="<fill in access token here>")
 toolkit = ZapierToolkit.from_zapier_nla_wrapper(zapier)
 agent = initialize_agent(
     toolkit.get_tools(), llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True

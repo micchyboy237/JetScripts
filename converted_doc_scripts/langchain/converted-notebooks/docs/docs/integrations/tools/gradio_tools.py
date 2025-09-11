@@ -1,13 +1,13 @@
 from IPython.display import display
 from PIL import Image
 from gradio_tools.tools import (
-ImageCaptioningTool,
-StableDiffusionPromptGeneratorTool,
-StableDiffusionTool,
-TextToVideoTool,
+    ImageCaptioningTool,
+    StableDiffusionPromptGeneratorTool,
+    StableDiffusionTool,
+    TextToVideoTool,
 )
 from gradio_tools.tools import StableDiffusionTool
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import initialize_agent
 from langchain.memory import ConversationBufferMemory
@@ -62,7 +62,7 @@ display(im)
 logger.info("## Using within an agent")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 memory = ConversationBufferMemory(memory_key="chat_history")
 tools = [
     StableDiffusionTool().langchain,

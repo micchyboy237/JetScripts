@@ -1,9 +1,9 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import (
-AlibabaCloudOpenSearch,
-AlibabaCloudOpenSearchSettings,
+    AlibabaCloudOpenSearch,
+    AlibabaCloudOpenSearchSettings,
 )
 from langchain_text_splitters import CharacterTextSplitter
 import os
@@ -71,7 +71,8 @@ logger.info("# Alibaba Cloud OpenSearch")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -114,8 +115,10 @@ settings = AlibabaCloudOpenSearchSettings(
     output_fields="Specify the field list returned when invoking OpenSearch, by default it is the value list of the field mapping field.",
     field_name_mapping={
         "id": "id",  # The id field name mapping of index document.
-        "document": "document",  # The text field name mapping of index document.
-        "embedding": "embedding",  # The embedding field name mapping of index document.
+        # The text field name mapping of index document.
+        "document": "document",
+        # The embedding field name mapping of index document.
+        "embedding": "embedding",
         "name_of_the_metadata_specified_during_search": "opensearch_metadata_field_name,=",
     },
 )
@@ -142,9 +145,12 @@ Add texts and build index.
 logger.info("Add texts and build index.")
 
 metadatas = [
-    {"string_field": "value1", "int_field": 1, "float_field": 1.0, "double_field": 2.0},
-    {"string_field": "value2", "int_field": 2, "float_field": 3.0, "double_field": 4.0},
-    {"string_field": "value3", "int_field": 3, "float_field": 5.0, "double_field": 6.0},
+    {"string_field": "value1", "int_field": 1,
+        "float_field": 1.0, "double_field": 2.0},
+    {"string_field": "value2", "int_field": 2,
+        "float_field": 3.0, "double_field": 4.0},
+    {"string_field": "value3", "int_field": 3,
+        "float_field": 5.0, "double_field": 6.0},
 ]
 opensearch.add_texts(texts=docs, ids=[], metadatas=metadatas)
 

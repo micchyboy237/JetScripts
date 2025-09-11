@@ -1,10 +1,10 @@
 from google.colab.patches import cv2_imshow  # for image display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMChain
 from langchain_community.tools.ollama_dalle_image_generation import (
-OllamaDALLEImageGenerationTool,
+    OllamaDALLEImageGenerationTool,
 )
 from langchain_community.utilities.dalle_image_generator import DallEAPIWrapper
 from langchain_core.prompts import PromptTemplate
@@ -39,7 +39,6 @@ logger.info("# Dall-E Image Generator")
 # %pip install --upgrade --quiet  opencv-python scikit-image langchain-community
 
 
-
 # os.environ["OPENAI_API_KEY"] = "insertapikey"
 
 """
@@ -48,7 +47,7 @@ logger.info("# Dall-E Image Generator")
 logger.info("## Run as a chain")
 
 
-llm = Ollama(temperature=0.9)
+llm = ChatOllama(temperature=0.9)
 prompt = PromptTemplate(
     input_variables=["image_desc"],
     template="Generate a detailed prompt to generate an image based on the following description: {image_desc}",

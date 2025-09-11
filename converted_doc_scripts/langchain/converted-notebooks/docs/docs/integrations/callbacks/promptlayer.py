@@ -1,8 +1,8 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.callbacks.promptlayer_callback import (
-PromptLayerCallbackHandler,
+    PromptLayerCallbackHandler,
 )
 from langchain_community.llms import GPT4All
 from langchain_core.messages import HumanMessage
@@ -58,7 +58,6 @@ In this simple example we use `PromptLayerCallbackHandler` with `ChatOllama`. We
 logger.info("### Getting API Credentials")
 
 
-
 chat_llm = ChatOllama(
     temperature=0,
     callbacks=[PromptLayerCallbackHandler(pl_tags=["chatollama"])],
@@ -97,7 +96,6 @@ We also define a `pl_id_callback` function which takes in the `promptlayer_reque
 logger.info("## Full Featured Example")
 
 
-
 def pl_id_callback(promptlayer_request_id):
     logger.debug("prompt layer id ", promptlayer_request_id)
     promptlayer.track.score(
@@ -114,7 +112,7 @@ def pl_id_callback(promptlayer_request_id):
     )  # link the request to a prompt template
 
 
-ollama_llm = Ollama(
+ollama_llm = ChatOllama(
     model_name="gpt-3.5-turbo-instruct",
     callbacks=[PromptLayerCallbackHandler(pl_id_callback=pl_id_callback)],
 )
@@ -126,6 +124,7 @@ ollama_llm.invoke(example_prompt.format(product="toasters"))
 That is all it takes! After setup all your requests will show up on the PromptLayer dashboard.
 This callback also works with any LLM implemented on LangChain.
 """
-logger.info("That is all it takes! After setup all your requests will show up on the PromptLayer dashboard.")
+logger.info(
+    "That is all it takes! After setup all your requests will show up on the PromptLayer dashboard.")
 
 logger.info("\n\n[DONE]", bright=True)

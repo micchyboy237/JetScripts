@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers.multi_query import MultiQueryRetriever
 from langchain_chroma import Chroma
@@ -80,8 +80,6 @@ Under the hood, `MultiQueryRetriever` generates queries using a specific [prompt
 The prompt and output parser together must support the generation of a list of queries.
 """
 logger.info("#### Supplying your own prompt")
-
-
 
 
 class LineListOutputParser(BaseOutputParser[List[str]]):

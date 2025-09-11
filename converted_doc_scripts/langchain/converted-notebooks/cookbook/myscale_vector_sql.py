@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.callbacks import StdOutCallbackHandler
 from langchain.chains import LLMChain
@@ -9,12 +9,12 @@ from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 from langchain_community.utilities import SQLDatabase
 from langchain_community.utilities.sql_database import SQLDatabase
 from langchain_experimental.retrievers.vector_sql_database import (
-VectorSQLDatabaseChainRetriever,
+    VectorSQLDatabaseChainRetriever,
 )
 from langchain_experimental.sql.prompt import MYSCALE_PROMPT
 from langchain_experimental.sql.vector_sql import (
-VectorSQLDatabaseChain,
-VectorSQLRetrieveAllOutputParser,
+    VectorSQLDatabaseChain,
+    VectorSQLRetrieveAllOutputParser,
 )
 from langchain_experimental.sql.vector_sql import VectorSQLDatabaseChain
 from langchain_experimental.sql.vector_sql import VectorSQLOutputParser
@@ -70,7 +70,7 @@ output_parser = VectorSQLOutputParser.from_embeddings(
 
 chain = VectorSQLDatabaseChain(
     llm_chain=LLMChain(
-#         llm=Ollama(ollama_api_key=OPENAI_API_KEY, temperature=0),
+        #         llm=Ollama(ollama_api_key=OPENAI_API_KEY, temperature=0),
         prompt=MYSCALE_PROMPT,
     ),
     top_k=10,
@@ -98,7 +98,7 @@ output_parser_retrieve_all = VectorSQLRetrieveAllOutputParser.from_embeddings(
 )
 
 chain = VectorSQLDatabaseChain.from_llm(
-#     llm=Ollama(ollama_api_key=OPENAI_API_KEY, temperature=0),
+    #     llm=Ollama(ollama_api_key=OPENAI_API_KEY, temperature=0),
     prompt=MYSCALE_PROMPT,
     top_k=10,
     return_direct=True,
@@ -112,13 +112,14 @@ retriever = VectorSQLDatabaseChainRetriever(
 )
 
 document_with_metadata_prompt = PromptTemplate(
-    input_variables=["page_content", "id", "title", "authors", "pubdate", "categories"],
+    input_variables=["page_content", "id", "title",
+                     "authors", "pubdate", "categories"],
     template="Content:\n\tTitle: {title}\n\tAbstract: {page_content}\n\tAuthors: {authors}\n\tDate of Publication: {pubdate}\n\tCategories: {categories}\nSOURCE: {id}",
 )
 
 chain = RetrievalQAWithSourcesChain.from_chain_type(
     ChatOllama(
-#         model_name="gpt-3.5-turbo-16k", ollama_api_key=OPENAI_API_KEY, temperature=0.6
+        #         model_name="gpt-3.5-turbo-16k", ollama_api_key=OPENAI_API_KEY, temperature=0.6
     ),
     retriever=retriever,
     chain_type="stuff",

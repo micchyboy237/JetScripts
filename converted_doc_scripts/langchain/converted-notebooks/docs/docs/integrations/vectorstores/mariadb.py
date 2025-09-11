@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_mariadb import MariaDBStore
@@ -55,12 +55,13 @@ Then install `langchain-mariadb` package
 """
 logger.info("Then install `langchain-mariadb` package")
 
-pip install -U langchain-mariadb
+pip install - U langchain-mariadb
 
 """
 VectorStore works along with an LLM model, here using `langchain-ollama` as example.
 """
-logger.info("VectorStore works along with an LLM model, here using `langchain-ollama` as example.")
+logger.info(
+    "VectorStore works along with an LLM model, here using `langchain-ollama` as example.")
 
 pip install langchain-ollama
 # export OPENAI_API_KEY=...
@@ -123,7 +124,8 @@ logger.info("## Query vector store")
 
 results = vectorstore.similarity_search("Hello", k=2)
 
-results = vectorstore.similarity_search("Hello", filter={"category": "greeting"})
+results = vectorstore.similarity_search(
+    "Hello", filter={"category": "greeting"})
 
 """
 ### Filter Options
@@ -148,7 +150,8 @@ results = vectorstore.similarity_search(
 results = vectorstore.similarity_search(
     "ducks",
     k=10,
-    filter={"id": {"$in": [1, 5, 2, 9]}, "location": {"$in": ["pond", "market"]}},
+    filter={"id": {"$in": [1, 5, 2, 9]},
+            "location": {"$in": ["pond", "market"]}},
 )
 
 """

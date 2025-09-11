@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain_community.document_loaders import WebBaseLoader
@@ -9,9 +9,9 @@ from langchain_core.vectorstores import InMemoryVectorStore
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langgraph.graph import START, StateGraph
 from typing_extensions import List, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import EmbeddingTabs from "@theme/EmbeddingTabs";
-import VectorStoreTabs from "@theme/VectorStoreTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
+import EmbeddingTabs from "@theme/EmbeddingTabs"
+import VectorStoreTabs from "@theme/VectorStoreTabs"
 import bs4
 import os
 import shutil
@@ -114,7 +114,8 @@ loader = WebBaseLoader(
 )
 docs = loader.load()
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=200)
 all_splits = text_splitter.split_documents(docs)
 
 _ = vector_store.add_documents(documents=all_splits)
@@ -141,7 +142,8 @@ def retrieve(state: State):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
 
@@ -187,6 +189,7 @@ for step in graph.stream(
 """
 For more on streaming with LangGraph, check out its [streaming documentation](https://langchain-ai.github.io/langgraph/how-tos/#streaming). For more information on streaming individual LangChain [Runnables](/docs/concepts/runnables/), refer to [this guide](/docs/how_to/streaming/).
 """
-logger.info("For more on streaming with LangGraph, check out its [streaming documentation](https://langchain-ai.github.io/langgraph/how-tos/#streaming). For more information on streaming individual LangChain [Runnables](/docs/concepts/runnables/), refer to [this guide](/docs/how_to/streaming/).")
+logger.info(
+    "For more on streaming with LangGraph, check out its [streaming documentation](https://langchain-ai.github.io/langgraph/how-tos/#streaming). For more information on streaming individual LangChain [Runnables](/docs/concepts/runnables/), refer to [this guide](/docs/how_to/streaming/).")
 
 logger.info("\n\n[DONE]", bright=True)

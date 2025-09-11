@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.document_loaders import TextLoader
@@ -41,8 +41,8 @@ In this tutorial, we are going to use Langchain + Activeloop's Deep Lake with GP
 
 We need to set up keys for external services and install necessary python libraries.
 """
-logger.info("# Use LangChain, GPT and Activeloop's Deep Lake to work with code base")
-
+logger.info(
+    "# Use LangChain, GPT and Activeloop's Deep Lake to work with code base")
 
 
 """
@@ -50,7 +50,8 @@ Set up Ollama embeddings, Deep Lake multi-modal vector store api and authenticat
 
 For full documentation of Deep Lake please follow https://docs.activeloop.ai/ and API reference https://docs.deeplake.ai/en/latest/
 """
-logger.info("Set up Ollama embeddings, Deep Lake multi-modal vector store api and authenticate.")
+logger.info(
+    "Set up Ollama embeddings, Deep Lake multi-modal vector store api and authenticate.")
 
 # from getpass import getpass
 
@@ -60,7 +61,8 @@ logger.info("Set up Ollama embeddings, Deep Lake multi-modal vector store api an
 """
 Authenticate into Deep Lake if you want to create your own dataset and publish it. You can get an API key from the platform at [app.activeloop.ai](https://app.activeloop.ai)
 """
-logger.info("Authenticate into Deep Lake if you want to create your own dataset and publish it. You can get an API key from the platform at [app.activeloop.ai](https://app.activeloop.ai)")
+logger.info(
+    "Authenticate into Deep Lake if you want to create your own dataset and publish it. You can get an API key from the platform at [app.activeloop.ai](https://app.activeloop.ai)")
 
 # activeloop_token = getpass("Activeloop Token:")
 os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
@@ -84,7 +86,8 @@ for dirpath, dirnames, filenames in os.walk(root_dir):
     for file in filenames:
         if file.endswith(".py") and "*venv/" not in dirpath:
             try:
-                loader = TextLoader(os.path.join(dirpath, file), encoding="utf-8")
+                loader = TextLoader(os.path.join(
+                    dirpath, file), encoding="utf-8")
                 docs.extend(loader.load_and_split())
             except Exception:
                 pass

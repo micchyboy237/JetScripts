@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import MyScale
@@ -35,22 +35,23 @@ logger.info("# MyScale")
 """
 We want to use OllamaEmbeddings so we have to get the Ollama API Key.
 """
-logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 if "OPENAI_API_BASE" not in os.environ:
-#     os.environ["OPENAI_API_BASE"] = getpass.getpass("Ollama Base:")
+    #     os.environ["OPENAI_API_BASE"] = getpass.getpass("Ollama Base:")
 if "MYSCALE_HOST" not in os.environ:
-#     os.environ["MYSCALE_HOST"] = getpass.getpass("MyScale Host:")
+    #     os.environ["MYSCALE_HOST"] = getpass.getpass("MyScale Host:")
 if "MYSCALE_PORT" not in os.environ:
-#     os.environ["MYSCALE_PORT"] = getpass.getpass("MyScale Port:")
+    #     os.environ["MYSCALE_PORT"] = getpass.getpass("MyScale Port:")
 if "MYSCALE_USERNAME" not in os.environ:
-#     os.environ["MYSCALE_USERNAME"] = getpass.getpass("MyScale Username:")
+    #     os.environ["MYSCALE_USERNAME"] = getpass.getpass("MyScale Username:")
 if "MYSCALE_PASSWORD" not in os.environ:
-#     os.environ["MYSCALE_PASSWORD"] = getpass.getpass("MyScale Password:")
+    #     os.environ["MYSCALE_PASSWORD"] = getpass.getpass("MyScale Password:")
 
 """
 There are two ways to set up parameters for myscale index.
@@ -74,7 +75,6 @@ There are two ways to set up parameters for myscale index.
     ```
 """
 logger.info("There are two ways to set up parameters for myscale index.")
-
 
 
 loader = TextLoader("../../how_to/state_of_the_union.txt")

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.retrievers import KNNRetriever
 import os
@@ -34,7 +34,8 @@ logger.info("# kNN")
 logger.info("## Create New Retriever with Texts")
 
 retriever = KNNRetriever.from_texts(
-    ["foo", "bar", "world", "hello", "foo bar"], OllamaEmbeddings(model="mxbai-embed-large")
+    ["foo", "bar", "world", "hello", "foo bar"], OllamaEmbeddings(
+        model="mxbai-embed-large")
 )
 
 """

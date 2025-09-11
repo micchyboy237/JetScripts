@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from hdbcli import dbapi
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
@@ -12,7 +12,7 @@ from langchain_hana import HanaDB
 from langchain_hana import HanaInternalEmbeddings
 from langchain_hana.utils import DistanceStrategy
 from langchain_text_splitters import CharacterTextSplitter
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -49,7 +49,6 @@ Ensure your SAP HANA instance is running. Load your credentials from environment
 logger.info("### Credentials")
 
 
-
 load_dotenv()
 connection = dbapi.connect(
     address=os.environ.get("HANA_DB_ADDRESS"),
@@ -83,10 +82,12 @@ Alternatively, you can compute embeddings directly in SAP HANA using its native 
 
 > **Caution:** Ensure NLP is enabled in your SAP HANA Cloud instance.
 """
-logger.info("Alternatively, you can compute embeddings directly in SAP HANA using its native `VECTOR_EMBEDDING()` function. To enable this, create an instance of `HanaInternalEmbeddings` with your internal model ID and pass it to `HanaDB`. Note that the `HanaInternalEmbeddings` instance is specifically designed for use with `HanaDB` and is not intended for use with other vector store implementations. For more information about internal embedding, see the [SAP HANA VECTOR_EMBEDDING Function](https://help.sap.com/docs/hana-cloud-database/sap-hana-cloud-sap-hana-database-vector-engine-guide/vector-embedding-function-vector).")
+logger.info(
+    "Alternatively, you can compute embeddings directly in SAP HANA using its native `VECTOR_EMBEDDING()` function. To enable this, create an instance of `HanaInternalEmbeddings` with your internal model ID and pass it to `HanaDB`. Note that the `HanaInternalEmbeddings` instance is specifically designed for use with `HanaDB` and is not intended for use with other vector store implementations. For more information about internal embedding, see the [SAP HANA VECTOR_EMBEDDING Function](https://help.sap.com/docs/hana-cloud-database/sap-hana-cloud-sap-hana-database-vector-engine-guide/vector-embedding-function-vector).")
 
 
-embeddings = HanaInternalEmbeddings(internal_embedding_model_id="SAP_NEB.20240715")
+embeddings = HanaInternalEmbeddings(
+    internal_embedding_model_id="SAP_NEB.20240715")
 
 """
 Once you have your connection and embedding instance, create the vector store by passing them to `HanaDB` along with a table name for storing vectors:
@@ -179,7 +180,8 @@ db_cosine = HanaDB(
     embedding=embeddings, connection=connection, table_name="STATE_OF_THE_UNION"
 )
 
-db_cosine.create_hnsw_index()  # If no other parameters are specified, the default values will be used
+# If no other parameters are specified, the default values will be used
+db_cosine.create_hnsw_index()
 
 
 db_l2 = HanaDB(
@@ -192,8 +194,10 @@ db_l2 = HanaDB(
 db_l2.create_hnsw_index(
     index_name="STATE_OF_THE_UNION_L2_index",
     m=100,  # Max number of neighbors per graph node (valid range: 4 to 1000)
-    ef_construction=200,  # Max number of candidates during graph construction (valid range: 1 to 100000)
-    ef_search=500,  # Min number of candidates during the search (valid range: 1 to 100000)
+    # Max number of candidates during graph construction (valid range: 1 to 100000)
+    ef_construction=200,
+    # Min number of candidates during the search (valid range: 1 to 100000)
+    ef_search=500,
 )
 
 docs = db_l2.max_marginal_relevance_search(query, k=2, fetch_k=20)
@@ -221,7 +225,8 @@ We can add simple text documents to the existing table.
 """
 logger.info("We can add simple text documents to the existing table.")
 
-docs = [Document(page_content="Some text"), Document(page_content="Other docs")]
+docs = [Document(page_content="Some text"),
+        Document(page_content="Other docs")]
 db.add_documents(docs)
 
 """
@@ -232,11 +237,13 @@ logger.info("Add documents with metadata.")
 docs = [
     Document(
         page_content="foo",
-        metadata={"start": 100, "end": 150, "doc_name": "foo.txt", "quality": "bad"},
+        metadata={"start": 100, "end": 150,
+                  "doc_name": "foo.txt", "quality": "bad"},
     ),
     Document(
         page_content="bar",
-        metadata={"start": 200, "end": 250, "doc_name": "bar.txt", "quality": "good"},
+        metadata={"start": 200, "end": 250,
+                  "doc_name": "bar.txt", "quality": "good"},
     ),
 ]
 db.add_documents(docs)
@@ -288,15 +295,18 @@ logger.info("## Advanced filtering")
 docs = [
     Document(
         page_content="First",
-        metadata={"name": "Adam Smith", "is_active": True, "id": 1, "height": 10.0},
+        metadata={"name": "Adam Smith",
+                  "is_active": True, "id": 1, "height": 10.0},
     ),
     Document(
         page_content="Second",
-        metadata={"name": "Bob Johnson", "is_active": False, "id": 2, "height": 5.7},
+        metadata={"name": "Bob Johnson",
+                  "is_active": False, "id": 2, "height": 5.7},
     ),
     Document(
         page_content="Third",
-        metadata={"name": "Jane Doe", "is_active": True, "id": 3, "height": 2.4},
+        metadata={"name": "Jane Doe",
+                  "is_active": True, "id": 3, "height": 2.4},
     ),
 ]
 
@@ -316,6 +326,7 @@ def print_filter_result(result):
     for doc in result:
         logger.debug(doc.metadata)
 
+
 """
 Filtering with `$ne`, `$gt`, `$gte`, `$lt`, `$lte`
 """
@@ -323,23 +334,28 @@ logger.info("Filtering with `$ne`, `$gt`, `$gte`, `$lt`, `$lte`")
 
 advanced_filter = {"id": {"$ne": 1}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"id": {"$gt": 1}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"id": {"$gte": 1}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"id": {"$lt": 1}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"id": {"$lte": 1}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 """
 Filtering with `$between`, `$in`, `$nin`
@@ -348,15 +364,18 @@ logger.info("Filtering with `$between`, `$in`, `$nin`")
 
 advanced_filter = {"id": {"$between": (1, 2)}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"name": {"$in": ["Adam Smith", "Bob Johnson"]}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"name": {"$nin": ["Adam Smith", "Bob Johnson"]}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 """
 Text filtering with `$like`
@@ -365,11 +384,13 @@ logger.info("Text filtering with `$like`")
 
 advanced_filter = {"name": {"$like": "a%"}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"name": {"$like": "%a%"}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 """
 Text filtering with `$contains`
@@ -378,19 +399,23 @@ logger.info("Text filtering with `$contains`")
 
 advanced_filter = {"name": {"$contains": "bob"}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"name": {"$contains": "bo"}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"name": {"$contains": "Adam Johnson"}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"name": {"$contains": "Adam Smith"}}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 """
 Combined filtering with `$and`, `$or`
@@ -399,26 +424,31 @@ logger.info("Combined filtering with `$and`, `$or`")
 
 advanced_filter = {"$or": [{"id": 1}, {"name": "bob"}]}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"$and": [{"id": 1}, {"id": 2}]}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {"$or": [{"id": 1}, {"id": 2}, {"id": 3}]}
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 advanced_filter = {
     "$and": [{"name": {"$contains": "bob"}}, {"name": {"$contains": "johnson"}}]
 }
 logger.debug(f"Filter: {advanced_filter}")
-print_filter_result(db.similarity_search("just testing", k=5, filter=advanced_filter))
+print_filter_result(db.similarity_search(
+    "just testing", k=5, filter=advanced_filter))
 
 """
 ## Using a VectorStore as a retriever in chains for retrieval augmented generation (RAG)
 """
-logger.info("## Using a VectorStore as a retriever in chains for retrieval augmented generation (RAG)")
+logger.info(
+    "## Using a VectorStore as a retriever in chains for retrieval augmented generation (RAG)")
 
 db = HanaDB(
     connection=connection,
@@ -476,7 +506,8 @@ qa_chain = ConversationalRetrievalChain.from_llm(
 """
 Ask the first question (and verify how many text chunks have been used).
 """
-logger.info("Ask the first question (and verify how many text chunks have been used).")
+logger.info(
+    "Ask the first question (and verify how many text chunks have been used).")
 
 question = "What about Mexico and Guatemala?"
 
@@ -574,7 +605,8 @@ Custom tables must have at least three columns that match the semantics of a sta
 
 The table can contain additional columns. When new Documents are inserted into the table, these additional columns must allow NULL values.
 """
-logger.info("Custom tables must have at least three columns that match the semantics of a standard table")
+logger.info(
+    "Custom tables must have at least three columns that match the semantics of a standard table")
 
 my_own_table_name = "MY_OWN_TABLE_ADD"
 cur = connection.cursor()
@@ -607,7 +639,8 @@ db.add_documents(docs)
 
 cur.execute(f"SELECT * FROM {my_own_table_name} LIMIT 1")
 rows = cur.fetchall()
-logger.debug(rows[0][0])  # Value of column "SOME_OTHER_DATA". Should be NULL/None
+# Value of column "SOME_OTHER_DATA". Should be NULL/None
+logger.debug(rows[0][0])
 logger.debug(rows[0][1])  # The text
 logger.debug(rows[0][2])  # The metadata
 logger.debug(rows[0][3])  # The vector
@@ -617,7 +650,8 @@ cur.close()
 """
 Add another document and perform a similarity search on the custom table.
 """
-logger.info("Add another document and perform a similarity search on the custom table.")
+logger.info(
+    "Add another document and perform a similarity search on the custom table.")
 
 docs = [
     Document(

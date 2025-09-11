@@ -6,7 +6,7 @@ from docarray.index import InMemoryExactNNIndex
 from docarray.index import QdrantDocumentIndex
 from docarray.index import WeaviateDocumentIndex
 from docarray.typing import NdArray
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.embeddings import FakeEmbeddings
 from langchain_community.retrievers import DocArrayRetriever
@@ -41,7 +41,6 @@ In the [second section](#movie-retrieval-using-hnswdocumentindex), we'll select 
 logger.info("# DocArray")
 
 
-
 embeddings = FakeEmbeddings(size=32)
 
 """
@@ -51,11 +50,13 @@ For this demonstration, we'll create a somewhat random schema containing 'title'
 """
 logger.info("Before you start building the index, it's important to define your document schema. This determines what fields your documents will have and what type of data each field will hold.")
 
+
 class MyDoc(BaseDoc):
     title: str
     title_embedding: NdArray[32]
     year: int
     color: str
+
 
 """
 ### InMemoryExactNNIndex
@@ -138,7 +139,6 @@ Learn more here: https://docs.docarray.org/user_guide/storing/index_weaviate/
 logger.info("### WeaviateDocumentIndex")
 
 
-
 class WeaviateDoc(BaseDoc):
     title: str
     title_embedding: NdArray[32] = Field(is_embedding=True)
@@ -160,7 +160,8 @@ db.index(
         for i in range(100)
     ]
 )
-filter_query = {"path": ["year"], "operator": "LessThanEqual", "valueInt": "90"}
+filter_query = {"path": ["year"],
+                "operator": "LessThanEqual", "valueInt": "90"}
 
 retriever = DocArrayRetriever(
     index=db,
@@ -306,7 +307,6 @@ movies = [
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
-
 
 
 class MyDoc(BaseDoc):

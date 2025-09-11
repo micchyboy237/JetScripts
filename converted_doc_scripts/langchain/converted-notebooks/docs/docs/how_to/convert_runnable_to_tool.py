@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from typing import Any, Dict
 from typing import List
 from typing_extensions import TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
 import os
 import shutil
 
@@ -71,8 +71,6 @@ With typed `dict` input:
 logger.info("## Basic usage")
 
 
-
-
 class Args(TypedDict):
     a: int
     b: List[int]
@@ -97,8 +95,8 @@ as_tool.invoke({"a": 3, "b": [1, 2]})
 """
 Without typing information, arg types can be specified via `arg_types`:
 """
-logger.info("Without typing information, arg types can be specified via `arg_types`:")
-
+logger.info(
+    "Without typing information, arg types can be specified via `arg_types`:")
 
 
 def g(x: Dict[str, Any]) -> str:
@@ -115,8 +113,8 @@ as_tool = runnable.as_tool(
 """
 Alternatively, the schema can be fully specified by directly passing the desired [args_schema](https://python.langchain.com/api_reference/core/tools/langchain_core.tools.BaseTool.html#langchain_core.tools.BaseTool.args_schema) for the tool:
 """
-logger.info("Alternatively, the schema can be fully specified by directly passing the desired [args_schema](https://python.langchain.com/api_reference/core/tools/langchain_core.tools.BaseTool.html#langchain_core.tools.BaseTool.args_schema) for the tool:")
-
+logger.info(
+    "Alternatively, the schema can be fully specified by directly passing the desired [args_schema](https://python.langchain.com/api_reference/core/tools/langchain_core.tools.BaseTool.html#langchain_core.tools.BaseTool.args_schema) for the tool:")
 
 
 class GSchema(BaseModel):
@@ -133,6 +131,7 @@ as_tool = runnable.as_tool(GSchema)
 String input is also supported:
 """
 logger.info("String input is also supported:")
+
 
 def f(x: str) -> str:
     return x + "a"
@@ -168,7 +167,8 @@ llm = ChatOllama(model="llama3.2")
 """
 Following the [RAG tutorial](/docs/tutorials/rag/), let's first construct a retriever:
 """
-logger.info("Following the [RAG tutorial](/docs/tutorials/rag/), let's first construct a retriever:")
+logger.info(
+    "Following the [RAG tutorial](/docs/tutorials/rag/), let's first construct a retriever:")
 
 
 documents = [
@@ -192,7 +192,8 @@ retriever = vectorstore.as_retriever(
 """
 We next create use a simple pre-built [LangGraph agent](https://python.langchain.com/docs/tutorials/agents/) and provide it the tool:
 """
-logger.info("We next create use a simple pre-built [LangGraph agent](https://python.langchain.com/docs/tutorials/agents/) and provide it the tool:")
+logger.info(
+    "We next create use a simple pre-built [LangGraph agent](https://python.langchain.com/docs/tutorials/agents/) and provide it the tool:")
 
 
 tools = [
@@ -212,8 +213,8 @@ See [LangSmith trace](https://smith.langchain.com/public/44e438e3-2faf-45bd-b397
 
 Going further, we can create a simple [RAG](/docs/tutorials/rag/) chain that takes an additional parameter-- here, the "style" of the answer.
 """
-logger.info("See [LangSmith trace](https://smith.langchain.com/public/44e438e3-2faf-45bd-b397-5510fc145eb9/r) for the above run.")
-
+logger.info(
+    "See [LangSmith trace](https://smith.langchain.com/public/44e438e3-2faf-45bd-b397-5510fc145eb9/r) for the above run.")
 
 
 system_prompt = """
@@ -271,6 +272,7 @@ for chunk in agent.stream(
 """
 See [LangSmith trace](https://smith.langchain.com/public/147ae4e6-4dfb-4dd9-8ca0-5c5b954f08ac/r) for the above run.
 """
-logger.info("See [LangSmith trace](https://smith.langchain.com/public/147ae4e6-4dfb-4dd9-8ca0-5c5b954f08ac/r) for the above run.")
+logger.info(
+    "See [LangSmith trace](https://smith.langchain.com/public/147ae4e6-4dfb-4dd9-8ca0-5c5b954f08ac/r) for the above run.")
 
 logger.info("\n\n[DONE]", bright=True)

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain_community.vectorstores import FAISS
@@ -57,7 +57,6 @@ We can also use RAGatouille off-the-shelf as a reranker. This will allow us to u
 First, let's set up a vanilla retriever as an example.
 """
 logger.info("## Retriever")
-
 
 
 def get_wikipedia_page(title: str):

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores.xata import XataVectorStore
@@ -47,7 +47,8 @@ logger.info("# Xata")
 """
 Let's load the Ollama key to the environment. If you don't have one you can create an Ollama account and create a key on this [page](https://platform.ollama.com/account/api-keys).
 """
-logger.info("Let's load the Ollama key to the environment. If you don't have one you can create an Ollama account and create a key on this [page](https://platform.ollama.com/account/api-keys).")
+logger.info(
+    "Let's load the Ollama key to the environment. If you don't have one you can create an Ollama account and create a key on this [page](https://platform.ollama.com/account/api-keys).")
 
 # import getpass
 
@@ -57,7 +58,8 @@ logger.info("Let's load the Ollama key to the environment. If you don't have one
 """
 Similarly, we need to get the environment variables for Xata. You can create a new API key by visiting your [account settings](https://app.xata.io/settings). To find the database URL, go to the Settings page of the database that you have created. The database URL should look something like this: `https://demo-uni3q8.eu-west-1.xata.sh/db/langchain`.
 """
-logger.info("Similarly, we need to get the environment variables for Xata. You can create a new API key by visiting your [account settings](https://app.xata.io/settings). To find the database URL, go to the Settings page of the database that you have created. The database URL should look something like this: `https://demo-uni3q8.eu-west-1.xata.sh/db/langchain`.")
+logger.info(
+    "Similarly, we need to get the environment variables for Xata. You can create a new API key by visiting your [account settings](https://app.xata.io/settings). To find the database URL, go to the Settings page of the database that you have created. The database URL should look something like this: `https://demo-uni3q8.eu-west-1.xata.sh/db/langchain`.")
 
 # api_key = getpass.getpass("Xata API key: ")
 db_url = input("Xata database URL (copy it from your DB settings):")

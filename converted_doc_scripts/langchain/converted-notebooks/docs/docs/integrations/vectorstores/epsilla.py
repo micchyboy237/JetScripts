@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import Epsilla
@@ -37,7 +37,8 @@ logger.info("# Epsilla")
 """
 We want to use OllamaEmbeddings so we have to get the Ollama API Key.
 """
-logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -48,7 +49,6 @@ logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Ke
 Ollama API Key: ········
 """
 logger.info("Ollama API Key: ········")
-
 
 
 loader = TextLoader("../../how_to/state_of_the_union.txt")

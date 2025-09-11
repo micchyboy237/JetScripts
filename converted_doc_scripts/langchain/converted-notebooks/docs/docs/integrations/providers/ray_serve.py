@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMChain
 from langchain_core.prompts import PromptTemplate
@@ -38,7 +38,6 @@ The general skeleton for deploying a service is the following:
 logger.info("# Ray Serve")
 
 
-
 @serve.deployment
 class LLMServe:
     def __init__(self) -> None:
@@ -69,7 +68,7 @@ logger.info("## Example of deploying and Ollama chain with custom prompts")
 @serve.deployment
 class DeployLLM:
     def __init__(self):
-#         llm = Ollama(ollama_api_key=OPENAI_API_KEY)
+        #         llm = ChatOllama(ollama_api_key=OPENAI_API_KEY)
         template = "Question: {question}\n\nAnswer: Let's think step by step."
         prompt = PromptTemplate.from_template(template)
         self.chain = LLMChain(llm=llm, prompt=prompt)
@@ -82,6 +81,7 @@ class DeployLLM:
         resp = self._run_chain(text)
         return resp["text"]
 
+
 """
 Now we can bind the deployment.
 """
@@ -92,7 +92,8 @@ deployment = DeployLLM.bind()
 """
 We can assign the port number and host when we want to run the deployment.
 """
-logger.info("We can assign the port number and host when we want to run the deployment.")
+logger.info(
+    "We can assign the port number and host when we want to run the deployment.")
 
 PORT_NUMBER = 8282
 serve.api.run(deployment, port=PORT_NUMBER)

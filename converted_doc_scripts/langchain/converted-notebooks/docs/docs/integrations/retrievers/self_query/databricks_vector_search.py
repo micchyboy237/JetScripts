@@ -1,6 +1,6 @@
 from databricks.vector_search.client import VectorSearchClient
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -41,7 +41,8 @@ logger.info("# Databricks Vector Search")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -82,7 +83,8 @@ index = vsc.create_direct_access_index(
 
 index.describe()
 
-index = vsc.get_index(endpoint_name=vector_search_endpoint_name, index_name=index_name)
+index = vsc.get_index(
+    endpoint_name=vector_search_endpoint_name, index_name=index_name)
 
 index.describe()
 
@@ -102,7 +104,8 @@ docs = [
     ),
     Document(
         page_content="Three men walk into the Zone, three men walk out of the Zone",
-        metadata={"id": 4, "year": 1979, "rating": 9.9, "genre": "science fiction"},
+        metadata={"id": 4, "year": 1979,
+                  "rating": 9.9, "genre": "science fiction"},
     ),
     Document(
         page_content="A psychologist / detective gets lost in a series of dreams within dreams within dreams and Inception reused the idea",
@@ -147,7 +150,7 @@ metadata_field_info = [
     ),
 ]
 document_content_description = "Brief summary of a movie"
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 retriever = SelfQueryRetriever.from_llm(
     llm, vector_store, document_content_description, metadata_field_info, verbose=True
 )

@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain_community.document_loaders import TextLoader
@@ -45,7 +45,8 @@ logger.info("# Neo4j Vector Index")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -133,7 +134,8 @@ store.query(
     "MERGE (p:Person {name: 'Tomaz'}) "
     "MERGE (p1:Person {name:'Leann'}) "
     "MERGE (p1)-[:FRIEND {text:'example text', embedding:$embedding}]->(p2)",
-    params={"embedding": OllamaEmbeddings(model="mxbai-embed-large").embed_query("example text")},
+    params={"embedding": OllamaEmbeddings(
+        model="mxbai-embed-large").embed_query("example text")},
 )
 relationship_index = "relationship_vector"
 store.query(

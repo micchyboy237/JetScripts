@@ -10,8 +10,8 @@ from gptcache.manager.factory import manager_factory
 from gptcache.processor.pre import get_prompt
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.cache import SQLAlchemyCache
 from langchain.chains.summarize import load_summarize_chain
@@ -33,8 +33,8 @@ from langchain_community.cache import SQLAlchemyCache
 from langchain_community.cache import SQLiteCache
 from langchain_community.cache import UpstashRedisCache
 from langchain_community.vectorstores.azure_cosmos_db import (
-CosmosDBSimilarityType,
-CosmosDBVectorSearchType,
+    CosmosDBSimilarityType,
+    CosmosDBVectorSearchType,
 )
 from langchain_core.caches import RETURN_VAL_TYPE
 from langchain_core.documents import Document
@@ -94,7 +94,7 @@ logger.info("# Model caches")
 #     os.environ["OPENAI_API_KEY"] = getpass()
 
 
-llm = Ollama(model="llama3.2", n=2, best_of=2)
+llm = ChatOllama(model="llama3.2", n=2, best_of=2)
 
 """
 ## `In Memory` cache
@@ -204,7 +204,8 @@ logger.info("### Semantic cache")
 
 
 set_llm_cache(
-    RedisSemanticCache(redis_url="redis://localhost:6379", embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+    RedisSemanticCache(redis_url="redis://localhost:6379",
+                       embedding=OllamaEmbeddings(model="mxbai-embed-large"))
 )
 
 # %%time
@@ -225,8 +226,6 @@ logger.info("## `GPTCache`")
 # %pip install -qU gptcache
 
 
-
-
 def get_hashed_name(name):
     return hashlib.sha256(name.encode()).hexdigest()
 
@@ -235,7 +234,8 @@ def init_gptcache(cache_obj: Cache, llm: str):
     hashed_llm = get_hashed_name(llm)
     cache_obj.init(
         pre_embedding_func=get_prompt,
-        data_manager=manager_factory(manager="map", data_dir=f"map_cache_{hashed_llm}"),
+        data_manager=manager_factory(
+            manager="map", data_dir=f"map_cache_{hashed_llm}"),
     )
 
 
@@ -253,15 +253,14 @@ Let's now show an example of similarity caching
 logger.info("Let's now show an example of similarity caching")
 
 
-
-
 def get_hashed_name(name):
     return hashlib.sha256(name.encode()).hexdigest()
 
 
 def init_gptcache(cache_obj: Cache, llm: str):
     hashed_llm = get_hashed_name(llm)
-    init_similar_cache(cache_obj=cache_obj, data_dir=f"similar_cache_{hashed_llm}")
+    init_similar_cache(cache_obj=cache_obj,
+                       data_dir=f"similar_cache_{hashed_llm}")
 
 
 set_llm_cache(GPTCache(init_gptcache))
@@ -356,7 +355,6 @@ You'll need to get a Momento auth token to use this class. This can either be pa
 logger.info("You'll need to get a Momento auth token to use this class. This can either be passed in to a momento.CacheClient if you'd like to instantiate that directly, as a named parameter `auth_token` to `MomentoChatMessageHistory.from_client_params`, or can just be set as an environment variable `MOMENTO_AUTH_TOKEN`.")
 
 
-
 cache_name = "langchain"
 ttl = timedelta(days=1)
 set_llm_cache(MomentoCache.from_client_params(cache_name, ttl))
@@ -377,7 +375,8 @@ You can use `SQLAlchemyCache` to cache with any SQL database supported by `SQLAl
 logger.info("## `SQLAlchemy` cache")
 
 
-engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
+engine = create_engine(
+    "postgresql://postgres:postgres@localhost:5432/postgres")
 set_llm_cache(SQLAlchemyCache(engine))
 
 """
@@ -409,7 +408,8 @@ class FulltextLLMCache(Base):  # type: ignore
     )
 
 
-engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
+engine = create_engine(
+    "postgresql://postgres:postgres@localhost:5432/postgres")
 set_llm_cache(SQLAlchemyCache(engine, FulltextLLMCache))
 
 """
@@ -447,7 +447,8 @@ session = cluster.connect()
 """
 You can now set the session, along with your desired keyspace name, as a global CassIO parameter:
 """
-logger.info("You can now set the session, along with your desired keyspace name, as a global CassIO parameter:")
+logger.info(
+    "You can now set the session, along with your desired keyspace name, as a global CassIO parameter:")
 
 
 CASSANDRA_KEYSPACE = input("CASSANDRA_KEYSPACE = ")
@@ -605,7 +606,8 @@ logger.debug(llm.invoke("Are there truths that are false?"))
 
 # %%time
 
-logger.debug(llm.invoke("Is is possible that something false can be also true?"))
+logger.debug(llm.invoke(
+    "Is is possible that something false can be also true?"))
 
 """
 ## `Azure Cosmos DB` semantic cache
@@ -613,7 +615,6 @@ logger.debug(llm.invoke("Is is possible that something false can be also true?")
 You can use this integrated [vector database](https://learn.microsoft.com/en-us/azure/cosmos-db/vector-database) for caching.
 """
 logger.info("## `Azure Cosmos DB` semantic cache")
-
 
 
 NAMESPACE = "langchain_test_db.langchain_test_collection"
@@ -665,7 +666,6 @@ llm.invoke("Tell me a joke")
 You can use this integrated [vector database](https://learn.microsoft.com/en-us/azure/cosmos-db/vector-database) for caching.
 """
 logger.info("## `Azure Cosmos DB NoSql` semantic cache")
-
 
 
 HOST = "COSMOS_DB_URI"
@@ -764,8 +764,6 @@ The new cache class can be applied also to a pre-existing cache index:
 logger.info("### Index the generated text")
 
 
-
-
 class SearchableElasticsearchCache(ElasticsearchCache):
     @property
     def mapping(self) -> Dict[str, Any]:
@@ -815,7 +813,7 @@ You can also turn off caching for specific LLMs. In the example below, even thou
 """
 logger.info("## LLM-specific optional caching")
 
-llm = Ollama(model="llama3.2", n=2, best_of=2, cache=False)
+llm = ChatOllama(model="llama3.2", n=2, best_of=2, cache=False)
 
 # %%time
 llm.invoke("Tell me a joke")
@@ -832,8 +830,8 @@ As an example, we will load a summarizer map-reduce chain. We will cache results
 """
 logger.info("## Optional caching in Chains")
 
-llm = Ollama(model="llama3.2")
-no_cache_llm = Ollama(model="llama3.2", cache=False)
+llm = ChatOllama(model="llama3.2")
+no_cache_llm = ChatOllama(model="llama3.2", cache=False)
 
 
 text_splitter = CharacterTextSplitter()
@@ -845,7 +843,8 @@ texts = text_splitter.split_text(state_of_the_union)
 
 docs = [Document(page_content=t) for t in texts[:3]]
 
-chain = load_summarize_chain(llm, chain_type="map_reduce", reduce_llm=no_cache_llm)
+chain = load_summarize_chain(
+    llm, chain_type="map_reduce", reduce_llm=no_cache_llm)
 
 # %%time
 chain.invoke(docs)
@@ -931,7 +930,6 @@ logger.info("## `Couchbase` caches")
 # %pip install -qU langchain-couchbase
 
 
-
 COUCHBASE_CONNECTION_STRING = (
     "couchbase://localhost"  # or "couchbases://localhost" if using TLS
 )
@@ -985,7 +983,6 @@ set_llm_cache(
 Semantic caching allows users to retrieve cached prompts based on semantic similarity between the user input and previously cached inputs. Under the hood it uses Couchbase as both a cache and a vectorstore. This needs an appropriate Vector Search Index defined to work. Please look at the usage example on how to set up the index.
 """
 logger.info("### Semantic cache")
-
 
 
 COUCHBASE_CONNECTION_STRING = (

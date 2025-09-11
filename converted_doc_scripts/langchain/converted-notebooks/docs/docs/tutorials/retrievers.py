@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
@@ -7,11 +7,11 @@ from langchain_core.documents import Document
 from langchain_core.runnables import chain
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from typing import List
-import CodeBlock from "@theme/CodeBlock";
-import EmbeddingTabs from "@theme/EmbeddingTabs";
-import TabItem from '@theme/TabItem';
-import Tabs from '@theme/Tabs';
-import VectorStoreTabs from "@theme/VectorStoreTabs";
+import CodeBlock from "@theme/CodeBlock"
+import EmbeddingTabs from "@theme/EmbeddingTabs"
+import TabItem from '@theme/TabItem'
+import Tabs from '@theme/Tabs'
+import VectorStoreTabs from "@theme/VectorStoreTabs"
 import os
 import shutil
 
@@ -142,7 +142,8 @@ See [this guide](/docs/how_to/document_loader_pdf/) for more detail on PDF docum
 - The string content of the page;
 - Metadata containing the file name and page number.
 """
-logger.info("See [this guide](/docs/how_to/document_loader_pdf/) for more detail on PDF document loaders.")
+logger.info(
+    "See [this guide](/docs/how_to/document_loader_pdf/) for more detail on PDF document loaders.")
 
 logger.debug(f"{docs[0].page_content[:200]}\n")
 logger.debug(docs[0].metadata)
@@ -219,7 +220,8 @@ vector_store = Chroma(embedding_function=embeddings)
 """
 Having instantiated our vector store, we can now index the documents.
 """
-logger.info("Having instantiated our vector store, we can now index the documents.")
+logger.info(
+    "Having instantiated our vector store, we can now index the documents.")
 
 ids = vector_store.add_documents(documents=all_splits)
 
@@ -263,7 +265,8 @@ Return scores:
 """
 logger.info("Return scores:")
 
-results = vector_store.similarity_search_with_score("What was Nike's revenue in 2023?")
+results = vector_store.similarity_search_with_score(
+    "What was Nike's revenue in 2023?")
 doc, score = results[0]
 logger.debug(f"Score: {score}\n")
 logger.debug(doc)
@@ -294,8 +297,6 @@ We can create a simple version of this ourselves, without subclassing `Retriever
 logger.info("## Retrievers")
 
 
-
-
 @chain
 def retriever(query: str) -> List[Document]:
     return vector_store.similarity_search(query, k=1)
@@ -311,7 +312,8 @@ retriever.batch(
 """
 Vectorstores implement an `as_retriever` method that will generate a Retriever, specifically a [VectorStoreRetriever](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStoreRetriever.html). These retrievers include specific `search_type` and `search_kwargs` attributes that identify what methods of the underlying vector store to call, and how to parameterize them. For instance, we can replicate the above with the following:
 """
-logger.info("Vectorstores implement an `as_retriever` method that will generate a Retriever, specifically a [VectorStoreRetriever](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStoreRetriever.html). These retrievers include specific `search_type` and `search_kwargs` attributes that identify what methods of the underlying vector store to call, and how to parameterize them. For instance, we can replicate the above with the following:")
+logger.info(
+    "Vectorstores implement an `as_retriever` method that will generate a Retriever, specifically a [VectorStoreRetriever](https://python.langchain.com/api_reference/core/vectorstores/langchain_core.vectorstores.base.VectorStoreRetriever.html). These retrievers include specific `search_type` and `search_kwargs` attributes that identify what methods of the underlying vector store to call, and how to parameterize them. For instance, we can replicate the above with the following:")
 
 retriever = vector_store.as_retriever(
     search_type="similarity",

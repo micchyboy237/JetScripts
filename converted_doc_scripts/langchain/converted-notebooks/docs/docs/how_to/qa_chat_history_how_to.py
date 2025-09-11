@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain_community.document_loaders import WebBaseLoader
@@ -14,9 +14,9 @@ from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 from langgraph.prebuilt import create_react_agent
 from typing_extensions import List, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import EmbeddingTabs from "@theme/EmbeddingTabs";
-import VectorStoreTabs from "@theme/VectorStoreTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
+import EmbeddingTabs from "@theme/EmbeddingTabs"
+import VectorStoreTabs from "@theme/VectorStoreTabs"
 import bs4
 import os
 import shutil
@@ -143,7 +143,8 @@ loader = WebBaseLoader(
 )
 docs = loader.load()
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=200)
 all_splits = text_splitter.split_documents(docs)
 
 _ = vector_store.add_documents(documents=all_splits)
@@ -161,7 +162,6 @@ We will use [tool-calling](/docs/concepts/tool_calling/) to facilitate this, whi
 logger.info("As detailed in [Part 2](/docs/tutorials/qa_chat_history) of the RAG tutorial, we can naturally support a conversational experience by representing the flow of the RAG application as a sequence of [messages](/docs/concepts/messages/):")
 
 
-
 @tool(response_format="content_and_artifact")
 def retrieve(query: str):
     """Retrieve information related to a query."""
@@ -172,13 +172,13 @@ def retrieve(query: str):
     )
     return serialized, retrieved_docs
 
+
 """
 We can now build our LangGraph application.
 
 Note that we compile it with a [checkpointer](https://langchain-ai.github.io/langgraph/concepts/persistence/) to support a back-and-forth conversation. LangGraph comes with a simple [in-memory checkpointer](https://langchain-ai.github.io/langgraph/reference/checkpoints/#memorysaver), which we use below. See its documentation for more detail, including how to use different persistence backends (e.g., SQLite or Postgres).
 """
 logger.info("We can now build our LangGraph application.")
-
 
 
 def query_or_respond(state: MessagesState):
@@ -279,7 +279,8 @@ for step in graph.stream(
 """
 Finally, because we have compiled our application with a [checkpointer](https://langchain-ai.github.io/langgraph/concepts/persistence/), historical messages are maintained in the state. This allows the model to contextualize user queries:
 """
-logger.info("Finally, because we have compiled our application with a [checkpointer](https://langchain-ai.github.io/langgraph/concepts/persistence/), historical messages are maintained in the state. This allows the model to contextualize user queries:")
+logger.info(
+    "Finally, because we have compiled our application with a [checkpointer](https://langchain-ai.github.io/langgraph/concepts/persistence/), historical messages are maintained in the state. This allows the model to contextualize user queries:")
 
 input_message = "Can you look up some common ways of doing it?"
 
@@ -295,7 +296,8 @@ Note that we can observe the full sequence of messages sent to the chat model-- 
 
 The conversation history can also be inspected via the state of the application:
 """
-logger.info("Note that we can observe the full sequence of messages sent to the chat model-- including tool calls and retrieved context-- in the [LangSmith trace](https://smith.langchain.com/public/3c85919e-9609-4a0d-8df1-21726f8f3e5c/r).")
+logger.info(
+    "Note that we can observe the full sequence of messages sent to the chat model-- including tool calls and retrieved context-- in the [LangSmith trace](https://smith.langchain.com/public/3c85919e-9609-4a0d-8df1-21726f8f3e5c/r).")
 
 chat_history = graph.get_state(config).values["messages"]
 for message in chat_history:

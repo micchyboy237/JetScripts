@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains.query_constructor.schema import AttributeInfo
 from langchain.retrievers.self_query.base import SelfQueryRetriever
@@ -53,13 +53,13 @@ logger.info("In this tutorial we follow other example's setting and use `OllamaE
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 if "MYSCALE_HOST" not in os.environ:
-#     os.environ["MYSCALE_HOST"] = getpass.getpass("MyScale URL:")
+    #     os.environ["MYSCALE_HOST"] = getpass.getpass("MyScale URL:")
 if "MYSCALE_PORT" not in os.environ:
-#     os.environ["MYSCALE_PORT"] = getpass.getpass("MyScale Port:")
+    #     os.environ["MYSCALE_PORT"] = getpass.getpass("MyScale Port:")
 if "MYSCALE_USERNAME" not in os.environ:
-#     os.environ["MYSCALE_USERNAME"] = getpass.getpass("MyScale Username:")
+    #     os.environ["MYSCALE_USERNAME"] = getpass.getpass("MyScale Username:")
 if "MYSCALE_PASSWORD" not in os.environ:
-#     os.environ["MYSCALE_PASSWORD"] = getpass.getpass("MyScale Password:")
+    #     os.environ["MYSCALE_PASSWORD"] = getpass.getpass("MyScale Password:")
 
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
@@ -75,19 +75,23 @@ logger.info("## Create some sample data")
 docs = [
     Document(
         page_content="A bunch of scientists bring back dinosaurs and mayhem breaks loose",
-        metadata={"date": "1993-07-02", "rating": 7.7, "genre": ["science fiction"]},
+        metadata={"date": "1993-07-02", "rating": 7.7,
+                  "genre": ["science fiction"]},
     ),
     Document(
         page_content="Leo DiCaprio gets lost in a dream within a dream within a dream within a ...",
-        metadata={"date": "2010-12-30", "director": "Christopher Nolan", "rating": 8.2},
+        metadata={"date": "2010-12-30",
+                  "director": "Christopher Nolan", "rating": 8.2},
     ),
     Document(
         page_content="A psychologist / detective gets lost in a series of dreams within dreams within dreams and Inception reused the idea",
-        metadata={"date": "2006-04-23", "director": "Satoshi Kon", "rating": 8.6},
+        metadata={"date": "2006-04-23",
+                  "director": "Satoshi Kon", "rating": 8.6},
     ),
     Document(
         page_content="A bunch of normal-sized women are supremely wholesome and some men pine after them",
-        metadata={"date": "2019-08-22", "director": "Greta Gerwig", "rating": 8.3},
+        metadata={"date": "2019-08-22",
+                  "director": "Greta Gerwig", "rating": 8.3},
     ),
     Document(
         page_content="Toys come alive and have a blast doing so",
@@ -152,7 +156,8 @@ retriever = SelfQueryRetriever.from_llm(
 ## Testing it out with self-query retriever's existing functionalities
 And now we can try actually using our retriever!
 """
-logger.info("## Testing it out with self-query retriever's existing functionalities")
+logger.info(
+    "## Testing it out with self-query retriever's existing functionalities")
 
 retriever.invoke("What are some movies about dinosaurs")
 
@@ -179,7 +184,8 @@ retriever.invoke("What's a movie that release after feb 1995?")
 
 retriever.invoke("What's a movie whose name is like Andrei?")
 
-retriever.invoke("What's a movie who has genres science fiction and adventure?")
+retriever.invoke(
+    "What's a movie who has genres science fiction and adventure?")
 
 """
 ## Filter k

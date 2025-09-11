@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import OpenSearchVectorSearch
@@ -45,13 +45,13 @@ logger.info("# OpenSearch")
 """
 We want to use OllamaEmbeddings so we have to get the Ollama API Key.
 """
-logger.info("We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use OllamaEmbeddings so we have to get the Ollama API Key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
-
 
 
 loader = TextLoader("../../how_to/state_of_the_union.txt")
@@ -140,7 +140,8 @@ If you’d like to look up for some similar documents, but you’d also like to 
 logger.info("## Maximum marginal relevance search (MMR)")
 
 query = "What did the president say about Ketanji Brown Jackson"
-docs = docsearch.max_marginal_relevance_search(query, k=2, fetch_k=10, lambda_param=0.5)
+docs = docsearch.max_marginal_relevance_search(
+    query, k=2, fetch_k=10, lambda_param=0.5)
 
 """
 ## Using a preexisting OpenSearch instance
@@ -182,7 +183,8 @@ region = "us-east-2"
 credentials = boto3.Session(
     aws_access_key_id="xxxxxx", aws_secret_access_key="xxxxx"
 ).get_credentials()
-awsauth = AWS4Auth("xxxxx", "xxxxxx", region, service, session_token=credentials.token)
+awsauth = AWS4Auth("xxxxx", "xxxxxx", region, service,
+                   session_token=credentials.token)
 
 docsearch = OpenSearchVectorSearch.from_documents(
     docs,
@@ -216,7 +218,8 @@ region = "us-east-2"
 credentials = boto3.Session(
     aws_access_key_id="xxxxxx", aws_secret_access_key="xxxxx"
 ).get_credentials()
-awsauth = AWS4Auth("xxxxx", "xxxxxx", region, service, session_token=credentials.token)
+awsauth = AWS4Auth("xxxxx", "xxxxxx", region, service,
+                   session_token=credentials.token)
 
 docsearch = OpenSearchVectorSearch.from_documents(
     docs,

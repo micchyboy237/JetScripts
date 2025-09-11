@@ -1,10 +1,10 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.callbacks.fiddler_callback import FiddlerCallbackHandler
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import (
-ChatPromptTemplate,
-FewShotChatMessagePromptTemplate,
+    ChatPromptTemplate,
+    FewShotChatMessagePromptTemplate,
 )
 import os
 import shutil
@@ -31,7 +31,6 @@ os.makedirs(PERSIST_DIR, exist_ok=True)
 logger.info("# Fiddler")
 
 
-
 """
 ## 2. Fiddler connection details
 
@@ -45,7 +44,8 @@ These can be found by navigating to the *Settings* page of your Fiddler environm
 """
 logger.info("## 2. Fiddler connection details")
 
-URL = ""  # Your Fiddler instance URL, Make sure to include the full URL (including https://). For example: https://demo.fiddler.ai
+# Your Fiddler instance URL, Make sure to include the full URL (including https://). For example: https://demo.fiddler.ai
+URL = ""
 ORG_NAME = ""
 AUTH_TOKEN = ""  # Your Fiddler instance auth token
 
@@ -72,7 +72,7 @@ fiddler_handler = FiddlerCallbackHandler(
 logger.info("## Example 1 : Basic Chain")
 
 
-llm = Ollama(temperature=0, streaming=True, callbacks=[fiddler_handler])
+llm = ChatOllama(temperature=0, streaming=True, callbacks=[fiddler_handler])
 output_parser = StrOutputParser()
 
 chain = llm | output_parser
@@ -117,7 +117,7 @@ final_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-llm = Ollama(temperature=0, streaming=True, callbacks=[fiddler_handler])
+llm = ChatOllama(temperature=0, streaming=True, callbacks=[fiddler_handler])
 
 chain = final_prompt | llm
 

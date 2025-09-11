@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.callbacks import WhyLabsCallbackHandler
 import os
@@ -58,9 +58,8 @@ Here's a single LLM integration with Ollama, which will log various out of the b
 logger.info("## Callbacks")
 
 
-
 whylabs = WhyLabsCallbackHandler.from_params()
-llm = Ollama(temperature=0, callbacks=[whylabs])
+llm = ChatOllama(temperature=0, callbacks=[whylabs])
 
 result = llm.generate(["Hello, World!"])
 logger.debug(result)

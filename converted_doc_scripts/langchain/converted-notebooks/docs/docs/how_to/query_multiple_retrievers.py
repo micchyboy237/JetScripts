@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_chroma import Chroma
 from langchain_core.output_parsers.ollama_tools import PydanticToolsParser
@@ -78,8 +78,6 @@ We will use function calling to structure the output. We will let it return mult
 logger.info("## Query analysis")
 
 
-
-
 class Search(BaseModel):
     """Search for information about a person."""
 
@@ -128,11 +126,13 @@ retrievers = {
     "ANKUSH": retriever_ankush,
 }
 
+
 @chain
 def custom_chain(question):
     response = query_analyzer.invoke(question)
     retriever = retrievers[response.person]
     return retriever.invoke(response.query)
+
 
 custom_chain.invoke("where did Harrison Work")
 

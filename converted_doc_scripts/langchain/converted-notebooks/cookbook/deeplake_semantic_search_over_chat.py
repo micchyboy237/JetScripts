@@ -1,10 +1,10 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain_community.vectorstores import DeepLake
 from langchain_text_splitters import (
-CharacterTextSplitter,
-RecursiveCharacterTextSplitter,
+    CharacterTextSplitter,
+    RecursiveCharacterTextSplitter,
 )
 import os
 import shutil
@@ -75,7 +75,8 @@ with open("messages.txt") as f:
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 pages = text_splitter.split_text(state_of_the_union)
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=100)
 texts = text_splitter.create_documents(pages)
 
 logger.debug(texts)
@@ -89,7 +90,6 @@ db = DeepLake.from_documents(
 """
 `Optional`: You can also use Deep Lake's Managed Tensor Database as a hosting service and run queries there. In order to do so, it is necessary to specify the runtime parameter as {'tensor_db': True} during the creation of the vector store. This configuration enables the execution of queries on the Managed Tensor Database, rather than on the client side. It should be noted that this functionality is not applicable to datasets stored locally or in-memory. In the event that a vector store has already been created outside of the Managed Tensor Database, it is possible to transfer it to the Managed Tensor Database by following the prescribed steps.
 """
-
 
 
 """

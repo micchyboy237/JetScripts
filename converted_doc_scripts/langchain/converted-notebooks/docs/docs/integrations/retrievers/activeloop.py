@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.chains.ollama_functions import (
@@ -59,7 +59,8 @@ logger.info("# Activeloop Deep Memory")
 """
 Also you'll need to create a [Activeloop](https://activeloop.ai) account.
 """
-logger.info("Also you'll need to create a [Activeloop](https://activeloop.ai) account.")
+logger.info(
+    "Also you'll need to create a [Activeloop](https://activeloop.ai) account.")
 
 ORG_ID = "..."
 

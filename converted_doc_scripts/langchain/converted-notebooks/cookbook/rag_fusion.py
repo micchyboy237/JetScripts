@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.load import dumps, loads
@@ -61,13 +61,12 @@ We will now define a chain to do the query generation
 logger.info("## Define the Query Generator")
 
 
-
 prompt = hub.pull("langchain-ai/rag-fusion-query-generation")
 
 
-
 generate_queries = (
-    prompt | ChatOllama(model="llama3.2") | StrOutputParser() | (lambda x: x.split("\n"))
+    prompt | ChatOllama(model="llama3.2") | StrOutputParser() | (
+        lambda x: x.split("\n"))
 )
 
 """
@@ -86,9 +85,9 @@ logger.info("## Define the full chain")
 
 original_query = "impact of climate change"
 
-vectorstore = PineconeVectorStore.from_existing_index("rag-fusion", OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = PineconeVectorStore.from_existing_index(
+    "rag-fusion", OllamaEmbeddings(model="mxbai-embed-large"))
 retriever = vectorstore.as_retriever()
-
 
 
 def reciprocal_rank_fusion(results: list[list], k=60):
@@ -106,6 +105,7 @@ def reciprocal_rank_fusion(results: list[list], k=60):
         for doc, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
     ]
     return reranked_results
+
 
 chain = generate_queries | retriever.map() | reciprocal_rank_fusion
 

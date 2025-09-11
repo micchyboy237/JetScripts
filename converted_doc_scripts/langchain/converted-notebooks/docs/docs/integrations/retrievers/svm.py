@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.retrievers import SVMRetriever
 import os
@@ -34,7 +34,8 @@ logger.info("# SVM")
 """
 We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -48,7 +49,8 @@ logger.info("We want to use `OllamaEmbeddings` so we have to get the Ollama API 
 logger.info("## Create New Retriever with Texts")
 
 retriever = SVMRetriever.from_texts(
-    ["foo", "bar", "world", "hello", "foo bar"], OllamaEmbeddings(model="mxbai-embed-large")
+    ["foo", "bar", "world", "hello", "foo bar"], OllamaEmbeddings(
+        model="mxbai-embed-large")
 )
 
 """

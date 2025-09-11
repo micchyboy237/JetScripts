@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.example_selectors import SemanticSimilarityExampleSelector
 from langchain_core.output_parsers import StrOutputParser
@@ -129,7 +129,8 @@ logger.debug(graph.schema)
 """
 For more involved schema information, you can use `enhanced_schema` option.
 """
-logger.info("For more involved schema information, you can use `enhanced_schema` option.")
+logger.info(
+    "For more involved schema information, you can use `enhanced_schema` option.")
 
 enhanced_graph = Neo4jGraph(enhanced_schema=True)
 logger.debug(enhanced_graph.schema)
@@ -172,8 +173,6 @@ We will begin by defining the Input, Output, and Overall state of the LangGraph 
 logger.info("## Advanced implementation with LangGraph")
 
 
-
-
 class InputState(TypedDict):
     question: str
 
@@ -192,11 +191,11 @@ class OutputState(TypedDict):
     steps: List[str]
     cypher_statement: str
 
+
 """
 The first step is a simple `guardrails` step, where we validate whether the question pertains to movies or their cast. If it doesn't, we notify the user that we cannot answer any other questions. Otherwise, we move on to the Cypher generation step.
 """
 logger.info("The first step is a simple `guardrails` step, where we validate whether the question pertains to movies or their cast. If it doesn't, we notify the user that we cannot answer any other questions. Otherwise, we move on to the Cypher generation step.")
-
 
 
 guardrails_system = """
@@ -225,14 +224,16 @@ class GuardrailsOutput(BaseModel):
     )
 
 
-guardrails_chain = guardrails_prompt | llm.with_structured_output(GuardrailsOutput)
+guardrails_chain = guardrails_prompt | llm.with_structured_output(
+    GuardrailsOutput)
 
 
 def guardrails(state: InputState) -> OverallState:
     """
     Decides if the question is related to movies or not.
     """
-    guardrails_output = guardrails_chain.invoke({"question": state.get("question")})
+    guardrails_output = guardrails_chain.invoke(
+        {"question": state.get("question")})
     database_records = None
     if guardrails_output.decision == "end":
         database_records = "This questions is not about movies or their cast. Therefore I cannot answer this question."
@@ -241,6 +242,7 @@ def guardrails(state: InputState) -> OverallState:
         "database_records": database_records,
         "steps": ["guardrail"],
     }
+
 
 """
 ### Few-shot prompting
@@ -348,6 +350,7 @@ def generate_cypher(state: OverallState) -> OverallState:
     )
     return {"cypher_statement": generated_cypher, "steps": ["generate_cypher"]}
 
+
 """
 ### Query validation
 
@@ -408,7 +411,8 @@ class Property(BaseModel):
     node_label: str = Field(
         description="The label of the node to which this property belongs."
     )
-    property_key: str = Field(description="The key of the property being filtered.")
+    property_key: str = Field(
+        description="The key of the property being filtered.")
     property_value: str = Field(
         description="The value that the property is being matched against."
     )
@@ -458,7 +462,6 @@ Based on the validation results, the process can take the following paths:
 logger.info("Now we can implement the Cypher validation step. First, we use the `EXPLAIN` method to detect any syntax errors. Next, we leverage the LLM to identify potential issues and extract the properties used for filtering. For string properties, we validate them against the database using a simple `CONTAINS` clause.")
 
 
-
 def validate_cypher(state: OverallState) -> OverallState:
     """
     Validates the Cypher statements and maps any property values to the database.
@@ -471,7 +474,8 @@ def validate_cypher(state: OverallState) -> OverallState:
         errors.append(e.message)
     corrected_cypher = cypher_query_corrector(state.get("cypher_statement"))
     if not corrected_cypher:
-        errors.append("The generated Cypher statement doesn't fit the graph schema")
+        errors.append(
+            "The generated Cypher statement doesn't fit the graph schema")
     if not corrected_cypher == state.get("cypher_statement"):
         logger.debug("Relationship direction was corrected")
     llm_output = validate_cypher_chain.invoke(
@@ -520,6 +524,7 @@ def validate_cypher(state: OverallState) -> OverallState:
         "cypher_errors": errors,
         "steps": ["validate_cypher"],
     }
+
 
 """
 The Cypher correction step takes the existing Cypher statement, any identified errors, and the original question to generate a corrected version of the query.
@@ -587,6 +592,7 @@ def correct_cypher(state: OverallState) -> OverallState:
         "steps": ["correct_cypher"],
     }
 
+
 """
 We need to add a step that executes the given Cypher statement. If no results are returned, we should explicitly handle this scenario, as leaving the context empty can sometimes lead to LLM hallucinations.
 """
@@ -606,6 +612,7 @@ def execute_cypher(state: OverallState) -> OverallState:
         "next_action": "end",
         "steps": ["execute_cypher"],
     }
+
 
 """
 The final step is to generate the answer. This involves combining the initial question with the database output to produce a relevant response.
@@ -641,14 +648,17 @@ def generate_final_answer(state: OverallState) -> OutputState:
     Decides if the question is related to movies.
     """
     final_answer = generate_final_chain.invoke(
-        {"question": state.get("question"), "results": state.get("database_records")}
+        {"question": state.get("question"),
+         "results": state.get("database_records")}
     )
     return {"answer": final_answer, "steps": ["generate_final_answer"]}
+
 
 """
 Next, we will implement the LangGraph workflow, starting with defining the conditional edge functions.
 """
 logger.info("Next, we will implement the LangGraph workflow, starting with defining the conditional edge functions.")
+
 
 def guardrails_condition(
     state: OverallState,
@@ -668,6 +678,7 @@ def validate_cypher_condition(
         return "correct_cypher"
     elif state.get("next_action") == "execute_cypher":
         return "execute_cypher"
+
 
 """
 Let's put it all together now.

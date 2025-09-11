@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import ConversationalRetrievalChain
 from langchain_community.document_loaders import TextLoader
@@ -24,7 +24,8 @@ os.makedirs(PERSIST_DIR, exist_ok=True)
 # Analysis of Twitter the-algorithm source code with LangChain, GPT4 and Activeloop's Deep Lake
 In this tutorial, we are going to use Langchain + Activeloop's Deep Lake with GPT4 to analyze the code base of the twitter algorithm.
 """
-logger.info("# Analysis of Twitter the-algorithm source code with LangChain, GPT4 and Activeloop's Deep Lake")
+logger.info(
+    "# Analysis of Twitter the-algorithm source code with LangChain, GPT4 and Activeloop's Deep Lake")
 
 # !python3 -m pip install --upgrade langchain 'deeplake[enterprise]' ollama tiktoken
 
@@ -33,7 +34,8 @@ Define Ollama embeddings, Deep Lake multi-modal vector store api and authenticat
 
 Authenticate into Deep Lake if you want to create your own dataset and publish it. You can get an API key from the [platform](https://app.activeloop.ai)
 """
-logger.info("Define Ollama embeddings, Deep Lake multi-modal vector store api and authenticate. For full documentation of Deep Lake please follow [docs](https://docs.activeloop.ai/) and [API reference](https://docs.deeplake.ai/en/latest/).")
+logger.info(
+    "Define Ollama embeddings, Deep Lake multi-modal vector store api and authenticate. For full documentation of Deep Lake please follow [docs](https://docs.activeloop.ai/) and [API reference](https://docs.deeplake.ai/en/latest/).")
 
 # import getpass
 
@@ -44,26 +46,26 @@ os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
 
 embeddings = OllamaEmbeddings(model="mxbai-embed-large"))
 
-"""
+    """
 disallowed_special=() is required to avoid `Exception: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte` from tiktoken for some repositories
 
 ### 1. Index the code base (optional)
 You can directly skip this part and directly jump into using already indexed dataset. To begin with, first we will clone the repository, then parse and chunk the code base and use Ollama indexing.
 """
-logger.info("### 1. Index the code base (optional)")
+    logger.info("### 1. Index the code base (optional)")
 
-# !git clone https://github.com/twitter/the-algorithm # replace any repository of your choice
+    # !git clone https://github.com/twitter/the-algorithm # replace any repository of your choice
 
-"""
+    """
 Load all files inside the repository
 """
-logger.info("Load all files inside the repository")
+    logger.info("Load all files inside the repository")
 
 
 
-root_dir = "./the-algorithm"
-docs = []
-for dirpath, dirnames, filenames in os.walk(root_dir):
+    root_dir= "./the-algorithm"
+    docs= []
+    for dirpath, dirnames, filenames in os.walk(root_dir):
     for file in filenames:
         try:
             loader = TextLoader(os.path.join(dirpath, file), encoding="utf-8")
@@ -71,76 +73,77 @@ for dirpath, dirnames, filenames in os.walk(root_dir):
         except Exception:
             pass
 
-"""
+    """
 Then, chunk the files
 """
-logger.info("Then, chunk the files")
+    logger.info("Then, chunk the files")
 
 
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-texts = text_splitter.split_documents(docs)
+    text_splitter= CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+    texts= text_splitter.split_documents(docs)
 
-"""
+    """
 Execute the indexing. This will take about ~4 mins to compute embeddings and upload to Activeloop. You can then publish the dataset to be public.
 """
-logger.info("Execute the indexing. This will take about ~4 mins to compute embeddings and upload to Activeloop. You can then publish the dataset to be public.")
+    logger.info("Execute the indexing. This will take about ~4 mins to compute embeddings and upload to Activeloop. You can then publish the dataset to be public.")
 
-username = "<USERNAME_OR_ORG>"  # replace with your username from app.activeloop.ai
-db = DeepLake(
-    dataset_path=f"hub://{username}/twitter-algorithm",
-    embedding=embeddings,
+    username= "<USERNAME_OR_ORG>"  # replace with your username from app.activeloop.ai
+    db= DeepLake(
+dataset_path = f"hub://{username}/twitter-algorithm",
+embedding = embeddings,
 )
-db.add_documents(texts)
+    db.add_documents(texts)
 
-"""
+    """
 `Optional`: You can also use Deep Lake's Managed Tensor Database as a hosting service and run queries there. In order to do so, it is necessary to specify the runtime parameter as {'tensor_db': True} during the creation of the vector store. This configuration enables the execution of queries on the Managed Tensor Database, rather than on the client side. It should be noted that this functionality is not applicable to datasets stored locally or in-memory. In the event that a vector store has already been created outside of the Managed Tensor Database, it is possible to transfer it to the Managed Tensor Database by following the prescribed steps.
 """
 
 
 
-"""
+    """
 ### 2. Question Answering on Twitter algorithm codebase
 First load the dataset, construct the retriever, then construct the Conversational Chain
 """
-logger.info("### 2. Question Answering on Twitter algorithm codebase")
+    logger.info("### 2. Question Answering on Twitter algorithm codebase")
 
-db = DeepLake(
-    dataset_path=f"hub://{username}/twitter-algorithm",
-    read_only=True,
-    embedding=embeddings,
+    db= DeepLake(
+dataset_path = f"hub://{username}/twitter-algorithm",
+read_only = True,
+embedding = embeddings,
 )
 
-retriever = db.as_retriever()
-retriever.search_kwargs["distance_metric"] = "cos"
-retriever.search_kwargs["fetch_k"] = 100
-retriever.search_kwargs["maximal_marginal_relevance"] = True
-retriever.search_kwargs["k"] = 10
+    retriever= db.as_retriever()
+    retriever.search_kwargs["distance_metric"]= "cos"
+    retriever.search_kwargs["fetch_k"]= 100
+    retriever.search_kwargs["maximal_marginal_relevance"]= True
+    retriever.search_kwargs["k"]= 10
 
-"""
+    """
 You can also specify user defined functions using [Deep Lake filters](https://docs.deeplake.ai/en/latest/deeplake.core.dataset.html#deeplake.core.dataset.Dataset.filter)
 """
-logger.info("You can also specify user defined functions using [Deep Lake filters](https://docs.deeplake.ai/en/latest/deeplake.core.dataset.html#deeplake.core.dataset.Dataset.filter)")
+    logger.info(
+  "You can also specify user defined functions using [Deep Lake filters](https://docs.deeplake.ai/en/latest/deeplake.core.dataset.html#deeplake.core.dataset.Dataset.filter)")
 
-def filter(x):
-    if "com.google" in x["text"].data()["value"]:
-        return False
+   def filter(x):
+   if "com.google" in x["text"].data()["value"]:
+   return False
 
-    metadata = x["metadata"].data()["value"]
-    return "scala" in metadata["source"] or "py" in metadata["source"]
+   metadata = x["metadata"].data()["value"]
+   return "scala" in metadata["source"] or "py" in metadata["source"]
 
 
-model = ChatOllama(model="llama3.2")  # switch to 'gpt-4'
-qa = ConversationalRetrievalChain.from_llm(model, retriever=retriever)
+   model = ChatOllama(model="llama3.2")  # switch to 'gpt-4'
+   qa = ConversationalRetrievalChain.from_llm(model, retriever=retriever)
 
-questions = [
-    "What does favCountParams do?",
-    "is it Likes + Bookmarks, or not clear from the code?",
-    "What are the major negative modifiers that lower your linear ranking parameters?",
-    "How do you get assigned to SimClusters?",
-    "What is needed to migrate from one SimClusters to another SimClusters?",
-    "How much do I get boosted within my cluster?",
-    "How does Heavy ranker work. what are it’s main inputs?",
-    "How can one influence Heavy ranker?",
+   questions = [
+  "What does favCountParams do?",
+  "is it Likes + Bookmarks, or not clear from the code?",
+  "What are the major negative modifiers that lower your linear ranking parameters?",
+  "How do you get assigned to SimClusters?",
+  "What is needed to migrate from one SimClusters to another SimClusters?",
+  "How much do I get boosted within my cluster?",
+  "How does Heavy ranker work. what are it’s main inputs?",
+   "How can one influence Heavy ranker?",
     "why threads and long tweets do so well on the platform?",
     "Are thread and long tweet creators building a following that reacts to only threads?",
     "Do you need to follow different strategies to get most followers vs to get most likes and bookmarks per tweet?",
@@ -148,15 +151,15 @@ questions = [
     "What are some unexpected fingerprints for spam factors?",
     "Is there any difference between company verified checkmarks and blue verified individual checkmarks?",
 ]
-chat_history = []
+    chat_history= []
 
-for question in questions:
+    for question in questions:
     result = qa({"question": question, "chat_history": chat_history})
     chat_history.append((question, result["answer"]))
     logger.debug(f"-> **Question**: {question} \n")
     logger.debug(f"**Answer**: {result['answer']} \n")
 
-"""
+    """
 -> **Question**: What does favCountParams do? 
 
 **Answer**: `favCountParams` is an optional ThriftLinearFeatureRankingParams instance that represents the parameters related to the "favorite count" feature in the ranking process. It is used to control the weight of the favorite count feature while ranking tweets. The favorite count is the number of times a tweet has been marked as a favorite by users, and it is considered an important signal in the ranking of tweets. By using `favCountParams`, the system can adjust the importance of the favorite count while calculating the final ranking score of a tweet. 
@@ -293,6 +296,6 @@ While this rule may not cover all possible unusual spam indicators, it is derive
 
 
 """
-logger.info("1. `scoringData.querySpecificScore`: This score adjustment is based on the query-specific information. If its value is negative, it will lower the linear ranking parameters.")
+    logger.info("1. `scoringData.querySpecificScore`: This score adjustment is based on the query-specific information. If its value is negative, it will lower the linear ranking parameters.")
 
-logger.info("\n\n[DONE]", bright=True)
+    logger.info("\n\n[DONE]", bright=True)

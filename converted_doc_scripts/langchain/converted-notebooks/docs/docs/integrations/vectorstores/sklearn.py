@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import SKLearnVectorStore
@@ -63,7 +63,8 @@ embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 """
 ### Create the SKLearnVectorStore, index the document corpus and run a sample query
 """
-logger.info("### Create the SKLearnVectorStore, index the document corpus and run a sample query")
+logger.info(
+    "### Create the SKLearnVectorStore, index the document corpus and run a sample query")
 
 
 persist_path = os.path.join(tempfile.gettempdir(), "union.parquet")

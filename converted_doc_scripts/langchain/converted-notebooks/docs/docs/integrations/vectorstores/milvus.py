@@ -1,11 +1,11 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_milvus import BM25BuiltInFunction, Milvus
 from langchain_milvus import Milvus
 from pymilvus import Collection, MilvusException, connections, db, utility
 from uuid import uuid4
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -35,7 +35,7 @@ You'll need to install `langchain-milvus` with `pip install -qU langchain-milvus
 """
 logger.info("# Milvus")
 
-pip install -qU langchain-milvus
+pip install - qU langchain-milvus
 
 """
 ### Credentials
@@ -126,7 +126,8 @@ URI = "http://localhost:19530"
 
 vectorstore = Milvus(
     embedding_function=embeddings,
-    connection_args={"uri": URI, "token": "root:Milvus", "db_name": "milvus_demo"},
+    connection_args={"uri": URI, "token": "root:Milvus",
+                     "db_name": "milvus_demo"},
     index_params={"index_type": "FLAT", "metric_type": "L2"},
     consistency_level="Strong",
     drop_old=False,  # set to True if seeking to drop the collection with that name if it exists
@@ -172,7 +173,6 @@ Once you have created your vector store, we can interact with it by adding and d
 We can add items to our vector store by using the `add_documents` function.
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -291,8 +291,10 @@ You can also transform the vector store into a retriever for easier usage in you
 """
 logger.info("### Query by turning into retriever")
 
-retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 1})
-retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+retriever = vector_store.as_retriever(
+    search_type="mmr", search_kwargs={"k": 1})
+retriever.invoke("Stealing from the bank is a crime",
+                 filter={"source": "news"})
 
 """
 ## Hybrid Search
@@ -362,8 +364,10 @@ logger.info("## Usage for retrieval-augmented generation")
 
 
 docs = [
-    Document(page_content="i worked at kensho", metadata={"namespace": "harrison"}),
-    Document(page_content="i worked at facebook", metadata={"namespace": "ankush"}),
+    Document(page_content="i worked at kensho",
+             metadata={"namespace": "harrison"}),
+    Document(page_content="i worked at facebook",
+             metadata={"namespace": "ankush"}),
 ]
 vectorstore = Milvus.from_documents(
     docs,

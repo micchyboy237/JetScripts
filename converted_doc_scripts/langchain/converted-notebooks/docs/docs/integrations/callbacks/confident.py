@@ -1,6 +1,6 @@
 from deepeval.metrics.answer_relevancy import AnswerRelevancy
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain_chroma import Chroma
@@ -93,7 +93,7 @@ You can then feed it into your LLM with Ollama.
 logger.info("### Scenario 1: Feeding into LLM")
 
 
-llm = Ollama(
+llm = ChatOllama(
     temperature=0,
     callbacks=[deepeval_callback],
     verbose=True,
@@ -107,7 +107,8 @@ output = llm.generate(
 """
 You can then check the metric if it was successful by calling the `is_successful()` method.
 """
-logger.info("You can then check the metric if it was successful by calling the `is_successful()` method.")
+logger.info(
+    "You can then check the metric if it was successful by calling the `is_successful()` method.")
 
 answer_relevancy_metric.is_successful()
 
@@ -153,7 +154,8 @@ result = qa.run(query)
 """
 After defining a chain, you can then manually check for answer similarity.
 """
-logger.info("After defining a chain, you can then manually check for answer similarity.")
+logger.info(
+    "After defining a chain, you can then manually check for answer similarity.")
 
 answer_relevancy_metric.measure(result, query)
 answer_relevancy_metric.is_successful()

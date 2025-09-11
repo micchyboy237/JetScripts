@@ -1,6 +1,6 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQAWithSourcesChain
 from langchain_community.document_loaders import TextLoader
@@ -71,7 +71,6 @@ Read the [client authentication guide](https://weaviate.io/developers/weaviate/c
 logger.info("# Weaviate")
 
 
-
 """
 ## Environment Setup
 
@@ -108,7 +107,8 @@ logger.info("Now, we can import the data.")
 
 
 weaviate_client = weaviate.connect_to_local()
-db = WeaviateVectorStore.from_documents(docs, embeddings, client=weaviate_client)
+db = WeaviateVectorStore.from_documents(
+    docs, embeddings, client=weaviate_client)
 
 """
 ### Step 2: Perform the search
@@ -127,25 +127,30 @@ for i, doc in enumerate(docs):
 """
 You can also add filters, which will either include or exclude results based on the filter conditions. (See [more filter examples](https://weaviate.io/developers/weaviate/search/filters).)
 """
-logger.info("You can also add filters, which will either include or exclude results based on the filter conditions. (See [more filter examples](https://weaviate.io/developers/weaviate/search/filters).)")
+logger.info(
+    "You can also add filters, which will either include or exclude results based on the filter conditions. (See [more filter examples](https://weaviate.io/developers/weaviate/search/filters).)")
 
 
 for filter_str in ["blah.txt", "state_of_the_union.txt"]:
     search_filter = Filter.by_property("source").equal(filter_str)
-    filtered_search_results = db.similarity_search(query, filters=search_filter)
+    filtered_search_results = db.similarity_search(
+        query, filters=search_filter)
     logger.debug(len(filtered_search_results))
     if filter_str == "state_of_the_union.txt":
-        assert len(filtered_search_results) > 0  # There should be at least one result
+        # There should be at least one result
+        assert len(filtered_search_results) > 0
     else:
         assert len(filtered_search_results) == 0  # There should be no results
 
 """
 It is also possible to provide `k`, which is the upper limit of the number of results to return.
 """
-logger.info("It is also possible to provide `k`, which is the upper limit of the number of results to return.")
+logger.info(
+    "It is also possible to provide `k`, which is the upper limit of the number of results to return.")
 
 search_filter = Filter.by_property("source").equal("state_of_the_union.txt")
-filtered_search_results = db.similarity_search(query, filters=search_filter, k=3)
+filtered_search_results = db.similarity_search(
+    query, filters=search_filter, k=3)
 assert len(filtered_search_results) <= 3
 
 """

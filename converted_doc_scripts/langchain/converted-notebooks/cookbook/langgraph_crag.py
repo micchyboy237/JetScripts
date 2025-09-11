@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.output_parsers import PydanticOutputParser
@@ -119,8 +119,6 @@ We can access this from any graph node as `state['keys']`.
 logger.info("## State")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of an agent in the conversation.
@@ -132,6 +130,7 @@ class GraphState(TypedDict):
     """
 
     keys: Dict[str, any]
+
 
 """
 ## Nodes and Edges
@@ -145,9 +144,6 @@ It will follow the graph diagram shown above.
 ![Screenshot 2024-02-04 at 1.32.52 PM.png](attachment:3b65f495-5fc4-497b-83e2-73844a97f6cc.png)
 """
 logger.info("## Nodes and Edges")
-
-
-
 
 
 def retrieve(state):
@@ -322,8 +318,6 @@ def web_search(state):
     return {"keys": {"documents": documents, "question": question}}
 
 
-
-
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
@@ -347,7 +341,6 @@ def decide_to_generate(state):
     else:
         logger.debug("---DECISION: GENERATE---")
         return "generate"
-
 
 
 workflow = StateGraph(GraphState)
@@ -374,7 +367,8 @@ workflow.add_edge("generate", END)
 
 app = workflow.compile()
 
-inputs = {"keys": {"question": "Explain how the different types of agent memory work?"}}
+inputs = {
+    "keys": {"question": "Explain how the different types of agent memory work?"}}
 for output in app.stream(inputs):
     for key, value in output.items():
         pprint.plogger.debug(f"Output from node '{key}':")
@@ -382,7 +376,8 @@ for output in app.stream(inputs):
         pprint.plogger.debug(value["keys"], indent=2, width=80, depth=None)
     pprint.plogger.debug("\n---\n")
 
-inputs = {"keys": {"question": "What is the approach taken in the AlphaCodium paper?"}}
+inputs = {
+    "keys": {"question": "What is the approach taken in the AlphaCodium paper?"}}
 for output in app.stream(inputs):
     for key, value in output.items():
         pprint.plogger.debug(f"Output from node '{key}':")

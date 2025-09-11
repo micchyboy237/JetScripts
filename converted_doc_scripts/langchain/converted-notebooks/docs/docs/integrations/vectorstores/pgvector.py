@@ -1,8 +1,8 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_postgres import PGVector
-import EmbeddingTabs from "@theme/EmbeddingTabs";
+import EmbeddingTabs from "@theme/EmbeddingTabs"
 import os
 import shutil
 
@@ -43,12 +43,13 @@ First donwload the partner package:
 """
 logger.info("# PGVector")
 
-pip install -qU langchain-postgres
+pip install - qU langchain-postgres
 
 """
 You can run the following command to spin up a postgres container with the `pgvector` extension:
 """
-logger.info("You can run the following command to spin up a postgres container with the `pgvector` extension:")
+logger.info(
+    "You can run the following command to spin up a postgres container with the `pgvector` extension:")
 
 # %docker run --name pgvector-container -e POSTGRES_USER=langchain -e POSTGRES_PASSWORD=langchain -e POSTGRES_DB=langchain -p 6024:5432 -d pgvector/pgvector:pg16
 
@@ -60,7 +61,6 @@ There are no credentials needed to run this notebook, just make sure you downloa
 If you want to get best in-class automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
 logger.info("### Credentials")
-
 
 
 """
@@ -75,7 +75,8 @@ logger.info("## Instantiation")
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
 
-connection = "postgresql+psycopg://langchain:langchain@localhost:6024/langchain"  # Uses psycopg3!
+# Uses psycopg3!
+connection = "postgresql+psycopg://langchain:langchain@localhost:6024/langchain"
 collection_name = "my_docs"
 
 vector_store = PGVector(
@@ -192,7 +193,8 @@ logger.info("If you provide a dict with multiple fields, but no operators, the t
 vector_store.similarity_search(
     "ducks",
     k=10,
-    filter={"id": {"$in": [1, 5, 2, 9]}, "location": {"$in": ["pond", "market"]}},
+    filter={"id": {"$in": [1, 5, 2, 9]},
+            "location": {"$in": ["pond", "market"]}},
 )
 
 vector_store.similarity_search(
@@ -209,7 +211,8 @@ vector_store.similarity_search(
 """
 If you want to execute a similarity search and receive the corresponding scores you can run:
 """
-logger.info("If you want to execute a similarity search and receive the corresponding scores you can run:")
+logger.info(
+    "If you want to execute a similarity search and receive the corresponding scores you can run:")
 
 results = vector_store.similarity_search_with_score(query="cats", k=1)
 for doc, score in results:
@@ -224,7 +227,8 @@ You can also transform the vector store into a retriever for easier usage in you
 """
 logger.info("### Query by turning into retriever")
 
-retriever = vector_store.as_retriever(search_type="mmr", search_kwargs={"k": 1})
+retriever = vector_store.as_retriever(
+    search_type="mmr", search_kwargs={"k": 1})
 retriever.invoke("kitty")
 
 """

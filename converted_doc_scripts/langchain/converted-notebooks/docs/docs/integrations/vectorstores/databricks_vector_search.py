@@ -1,6 +1,6 @@
 from databricks.vector_search.client import VectorSearchClient
 from databricks_langchain import DatabricksVectorSearch
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 import EmbeddingTabs from "@theme/EmbeddingTabs";

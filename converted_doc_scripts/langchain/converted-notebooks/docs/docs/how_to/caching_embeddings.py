@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import InMemoryByteStore
@@ -73,7 +73,8 @@ list(store.yield_keys())
 """
 Load the document, split it into chunks, embed each chunk and load it into the vector store.
 """
-logger.info("Load the document, split it into chunks, embed each chunk and load it into the vector store.")
+logger.info(
+    "Load the document, split it into chunks, embed each chunk and load it into the vector store.")
 
 raw_documents = TextLoader("state_of_the_union.txt").load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)

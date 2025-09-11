@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.utils.math import cosine_similarity
 from langchain_core.output_parsers import StrOutputParser
@@ -109,6 +109,7 @@ You can also use a custom function to route between different outputs. Here's an
 """
 logger.info("## Using a custom function (Recommended)")
 
+
 def route(info):
     if "anthropic" in info["topic"].lower():
         return anthropic_chain
@@ -185,7 +186,8 @@ def prompt_router(input):
     query_embedding = embeddings.embed_query(input["query"])
     similarity = cosine_similarity([query_embedding], prompt_embeddings)[0]
     most_similar = prompt_templates[similarity.argmax()]
-    logger.debug("Using MATH" if most_similar == math_template else "Using PHYSICS")
+    logger.debug("Using MATH" if most_similar ==
+                 math_template else "Using PHYSICS")
     return PromptTemplate.from_template(most_similar)
 
 

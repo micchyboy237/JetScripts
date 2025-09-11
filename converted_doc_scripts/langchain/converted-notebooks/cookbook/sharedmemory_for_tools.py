@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain import hub
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent, create_react_agent
@@ -41,14 +41,16 @@ template = """This is a conversation between a human and a bot:
 Write a summary of the conversation for {input}:
 """
 
-prompt = PromptTemplate(input_variables=["input", "chat_history"], template=template)
+prompt = PromptTemplate(
+    input_variables=["input", "chat_history"], template=template)
 memory = ConversationBufferMemory(memory_key="chat_history")
 readonlymemory = ReadOnlySharedMemory(memory=memory)
 summary_chain = LLMChain(
     llm=Ollama(),
     prompt=prompt,
     verbose=True,
-    memory=readonlymemory,  # use the read-only memory to prevent the tool from modifying the memory
+    # use the read-only memory to prevent the tool from modifying the memory
+    memory=readonlymemory,
 )
 
 search = GoogleSearchAPIWrapper()
@@ -70,7 +72,8 @@ prompt = hub.pull("hwchase17/react")
 """
 We can now construct the `LLMChain`, with the Memory object, and then create the agent.
 """
-logger.info("We can now construct the `LLMChain`, with the Memory object, and then create the agent.")
+logger.info(
+    "We can now construct the `LLMChain`, with the Memory object, and then create the agent.")
 
 model = Ollama()
 agent = create_react_agent(model, tools, prompt)
@@ -101,7 +104,8 @@ logger.debug(agent_executor.memory.buffer)
 
 For comparison, below is a bad example that uses the same memory for both the Agent and the tool.
 """
-logger.info("For comparison, below is a bad example that uses the same memory for both the Agent and the tool.")
+logger.info(
+    "For comparison, below is a bad example that uses the same memory for both the Agent and the tool.")
 
 template = """This is a conversation between a human and a bot:
 
@@ -110,7 +114,8 @@ template = """This is a conversation between a human and a bot:
 Write a summary of the conversation for {input}:
 """
 
-prompt = PromptTemplate(input_variables=["input", "chat_history"], template=template)
+prompt = PromptTemplate(
+    input_variables=["input", "chat_history"], template=template)
 memory = ConversationBufferMemory(memory_key="chat_history")
 summary_chain = LLMChain(
     llm=Ollama(),

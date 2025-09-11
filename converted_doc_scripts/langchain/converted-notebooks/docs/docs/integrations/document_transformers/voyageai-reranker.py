@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.retrievers import ContextualCompressionRetriever
@@ -42,14 +42,17 @@ logger.info("# VoyageAI Reranker")
 # import getpass
 
 if "VOYAGE_API_KEY" not in os.environ:
-#     os.environ["VOYAGE_API_KEY"] = getpass.getpass("Voyage AI API Key:")
+    #     os.environ["VOYAGE_API_KEY"] = getpass.getpass("Voyage AI API Key:")
+
 
 def pretty_print_docs(docs):
     logger.debug(
         f"\n{'-' * 100}\n".join(
-            [f"Document {i + 1}:\n\n" + d.page_content for i, d in enumerate(docs)]
+            [f"Document {i + 1}:\n\n" +
+                d.page_content for i, d in enumerate(docs)]
         )
     )
+
 
 """
 ## Set up the base vector store retriever
@@ -69,7 +72,8 @@ logger.info("## Set up the base vector store retriever")
 
 
 documents = TextLoader("../../how_to/state_of_the_union.txt").load()
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=100)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500, chunk_overlap=100)
 texts = text_splitter.split_documents(documents)
 retriever = FAISS.from_documents(
     texts, VoyageAIEmbeddings(model="voyage-law-2")
@@ -91,7 +95,7 @@ Now let's wrap our base retriever with a `ContextualCompressionRetriever`. We'll
 logger.info("## Doing reranking with VoyageAIRerank")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 compressor = VoyageAIRerank(
     model="rerank-lite-1", voyageai_api_key=os.environ["VOYAGE_API_KEY"], top_k=3
 )

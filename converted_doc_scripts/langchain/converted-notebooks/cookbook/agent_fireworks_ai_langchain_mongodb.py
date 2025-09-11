@@ -1,5 +1,5 @@
 from datasets import load_dataset
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.agents import tool
@@ -67,7 +67,8 @@ logger.debug(len(dataset_df))
 dataset_df.head()
 
 
-client = MongoClient(MONGO_URI, appname="devrel.content.ai_agent_firechain.python")
+client = MongoClient(
+    MONGO_URI, appname="devrel.content.ai_agent_firechain.python")
 
 DB_NAME = "agent_demo"
 COLLECTION_NAME = "knowledge"
@@ -112,17 +113,20 @@ vector_store = MongoDBAtlasVectorSearch.from_connection_string(
     text_key="abstract",
 )
 
-retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+retriever = vector_store.as_retriever(
+    search_type="similarity", search_kwargs={"k": 5})
 
 """
 ### Optional: Creating a retrevier with compression capabilities using LLMLingua
 """
-logger.info("### Optional: Creating a retrevier with compression capabilities using LLMLingua")
+logger.info(
+    "### Optional: Creating a retrevier with compression capabilities using LLMLingua")
 
 # !pip install langchain_community llmlingua
 
 
-compressor = LLMLinguaCompressor(model_name="ollama-community/gpt2", device_map="cpu")
+compressor = LLMLinguaCompressor(
+    model_name="ollama-community/gpt2", device_map="cpu")
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=compressor, base_retriever=retriever
 )
@@ -133,13 +137,13 @@ compression_retriever = ContextualCompressionRetriever(
 logger.info("## Configure LLM Using Fireworks AI")
 
 
-llm = ChatFireworks(model="accounts/fireworks/models/firefunction-v1", max_tokens=256)
+llm = ChatFireworks(
+    model="accounts/fireworks/models/firefunction-v1", max_tokens=256)
 
 """
 ## Agent Tools Creation
 """
 logger.info("## Agent Tools Creation")
-
 
 
 @tool
@@ -180,7 +184,8 @@ retriever_tool = create_retriever_tool(
 )
 
 
-compressor = LLMLinguaCompressor(model_name="ollama-community/gpt2", device_map="cpu")
+compressor = LLMLinguaCompressor(
+    model_name="ollama-community/gpt2", device_map="cpu")
 
 
 @tool
@@ -202,6 +207,7 @@ def compress_prompt_using_llmlingua(prompt: str, compression_rate: float = 0.5) 
         drop_consecutive=True,
     )
     return compressed_data
+
 
 tools = [
     retriever_tool,
@@ -262,7 +268,6 @@ prompt = ChatPromptTemplate.from_messages(
 logger.info("## Agent Memory Using MongoDB")
 
 
-
 def get_session_history(session_id: str) -> MongoDBChatMessageHistory:
     return MongoDBChatMessageHistory(
         MONGO_URI, session_id, database_name=DB_NAME, collection_name="history"
@@ -300,6 +305,7 @@ agent_executor.invoke(
     }
 )
 
-agent_executor.invoke({"input": "What paper did we speak about from our chat history?"})
+agent_executor.invoke(
+    {"input": "What paper did we speak about from our chat history?"})
 
 logger.info("\n\n[DONE]", bright=True)

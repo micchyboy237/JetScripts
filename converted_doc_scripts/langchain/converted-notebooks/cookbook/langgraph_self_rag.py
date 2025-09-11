@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.output_parsers import PydanticOutputParser
@@ -126,8 +126,6 @@ We can access this from any graph node as `state['keys']`.
 logger.info("## State")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of an agent in the conversation.
@@ -139,6 +137,7 @@ class GraphState(TypedDict):
     """
 
     keys: Dict[str, any]
+
 
 """
 ## Nodes and Edges
@@ -152,9 +151,6 @@ We can lay out `self-RAG` as a graph:
 ![Screenshot 2024-02-02 at 9.01.01 PM.png](attachment:e61fbd0c-e667-4160-a96c-82f95a560b44.png)
 """
 logger.info("## Nodes and Edges")
-
-
-
 
 
 def retrieve(state):
@@ -318,8 +314,6 @@ def prepare_for_final_grade(state):
     }
 
 
-
-
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
@@ -457,11 +451,11 @@ def grade_generation_v_question(state):
         logger.debug("---DECISION: NOT USEFUL---")
         return "not useful"
 
+
 """
 ## Graph
 """
 logger.info("## Graph")
-
 
 
 workflow = StateGraph(GraphState)
@@ -470,7 +464,8 @@ workflow.add_node("retrieve", retrieve)  # retrieve
 workflow.add_node("grade_documents", grade_documents)  # grade documents
 workflow.add_node("generate", generate)  # generatae
 workflow.add_node("transform_query", transform_query)  # transform_query
-workflow.add_node("prepare_for_final_grade", prepare_for_final_grade)  # passthrough
+workflow.add_node("prepare_for_final_grade",
+                  prepare_for_final_grade)  # passthrough
 
 workflow.set_entry_point("retrieve")
 workflow.add_edge("retrieve", "grade_documents")
@@ -502,7 +497,8 @@ workflow.add_conditional_edges(
 
 app = workflow.compile()
 
-inputs = {"keys": {"question": "Explain how the different types of agent memory work?"}}
+inputs = {
+    "keys": {"question": "Explain how the different types of agent memory work?"}}
 for output in app.stream(inputs):
     for key, value in output.items():
         pprint.plogger.debug(f"Output from node '{key}':")

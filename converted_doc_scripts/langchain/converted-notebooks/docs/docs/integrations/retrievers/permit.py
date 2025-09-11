@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.retrievers import BM25Retriever
 from langchain_community.vectorstores import FAISS
@@ -10,7 +10,7 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_permit import PermitRetriever
 from langchain_permit.retrievers import PermitEnsembleRetriever
 from langchain_permit.retrievers import PermitSelfQueryRetriever
-import ChatModelTabs from "@theme/ChatModelTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
 import os
 import shutil
 
@@ -56,7 +56,6 @@ pip install langchain-permit
 If you want to get automated tracing from individual queries, you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
 logger.info("# PermitRetriever")
-
 
 
 """

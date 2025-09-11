@@ -1,7 +1,7 @@
 from IPython.display import HTML, display
 from PIL import Image
 from io import BytesIO
-from jet.adapters.langchain.chat_ollama import OllamaLLM
+from jet.adapters.langchain.chat_ollama import ChatOllamaLLM
 from jet.adapters.langchain.chat_ollama.llms import OllamaLLM
 from jet.logger import logger
 from langchain_core.prompts import ChatPromptTemplate
@@ -94,8 +94,6 @@ logger.info("## Multi-modal")
 # %pip install pillow
 
 
-
-
 def convert_to_base64(pil_image):
     """
     Convert PIL images to Base64 encoded strings
@@ -105,7 +103,8 @@ def convert_to_base64(pil_image):
     """
 
     buffered = BytesIO()
-    pil_image.save(buffered, format="JPEG")  # You can change the format if needed
+    # You can change the format if needed
+    pil_image.save(buffered, format="JPEG")
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
     return img_str
 
@@ -126,7 +125,7 @@ image_b64 = convert_to_base64(pil_image)
 plt_img_base64(image_b64)
 
 
-llm = OllamaLLM(model="bakllava")
+llm = ChatOllamaLLM(model="bakllava")
 
 llm_with_image_context = llm.bind(images=[image_b64])
 llm_with_image_context.invoke("What is the dollar based gross retention rate:")

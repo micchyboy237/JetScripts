@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.globals import set_llm_cache
 from langchain.schema import Generation
@@ -45,7 +45,8 @@ docker run -d -p 6379:6379 redis:latest
 
 Or install and run Redis locally according to your operating system's instructions.
 """
-logger.info("Ensure you have a Redis server running. You can start one using Docker with:")
+logger.info(
+    "Ensure you have a Redis server running. You can start one using Docker with:")
 
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -55,8 +56,6 @@ logger.debug(f"Connecting to Redis at: {REDIS_URL}")
 ## Importing Required Libraries
 """
 logger.info("## Importing Required Libraries")
-
-
 
 
 """
@@ -86,7 +85,7 @@ redis_cache = RedisCache(redis_url=REDIS_URL)
 
 set_llm_cache(redis_cache)
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 
 def timed_completion(prompt):
@@ -98,10 +97,12 @@ def timed_completion(prompt):
 
 prompt = "Explain the concept of caching in three sentences."
 result1, time1 = timed_completion(prompt)
-logger.debug(f"First call (not cached):\nResult: {result1}\nTime: {time1:.2f} seconds\n")
+logger.debug(
+    f"First call (not cached):\nResult: {result1}\nTime: {time1:.2f} seconds\n")
 
 result2, time2 = timed_completion(prompt)
-logger.debug(f"Second call (cached):\nResult: {result2}\nTime: {time2:.2f} seconds\n")
+logger.debug(
+    f"Second call (cached):\nResult: {result2}\nTime: {time2:.2f} seconds\n")
 
 logger.debug(f"Speed improvement: {time1 / time2:.2f}x faster")
 
@@ -154,10 +155,12 @@ logger.info("## Advanced Usage")
 
 ttl_cache = RedisCache(redis_url=REDIS_URL, ttl=5)  # 60 seconds TTL
 
-ttl_cache.update("test_prompt", "test_llm", [Generation(text="Cached response")])
+ttl_cache.update("test_prompt", "test_llm", [
+                 Generation(text="Cached response")])
 
 cached_result = ttl_cache.lookup("test_prompt", "test_llm")
-logger.debug(f"Cached result: {cached_result[0].text if cached_result else 'Not found'}")
+logger.debug(
+    f"Cached result: {cached_result[0].text if cached_result else 'Not found'}")
 
 logger.debug("Waiting for TTL to expire...")
 time.sleep(6)

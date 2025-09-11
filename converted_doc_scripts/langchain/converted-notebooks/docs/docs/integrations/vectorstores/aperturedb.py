@@ -106,7 +106,7 @@ Again, we use the Ollama server we set up for local processing.
 logger.info("## Select a large language model")
 
 
-llm = Ollama(model="llama2")
+llm = ChatOllama(model="llama2")
 
 """
 ## Build a RAG chain
@@ -129,12 +129,10 @@ prompt = ChatPromptTemplate.from_template("""Answer the following question based
 Question: {input}""")
 
 
-
 document_chain = create_stuff_documents_chain(llm, prompt)
 
 
 retriever = vector_db.as_retriever()
-
 
 
 retrieval_chain = create_retrieval_chain(retriever, document_chain)

@@ -1,5 +1,5 @@
 from datetime import datetime
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain_community.agent_toolkits.clickup.toolkit import ClickupToolkit
@@ -49,15 +49,18 @@ oauth_client_id = "ABC..."
 oauth_client_secret = "123..."
 redirect_uri = "https://google.com"
 
-logger.debug("Click this link, select your workspace, click `Connect Workspace`")
-logger.debug(ClickupAPIWrapper.get_access_code_url(oauth_client_id, redirect_uri))
+logger.debug(
+    "Click this link, select your workspace, click `Connect Workspace`")
+logger.debug(ClickupAPIWrapper.get_access_code_url(
+    oauth_client_id, redirect_uri))
 
 """
 The url should change to something like this https://www.google.com/?code=THISISMYCODERIGHTHERE.
 
 Next, copy/paste the `CODE` (THISISMYCODERIGHTHERE) generated in the URL in the cell below.
 """
-logger.info("The url should change to something like this https://www.google.com/?code=THISISMYCODERIGHTHERE.")
+logger.info(
+    "The url should change to something like this https://www.google.com/?code=THISISMYCODERIGHTHERE.")
 
 code = "THISISMYCODERIGHTHERE"
 
@@ -84,7 +87,7 @@ logger.debug(
 """
 logger.info("### Create Agent")
 
-llm = Ollama(temperature=0, ollama_)
+llm = ChatOllama(temperature=0, ollama_)
 
 agent = initialize_agent(
     toolkit.get_tools(), llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION, verbose=True
@@ -95,6 +98,7 @@ agent = initialize_agent(
 """
 logger.info("## Use an Agent")
 
+
 def print_and_run(command):
     logger.debug("\033[94m$ COMMAND\033[0m")
     logger.debug(command)
@@ -102,6 +106,7 @@ def print_and_run(command):
     response = agent.run(command)
     logger.debug("".join(["-"] * 80))
     return response
+
 
 """
 ### Navigation

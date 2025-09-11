@@ -1,5 +1,5 @@
 from azure.cosmos import CosmosClient, PartitionKey
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores.azure_cosmos_db_no_sql import (
@@ -26,9 +26,9 @@ os.makedirs(PERSIST_DIR, exist_ok=True)
 """
 # Azure Cosmos DB No SQL
 
-This notebook shows you how to leverage this integrated [vector database](https://learn.microsoft.com/en-us/azure/cosmos-db/vector-database) to store documents in collections, create indicies and perform vector search queries using approximate nearest neighbor algorithms such as COS (cosine distance), L2 (Euclidean distance), and IP (inner product) to locate documents close to the query vectors. 
-    
-Azure Cosmos DB is the database that powers Ollama's ChatGPT service. It offers single-digit millisecond response times, automatic and instant scalability, along with guaranteed speed at any scale. 
+This notebook shows you how to leverage this integrated [vector database](https://learn.microsoft.com/en-us/azure/cosmos-db/vector-database) to store documents in collections, create indicies and perform vector search queries using approximate nearest neighbor algorithms such as COS (cosine distance), L2 (Euclidean distance), and IP (inner product) to locate documents close to the query vectors.
+
+Azure Cosmos DB is the database that powers Ollama's ChatGPT service. It offers single-digit millisecond response times, automatic and instant scalability, along with guaranteed speed at any scale.
 
 Azure Cosmos DB for NoSQL now offers vector indexing and search in preview. This feature is designed to handle high-dimensional vectors, enabling efficient and accurate vector search at any scale. You can now store vectors directly in the documents alongside your data. This means that each document in your database can contain not only traditional schema-free data, but also high-dimensional vectors as other properties of the documents. This colocation of data and vectors allows for efficient indexing and searching, as the vectors are stored in the same logical unit as the data they represent. This simplifies data management, AI application architectures, and the efficiency of vector-based operations.
 
@@ -60,7 +60,8 @@ loader = PyPDFLoader("https://arxiv.org/pdf/2303.08774.pdf")
 data = loader.load()
 
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=150)
 docs = text_splitter.split_documents(data)
 
 logger.debug(docs[0])
@@ -110,7 +111,7 @@ ollama_embeddings = OllamaEmbeddings(
     chunk_size=1,
 #     ollama_)
 
-vector_search = AzureCosmosDBNoSqlVectorSearch.from_documents(
+vector_search=AzureCosmosDBNoSqlVectorSearch.from_documents(
     documents=docs,
     embedding=ollama_embeddings,
     cosmos_client=cosmos_client,
@@ -127,14 +128,14 @@ vector_search = AzureCosmosDBNoSqlVectorSearch.from_documents(
 """
 #
 #
- 
+
 V
 e
 c
 t
 o
 r
- 
+
 S
 e
 a
@@ -145,34 +146,34 @@ h
 logger.info("#")
 
 
-query = "What were the compute requirements for training GPT 4"
-results = vector_search.similarity_search(query)
+query="What were the compute requirements for training GPT 4"
+results=vector_search.similarity_search(query)
 
 logger.debug(results[0].page_content)
 
 """
 #
 #
- 
+
 V
 e
 c
 t
 o
 r
- 
+
 S
 e
 a
 r
 c
 h
- 
+
 w
 i
 t
 h
- 
+
 S
 c
 o
@@ -181,9 +182,9 @@ e
 """
 logger.info("#")
 
-query = "What were the compute requirements for training GPT 4"
+query="What were the compute requirements for training GPT 4"
 
-results = vector_search.similarity_search_with_score(
+results=vector_search.similarity_search_with_score(
     query=query,
     k=5,
 )
@@ -196,26 +197,26 @@ for i in range(0, len(results)):
 """
 #
 #
- 
+
 V
 e
 c
 t
 o
 r
- 
+
 S
 e
 a
 r
 c
 h
- 
+
 w
 i
 t
 h
- 
+
 f
 i
 l
@@ -228,15 +229,15 @@ g
 """
 logger.info("#")
 
-query = "What were the compute requirements for training GPT 4"
+query="What were the compute requirements for training GPT 4"
 
-pre_filter = {
+pre_filter={
     "conditions": [
         {"property": "metadata.page", "operator": "$eq", "value": 0},
     ],
 }
 
-results = vector_search.similarity_search_with_score(
+results=vector_search.similarity_search_with_score(
     query=query,
     k=5,
     pre_filter=pre_filter,
@@ -250,17 +251,17 @@ for i in range(0, len(results)):
 """
 #
 #
- 
+
 F
 u
 l
 l
- 
+
 T
 e
 x
 t
- 
+
 S
 e
 a
@@ -271,8 +272,8 @@ h
 logger.info("#")
 
 
-query = "What were the compute requirements for training GPT 4"
-pre_filter = {
+query="What were the compute requirements for training GPT 4"
+pre_filter={
     "conditions": [
         {
             "property": "text",
@@ -281,7 +282,7 @@ pre_filter = {
         },
     ],
 }
-results = vector_search.similarity_search_with_score(
+results=vector_search.similarity_search_with_score(
     query=query,
     k=5,
     query_type=CosmosDBQueryType.FULL_TEXT_SEARCH,
@@ -295,30 +296,30 @@ for i in range(0, len(results)):
 """
 #
 #
- 
+
 F
 u
 l
 l
- 
+
 T
 e
 x
 t
- 
+
 S
 e
 a
 r
 c
 h
- 
+
 B
 M
- 
+
 2
 5
- 
+
 R
 a
 n
@@ -329,9 +330,9 @@ g
 """
 logger.info("#")
 
-query = "What were the compute requirements for training GPT 4"
+query="What were the compute requirements for training GPT 4"
 
-results = vector_search.similarity_search_with_score(
+results=vector_search.similarity_search_with_score(
     query=query,
     k=5,
     query_type=CosmosDBQueryType.FULL_TEXT_RANK,
@@ -344,14 +345,14 @@ for i in range(0, len(results)):
 """
 #
 #
- 
+
 H
 y
 b
 r
 i
 d
- 
+
 S
 e
 a
@@ -361,9 +362,9 @@ h
 """
 logger.info("#")
 
-query = "What were the compute requirements for training GPT 4"
+query="What were the compute requirements for training GPT 4"
 
-results = vector_search.similarity_search_with_score(
+results=vector_search.similarity_search_with_score(
     query=query,
     k=5,
     query_type=CosmosDBQueryType.HYBRID,
@@ -377,26 +378,26 @@ for i in range(0, len(results)):
 """
 #
 #
- 
+
 H
 y
 b
 r
 i
 d
- 
+
 S
 e
 a
 r
 c
 h
- 
+
 w
 i
 t
 h
- 
+
 f
 i
 l
@@ -409,9 +410,9 @@ g
 """
 logger.info("#")
 
-query = "What were the compute requirements for training GPT 4"
+query="What were the compute requirements for training GPT 4"
 
-pre_filter = {
+pre_filter={
     "conditions": [
         {
             "property": "text",
@@ -423,7 +424,7 @@ pre_filter = {
     "logical_operator": "$and",
 }
 
-results = vector_search.similarity_search_with_score(
+results=vector_search.similarity_search_with_score(
     query=query, k=5, query_type=CosmosDBQueryType.HYBRID, pre_filter=pre_filter
 )
 

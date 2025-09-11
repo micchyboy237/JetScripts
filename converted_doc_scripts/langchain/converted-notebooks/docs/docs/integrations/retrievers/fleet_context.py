@@ -1,6 +1,6 @@
 from context import download_embeddings
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.retrievers import MultiVectorRetriever
 from langchain.storage import InMemoryStore
@@ -43,8 +43,6 @@ logger.info("# Fleet AI Context")
 # %pip install --upgrade --quiet  langchain fleet-context langchain-ollama pandas faiss-cpu # faiss-gpu for CUDA supported GPU
 
 
-
-
 def load_fleet_retriever(
     df: pd.DataFrame,
     *,
@@ -74,7 +72,8 @@ def _populate_vectorstore(
     texts_embeddings = []
     metadatas = []
     for _, row in df.iterrows():
-        texts_embeddings.append((row.metadata["text"], row["dense_embeddings"]))
+        texts_embeddings.append(
+            (row.metadata["text"], row["dense_embeddings"]))
         metadatas.append(row.metadata)
     return vectorstore_cls.from_embeddings(
         texts_embeddings,
@@ -99,6 +98,7 @@ def _populate_docstore(df: pd.DataFrame, docstore: BaseStore) -> None:
         metadata["id"] = parent_id
         parent_docs.append(Document(page_content=text, metadata=metadata))
     docstore.mset(((d.metadata["id"], d) for d in parent_docs))
+
 
 """
 ## Retriever chunks

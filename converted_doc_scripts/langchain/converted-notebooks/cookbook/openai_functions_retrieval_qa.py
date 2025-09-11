@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import ConversationalRetrievalChain, LLMChain
 from langchain.chains import RetrievalQA
@@ -102,7 +102,8 @@ We can also show what it's like to use this in the ConversationalRetrievalChain.
 logger.info("## Using in ConversationalRetrievalChain")
 
 
-memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
+memory = ConversationBufferMemory(
+    memory_key="chat_history", return_messages=True)
 _template = """Given the following conversation and a follow up question, rephrase the follow up question to be a standalone question, in its original language.\
 Make sure to avoid using any unclear pronouns.
 
@@ -143,11 +144,11 @@ In addition to the previous example, we can also add a custom prompt to the chai
 logger.info("## Using your own output schema")
 
 
-
 class CustomResponseSchema(BaseModel):
     """An answer to the question being asked, with sources."""
 
-    answer: str = Field(..., description="Answer to the question that was asked")
+    answer: str = Field(...,
+                        description="Answer to the question that was asked")
     countries_referenced: List[str] = Field(
         ..., description="All of the countries mentioned in the sources"
     )

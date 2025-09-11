@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import initialize_agent, load_tools
 from langchain.chains import LLMChain
@@ -85,9 +85,10 @@ comet_callback = CometCallbackHandler(
     visualizations=["dep"],
 )
 callbacks = [StdOutCallbackHandler(), comet_callback]
-llm = Ollama(temperature=0.9, callbacks=callbacks, verbose=True)
+llm = ChatOllama(temperature=0.9, callbacks=callbacks, verbose=True)
 
-llm_result = llm.generate(["Tell me a joke", "Tell me a poem", "Tell me a fact"] * 3)
+llm_result = llm.generate(
+    ["Tell me a joke", "Tell me a poem", "Tell me a fact"] * 3)
 logger.debug("LLM result", llm_result)
 comet_callback.flush_tracker(llm, finish=True)
 
@@ -104,7 +105,7 @@ comet_callback = CometCallbackHandler(
     tags=["synopsis-chain"],
 )
 callbacks = [StdOutCallbackHandler(), comet_callback]
-llm = Ollama(temperature=0.9, callbacks=callbacks)
+llm = ChatOllama(temperature=0.9, callbacks=callbacks)
 
 template = """You are a playwright. Given the title of play, it is your job to write a synopsis for that title.
 Title: {title}
@@ -129,7 +130,7 @@ comet_callback = CometCallbackHandler(
     tags=["agent"],
 )
 callbacks = [StdOutCallbackHandler(), comet_callback]
-llm = Ollama(temperature=0.9, callbacks=callbacks)
+llm = ChatOllama(temperature=0.9, callbacks=callbacks)
 
 tools = load_tools(["serpapi", "llm-math"], llm=llm, callbacks=callbacks)
 agent = initialize_agent(
@@ -157,7 +158,6 @@ logger.info("### Scenario 4: Using Custom Evaluation Metrics")
 # %pip install --upgrade --quiet  rouge-score
 
 
-
 class Rouge:
     def __init__(self, reference):
         self.reference = reference
@@ -165,7 +165,8 @@ class Rouge:
 
     def compute_metric(self, generation, prompt_idx, gen_idx):
         prediction = generation.text
-        results = self.scorer.score(target=self.reference, prediction=prediction)
+        results = self.scorer.score(
+            target=self.reference, prediction=prediction)
 
         return {
             "rougeLsum_score": results["rougeLsum"].fmeasure,
@@ -186,7 +187,8 @@ template = """Given the following article, it is your job to write a summary.
 Article:
 {article}
 Summary: This is the summary for the above article:"""
-prompt_template = PromptTemplate(input_variables=["article"], template=template)
+prompt_template = PromptTemplate(
+    input_variables=["article"], template=template)
 
 comet_callback = CometCallbackHandler(
     project_name="comet-example-langchain",
@@ -196,7 +198,7 @@ comet_callback = CometCallbackHandler(
     custom_metrics=rouge_score.compute_metric,
 )
 callbacks = [StdOutCallbackHandler(), comet_callback]
-llm = Ollama(temperature=0.9)
+llm = ChatOllama(temperature=0.9)
 
 synopsis_chain = LLMChain(llm=llm, prompt=prompt_template)
 

@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup as Soup
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.prompts import ChatPromptTemplate
@@ -31,7 +31,7 @@ logger.info(f"Logs: {log_file}")
 PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
 os.makedirs(PERSIST_DIR, exist_ok=True)
 
-pip install -U langchain umap-learn scikit-learn langchain_community tiktoken langchain-ollama langchainhub langchain-chroma langchain-anthropic
+pip install - U langchain umap-learn scikit-learn langchain_community tiktoken langchain-ollama langchainhub langchain-chroma langchain-anthropic
 
 """
 # RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval
@@ -61,8 +61,8 @@ In this case, each `doc` is a unique web page of the LCEL docs.
 
 The context varies from < 2k tokens on up to > 10k tokens.
 """
-logger.info("# RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval")
-
+logger.info(
+    "# RAPTOR: Recursive Abstractive Processing for Tree-Organized Retrieval")
 
 
 def num_tokens_from_string(string: str, encoding_name: str) -> int:
@@ -111,7 +111,7 @@ concatenated_content = "\n\n\n --- \n\n\n".join(
 )
 logger.debug(
     "Num tokens in all context: %s"
-#     % num_tokens_from_string(concatenated_content, "cl100k_base")
+    #     % num_tokens_from_string(concatenated_content, "cl100k_base")
 )
 
 
@@ -135,8 +135,6 @@ logger.info("## Models")
 
 
 embd = OllamaEmbeddings(model="mxbai-embed-large")
-
-
 
 
 model = ChatOllama(model="llama3.2")
@@ -178,9 +176,7 @@ Full credit to both authors.
 logger.info("### Tree Constrution")
 
 
-
 RANDOM_SEED = 224  # Fixed seed for reproducibility
-
 
 
 def global_cluster_embeddings(
@@ -309,7 +305,8 @@ def perform_clustering(
         if len(global_cluster_embeddings_) == 0:
             continue
         if len(global_cluster_embeddings_) <= dim + 1:
-            local_clusters = [np.array([0]) for _ in global_cluster_embeddings_]
+            local_clusters = [np.array([0])
+                              for _ in global_cluster_embeddings_]
             n_local_clusters = 1
         else:
             reduced_embeddings_local = local_cluster_embeddings(
@@ -334,8 +331,6 @@ def perform_clustering(
         total_clusters += n_local_clusters
 
     return all_local_clusters
-
-
 
 
 def embed(texts):
@@ -375,7 +370,8 @@ def embed_cluster_texts(texts):
     )  # Perform clustering on the embeddings
     df = pd.DataFrame()  # Initialize a DataFrame to store the results
     df["text"] = texts  # Store original texts
-    df["embd"] = list(text_embeddings_np)  # Store embeddings as a list in the DataFrame
+    # Store embeddings as a list in the DataFrame
+    df["embd"] = list(text_embeddings_np)
     df["cluster"] = cluster_labels  # Store cluster labels
     return df
 
@@ -490,6 +486,7 @@ def recursive_embed_cluster_summarize(
         results.update(next_level_results)
 
     return results
+
 
 leaf_texts = docs_texts
 results = recursive_embed_cluster_summarize(leaf_texts, level=1, n_levels=3)

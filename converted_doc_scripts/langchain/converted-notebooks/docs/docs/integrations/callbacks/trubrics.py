@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.callbacks.trubrics_callback import TrubricsCallbackHandler
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -59,9 +59,9 @@ class TrubricsCallbackHandler(BaseCallbackHandler):
 
     """
 logger.info("### Usage")
-    Callback handler for Trubrics.
-    
-    Args:
+  Callback handler for Trubrics.
+
+   Args:
         project: a trubrics project, default project is "default"
         email: a trubrics account email, can equally be set in env variables
         password: a trubrics account password, can equally be set in env variables
@@ -83,7 +83,7 @@ logger.info("## Examples")
 logger.info("### 1. With an LLM")
 
 
-llm = Ollama(callbacks=[TrubricsCallbackHandler()])
+llm = ChatOllama(callbacks=[TrubricsCallbackHandler()])
 
 res = llm.generate(["Tell me a joke", "Write me a poem"])
 

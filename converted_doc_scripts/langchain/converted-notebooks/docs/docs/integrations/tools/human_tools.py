@@ -29,7 +29,7 @@ logger.info("# Human as a tool")
 
 
 llm = ChatOllama(model="llama3.2")
-math_llm = Ollama(temperature=0.0)
+math_llm = ChatOllama(temperature=0.0)
 tools = load_tools(
     ["human", "llm-math"],
     llm=math_llm,
@@ -46,7 +46,8 @@ agent_chain = initialize_agent(
 In the above code you can see the tool takes input directly from command line.
 You can customize `prompt_func` and `input_func` according to your need (as shown below).
 """
-logger.info("In the above code you can see the tool takes input directly from command line.")
+logger.info(
+    "In the above code you can see the tool takes input directly from command line.")
 
 agent_chain.run("What's my friend Eric's surname?")
 
@@ -59,8 +60,10 @@ For instance, if you want to accept multi-line input, you could do the following
 """
 logger.info("## Configuring the Input Function")
 
+
 def get_input() -> str:
-    logger.debug("Insert your text. Enter 'q' or press Ctrl-D (or Ctrl-Z on Windows) to end.")
+    logger.debug(
+        "Insert your text. Enter 'q' or press Ctrl-D (or Ctrl-Z on Windows) to end.")
     contents = []
     while True:
         try:

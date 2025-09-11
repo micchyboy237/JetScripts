@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import EcloudESVectorStore
@@ -35,11 +35,11 @@ After the instance is up and running, follow these steps to split documents, get
 logger.info("# China Mobile ECloud ElasticSearch VectorSearch")
 
 
-
 """
 First, we want to use `OllamaEmbeddings` so we have to get the Ollama API Key.
 """
-logger.info("First, we want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
+logger.info(
+    "First, we want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 # import getpass
 
@@ -93,6 +93,7 @@ A commonly used case
 """
 logger.info("A commonly used case")
 
+
 def test_dense_float_vectore_lsh_cosine() -> None:
     """
     Test indexing with vectore type knn_dense_float_vector and  model-similarity of lsh-cosine
@@ -110,7 +111,8 @@ def test_dense_float_vectore_lsh_cosine() -> None:
         text_field="my_text",
         vector_field="my_vec",
         vector_type="knn_dense_float_vector",
-        vector_params={"model": "lsh", "similarity": "cosine", "L": 99, "k": 1},
+        vector_params={"model": "lsh",
+                       "similarity": "cosine", "L": 99, "k": 1},
     )
 
     docs = docsearch.similarity_search(
@@ -161,10 +163,12 @@ def test_dense_float_vectore_lsh_cosine() -> None:
     )
     logger.debug(docs[0].page_content)
 
+
 """
 With filter case
 """
 logger.info("With filter case")
+
 
 def test_dense_float_vectore_exact_with_filter() -> None:
     """
@@ -219,5 +223,6 @@ def test_dense_float_vectore_exact_with_filter() -> None:
         },
     )
     logger.debug(docs[0].page_content)
+
 
 logger.info("\n\n[DONE]", bright=True)

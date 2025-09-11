@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain_community.document_loaders import WebBaseLoader
@@ -15,9 +15,9 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from typing import List
 from typing_extensions import Annotated, TypedDict
 from typing_extensions import List, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import EmbeddingTabs from "@theme/EmbeddingTabs";
-import VectorStoreTabs from "@theme/VectorStoreTabs";
+import ChatModelTabs from "@theme/ChatModelTabs"
+import EmbeddingTabs from "@theme/EmbeddingTabs"
+import VectorStoreTabs from "@theme/VectorStoreTabs"
 import bs4
 import json
 import os
@@ -128,7 +128,8 @@ loader = WebBaseLoader(
 )
 docs = loader.load()
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=200)
 all_splits = text_splitter.split_documents(docs)
 
 _ = vector_store.add_documents(documents=all_splits)
@@ -155,7 +156,8 @@ def retrieve(state: State):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     response = llm.invoke(messages)
     return {"answer": response.content}
 
@@ -189,8 +191,6 @@ It is straightforward to extend the above LangGraph implementation. Below, we ma
 logger.info("## Structure sources in model response")
 
 
-
-
 class AnswerWithSources(TypedDict):
     """An answer to the question, with sources."""
 
@@ -210,7 +210,8 @@ class State(TypedDict):
 
 def generate(state: State):
     docs_content = "\n\n".join(doc.page_content for doc in state["context"])
-    messages = prompt.invoke({"question": state["question"], "context": docs_content})
+    messages = prompt.invoke(
+        {"question": state["question"], "context": docs_content})
     structured_llm = llm.with_structured_output(AnswerWithSources)
     response = structured_llm.invoke(messages)
     return {"answer": response}
@@ -242,7 +243,6 @@ Note that we define the response format of the tool as `"content_and_artifact"`:
 logger.info("## Conversational RAG")
 
 
-
 @tool(response_format="content_and_artifact")
 def retrieve(query: str):
     """Retrieve information related to a query."""
@@ -253,6 +253,7 @@ def retrieve(query: str):
     )
     return serialized, retrieved_docs
 
+
 """
 We can now build and compile the exact same application as in [Part 2](/docs/tutorials/qa_chat_history) of the RAG tutorial, with two changes:
 
@@ -261,8 +262,8 @@ We can now build and compile the exact same application as in [Part 2](/docs/tut
 
 These changes are highlighted below.
 """
-logger.info("We can now build and compile the exact same application as in [Part 2](/docs/tutorials/qa_chat_history) of the RAG tutorial, with two changes:")
-
+logger.info(
+    "We can now build and compile the exact same application as in [Part 2](/docs/tutorials/qa_chat_history) of the RAG tutorial, with two changes:")
 
 
 class State(MessagesState):
@@ -313,6 +314,7 @@ def generate(state: MessagesState):
         context.extend(tool_message.artifact)
     return {"messages": [response], "context": context}
 
+
 """
 We can compile the application as before:
 """
@@ -340,7 +342,8 @@ display(Image(graph.get_graph().draw_mermaid_png()))
 """
 Invoking our application, we see that the retrieved [Document](https://python.langchain.com/api_reference/core/documents/langchain_core.documents.base.Document.html) objects are accessible from the application state.
 """
-logger.info("Invoking our application, we see that the retrieved [Document](https://python.langchain.com/api_reference/core/documents/langchain_core.documents.base.Document.html) objects are accessible from the application state.")
+logger.info(
+    "Invoking our application, we see that the retrieved [Document](https://python.langchain.com/api_reference/core/documents/langchain_core.documents.base.Document.html) objects are accessible from the application state.")
 
 input_message = "What is Task Decomposition?"
 
@@ -359,6 +362,7 @@ Check out the [LangSmith trace](https://smith.langchain.com/public/cc25515d-2e46
 
 :::
 """
-logger.info("Check out the [LangSmith trace](https://smith.langchain.com/public/cc25515d-2e46-44fa-8bb2-b9cb0f451504/r).")
+logger.info(
+    "Check out the [LangSmith trace](https://smith.langchain.com/public/cc25515d-2e46-44fa-8bb2-b9cb0f451504/r).")
 
 logger.info("\n\n[DONE]", bright=True)

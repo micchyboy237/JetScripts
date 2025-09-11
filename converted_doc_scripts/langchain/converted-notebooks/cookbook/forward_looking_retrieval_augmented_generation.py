@@ -1,8 +1,8 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama, Ollama
 from jet.logger import logger
 from langchain.callbacks.manager import (
-AsyncCallbackManagerForRetrieverRun,
-CallbackManagerForRetrieverRun,
+    AsyncCallbackManagerForRetrieverRun,
+    CallbackManagerForRetrieverRun,
 )
 from langchain.chains import FlareChain
 from langchain.globals import set_verbose
@@ -68,11 +68,11 @@ os.environ["SERPER_API_KEY"] = ""
 # os.environ["OPENAI_API_KEY"] = ""
 
 
-
 """
 ## Retriever
 """
 logger.info("## Retriever")
+
 
 class SerperSearchRetriever(BaseRetriever):
     search: GoogleSerperAPIWrapper = None
@@ -114,7 +114,7 @@ query = "explain in great detail the difference between the langchain framework 
 
 flare.run(query)
 
-llm = Ollama()
+llm = ChatOllama()
 llm.invoke(query)
 
 flare.run("how are the origin stories of langchain and bitcoin similar or different?")

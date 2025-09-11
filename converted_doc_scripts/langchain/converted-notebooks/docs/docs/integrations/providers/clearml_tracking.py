@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain_community.callbacks import ClearMLCallbackHandler
@@ -71,7 +71,6 @@ os.environ["SERPAPI_API_KEY"] = ""
 logger.info("## Callbacks")
 
 
-
 clearml_callback = ClearMLCallbackHandler(
     task_type="inference",
     project_name="langchain_callback_demo",
@@ -82,7 +81,7 @@ clearml_callback = ClearMLCallbackHandler(
     stream_logs=True,
 )
 callbacks = [StdOutCallbackHandler(), clearml_callback]
-llm = Ollama(temperature=0, callbacks=callbacks)
+llm = ChatOllama(temperature=0, callbacks=callbacks)
 
 """
 ### Scenario 1: Just an LLM

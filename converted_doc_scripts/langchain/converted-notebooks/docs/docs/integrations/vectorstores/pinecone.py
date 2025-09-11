@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_pinecone import PineconeVectorStore
@@ -33,7 +33,7 @@ To use the `PineconeVectorStore` you first need to install the partner package, 
 """
 logger.info("# Pinecone")
 
-pip install -qU langchain langchain-pinecone langchain-ollama
+pip install - qU langchain langchain-pinecone langchain-ollama
 
 """
 Migration note: if you are migrating from the `langchain_community.vectorstores` implementation of Pinecone, you may need to remove your `pinecone-client` v2 dependency before installing `langchain-pinecone`, which relies on `pinecone-client` v6.
@@ -48,7 +48,7 @@ logger.info("### Credentials")
 
 
 if not os.getenv("PINECONE_API_KEY"):
-#     os.environ["PINECONE_API_KEY"] = getpass.getpass("Enter your Pinecone API key: ")
+    #     os.environ["PINECONE_API_KEY"] = getpass.getpass("Enter your Pinecone API key: ")
 
 pinecone_api_key = os.environ.get("PINECONE_API_KEY")
 
@@ -57,8 +57,8 @@ pc = Pinecone(api_key=pinecone_api_key)
 """
 If you want to get automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:
 """
-logger.info("If you want to get automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
-
+logger.info(
+    "If you want to get automated tracing of your model calls you can also set your [LangSmith](https://docs.smith.langchain.com/) API key by uncommenting below:")
 
 
 """
@@ -97,7 +97,6 @@ Once you have created your vector store, we can interact with it by adding and d
 We can add items to our vector store by using the `add_documents` function.
 """
 logger.info("## Manage vector store")
-
 
 
 document_1 = Document(
@@ -219,7 +218,8 @@ retriever = vector_store.as_retriever(
     search_type="similarity_score_threshold",
     search_kwargs={"k": 1, "score_threshold": 0.4},
 )
-retriever.invoke("Stealing from the bank is a crime", filter={"source": "news"})
+retriever.invoke("Stealing from the bank is a crime",
+                 filter={"source": "news"})
 
 """
 ## Usage for retrieval-augmented generation

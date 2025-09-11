@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores import TiDBVectorStore
@@ -88,7 +88,8 @@ docs_with_score = db.similarity_search_with_score(query, k=3)
 """
 Please note that a lower cosine distance indicates higher similarity.
 """
-logger.info("Please note that a lower cosine distance indicates higher similarity.")
+logger.info(
+    "Please note that a lower cosine distance indicates higher similarity.")
 
 for doc, score in docs_with_score:
     logger.debug("-" * 80)
@@ -101,7 +102,8 @@ Additionally, the similarity_search_with_relevance_scores method can be used to 
 """
 logger.info("Additionally, the similarity_search_with_relevance_scores method can be used to obtain relevance scores, where a higher score indicates greater similarity.")
 
-docs_with_relevance_score = db.similarity_search_with_relevance_scores(query, k=2)
+docs_with_relevance_score = db.similarity_search_with_relevance_scores(
+    query, k=2)
 for doc, score in docs_with_relevance_score:
     logger.debug("-" * 80)
     logger.debug("Score: ", score)
@@ -272,7 +274,8 @@ db.add_texts(
 """
 Finding Airports with Clean Facilities and Vegetarian Options via Vector Search
 """
-logger.info("Finding Airports with Clean Facilities and Vegetarian Options via Vector Search")
+logger.info(
+    "Finding Airports with Clean Facilities and Vegetarian Options via Vector Search")
 
 retriever = db.as_retriever(
     search_type="similarity_score_threshold",
