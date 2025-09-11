@@ -2,7 +2,7 @@ import os
 import hashlib
 import re
 from pathlib import Path
-from typing import Coroutine, List, Literal, Optional
+from typing import Coroutine, List, Literal, Optional, TypedDict
 import codecs
 import json
 import shutil
@@ -514,9 +514,14 @@ def _wrap_async_code(source_code: str) -> str:
     ])
 
 
+class ExtensionMapping(TypedDict):
+    ext: List[str]
+    output_base_dir: str
+
+
 def scrape_code(
     input_base_dir: str,
-    extensions: List[str],
+    extension_mappings: List[ExtensionMapping],
     include_files: List[str] = [],
     exclude_files: List[str] = [],
     include_content_patterns: List[str] = [],
@@ -546,6 +551,8 @@ def scrape_code(
     Returns:
         List[dict]: List of dictionaries containing file metadata and processed code.
     """
+    extensions = [
+        ext for mapping in extension_mappings for ext in mapping["ext"]]
     files = find_files(
         input_base_dir,
         include=include_files,
@@ -560,6 +567,7 @@ def scrape_code(
 
     for file in files:
         file_name = os.path.splitext(os.path.basename(file))[0]
+        file_ext = os.path.splitext(file)[1]
         try:
             if file.endswith('.ipynb'):
                 source_groups = read_notebook_file(
@@ -603,11 +611,19 @@ def scrape_code(
 
             source_code = _wrap_async_code(source_code)
 
-            if output_dir:
-                os.makedirs(output_dir, exist_ok=True)
+            if output_dir and file_ext in extensions:
+                ext_output_dir = None
+                for mapping in extension_mappings:
+                    if file_ext in mapping.get("ext", []):
+                        ext_output_dir = mapping.get("output_base_dir")
+                        break
+                if ext_output_dir is None:
+                    ext_output_dir = "converted-unknown"
+                sub_output_dir = f"{output_dir}/{ext_output_dir}"
+                os.makedirs(sub_output_dir, exist_ok=True)
                 subfolders = os.path.dirname(file).replace(
                     input_base_dir, '').strip('/')
-                joined_dir = os.path.join(output_dir, subfolders)
+                joined_dir = os.path.join(sub_output_dir, subfolders)
                 os.makedirs(joined_dir, exist_ok=True)
                 output_code_path = os.path.join(joined_dir, f"{file_name}.py")
                 with open(output_code_path, "w", encoding='utf-8') as f:
@@ -688,7 +704,9 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
     ]
     include_files = []
-    exclude_files = []
+    exclude_files = [
+        "_*.py",
+    ]
     include_content_patterns = []
     exclude_content_patterns = []
     case_sensitive = False
@@ -699,8 +717,8 @@ if __name__ == "__main__":
     ]
     all_extensions = [
         ext for mapping in extension_mappings for ext in mapping["ext"]]
-    input_base_dirs = collect_files_and_dirs(input_base_dirs, all_extensions)
-    print("Unique Containing Directories:", input_base_dirs)
+    # input_base_dirs = collect_files_and_dirs(input_base_dirs, all_extensions)
+    print("Input Base Directories:\n", input_base_dirs)
     output_base_dir = os.path.dirname(__file__)
     for input_base_dir in input_base_dirs:
         logger.newline()
@@ -712,36 +730,32 @@ if __name__ == "__main__":
         if not matching_repo_dir:
             logger.error(f"No matching repo dir: \"{matching_repo_dir}\"")
             continue
-        for ext_mapping in extension_mappings:
-            extensions = ext_mapping["ext"]
-            repo_path = os.path.join(
-                [base for base in repo_base_dir if input_base_dir.startswith(
-                    os.path.join(base, matching_repo_dir))][0],
-                matching_repo_dir
+        repo_path = os.path.join(
+            [base for base in repo_base_dir if input_base_dir.startswith(
+                os.path.join(base, matching_repo_dir))][0],
+            matching_repo_dir
+        )
+        relative_path = os.path.relpath(input_base_dir, repo_path)
+        output_dir = os.path.join(
+            output_base_dir,
+            matching_repo_dir,
+        )
+        files = scrape_code(
+            input_base_dir,
+            extension_mappings,
+            include_files=include_files,
+            exclude_files=exclude_files,
+            include_content_patterns=include_content_patterns,
+            exclude_content_patterns=exclude_content_patterns,
+            case_sensitive=case_sensitive,
+            with_markdown=True,
+            with_ollama=True,
+            output_dir=output_dir,
+        )
+        if files:
+            logger.log(
+                "Saved", f"({len(files)})", "files to", output_dir,
+                colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
             )
-            relative_path = os.path.relpath(input_base_dir, repo_path)
-            output_dir = os.path.join(
-                output_base_dir,
-                matching_repo_dir,
-                ext_mapping["output_base_dir"],
-                relative_path,
-            )
-            files = scrape_code(
-                input_base_dir,
-                extensions,
-                include_files=include_files,
-                exclude_files=exclude_files,
-                include_content_patterns=include_content_patterns,
-                exclude_content_patterns=exclude_content_patterns,
-                case_sensitive=case_sensitive,
-                with_markdown=True,
-                with_ollama=True,
-                output_dir=output_dir,
-            )
-            if files:
-                logger.log(
-                    "Saved", f"({len(files)})", "files to", output_dir,
-                    colors=["WHITE", "SUCCESS", "WHITE", "BRIGHT_SUCCESS"],
-                )
-            else:
-                logger.warning(f"No files processed in {input_base_dir}")
+        else:
+            logger.warning(f"No files processed in {input_base_dir}")
