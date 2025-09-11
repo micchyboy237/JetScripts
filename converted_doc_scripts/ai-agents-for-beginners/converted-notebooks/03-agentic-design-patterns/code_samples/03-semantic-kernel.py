@@ -1,8 +1,11 @@
+from jet.file.utils import save_file
+
+
 async def main():
     from IPython.display import display, HTML
     from dotenv import load_dotenv
     from jet.logger import CustomLogger
-    from openai import AsyncOllama
+    # from openai import AsyncOllama
     from semantic_kernel.agents import ChatCompletionAgent, ChatHistoryAgentThread
     from semantic_kernel.connectors.ai.ollama import OllamaChatCompletion
     from semantic_kernel.contents import FunctionCallContent, FunctionResultContent, StreamingTextContent
@@ -75,10 +78,10 @@ async def main():
             return destination
 
     load_dotenv()
-    client = AsyncOllama(
-        api_key=os.environ.get("GITHUB_TOKEN"),
-        base_url="https://models.inference.ai.azure.com/",
-    )
+    # client = AsyncOllama(
+    #     api_key=os.environ.get("GITHUB_TOKEN"),
+    #     base_url="https://models.inference.ai.azure.com/",
+    # )
 
     chat_completion_service = OllamaChatCompletion(ai_model_id="llama3.2")
 
@@ -198,7 +201,8 @@ async def main():
                 f"<div style='margin-left:20px; white-space:pre-wrap'>{''.join(full_response)}</div></div><hr>"
             )
 
-            display(HTML(html_output))
+            # display(HTML(html_output))
+            save_file(html_output, f"{OUTPUT_DIR}/html_output.html")
 
     await main()
 

@@ -3,8 +3,8 @@ from IPython.display import Image
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains.combine_documents.reduce import (
-acollapse_docs,
-split_list_of_docs,
+    acollapse_docs,
+    split_list_of_docs,
 )
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
@@ -14,7 +14,7 @@ from langchain_text_splitters import CharacterTextSplitter
 from langgraph.constants import Send
 from langgraph.graph import END, START, StateGraph
 from typing import Annotated, List, Literal, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 import operator
 import os
 import shutil
@@ -129,8 +129,7 @@ We will need to install `langgraph`:
 """
 logger.info("### Orchestration via LangGraph")
 
-pip install -qU langgraph
-
+pip install - qU langgraph
 
 
 token_max = 1000
@@ -214,7 +213,8 @@ app = graph.compile()
 """
 LangGraph allows the graph structure to be plotted to help visualize its function:
 """
-logger.info("LangGraph allows the graph structure to be plotted to help visualize its function:")
+logger.info(
+    "LangGraph allows the graph structure to be plotted to help visualize its function:")
 
 
 Image(app.get_graph().draw_mermaid_png())

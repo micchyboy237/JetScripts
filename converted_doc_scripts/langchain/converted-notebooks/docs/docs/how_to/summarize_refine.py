@@ -9,7 +9,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.constants import Send
 from langgraph.graph import END, START, StateGraph
 from typing import List, Literal, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 import operator
 import os
 import shutil
@@ -77,8 +77,10 @@ logger.info("## Load documents")
 
 documents = [
     Document(page_content="Apples are red", metadata={"title": "apple_book"}),
-    Document(page_content="Blueberries are blue", metadata={"title": "blueberry_book"}),
-    Document(page_content="Bananas are yelow", metadata={"title": "banana_book"}),
+    Document(page_content="Blueberries are blue",
+             metadata={"title": "blueberry_book"}),
+    Document(page_content="Bananas are yelow",
+             metadata={"title": "banana_book"}),
 ]
 
 """
@@ -93,8 +95,7 @@ We will need to install `langgraph`:
 """
 logger.info("## Create graph")
 
-pip install -qU langgraph
-
+pip install - qU langgraph
 
 
 summarize_prompt = ChatPromptTemplate(
@@ -130,9 +131,9 @@ class State(TypedDict):
 
 async def generate_initial_summary(state: State, config: RunnableConfig):
     summary = await initial_summary_chain.ainvoke(
-            state["contents"][0],
-            config,
-        )
+        state["contents"][0],
+        config,
+    )
     logger.success(format_json(summary))
     return {"summary": summary, "index": 1}
 
@@ -140,9 +141,9 @@ async def generate_initial_summary(state: State, config: RunnableConfig):
 async def refine_summary(state: State, config: RunnableConfig):
     content = state["contents"][state["index"]]
     summary = await refine_summary_chain.ainvoke(
-            {"existing_answer": state["summary"], "context": content},
-            config,
-        )
+        {"existing_answer": state["summary"], "context": content},
+        config,
+    )
     logger.success(format_json(summary))
 
     return {"summary": summary, "index": state["index"] + 1}
@@ -167,7 +168,8 @@ app = graph.compile()
 """
 LangGraph allows the graph structure to be plotted to help visualize its function:
 """
-logger.info("LangGraph allows the graph structure to be plotted to help visualize its function:")
+logger.info(
+    "LangGraph allows the graph structure to be plotted to help visualize its function:")
 
 
 Image(app.get_graph().draw_mermaid_png())

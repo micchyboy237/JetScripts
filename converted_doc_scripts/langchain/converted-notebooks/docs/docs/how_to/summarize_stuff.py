@@ -3,7 +3,7 @@ from jet.logger import logger
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.documents import Document
 from langchain_core.prompts import ChatPromptTemplate
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 import os
 import shutil
 
@@ -55,8 +55,10 @@ logger.info("## Load documents")
 
 documents = [
     Document(page_content="Apples are red", metadata={"title": "apple_book"}),
-    Document(page_content="Blueberries are blue", metadata={"title": "blueberry_book"}),
-    Document(page_content="Bananas are yelow", metadata={"title": "banana_book"}),
+    Document(page_content="Blueberries are blue",
+             metadata={"title": "blueberry_book"}),
+    Document(page_content="Bananas are yelow",
+             metadata={"title": "banana_book"}),
 ]
 
 """
