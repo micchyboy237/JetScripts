@@ -1,63 +1,65 @@
+from langchain_core.runnables import RunnableLambda
 from jet.adapters.langchain.pg_vector_parent_document_retriever import PgVectorParentDocumentRetriever
 from jet.db.postgres.pgvector import PgVectorClient
+from jet.file.utils import save_file
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
+from jet.transformers.formatters import format_json
+from datasets import load_dataset
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.llm.ollama.base_langchain import OllamaEmbeddings
+from jet.logger import CustomLogger
+from langchain.agents import tool
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables import RunnablePassthrough
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode, tools_condition
+from typing import Annotated, Dict
+from typing import Generator, List
+from typing_extensions import TypedDict
+import asyncio
+import os
+import pandas as pd
+import shutil
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+LOG_DIR = f"{OUTPUT_DIR}/logs"
+
+log_file = os.path.join(LOG_DIR, "main.log")
+logger = CustomLogger(log_file, overwrite=True)
+logger.orange(f"Logs: {log_file}")
 
 
 async def main():
-    from jet.transformers.formatters import format_json
-    from datasets import load_dataset
-    from jet.adapters.langchain.chat_ollama import ChatOllama
-    from jet.llm.ollama.base_langchain import OllamaEmbeddings
-    from jet.logger import CustomLogger
-    from langchain.agents import tool
-    from langchain_core.documents import Document
-    from langchain_core.output_parsers import StrOutputParser
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-    from langchain_core.runnables import RunnablePassthrough
-    from langchain_text_splitters import RecursiveCharacterTextSplitter
-    from langgraph.graph import END, START, StateGraph
-    from langgraph.graph.message import add_messages
-    from langgraph.prebuilt import ToolNode, tools_condition
-    from typing import Annotated, Dict
-    from typing import Generator, List
-    from typing_extensions import TypedDict
-    import asyncio
-    import os
-    import pandas as pd
-    import shutil
-
-    OUTPUT_DIR = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    LOG_DIR = f"{OUTPUT_DIR}/logs"
-
-    log_file = os.path.join(LOG_DIR, "main.log")
-    logger = CustomLogger(log_file, overwrite=True)
-    logger.orange(f"Logs: {log_file}")
-
     """
     [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mongodb-developer/GenAI-Showcase/blob/main/notebooks/advanced_techniques/langchain_parent_document_retrieval.ipynb)
-    
+
     [![View Article](https://img.shields.io/badge/View%20Article-blue)](https://www.mongodb.com/developer/products/atlas/parent-doc-retrieval/?utm_campaign=devrel&utm_source=cross-post&utm_medium=organic_social&utm_content=https%3A%2F%2Fgithub.com%2Fmongodb-developer%2FGenAI-Showcase&utm_term=apoorva.joshi)
-    
+
     # Parent Document Retrieval Using MongoDB and LangChain
-    
+
     This notebook shows you how to implement parent document retrieval in your RAG application using MongoDB's LangChain integration.
-    
+
     ## Step 1: Install required libraries
-    
+
     - **datasets**: Python package to download datasets from Hugging Face
-    
+
     - **pymongo**: Python driver for MongoDB
-    
+
     - **langchain**: Python package for LangChain's core modules
-    
+
     - **langchain-ollama**: Python package to use Ollama models via LangChain
-    
+
     - **langgraph**: Python package to orchestrate LLM workflows as graphs
-    
+
     - **langchain-mongodb**: Python package to use MongoDB features in LangChain
-    
+
     - **langchain-ollama**: Python package to use Ollama models via LangChain
     """
     logger.info("# Parent Document Retrieval Using MongoDB and LangChain")
@@ -240,9 +242,9 @@ async def main():
     """
     logger.info("## Step 8: Usage")
 
+    # Update the retrieve dictionary
     retrieve = {
-        "context": parent_doc_retriever
-        | (lambda docs: "\n\n".join([d.page_content for d in docs])),
+        "context": RunnableLambda(lambda x: parent_doc_retriever.invoke(x)) | (lambda docs: "\n\n".join([d.page_content for d in docs])),
         "question": RunnablePassthrough(),
     }
     template = """Answer the question based only on the following context. If no context is provided, respond with I DON't KNOW: \
@@ -328,6 +330,8 @@ async def main():
     )
     app = graph.compile()
 
+    render_mermaid_graph(graph, f"{OUTPUT_DIR}/graph_output.png")
+
     inputs = {
         "messages": [
             ("user", "How do I improve slow queries in MongoDB?"),
@@ -340,6 +344,9 @@ async def main():
             logger.debug(value)
     logger.debug("---FINAL ANSWER---")
     logger.debug(value["messages"][-1].content)
+    save_file(value["messages"][-1], f"{OUTPUT_DIR}/response.json")
+    save_file(value["messages"][-1].content, f"{OUTPUT_DIR}/final_answer.md")
+    save_file(app, f"{OUTPUT_DIR}/workflow_state.json")
 
     logger.info("\n\n[DONE]", bright=True)
 

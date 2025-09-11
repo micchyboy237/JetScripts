@@ -1,9 +1,10 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.file.utils import save_file
 from jet.logger import logger
 from langchain_core.output_parsers import PydanticToolsParser
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 import os
 import shutil
 
@@ -64,6 +65,7 @@ Our tool schemas can be Python functions:
 """
 logger.info("# How to use chat models to call tools")
 
+
 def add(a: int, b: int) -> int:
     """Add two integers.
 
@@ -83,6 +85,7 @@ def multiply(a: int, b: int) -> int:
     """
     return a * b
 
+
 """
 ### LangChain Tool
 
@@ -95,7 +98,6 @@ You can equivalently define the schemas without the accompanying functions using
 Note that all fields are `required` unless provided a default value.
 """
 logger.info("### LangChain Tool")
-
 
 
 class add(BaseModel):
@@ -111,6 +113,7 @@ class multiply(BaseModel):
     a: int = Field(..., description="First integer")
     b: int = Field(..., description="Second integer")
 
+
 """
 ### TypedDict class
 
@@ -120,7 +123,6 @@ class multiply(BaseModel):
 Or using TypedDicts and annotations:
 """
 logger.info("### TypedDict class")
-
 
 
 class add(TypedDict):
@@ -168,7 +170,9 @@ llm_with_tools = llm.bind_tools(tools)
 
 query = "What is 3 * 12?"
 
-llm_with_tools.invoke(query)
+tools_arithmetic_response = llm_with_tools.invoke(query)
+save_file(tools_arithmetic_response,
+          f"{OUTPUT_DIR}/tools_arithmetic_response.json")
 
 """
 As we can see our LLM generated arguments to a tool! You can look at the docs for [bind_tools()](https://python.langchain.com/api_reference/ollama/chat_models/jet.adapters.langchain.chat_ollama.chat_models.base.BaseChatOllama.html#jet.adapters.langchain.chat_ollama.chat_models.base.BaseChatOllama.bind_tools) to learn about all the ways to customize how your LLM selects tools, as well as [this guide on how to force the LLM to call a tool](/docs/how_to/tool_choice/) rather than letting it decide.
@@ -191,7 +195,8 @@ logger.info("## Tool calls")
 
 query = "What is 3 * 12? Also, what is 11 + 49?"
 
-llm_with_tools.invoke(query).tool_calls
+tool_calls = llm_with_tools.invoke(query).tool_calls
+save_file(tool_calls, f"{OUTPUT_DIR}/tool_calls.json")
 
 """
 The `.tool_calls` attribute should contain valid tool calls. Note that on occasion, 
@@ -210,7 +215,6 @@ If desired, [output parsers](/docs/how_to#output-parsers) can further process th
 logger.info("## Parsing")
 
 
-
 class add(BaseModel):
     """Add two integers."""
 
@@ -226,7 +230,8 @@ class multiply(BaseModel):
 
 
 chain = llm_with_tools | PydanticToolsParser(tools=[add, multiply])
-chain.invoke(query)
+tools_parser_response = chain.invoke(query)
+save_file(tools_parser_response, f"{OUTPUT_DIR}/tools_parser_response.json")
 
 """
 ## Next steps
