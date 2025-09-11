@@ -5,7 +5,7 @@ from jet.db.postgres.pgvector import PgVectorClient
 async def main():
     from jet.transformers.formatters import format_json
     from datasets import load_dataset
-    from jet.llm.ollama.base_langchain import ChatOllama
+    from jet.adapters.langchain.chat_ollama import ChatOllama
     from jet.llm.ollama.base_langchain import OllamaEmbeddings
     from jet.logger import CustomLogger
     from langchain.agents import tool

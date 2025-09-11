@@ -3,7 +3,7 @@ async def main():
     from IPython.display import display, Image as IPImage
     from PIL import Image
     from dotenv import load_dotenv
-    from jet.llm.ollama.base_langchain import ChatOllama
+    from jet.adapters.langchain.chat_ollama import ChatOllama
     from jet.logger import CustomLogger
     from langchain_core.messages import HumanMessage, AIMessage
     from langchain_core.runnables.graph import MermaidDrawMethod
@@ -15,17 +15,16 @@ async def main():
     import io
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     # GIF Animation Generator using LangGraph and DALL-E
     
@@ -69,64 +68,65 @@ async def main():
     Import necessary libraries and set up the environment.
     """
     logger.info("# GIF Animation Generator using LangGraph and DALL-E")
-    
-    
-    
-    
+
     load_dotenv()
-    
+
     # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
-    
+
     client = Ollama()
-    
+
     """
     ## Define Data Structures
     
     Define the structure for the graph state using TypedDict.
     """
     logger.info("## Define Data Structures")
-    
+
     class GraphState(TypedDict):
-        messages: Annotated[Sequence[HumanMessage | AIMessage], "The messages in the conversation"]
+        messages: Annotated[Sequence[HumanMessage |
+                                     AIMessage], "The messages in the conversation"]
         query: Annotated[str, "Input query describing the character and scene"]
         plot: Annotated[str, "Generated plot for the GIF"]
-        character_description: Annotated[str, "Detailed description of the main character or object"]
+        character_description: Annotated[str,
+                                         "Detailed description of the main character or object"]
         image_prompts: Annotated[List[str], "List of prompts for each frame"]
         image_urls: Annotated[List[str], "List of URLs for generated images"]
         gif_data: Annotated[bytes, "GIF data in bytes"]
-    
+
     llm = ChatOllama(model="llama3.2")
-    
+
     """
     ## Define Graph Functions
     
     Define the functions that will be used in the LangGraph workflow.
     """
     logger.info("## Define Graph Functions")
-    
+
     async def get_image_data(session, url: str):
         """Fetch image data from a given URL."""
         async with session.get(url) as response:
-                if response.status == 200:
-                    return await response.read()
+            if response.status == 200:
+                return await response.read()
         logger.success(format_json(result))
         return None
-    
+
     def generate_character_description(state: GraphState) -> GraphState:
         """Generate a detailed description of the main character or scene."""
         query = state["query"]
-        response = llm.invoke([HumanMessage(content=f"Based on the query '{query}', create a detailed description of the main character, object, or scene. Include specific details about appearance, characteristics, and any unique features. This description will be used to maintain consistency across multiple images.")])
+        response = llm.invoke([HumanMessage(
+            content=f"Based on the query '{query}', create a detailed description of the main character, object, or scene. Include specific details about appearance, characteristics, and any unique features. This description will be used to maintain consistency across multiple images.")])
         state["character_description"] = response.content
         return state
-    
+
     def generate_plot(state: GraphState) -> GraphState:
         """Generate a 5-step plot for the GIF animation."""
         query = state["query"]
         character_description = state["character_description"]
-        response = llm.invoke([HumanMessage(content=f"Create a short, 5-step plot for a GIF based on this query: '{query}' and featuring this description: {character_description}. Each step should be a brief description of a single frame, maintaining consistency throughout. Keep it family-friendly and avoid any sensitive themes.")])
+        response = llm.invoke([HumanMessage(
+            content=f"Create a short, 5-step plot for a GIF based on this query: '{query}' and featuring this description: {character_description}. Each step should be a brief description of a single frame, maintaining consistency throughout. Keep it family-friendly and avoid any sensitive themes.")])
         state["plot"] = response.content
         return state
-    
+
     def generate_image_prompts(state: GraphState) -> GraphState:
         """Generate specific image prompts for each frame of the GIF."""
         plot = state["plot"]
@@ -142,40 +142,43 @@ async def main():
     1. [Your prompt here]
     2. [Your prompt here]
     ... and so on.""")])
-    
+
         prompts = []
         for line in response.content.split('\n'):
             if line.strip().startswith(('1.', '2.', '3.', '4.', '5.')):
                 prompt = line.split('.', 1)[1].strip()
-                prompts.append(f"Create a detailed, photorealistic image of the following scene: {prompt}")
-    
+                prompts.append(
+                    f"Create a detailed, photorealistic image of the following scene: {prompt}")
+
         if len(prompts) != 5:
-            raise ValueError(f"Expected 5 prompts, but got {len(prompts)}. Please try again.")
-    
+            raise ValueError(
+                f"Expected 5 prompts, but got {len(prompts)}. Please try again.")
+
         state["image_prompts"] = prompts
         return state
-    
+
     async def create_image(prompt: str, retries: int = 3):
         """Generate an image using DALL-E based on the given prompt."""
         for attempt in range(retries):
             try:
                 response = await asyncio.to_thread(
-                        client.images.generate,
-                        model="dall-e-3",
-                        prompt=prompt,
-                        size="1024x1024",
-                        quality="standard",
-                        n=1,
-                    )
+                    client.images.generate,
+                    model="dall-e-3",
+                    prompt=prompt,
+                    size="1024x1024",
+                    quality="standard",
+                    n=1,
+                )
                 logger.success(format_json(response))
                 return response.data[0].url
             except Exception as e:
                 if attempt == retries - 1:
-                    logger.debug(f"Failed to generate image for prompt: {prompt}")
+                    logger.debug(
+                        f"Failed to generate image for prompt: {prompt}")
                     logger.debug(f"Error: {str(e)}")
                     return None
                 await asyncio.sleep(2)  # Wait before retrying
-    
+
     async def create_images(state: GraphState) -> GraphState:
         """Generate images for all prompts in parallel."""
         image_prompts = state["image_prompts"]
@@ -184,58 +187,60 @@ async def main():
         logger.success(format_json(image_urls))
         state["image_urls"] = image_urls
         return state
-    
+
     async def create_gif(state: GraphState) -> GraphState:
         """Create a GIF from the generated images."""
         image_urls = state["image_urls"]
         images = []
         async with aiohttp.ClientSession() as session:
-                tasks = [get_image_data(session, url) for url in image_urls if url]
-                image_data_list = await asyncio.gather(*tasks)
-            
+            tasks = [get_image_data(session, url) for url in image_urls if url]
+            image_data_list = await asyncio.gather(*tasks)
+
         logger.success(format_json(result))
         for img_data in image_data_list:
             if img_data:
                 images.append(Image.open(io.BytesIO(img_data)))
-    
+
         if images:
             gif_buffer = io.BytesIO()
-            images[0].save(gif_buffer, format='GIF', save_all=True, append_images=images[1:], duration=1000, loop=0)
+            images[0].save(gif_buffer, format='GIF', save_all=True,
+                           append_images=images[1:], duration=1000, loop=0)
             state["gif_data"] = gif_buffer.getvalue()
         else:
             state["gif_data"] = None
         return state
-    
+
     """
     ## Set Up LangGraph Workflow
     
     Define the LangGraph workflow by adding nodes and edges.
     """
     logger.info("## Set Up LangGraph Workflow")
-    
+
     workflow = Graph()
-    
-    workflow.add_node("generate_character_description", generate_character_description)
+
+    workflow.add_node("generate_character_description",
+                      generate_character_description)
     workflow.add_node("generate_plot", generate_plot)
     workflow.add_node("generate_image_prompts", generate_image_prompts)
     workflow.add_node("create_images", create_images)
     workflow.add_node("create_gif", create_gif)
-    
+
     workflow.add_edge("generate_character_description", "generate_plot")
     workflow.add_edge("generate_plot", "generate_image_prompts")
     workflow.add_edge("generate_image_prompts", "create_images")
     workflow.add_edge("create_images", "create_gif")
     workflow.add_edge("create_gif", END)
-    
+
     workflow.set_entry_point("generate_character_description")
-    
+
     app = workflow.compile()
-    
+
     """
     ## Display Graph Structure
     """
     logger.info("## Display Graph Structure")
-    
+
     display(
         IPImage(
             app.get_graph().draw_mermaid_png(
@@ -243,14 +248,14 @@ async def main():
             )
         )
     )
-    
+
     """
     ## Run Workflow Function
     
     Define a function to run the workflow and display results.
     """
     logger.info("## Run Workflow Function")
-    
+
     async def run_workflow(query: str):
         """Run the LangGraph workflow and display results."""
         initial_state = {
@@ -262,59 +267,62 @@ async def main():
             "image_urls": [],
             "gif_data": None
         }
-    
+
         try:
             result = await app.ainvoke(initial_state)
             logger.success(format_json(result))
-    
+
             logger.debug("Character/Scene Description:")
             logger.debug(result["character_description"])
-    
+
             logger.debug("\nGenerated Plot:")
             logger.debug(result["plot"])
-    
+
             logger.debug("\nImage Prompts:")
             for i, prompt in enumerate(result["image_prompts"], 1):
                 logger.debug(f"{i}. {prompt}")
-    
+
             logger.debug("\nGenerated Image URLs:")
             for i, url in enumerate(result["image_urls"], 1):
                 logger.debug(f"{i}. {url}")
-    
+
             if result["gif_data"]:
-                logger.debug("\nGIF generated successfully. Use the next cell to display or save it.")
+                logger.debug(
+                    "\nGIF generated successfully. Use the next cell to display or save it.")
             else:
                 logger.debug("\nFailed to generate GIF.")
-    
+
             return result
         except Exception as e:
             logger.debug(f"An error occurred: {str(e)}")
             return None
-    
+
     """
     ## Execute Workflow
     
     Run the workflow with a sample query.
     """
     logger.info("## Execute Workflow")
-    
+
     query = "A cat wearing a top hat and monocle, sitting at a desk and writing a letter with a quill pen."
     result = await run_workflow(query)
     logger.success(format_json(result))
-    
+
     """
     ## Display and Save GIF
     
     Display the generated GIF and provide an option to save it.
     """
     logger.info("## Display and Save GIF")
-    
+
     if result and result["gif_data"]:
         display(IPImage(data=result["gif_data"], format='gif'))
-    
-        save_gif = input("Do you want to save the GIF? (yes/no): ").lower().strip()
+
+        save_gif = input(
+            "Do you want to save the GIF? (yes/no): ").lower().strip()
         if save_gif == 'yes':
-            filename = input("Enter the filename to save the GIF (e.g., output.gif): ").strip()
+            filename = input(
+                "Enter the filename to save the GIF (e.g., output.gif): ").strip()
             if not filename.endswith('.gif'):
                 filename += '.gif'
             with open(filename, 'wb') as f:
@@ -324,11 +332,11 @@ async def main():
             logger.debug("GIF not saved.")
     else:
         logger.debug("No GIF data available to display or save.")
-    
+
     """
     ![Cat_GIF_agent](../images/langgraph_agent_cat_animation.gif)
     """
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -61,9 +61,11 @@ load_dotenv()
 
 llm = ChatOllama(model="llama3.2")
 
+
 def get_completion(prompt):
     """Helper function to get model completion."""
     return llm.invoke(prompt).content
+
 
 """
 ## Crafting Clear Instructions

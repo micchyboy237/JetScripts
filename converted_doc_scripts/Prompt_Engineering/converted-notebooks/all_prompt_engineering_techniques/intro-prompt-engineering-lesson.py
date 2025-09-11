@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -91,16 +91,19 @@ logger.debug(llm.invoke(basic_prompt).content)
 """
 Now, let's see how a more structured prompt can yield a more detailed response:
 """
-logger.info("Now, let's see how a more structured prompt can yield a more detailed response:")
+logger.info(
+    "Now, let's see how a more structured prompt can yield a more detailed response:")
 
 structured_prompt = PromptTemplate(
     input_variables=["topic"],
     template="Provide a definition of {topic}, explain its importance, and list three key benefits."
 )
 
-chain = structured_prompt | llm # Combine the prompt template with the language model
-input_variables = {"topic": "prompt engineering"} # Define the input variables
-output = chain.invoke(input_variables).content # Invoke the chain with the input variables
+# Combine the prompt template with the language model
+chain = structured_prompt | llm
+input_variables = {"topic": "prompt engineering"}  # Define the input variables
+# Invoke the chain with the input variables
+output = chain.invoke(input_variables).content
 logger.debug(output)
 
 """
@@ -169,6 +172,7 @@ problem_solving_prompt = PromptTemplate(
 )
 
 chain = problem_solving_prompt | llm
-logger.debug(chain.invoke("Calculate the compound interest on $1000 invested for 5 years at an annual rate of 5%, compounded annually.").content)
+logger.debug(chain.invoke(
+    "Calculate the compound interest on $1000 invested for 5 years at an annual rate of 5%, compounded annually.").content)
 
 logger.info("\n\n[DONE]", bright=True)

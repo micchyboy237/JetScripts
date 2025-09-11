@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.prompts import ChatPromptTemplate
@@ -65,6 +65,7 @@ class ReWOO(TypedDict):
     results: dict
     result: str
 
+
 llm = ChatOllama(model="llama3.2")
 
 search = TavilySearchResults()
@@ -112,6 +113,7 @@ def get_plan(state: ReWOO):
     matches = re.findall(regex_pattern, result.content)
     return {"steps": matches, "plan_string": result.content}
 
+
 def _get_current_task(state: ReWOO):
     if "results" not in state or state["results"] is None:
         return 1
@@ -137,6 +139,7 @@ def tool_execution(state: ReWOO):
     _results[step_name] = str(result)
     return {"results": _results}
 
+
 solve_prompt = """Solve the following task or problem. To solve the problem, we have made step-by-step Plan and \
 retrieved corresponding Evidence to each Plan. Use them with caution since long evidence might \
 contain irrelevant information.
@@ -161,6 +164,7 @@ def solve(state: ReWOO):
     prompt = solve_prompt.format(plan=plan, task=state["task"])
     result = llm.invoke(prompt)
     return {"result": result.content}
+
 
 def _route(state):
     _step = _get_current_task(state)

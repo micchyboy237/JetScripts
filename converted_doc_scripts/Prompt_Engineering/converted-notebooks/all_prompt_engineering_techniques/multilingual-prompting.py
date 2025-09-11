@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -62,8 +62,10 @@ load_dotenv()
 
 llm = ChatOllama(model="llama3.2")
 
+
 def print_response(response):
     logger.debug(response.content)
+
 
 """
 ## Multilingual Prompt Design
@@ -131,7 +133,8 @@ translation_prompt = PromptTemplate(
 )
 
 translations = [
-    {"source_lang": "English", "target_lang": "French", "text": "The quick brown fox jumps over the lazy dog."},
+    {"source_lang": "English", "target_lang": "French",
+        "text": "The quick brown fox jumps over the lazy dog."},
     {"source_lang": "Spanish", "target_lang": "German", "text": "La vida es bella."},
     {"source_lang": "Japanese", "target_lang": "English", "text": "桜の花が満開です。"}
 ]
@@ -196,9 +199,12 @@ cultural_translation_prompt = PromptTemplate(
 )
 
 cultural_texts = [
-    {"source_lang": "English", "target_lang": "Japanese", "text": "It's raining cats and dogs."},
-    {"source_lang": "French", "target_lang": "English", "text": "Je suis dans le pétrin."},
-    {"source_lang": "Spanish", "target_lang": "German", "text": "Cuesta un ojo de la cara."}
+    {"source_lang": "English", "target_lang": "Japanese",
+        "text": "It's raining cats and dogs."},
+    {"source_lang": "French", "target_lang": "English",
+        "text": "Je suis dans le pétrin."},
+    {"source_lang": "Spanish", "target_lang": "German",
+        "text": "Cuesta un ojo de la cara."}
 ]
 
 for text in cultural_texts:

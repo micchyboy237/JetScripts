@@ -3,7 +3,7 @@ from athina.keys import AthinaApiKey, OpenAiApiKey
 from athina.loaders import Loader
 from datasets import Dataset
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.document_loaders import CSVLoader
@@ -66,7 +66,8 @@ child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
 
 store = InMemoryStore()
 
-vectorstore = Chroma(collection_name="split_parents", embedding_function=embeddings)
+vectorstore = Chroma(collection_name="split_parents",
+                     embedding_function=embeddings)
 
 """
 ## **Retriever**
@@ -108,7 +109,8 @@ rag_chain = (
     | StrOutputParser()
 )
 
-response = rag_chain.invoke("who played the lead roles in the movie leaving las vegas")
+response = rag_chain.invoke(
+    "who played the lead roles in the movie leaving las vegas")
 response
 
 """
@@ -119,10 +121,12 @@ logger.info("## **Preparing Data for Evaluation**")
 question = ["who played the lead roles in the movie leaving las vegas"]
 response = []
 contexts = []
-ground_truth = ["Nicolas Cage stars as a suicidal alcoholic who has ended his personal and professional life to drink himself to death in Las Vegas ."]
+ground_truth = [
+    "Nicolas Cage stars as a suicidal alcoholic who has ended his personal and professional life to drink himself to death in Las Vegas ."]
 for query in question:
-  response.append(rag_chain.invoke(query))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(rag_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -158,6 +162,7 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-RagasContextRecall(model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
+RagasContextRecall(
+    model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

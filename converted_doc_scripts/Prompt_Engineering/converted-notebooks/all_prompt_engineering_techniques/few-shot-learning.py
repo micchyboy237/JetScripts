@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
@@ -86,6 +86,7 @@ Key Components:
 """
 logger.info("## Basic Few-Shot Learning")
 
+
 def few_shot_sentiment_classification(input_text):
     few_shot_prompt = PromptTemplate(
         input_variables=["input_text"],
@@ -117,6 +118,7 @@ def few_shot_sentiment_classification(input_text):
 
     return result  # This will now return just "Positive", "Negative", or "Neutral"
 
+
 test_text = "I can't believe how great this new restaurant is!"
 result = few_shot_sentiment_classification(test_text)
 logger.debug(f"Input: {test_text}")
@@ -137,6 +139,7 @@ Implementation:
 3. Demonstrate how the same model can switch between tasks based on input.
 """
 logger.info("## Advanced Few-Shot Techniques")
+
 
 def multi_task_few_shot(input_text, task):
     few_shot_prompt = PromptTemplate(
@@ -163,7 +166,9 @@ def multi_task_few_shot(input_text, task):
     chain = few_shot_prompt | llm
     return chain.invoke({"input_text": input_text, "task": task}).content
 
-logger.debug(multi_task_few_shot("I can't believe how great this is!", "sentiment"))
+
+logger.debug(multi_task_few_shot(
+    "I can't believe how great this is!", "sentiment"))
 logger.debug(multi_task_few_shot("Guten Tag, wie geht es Ihnen?", "language"))
 
 """
@@ -181,8 +186,10 @@ We'll demonstrate in-context learning for a custom task (converting text to pig 
 """
 logger.info("## In-Context Learning")
 
+
 def in_context_learning(task_description, examples, input_text):
-    example_text = "".join([f"Input: {e['input']}\nOutput: {e['output']}\n\n" for e in examples])
+    example_text = "".join(
+        [f"Input: {e['input']}\nOutput: {e['output']}\n\n" for e in examples])
 
     in_context_prompt = PromptTemplate(
         input_variables=["task_description", "examples", "input_text"],
@@ -200,6 +207,7 @@ def in_context_learning(task_description, examples, input_text):
 
     chain = in_context_prompt | llm
     return chain.invoke({"task_description": task_description, "examples": example_text, "input_text": input_text}).content
+
 
 task_desc = "Convert the given text to pig latin."
 examples = [
@@ -236,6 +244,7 @@ To maximize the effectiveness of few-shot and in-context learning:
 """
 logger.info("## Best Practices and Evaluation")
 
+
 def evaluate_model(model_func, test_cases):
     '''
     Evaluate the model on a set of test cases.
@@ -265,6 +274,7 @@ def evaluate_model(model_func, test_cases):
 
     accuracy = correct / total
     return accuracy
+
 
 test_cases = [
     {"input": "This product exceeded my expectations!", "label": "Positive"},

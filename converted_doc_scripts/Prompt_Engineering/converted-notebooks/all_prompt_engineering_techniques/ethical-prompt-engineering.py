@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -67,9 +67,11 @@ load_dotenv()
 
 llm = ChatOllama(model="llama3.2")
 
+
 def get_model_response(prompt):
     """Helper function to get model response."""
     return llm.invoke(prompt).content
+
 
 """
 ## Understanding Biases in AI
@@ -95,7 +97,8 @@ inclusive_prompt = PromptTemplate(
     template="Describe the diverse range of individuals who work as {profession}, emphasizing the variety in their backgrounds, experiences, and characteristics."
 )
 
-inclusive_response = (inclusive_prompt | llm).invoke({"profession": "computer programmers"}).content
+inclusive_response = (inclusive_prompt | llm).invoke(
+    {"profession": "computer programmers"}).content
 logger.debug("More inclusive response:")
 logger.debug(inclusive_response)
 
@@ -106,12 +109,14 @@ Let's explore techniques for creating prompts that encourage diverse and inclusi
 """
 logger.info("## Creating Inclusive Prompts")
 
+
 def create_inclusive_prompt(topic):
     """Creates an inclusive prompt template for a given topic."""
     return PromptTemplate(
         input_variables=["topic"],
         template="Provide a balanced and inclusive perspective on {topic}, considering diverse viewpoints, experiences, and cultural contexts."
     )
+
 
 topics = ["leadership", "family structures", "beauty standards"]
 
@@ -129,6 +134,7 @@ Now, let's implement a simple method to evaluate the fairness of AI-generated ou
 """
 logger.info("## Evaluating Fairness in AI Outputs")
 
+
 def evaluate_fairness(text):
     """Evaluates the fairness of a given text."""
     evaluation_prompt = PromptTemplate(
@@ -136,6 +142,7 @@ def evaluate_fairness(text):
         template="Evaluate the following text for fairness and inclusivity. Identify any potential biases or exclusionary language. Provide a fairness score from 1 to 10, where 10 is most fair and inclusive:\n\nText: {text}\n\nEvaluation:"
     )
     return (evaluation_prompt | llm).invoke({"text": text}).content
+
 
 sample_text = "In the corporate world, strong leaders are often characterized by their decisiveness and ability to command respect."
 fairness_evaluation = evaluate_fairness(sample_text)
@@ -164,9 +171,11 @@ improved_prompt = PromptTemplate(
 logger.debug("\nImproved prompt:")
 logger.debug(improved_prompt.format(position="high-stress executive position"))
 logger.debug("\nImproved response:")
-logger.debug((improved_prompt | llm).invoke({"position": "high-stress executive position"}).content)
+logger.debug((improved_prompt | llm).invoke(
+    {"position": "high-stress executive position"}).content)
 
-fairness_score = evaluate_fairness((improved_prompt | llm).invoke({"position": "high-stress executive position"}).content)
+fairness_score = evaluate_fairness((improved_prompt | llm).invoke(
+    {"position": "high-stress executive position"}).content)
 logger.debug("\nFairness evaluation of improved response:")
 logger.debug(fairness_score)
 

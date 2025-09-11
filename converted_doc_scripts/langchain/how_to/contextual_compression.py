@@ -6,10 +6,10 @@ from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from langchain_text_splitters import CharacterTextSplitter
 from langchain.retrievers import ContextualCompressionRetriever
 from langchain.retrievers.document_compressors import LLMChainExtractor
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain.retrievers.document_compressors import LLMChainFilter
 from langchain.retrievers.document_compressors import LLMListwiseRerank
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from langchain.retrievers.document_compressors import EmbeddingsFilter
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from langchain.retrievers.document_compressors import DocumentCompressorPipeline

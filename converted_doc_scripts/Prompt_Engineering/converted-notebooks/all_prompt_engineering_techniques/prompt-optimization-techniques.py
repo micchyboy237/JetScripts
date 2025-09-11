@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import numpy as np
@@ -73,12 +73,12 @@ First, let's import the necessary libraries and set up our environment.
 logger.info("# Prompt Optimization Techniques")
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 llm = ChatOllama(model="llama3.2")
+
 
 def generate_response(prompt):
     """Generate a response using the language model.
@@ -90,6 +90,7 @@ def generate_response(prompt):
         str: The generated response.
     """
     return llm.invoke(prompt).content
+
 
 """
 ## A/B Testing Prompts
@@ -107,6 +108,7 @@ prompt_b = PromptTemplate(
     input_variables=["topic"],
     template="Provide a beginner-friendly explanation of {topic}, including key concepts and an example."
 )
+
 
 def evaluate_response(response, criteria):
     """Evaluate the quality of a response based on given criteria.
@@ -126,11 +128,14 @@ def evaluate_response(response, criteria):
         score_match = re.search(r'\d+', response)
         if score_match:
             score = int(score_match.group())
-            scores.append(min(score, 10))  # Ensure score is not greater than 10
+            # Ensure score is not greater than 10
+            scores.append(min(score, 10))
         else:
-            logger.debug(f"Warning: Could not extract numeric score for {criterion}. Using default score of 5.")
+            logger.debug(
+                f"Warning: Could not extract numeric score for {criterion}. Using default score of 5.")
             scores.append(5)  # Default score if no number is found
     return np.mean(scores)
+
 
 topic = "machine learning"
 response_a = generate_response(prompt_a.format(topic=topic))
@@ -151,6 +156,7 @@ Now, let's demonstrate the iterative refinement process for improving a prompt.
 """
 logger.info("## Iterative Refinement")
 
+
 def refine_prompt(initial_prompt, topic, iterations=3):
     """Refine a prompt through multiple iterations.
 
@@ -167,8 +173,10 @@ def refine_prompt(initial_prompt, topic, iterations=3):
         try:
             response = generate_response(current_prompt.format(topic=topic))
         except KeyError as e:
-            logger.debug(f"Error in iteration {i+1}: Missing key {e}. Adjusting prompt...")
-            current_prompt.template = current_prompt.template.replace(f"{{{e.args[0]}}}", "relevant example")
+            logger.debug(
+                f"Error in iteration {i+1}: Missing key {e}. Adjusting prompt...")
+            current_prompt.template = current_prompt.template.replace(
+                f"{{{e.args[0]}}}", "relevant example")
             response = generate_response(current_prompt.format(topic=topic))
 
         feedback_prompt = f"Analyze the following explanation of {topic} and suggest improvements to the prompt that generated it:\n\n{response}"
@@ -185,6 +193,7 @@ def refine_prompt(initial_prompt, topic, iterations=3):
         logger.debug(f"Iteration {i+1} prompt: {current_prompt.template}")
 
     return current_prompt
+
 
 topic = "machine learning"
 response_a = generate_response(prompt_a.format(topic=topic))
@@ -211,8 +220,10 @@ Let's compare the performance of the original and refined prompts.
 """
 logger.info("## Comparing Original and Refined Prompts")
 
-original_response = generate_response(initial_prompt.format(topic="machine learning"))
-refined_response = generate_response(refined_prompt.format(topic="machine learning"))
+original_response = generate_response(
+    initial_prompt.format(topic="machine learning"))
+refined_response = generate_response(
+    refined_prompt.format(topic="machine learning"))
 
 original_score = evaluate_response(original_response, criteria)
 refined_score = evaluate_response(refined_response, criteria)

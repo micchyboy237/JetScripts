@@ -1,7 +1,7 @@
 from datasets import Dataset
 from datasets import load_dataset
 from datetime import datetime
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -105,10 +105,10 @@ len(df)
 logger.info("## Step 4: Create reference document chunks")
 
 
-
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     encoding_name="cl100k_base", keep_separator=False, chunk_size=200, chunk_overlap=30
 )
+
 
 def split_texts(texts: List[str]) -> List[str]:
     """
@@ -125,6 +125,7 @@ def split_texts(texts: List[str]) -> List[str]:
         chunks = text_splitter.create_documents([text])
         chunked_texts.extend([chunk.page_content for chunk in chunks])
     return chunked_texts
+
 
 df["chunks"] = df["context"].apply(lambda x: split_texts(x))
 
@@ -156,6 +157,7 @@ def get_embeddings(docs: List[str], model: str) -> List[List[float]]:
     response = ollama_client.embeddings.create(input=docs, model=model)
     response = [r.embedding for r in response.data]
     return response
+
 
 client = MongoClient(MONGODB_URI, appname="devrel.showcase.ragas_eval")
 DB_NAME = "ragas_evals"
@@ -194,6 +196,7 @@ logger.info("## Step 6: Compare embedding models for retrieval")
 
 # nest_asyncio.apply()
 
+
 def get_retriever(model: str, k: int) -> VectorStoreRetriever:
     """
     Given an embedding model and top k, get a vector store retriever object
@@ -220,6 +223,7 @@ def get_retriever(model: str, k: int) -> VectorStoreRetriever:
     )
     return retriever
 
+
 QUESTIONS = df["question"].to_list()
 GROUND_TRUTH = df["correct_answer"].tolist()
 
@@ -231,7 +235,8 @@ for model in EVAL_EMBEDDING_MODELS:
     retriever = get_retriever(model, 2)
     for question in tqdm(QUESTIONS):
         data["contexts"].append(
-            [doc.page_content for doc in retriever.get_relevant_documents(question)]
+            [doc.page_content for doc in retriever.get_relevant_documents(
+                question)]
         )
     dataset = Dataset.from_dict(data)
     run_config = RunConfig(max_workers=4, max_wait=180)
@@ -277,6 +282,7 @@ def get_rag_chain(retriever: VectorStoreRetriever, model: str) -> RunnableSequen
     rag_chain = retrieve | prompt | llm | parse_output
     return rag_chain
 
+
 for model in ["gpt-3.5-turbo-1106", "gpt-3.5-turbo"]:
     data = {"question": [], "ground_truth": [], "contexts": [], "answer": []}
     data["question"] = QUESTIONS
@@ -286,7 +292,8 @@ for model in ["gpt-3.5-turbo-1106", "gpt-3.5-turbo"]:
     for question in tqdm(QUESTIONS):
         data["answer"].append(rag_chain.invoke(question))
         data["contexts"].append(
-            [doc.page_content for doc in retriever.get_relevant_documents(question)]
+            [doc.page_content for doc in retriever.get_relevant_documents(
+                question)]
         )
     dataset = Dataset.from_dict(data)
     run_config = RunConfig(max_workers=4, max_wait=180)
@@ -331,7 +338,8 @@ result_df[result_df["answer_correctness"] < 0.7]
 
 plt.figure(figsize=(10, 8))
 sns.heatmap(
-    result_df[1:10].set_index("question")[["answer_similarity", "answer_correctness"]],
+    result_df[1:10].set_index("question")[
+        ["answer_similarity", "answer_correctness"]],
     annot=True,
     cmap="flare",
 )

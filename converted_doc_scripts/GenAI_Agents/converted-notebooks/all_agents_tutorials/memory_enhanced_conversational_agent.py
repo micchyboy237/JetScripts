@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.memory import ChatMessageHistory
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -99,7 +99,6 @@ First, we'll import the necessary modules and set up our environment.
 logger.info("# Building a Memory-Enhanced Conversational Agent")
 
 
-
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 llm = ChatOllama(model="llama3.2")
@@ -114,10 +113,12 @@ logger.info("## Memory Stores")
 chat_store = {}
 long_term_memory = {}
 
+
 def get_chat_history(session_id: str):
     if session_id not in chat_store:
         chat_store[session_id] = ChatMessageHistory()
     return chat_store[session_id]
+
 
 def update_long_term_memory(session_id: str, input: str, output: str):
     if session_id not in long_term_memory:
@@ -127,8 +128,10 @@ def update_long_term_memory(session_id: str, input: str, output: str):
     if len(long_term_memory[session_id]) > 5:  # Keep only last 5 memories
         long_term_memory[session_id] = long_term_memory[session_id][-5:]
 
+
 def get_long_term_memory(session_id: str):
     return ". ".join(long_term_memory.get(session_id, []))
+
 
 """
 ## Prompt Template
@@ -166,6 +169,7 @@ We'll create a function to handle chat interactions, including updating long-ter
 """
 logger.info("## Chat Function")
 
+
 def chat(input_text: str, session_id: str):
     long_term_mem = get_long_term_memory(session_id)
     response = chain_with_history.invoke(
@@ -174,6 +178,7 @@ def chat(input_text: str, session_id: str):
     )
     update_long_term_memory(session_id, input_text, response.content)
     return response.content
+
 
 """
 ## Example Usage

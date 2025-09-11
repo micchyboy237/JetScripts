@@ -7,7 +7,7 @@ from langchain_chroma import Chroma
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 import base64
 import io
 import os

@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.prompts import ChatPromptTemplate
 from langgraph.graph import StateGraph, END
@@ -70,6 +70,7 @@ This cell defines the State class, which represents the state of our grading pro
 """
 logger.info("## State Definition")
 
+
 class State(TypedDict):
     """Represents the state of the essay grading process."""
     essay: str
@@ -78,6 +79,7 @@ class State(TypedDict):
     structure_score: float
     depth_score: float
     final_score: float
+
 
 """
 ## Language Model Initialization
@@ -95,12 +97,14 @@ This cell defines the functions used in the grading process, including score ext
 """
 logger.info("## Grading Functions")
 
+
 def extract_score(content: str) -> float:
     """Extract the numeric score from the LLM's response."""
     match = re.search(r'Score:\s*(\d+(\.\d+)?)', content)
     if match:
         return float(match.group(1))
     raise ValueError(f"Could not extract score from: {content}")
+
 
 def check_relevance(state: State) -> State:
     """Check the relevance of the essay."""
@@ -118,6 +122,7 @@ def check_relevance(state: State) -> State:
         state["relevance_score"] = 0.0
     return state
 
+
 def check_grammar(state: State) -> State:
     """Check the grammar of the essay."""
     prompt = ChatPromptTemplate.from_template(
@@ -133,6 +138,7 @@ def check_grammar(state: State) -> State:
         logger.debug(f"Error in check_grammar: {e}")
         state["grammar_score"] = 0.0
     return state
+
 
 def analyze_structure(state: State) -> State:
     """Analyze the structure of the essay."""
@@ -150,6 +156,7 @@ def analyze_structure(state: State) -> State:
         state["structure_score"] = 0.0
     return state
 
+
 def evaluate_depth(state: State) -> State:
     """Evaluate the depth of analysis in the essay."""
     prompt = ChatPromptTemplate.from_template(
@@ -166,6 +173,7 @@ def evaluate_depth(state: State) -> State:
         state["depth_score"] = 0.0
     return state
 
+
 def calculate_final_score(state: State) -> State:
     """Calculate the final score based on individual component scores."""
     state["final_score"] = (
@@ -175,6 +183,7 @@ def calculate_final_score(state: State) -> State:
         state["depth_score"] * 0.3
     )
     return state
+
 
 """
 ## Workflow Definition
@@ -221,6 +230,7 @@ This cell defines the main function to grade an essay using the defined workflow
 """
 logger.info("## Essay Grading Function")
 
+
 def grade_essay(essay: str) -> dict:
     """Grade the given essay using the defined workflow."""
     initial_state = State(
@@ -233,6 +243,7 @@ def grade_essay(essay: str) -> dict:
     )
     result = app.invoke(initial_state)
     return result
+
 
 """
 ## Sample Essay

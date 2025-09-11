@@ -3,7 +3,7 @@ from athina.keys import AthinaApiKey, OpenAiApiKey
 from athina.loaders import Loader
 from datasets import Dataset
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.document_loaders import CSVLoader
@@ -68,10 +68,11 @@ wcd_url = 'your_url'
 client = weaviate.connect_to_weaviate_cloud(
     cluster_url=wcd_url,
     auth_credentials=Auth.api_key(os.environ['WEAVIATE_API_KEY']),
-#     headers={'X-Ollama-Api-key': os.environ["OPENAI_API_KEY"]}
+    #     headers={'X-Ollama-Api-key': os.environ["OPENAI_API_KEY"]}
 )
 
-vectorstore = WeaviateVectorStore.from_documents(documents,embedding=OllamaEmbeddings(model="mxbai-embed-large"),client=client, index_name="your_collection_name",text_key="text")
+vectorstore = WeaviateVectorStore.from_documents(documents, embedding=OllamaEmbeddings(
+    model="mxbai-embed-large"), client=client, index_name="your_collection_name", text_key="text")
 
 vectorstore.similarity_search("world war II", k=3)
 
@@ -80,7 +81,6 @@ vectorstore.similarity_search("world war II", k=3)
 ## **Chromadb (Optional)**
 """
 logger.info("## **Chromadb (Optional)**")
-
 
 
 """
@@ -98,7 +98,7 @@ logger.info("## **Hypothetical Answer Chain**")
 llm = ChatOllama(model="llama3.2")
 
 
-template ="""
+template = """
 You are a helpful assistant that answers questions.
 Question: {input}
 Answer:
@@ -121,7 +121,7 @@ answer
 logger.info("## **Combined RAG Chain**")
 
 retrieval_chain = qa_no_context | retriever
-retrieved_docs = retrieval_chain.invoke({"input":question})
+retrieved_docs = retrieval_chain.invoke({"input": question})
 
 template = """
 You are a helpful assistant that answers questions based on the provided context.
@@ -138,7 +138,7 @@ final_rag_chain = (
     | StrOutputParser()
 )
 
-final_rag_chain.invoke({"context":retrieved_docs,"input":question})
+final_rag_chain.invoke({"context": retrieved_docs, "input": question})
 
 """
 ## **Preparing Data for Evaluation**
@@ -150,8 +150,10 @@ response = []
 contexts = []
 
 for query in question:
-  response.append(final_rag_chain.invoke({"context":retrieved_docs,"input":query}))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(final_rag_chain.invoke(
+        {"context": retrieved_docs, "input": query}))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -186,6 +188,7 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-RagasContextRelevancy(model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
+RagasContextRelevancy(
+    model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

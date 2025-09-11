@@ -7,7 +7,7 @@ async def main():
     from google.colab import userdata
     from gradio import ChatMessage
     from importnb import Notebook
-    from jet.llm.ollama.base_langchain import ChatOllama
+    from jet.adapters.langchain.chat_ollama import ChatOllama
     from jet.logger import CustomLogger
     from langchain.tools import DuckDuckGoSearchResults
     from langchain_community.tools import DuckDuckGoSearchResults
@@ -33,17 +33,16 @@ async def main():
     import shutil
     import threading
     import time
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     # Smart Product Buyer AI Agent
     
@@ -150,7 +149,7 @@ async def main():
         - A framework for building user-friendly web-based interfaces, commonly used for showcasing AI applications.
     """
     logger.info("# Smart Product Buyer AI Agent")
-    
+
     # %pip install langgraph
     # %pip install langchain
     # %pip install langchain-ollama
@@ -163,21 +162,17 @@ async def main():
     # %pip install playwright
     # %pip install duckduckgo-search
     # %pip install gradio
-    
+
     """
     ### Import Necessary Libraries
     
     This cell imports the required libraries and modules for building and managing the workflow, integrating Ollama's APIs, handling asynchronous operations, and working with custom scrapers.
     """
     logger.info("### Import Necessary Libraries")
-    
-    
-    
-    
-    
+
     # import nest_asyncio
     # nest_asyncio.apply()
-    
+
     """
     ### Web Scraping and Interface Definitions
     
@@ -203,40 +198,40 @@ async def main():
     The modular design allows for easy addition of new platforms by extending the `WebsiteInterface` class and implementing the required methods.
     """
     logger.info("### Web Scraping and Interface Definitions")
-    
+
     async def scroll_to_bottom(page, scroll_delay=0.1):
         """
         Scroll to the bottom of the page iteratively, with delays to ensure dynamic content is fully loaded.
-    
+
         Args:
             page: The Playwright page instance.
             scroll_delay: Delay in seconds between scrolls to allow content loading.
         """
-    
+
         logger.debug("Scrolling through the page...")
-    
+
         scroll_size = 2160
-    
+
         next_scroll = scroll_size
         for i in range(3):
             await page.evaluate(f"window.scrollTo(0, {next_scroll})")
-    
+
             next_scroll += scroll_size
-    
+
             await asyncio.sleep(scroll_delay)
-    
+
         logger.debug("Finished scrolling through the page.")
-    
+
     async def block_unnecessary_resources(route):
         if route.request.resource_type in ["image"]:
             await route.abort()
         else:
             await route.continue_()
-    
+
     class WebsiteInterface(ABC):
         def __init__(self):
             self.base_url = ""
-    
+
         @abstractmethod
         async def crawl(self) -> List[Dict[str, str]]:
             """
@@ -244,7 +239,7 @@ async def main():
             Must be implemented by subclasses.
             """
             pass
-    
+
         @abstractmethod
         def get_filters_info(self) -> str:
             """
@@ -252,7 +247,7 @@ async def main():
             Must be implemented by subclasses.
             """
             pass
-    
+
         @abstractmethod
         def set_filters_from_llm_response(self, llm_response: str):
             """
@@ -260,153 +255,161 @@ async def main():
             Must be implemented by subclasses.
             """
             pass
-    
+
     class AutotraderInterface(WebsiteInterface):
         def __init__(self):
             self.base_url = "https://www.autotrader.com/cars-for-sale/all-cars"
-    
+
         async def crawl(self) -> List[Dict[str, str]]:
             listings = []
-    
+
             url = self.url
-    
+
             playwright = await async_playwright().start()
             logger.success(format_json(playwright))
-    
+
             browser = await playwright.chromium.launch(headless=True,
-                                                            args=[
-                                                                    "--no-sandbox",
-                                                                    "--disable-setuid-sandbox",
-                                                                    "--disable-dev-shm-usage",
-                                                                    "--disable-extensions",
-                                                                    "--disable-gpu"
-                                                            ]
-                                                            )
+                                                       args=[
+                                                           "--no-sandbox",
+                                                           "--disable-setuid-sandbox",
+                                                           "--disable-dev-shm-usage",
+                                                           "--disable-extensions",
+                                                           "--disable-gpu"
+                                                       ]
+                                                       )
             logger.success(format_json(browser))
-    
+
             context = await browser.new_context(
-                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-                    viewport={"width": 1920, "height": 1080},
-                    locale="en-US",
-                    timezone_id="America/New_York",
-                )
+                user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+                viewport={"width": 1920, "height": 1080},
+                locale="en-US",
+                timezone_id="America/New_York",
+            )
             logger.success(format_json(context))
-    
-    
+
             logger.debug("Opening browser page")
-    
+
             page = await context.new_page()
             logger.success(format_json(page))
-    
+
             await page.route("**/*", block_unnecessary_resources)
-    
+
             logger.debug("Loading page")
-    
+
             await page.goto(url, wait_until="domcontentloaded")
-    
+
             logger.debug("Page partially loaded. Starting to scroll.")
-    
+
             await scroll_to_bottom(page)
-    
+
             page_content = await page.content()
             logger.success(format_json(page_content))
-    
+
             tree = html.fromstring(page_content)
-    
-            listings_elements = tree.xpath('//div[@data-cmp="inventoryListing"]')
-    
+
+            listings_elements = tree.xpath(
+                '//div[@data-cmp="inventoryListing"]')
+
             listings = []
-    
+
             for listing in listings_elements:
                 car_data = {}
-                car_data['title'] = listing.xpath('.//h2[@data-cmp="subheading"]/text()')
-                car_data['mileage'] = listing.xpath('.//div[@data-cmp="mileageSpecification"]/text()')
-                car_data['price'] = listing.xpath('.//div[@data-cmp="firstPrice"]/text()')
-                car_data['dealer'] = listing.xpath('.//div[@class="text-subdued"]/text()')
-                car_data['phone'] = listing.xpath('.//span[@data-cmp="phoneNumber"]/text()')
+                car_data['title'] = listing.xpath(
+                    './/h2[@data-cmp="subheading"]/text()')
+                car_data['mileage'] = listing.xpath(
+                    './/div[@data-cmp="mileageSpecification"]/text()')
+                car_data['price'] = listing.xpath(
+                    './/div[@data-cmp="firstPrice"]/text()')
+                car_data['dealer'] = listing.xpath(
+                    './/div[@class="text-subdued"]/text()')
+                car_data['phone'] = listing.xpath(
+                    './/span[@data-cmp="phoneNumber"]/text()')
                 car_data['url'] = listing.xpath('.//a[@data-cmp="link"]/@href')
-                car_data['image'] = listing.xpath('.//img[@data-cmp="inventoryImage"]/@src')
-    
-                car_data = {key: (val[0].strip() if val else None) for key, val in car_data.items()}
-    
+                car_data['image'] = listing.xpath(
+                    './/img[@data-cmp="inventoryImage"]/@src')
+
+                car_data = {key: (val[0].strip() if val else None)
+                            for key, val in car_data.items()}
+
                 car_data['url'] = car_data['url'].split('?')[0]
-    
-                car_data['url'] = re.sub(r'^(https?://[^/]+).*$', r'\1', self.base_url) + car_data['url']
-    
-                car_data = { "id": f"{self.__class__.__name__}_{car_data['url'].split('/')[-1]}" } | car_data
-    
+
+                car_data['url'] = re.sub(
+                    r'^(https?://[^/]+).*$', r'\1', self.base_url) + car_data['url']
+
+                car_data = {
+                    "id": f"{self.__class__.__name__}_{car_data['url'].split('/')[-1]}"} | car_data
+
                 listings.append(car_data)
-    
+
             if __name__ == "__main__":
                 logger.debug("Found the following car listings:")
                 for car in listings:
                     logger.debug(car)
-    
+
             logger.debug("Found", len(listings), "listings")
-    
+
             await browser.close()
-    
+
             return listings
-    
+
         async def crawl_listing(self, listing_url) -> List[Dict[str, str]]:
             listing_info = ""
-    
+
             url = listing_url
-    
+
             playwright = await async_playwright().start()
             logger.success(format_json(playwright))
-    
+
             browser = await playwright.chromium.launch(headless=True,
-                                                            args=[
-                                                                    "--no-sandbox",
-                                                                    "--disable-setuid-sandbox",
-                                                                    "--disable-dev-shm-usage",
-                                                                    "--disable-extensions",
-                                                                    "--disable-gpu"
-                                                            ]
-                                                            )
+                                                       args=[
+                                                           "--no-sandbox",
+                                                           "--disable-setuid-sandbox",
+                                                           "--disable-dev-shm-usage",
+                                                           "--disable-extensions",
+                                                           "--disable-gpu"
+                                                       ]
+                                                       )
             logger.success(format_json(browser))
-    
+
             context = await browser.new_context(
-                    user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
-                    viewport={"width": 1920, "height": 1080},
-                    locale="en-US",
-                    timezone_id="America/New_York",
-                )
+                user_agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+                viewport={"width": 1920, "height": 1080},
+                locale="en-US",
+                timezone_id="America/New_York",
+            )
             logger.success(format_json(context))
-    
-    
+
             logger.debug("Opening browser page")
-    
+
             page = await context.new_page()
             logger.success(format_json(page))
-    
+
             await page.route("**/*", block_unnecessary_resources)
-    
+
             logger.debug("Loading page")
-    
+
             await page.goto(url, wait_until="domcontentloaded")
-    
+
             logger.debug("Page partially loaded. Starting to scroll.")
-    
+
             await scroll_to_bottom(page)
-    
+
             page_content = await page.content()
             logger.success(format_json(page_content))
-    
+
             tree = html.fromstring(page_content)
-            listing_info = tree.xpath("//div[contains(@class, 'container') and contains(@class, 'margin-top-5')]/div[contains(@class, 'row')]//text()")
+            listing_info = tree.xpath(
+                "//div[contains(@class, 'container') and contains(@class, 'margin-top-5')]/div[contains(@class, 'row')]//text()")
             listing_info = "\t".join(listing_info).strip()
-    
-    
+
             if __name__ == "__main__":
                 logger.debug("Found the following information:")
                 logger.debug(listing_info)
-    
+
             await browser.close()
-    
+
             return listing_info
-    
+
         def get_filters_info(self) -> str:
             """
             Return a prompt for the LLM describing the filters and expected output format.
@@ -460,7 +463,7 @@ async def main():
     
             Based on the user's needs, format the response as only the complete URL (no extra explanations). The URL is an example, don't include filters if they are not needed by the user.
             """
-    
+
         def set_filters_from_llm_response(self, llm_response: str):
             """
             Process the LLM's response and set the URL with the provided parameters.
@@ -468,8 +471,9 @@ async def main():
             if llm_response.startswith(self.base_url):
                 self.url = llm_response.strip()
             else:
-                raise ValueError("Invalid URL format provided by LLM response: " + llm_response)
-    
+                raise ValueError(
+                    "Invalid URL format provided by LLM response: " + llm_response)
+
     """
     ### Set Up Playwright Dependencies
     
@@ -485,11 +489,11 @@ async def main():
        - Installs any required patches for the Chromium browser to ensure compatibility with Playwright.
     """
     logger.info("### Set Up Playwright Dependencies")
-    
+
     # !playwright install-deps
     # !playwright install
     # !patchright install chromium
-    
+
     """
     ### Load Environment Variables and Set Up API Keys
     
@@ -509,24 +513,24 @@ async def main():
        - Creates `langsmith_client` and `ollama_client` for managing Ollama interactions.
     """
     logger.info("### Load Environment Variables and Set Up API Keys")
-    
+
     load_dotenv()
-    
+
     try:
-    #   os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY', userdata.get('OPENAI_API_KEY'))
+        #   os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY', userdata.get('OPENAI_API_KEY'))
     except:
-    #   os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
-    
+        #   os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
+
     os.environ["LANGCHAIN_TRACING_V2"] = "false"
     os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
     os.environ["LANGCHAIN_PROJECT"] = "car_buyer_agent"
     os.environ["LANGCHAIN_API_KEY"] = os.getenv('LANGCHAIN_API_KEY', "")
-    
+
     GPT = ChatOllama(model="llama3.2")
-    
+
     langsmith_client = Client()
     ollama_client = wrap_ollama(ollama.Client())
-    
+
     """
     ### Define the `State` Class
     
@@ -540,7 +544,7 @@ async def main():
     6. **`next_node`**: The next action or state transition in the workflow.
     """
     logger.info("### Define the `State` Class")
-    
+
     class State(MessagesState):
         """Represents the state of the car-buying process."""
         user_needs: str
@@ -549,7 +553,7 @@ async def main():
         selected_listing: Dict[str, str]
         additional_info: Dict[str, str]
         next_node: str
-    
+
     """
     ### Define Input and Output Helper Functions
     
@@ -562,15 +566,15 @@ async def main():
        - Uses Python's `logger.debug()` function, enabling formatted or contextual responses.
     """
     logger.info("### Define Input and Output Helper Functions")
-    
+
     def get_user_input(*args, **kwargs):
         """Get user input."""
         return input(*args, **kwargs)
-    
+
     def show_assistant_output(*args, **kwargs):
         """Show the output of the LLM."""
         logger.debug(*args, **kwargs)
-    
+
     """
     ### Define the `ask_user_needs` Function
     
@@ -598,19 +602,18 @@ async def main():
        - Displays summarized needs and the determined next step to the user.
     """
     logger.info("### Define the `ask_user_needs` Function")
-    
-    
+
     class NextStep(Enum):
         ASK_USER_NEEDS = "ask_user_needs"
         BUILD_FILTERS = "build_filters"
         IRRELEVANT = "irrelevant"
-    
+
     class UserNeeds(BaseModel):
         user_needs: str
         next_step: NextStep
-    
+
     USER_NEEDS_GPT = ChatOllama(model="llama3.2")
-    
+
     def ask_user_needs(state: State) -> State:
         """Ask user initial questions to define their needs for the car."""
         messages = state.get("messages", [])
@@ -618,22 +621,23 @@ async def main():
             system_message = "You are a car buying assistant. Your goal is to help the user find a car that meets their needs. Start by introducing yourself and asking about their requirements, such as intended usage (e.g., commuting, family trips), budget, size preferences, and any specific constraints or features they value. Use their responses to guide them toward the best options."
         else:
             system_message = "Ask the user for any additional information that can help narrow down the search. If he asked any questions before, answer them before asking for more information. When answering, make sure to provide clear and concise information, with relevant examples."
-    
+
         existing_needs = state.get("user_needs", "")
         if existing_needs:
             system_message += f" Here's what we know about the needs of the user so far:\n\n{existing_needs}"
-    
+
         messages.append(SystemMessage(content=system_message))
-    
+
         response = GPT.invoke(messages).content
         messages += [AIMessage(response)]
-        show_assistant_output(f"\033[92m{messages[-1].content}\033[0m", flush=True)
-    
+        show_assistant_output(
+            f"\033[92m{messages[-1].content}\033[0m", flush=True)
+
         messages += [HumanMessage(get_user_input(response))]
         logger.debug(f"\033[94m{messages[-1].content}\033[0m", flush=True)
-    
+
         summarization_messages = messages.copy()
-    
+
         summarization_messages += [
             SystemMessage(
                 "Summarize the user's car-buying needs in clear and concise bullet points based on their input and any prior knowledge.\n"
@@ -643,21 +647,23 @@ async def main():
                 "If the user's query is irrelevant to the matter at hand (buying a car), respond 'irrelevant'."
             )
         ]
-    
-        response = json.loads(USER_NEEDS_GPT.invoke(summarization_messages).content)
-    
+
+        response = json.loads(USER_NEEDS_GPT.invoke(
+            summarization_messages).content)
+
         state["user_needs"] = response["user_needs"]
-    
-        messages += [AIMessage("I have summarized your car-buying needs as follows:\n" + state["user_needs"])]
-    
+
+        messages += [AIMessage(
+            "I have summarized your car-buying needs as follows:\n" + state["user_needs"])]
+
         show_assistant_output(f"\033[92m{messages[-1].content}\033[0m")
-    
+
         state["next_node"] = response["next_step"]
-    
+
         logger.debug(f"\nNext node: {state['next_node']}", flush=True)
-    
+
         return state
-    
+
     """
     ### Define the `build_filters` Function
     
@@ -683,33 +689,35 @@ async def main():
        - Provides success or failure messages for each interface and displays the updated search URL when filters are successfully applied.
     """
     logger.info("### Define the `build_filters` Function")
-    
+
     def build_filters(state: State) -> State:
         """Build and refine search filters based on user needs."""
-    
+
         show_assistant_output("Building filters based on user needs...")
-    
+
         for interface in state["web_interfaces"]:
             filters_info = interface.get_filters_info()
-    
-    
-    
-            system_message = SystemMessage(filters_info + "\n\n" + "User needs:\n" + state["user_needs"])
-    
+
+            system_message = SystemMessage(
+                filters_info + "\n\n" + "User needs:\n" + state["user_needs"])
+
             try:
                 result = GPT.invoke([system_message])
                 llm_response = result.content.strip()
-    
+
                 interface.set_filters_from_llm_response(llm_response)
-                show_assistant_output(f"\nSuccessfully set filters for: {interface.__class__.__name__}")
+                show_assistant_output(
+                    f"\nSuccessfully set filters for: {interface.__class__.__name__}")
                 show_assistant_output(f"Updated URL: {interface.url}")
             except ValueError as e:
-                show_assistant_output(f"Failed to set filters for {interface.base_url}: {e}")
+                show_assistant_output(
+                    f"Failed to set filters for {interface.base_url}: {e}")
             except Exception as e:
-                show_assistant_output(f"An error occurred while processing filters for {interface.base_url}: {e}")
-    
+                show_assistant_output(
+                    f"An error occurred while processing filters for {interface.base_url}: {e}")
+
         return
-    
+
     """
     ### Define the `fetch_listings_from_sources` Function
     
@@ -728,23 +736,23 @@ async def main():
        - Returns a consolidated list of dictionaries, where each dictionary represents a car listing
     """
     logger.info("### Define the `fetch_listings_from_sources` Function")
-    
+
     async def fetch_listings_from_sources(web_interfaces: List[WebsiteInterface]) -> List[Dict[str, str]]:
         """Simulate retrieval of car listings from Autotrader.com based on filters.
-    
+
         Args:
             filters (dict): Dictionary containing search filters (e.g., budget, fuel type).
-    
+
         Returns:
             list: A list of dictionaries, each representing a car listing.
         """
         listings = []
         for interface in web_interfaces:
             listings += await interface.crawl()
-            logger.success(format_json(listings +))
-    
+            logger.success(format_json(listings + ))
+
         return listings
-    
+
     """
     ### Define the `search_listings` Function
     
@@ -769,32 +777,33 @@ async def main():
          - `end_conversation`: Terminates the workflow.
     """
     logger.info("### Define the `search_listings` Function")
-    
-    
+
     class UserResponse(BaseModel):
         action: Literal['select_listing', 'refine_search', 'end_conversation']
         listing_id: Optional[str]
-    
+
     CLASSIFIER_GPT = ChatOllama(model="llama3.2")
-    
+
     def search_listings(state: State) -> State:
         """Search for cars on LaCentrale and mobile.de based on filters."""
         """Display the first listings for the user to view."""
         """Synchronous wrapper for search_listings."""
-    
-        state["messages"] += [SystemMessage("Searching for listings based on user needs, this may take time...")]
+
+        state["messages"] += [SystemMessage(
+            "Searching for listings based on user needs, this may take time...")]
         show_assistant_output(state["messages"][-1].content)
-    
+
         async def _search_listings():
             return await fetch_listings_from_sources(state["web_interfaces"])
-    
+
         listings = asyncio.run(_search_listings())
         state["listings"] = listings
-    
-        show_assistant_output(f"Successfully fetched {len(listings)} listings from the sources.")
-    
+
+        show_assistant_output(
+            f"Successfully fetched {len(listings)} listings from the sources.")
+
         AI_message = ""
-    
+
         AI_message += "Here are recent listings that match your requirements:\n"
         for i, listing in enumerate(state["listings"][:5], 1):
             AI_message += f"{i}.\n"
@@ -805,17 +814,18 @@ async def main():
                 else:
                     AI_message += f"   {formatted_key}: {value}\n"
             AI_message += "\n"  # Add an extra line for readability
-    
+
         user_prompt = "Would you like to view more details about a specific listing, or refine your search (Write END to finish this conversation) ?"
         AI_message += user_prompt
-    
+
         state["messages"].append(AIMessage(AI_message))
-        show_assistant_output(f"\033[92m{state['messages'][-1].content}\033[0m")
+        show_assistant_output(
+            f"\033[92m{state['messages'][-1].content}\033[0m")
         state["messages"].append(HumanMessage(get_user_input(user_prompt)))
         logger.debug(f"\033[94m{state['messages'][-1].content}\033[0m")
-    
+
         response = json.loads(CLASSIFIER_GPT.invoke(state["messages"]).content)
-    
+
         if response["action"] == "select_listing":
             state["next_node"] = "fetch_additional_info"
             selected_listing_id = response["listing_id"]
@@ -827,9 +837,9 @@ async def main():
             state["next_node"] = "ask_user_needs"
         else:
             state["next_node"] = END
-    
+
         return state
-    
+
     """
     ### Define the `fetch_additional_info` Function
     
@@ -857,65 +867,68 @@ async def main():
        - Updates `state["next_node"]` based on the user's action, ensuring a smooth transition to the next step.
     """
     logger.info("### Define the `fetch_additional_info` Function")
-    
-    
+
     duckduckgo_search = DuckDuckGoSearchResults(max_results=3)
-    
+
     def fetch_additional_info(state: State) -> State:
         """Fetch more details about the selected car listing."""
         listing = state["selected_listing"]
-    
-    
+
         async def _crawl_car_listing():
             for interface in state["web_interfaces"]:
                 if listing["id"].split("_")[0].lower() in interface.__class__.__name__.lower():
                     return await interface.crawl_listing(listing["url"])
-    
+
         info_car_for_sale = asyncio.run(_crawl_car_listing())
-    
+
         prompt = SystemMessage(
             f"Summarize all the relevant information about the selected car for sale into a paragraph: {listing['title']}\n\n"
             f"Here is the raw information about the car for sale:\n\n{info_car_for_sale}"
             f"Format the summary clearly and concisely, with line breaks between sections."
         )
-    
+
         car_info_summary = GPT.invoke([prompt]).content
-    
-        show_assistant_output("\033[92mHere are more details about the car for sale:\n\033[0m", flush=True)
-    
-        show_assistant_output("\033[92m" + car_info_summary + "\n\n\033[0m", flush=True)
-    
+
+        show_assistant_output(
+            "\033[92mHere are more details about the car for sale:\n\033[0m", flush=True)
+
+        show_assistant_output(
+            "\033[92m" + car_info_summary + "\n\n\033[0m", flush=True)
+
         state["messages"] += [prompt, AIMessage(car_info_summary)]
-    
+
         car_name = listing["title"]
-    
-        queries = [f"{car_name} common issues", f"{car_name} problem", f"{car_name} reliability"]
+
+        queries = [f"{car_name} common issues",
+                   f"{car_name} problem", f"{car_name} reliability"]
         context = ""
         for query in queries:
             search_results = duckduckgo_search.invoke(query)
             formatted_results = f"QUERY: {query}\n\n{search_results}\n-------------------\n"
             context += formatted_results
-    
+
         prompt = SystemMessage(
             f"Provide additional information about this car: {listing['title']}, "
             f"including engine specifications, common issues with this model, and market value."
             f"Here is additioanl context to help you provide the information:\n\n{context}"
             f"Here are the user needs, give some insights about the car based on the user needs:\n\n{state['user_needs']}"
         )
-    
+
         result = GPT.invoke([prompt])
-    
+
         listing["additional_info"] = result.content
-    
-        show_assistant_output(f"\033[92mHere is additional information about the model in general, coming from Internet:\n{listing['additional_info']}\n\033[0m")
-    
+
+        show_assistant_output(
+            f"\033[92mHere is additional information about the model in general, coming from Internet:\n{listing['additional_info']}\n\033[0m")
+
         user_prompt = "Would you like to view more details about another listing, or refine your search (Write END to finish this conversation) ?"
         state["messages"] += [SystemMessage(user_prompt)]
         state["messages"] += [HumanMessage(get_user_input(user_prompt))]
-        logger.debug(f"\033[94m{state['messages'][-1].content}\033[0m", flush=True)
-    
+        logger.debug(
+            f"\033[94m{state['messages'][-1].content}\033[0m", flush=True)
+
         response = json.loads(CLASSIFIER_GPT.invoke(state["messages"]).content)
-    
+
         if response["action"] == "select_listing":
             state["next_node"] = "fetch_additional_info"
             selected_listing_id = response["listing_id"]
@@ -927,9 +940,9 @@ async def main():
             state["next_node"] = "ask_user_needs"
         else:
             state["next_node"] = END
-    
+
         return state
-    
+
     """
     ### Initialize and Define the Workflow Graph
     
@@ -961,26 +974,28 @@ async def main():
        - The workflow is compiled into an executable application (`app`), ready to process user queries.
     """
     logger.info("### Initialize and Define the Workflow Graph")
-    
+
     workflow = StateGraph(State)
-    
+
     workflow.add_node("ask_user_needs", ask_user_needs)
     workflow.add_node("build_filters", build_filters)
     workflow.add_node("search_listings", search_listings)
     workflow.add_node("fetch_additional_info", fetch_additional_info)
     workflow.add_node("irrelevant", lambda state: state)
-    
-    workflow.add_conditional_edges("ask_user_needs", lambda state: state["next_node"], ["build_filters", "ask_user_needs", "irrelevant"])
+
+    workflow.add_conditional_edges("ask_user_needs", lambda state: state["next_node"], [
+                                   "build_filters", "ask_user_needs", "irrelevant"])
     workflow.add_edge("build_filters", "search_listings")
-    workflow.add_conditional_edges("search_listings", lambda state: state["next_node"], ["fetch_additional_info", "ask_user_needs", END])
+    workflow.add_conditional_edges("search_listings", lambda state: state["next_node"], [
+                                   "fetch_additional_info", "ask_user_needs", END])
     workflow.add_edge("irrelevant", END)
-    
+
     workflow.set_entry_point("ask_user_needs")
-    workflow.add_conditional_edges("fetch_additional_info", lambda state: state["next_node"], ["ask_user_needs", "fetch_additional_info", END])
-    
-    
+    workflow.add_conditional_edges("fetch_additional_info", lambda state: state["next_node"], [
+                                   "ask_user_needs", "fetch_additional_info", END])
+
     app = workflow.compile()
-    
+
     """
     ### Visualize the Workflow Graph
     
@@ -993,7 +1008,7 @@ async def main():
        - The `Image` function renders the generated PNG, enabling visualization of the nodes (states) and edges (transitions).
     """
     logger.info("### Visualize the Workflow Graph")
-    
+
     display(
         Image(
             app.get_graph().draw_mermaid_png(
@@ -1001,7 +1016,7 @@ async def main():
             )
         )
     )
-    
+
     """
     ### Define `run_car_buyer_agent` Function
     
@@ -1025,12 +1040,12 @@ async def main():
        - Returns the final `result` after executing the workflow.
     """
     logger.info("### Define `run_car_buyer_agent` Function")
-    
+
     def run_car_buyer_agent():
         """Run the car-buying assistant with LangGraph."""
-    
+
         messages = []
-    
+
         initial_state = State(
             user_needs={},
             web_interfaces=[AutotraderInterface()],
@@ -1042,7 +1057,7 @@ async def main():
         )
         result = app.invoke(initial_state)
         return result
-    
+
     """
     ### Conditional Execution Without Gradio
     
@@ -1065,31 +1080,32 @@ async def main():
        - If no listing is selected, informs the user.
     """
     logger.info("### Conditional Execution Without Gradio")
-    
+
     USE_GRADIO = True
-    
+
     if not USE_GRADIO:
         def get_user_input(*args, **kwargs):
             """Get user input."""
             return input(*args, **kwargs)
-    
+
         def show_assistant_output(*args, **kwargs):
             """Show the output of the LLM."""
             logger.debug(*args, **kwargs)
-    
+
         car_buyer_result = run_car_buyer_agent()
-    
+
         logger.debug("Car Buyer Result:", car_buyer_result)
-    
+
         if "selected_listing" in car_buyer_result:
             listing = car_buyer_result["selected_listing"]
-            logger.debug(f"\nFinal Recommendation:\n{listing['title']} - {listing['price']} - {listing['mileage']} km")
+            logger.debug(
+                f"\nFinal Recommendation:\n{listing['title']} - {listing['price']} - {listing['mileage']} km")
             logger.debug("Additional Information:")
             for key, value in car_buyer_result["additional_info"].items():
                 logger.debug(f"{key}: {value}")
         else:
             logger.debug("No car listing selected.")
-    
+
     """
     ### Gradio Interface and Threaded Execution
     
@@ -1131,15 +1147,15 @@ async def main():
          - Initializes the Gradio interface with the assistant's initial message and launches it.
     """
     logger.info("### Gradio Interface and Threaded Execution")
-    
-    
-    waiting_for_input = False # Flag to indicate if the agent is waiting for user input
-    
+
+    waiting_for_input = False  # Flag to indicate if the agent is waiting for user input
+
     class InputQueue:
         """A custom input queue that mimics stdin behavior."""
+
         def __init__(self):
             self.queue = queue.Queue()
-    
+
         def readline(self):
             """Mimic the readline behavior of stdin."""
             try:
@@ -1147,22 +1163,22 @@ async def main():
                 return r
             except queue.Empty:
                 return ""
-    
+
         def write(self, message):
             """Handle writes if needed (for debugging)."""
             pass
-    
+
         def flush(self):
             """No-op for compatibility."""
             pass
-    
+
         def put(self, message):
             """Put a message into the queue."""
             self.queue.put(message)
-    
+
     output_queue = queue.Queue()
     input_queue = queue.Queue()
-    
+
     def get_user_input(*args, **kwargs):
         """Get user input."""
         global waiting_for_input
@@ -1172,31 +1188,32 @@ async def main():
         waiting_for_input = False
         logger.debug(f"Received user input")
         return r
-    
+
     def show_assistant_output(*args, **kwargs):
         """Show the output of the LLM."""
-    
+
         result = " ".join(args) + kwargs.get("end", "\n")
-    
+
         result = re.sub(r'\033\[\d+m', '', result)
-    
+
         output_queue.put(result)
-    
+
     def interact_with_agent(user_message, history, discard_user_input=False):
         """Send user message to the bot and handle the response."""
-    
+
         global waiting_for_input
-    
+
         if not discard_user_input:
-            input_queue.put(user_message + "\n")  # Send user input to LangGraph
-    
+            # Send user input to LangGraph
+            input_queue.put(user_message + "\n")
+
         partial_message = ""
-    
+
         while True:
             try:
                 message = output_queue.get(timeout=0.1)  # Wait for bot output
                 if message:
-    
+
                     partial_message += message
                     yield partial_message
             except queue.Empty:
@@ -1204,36 +1221,39 @@ async def main():
                 if is_end:
                     break
                 time.sleep(0.1)
-    
+
     def get_initial_message():
         """Run the agent and capture the initial message."""
         initial_message = ""
-    
-        for message in interact_with_agent("", [], True):  # Consume the generator to get the full initial message
+
+        # Consume the generator to get the full initial message
+        for message in interact_with_agent("", [], True):
             initial_message = message  # Keep updating until the generator finishes
-    
+
         return initial_message
-    
+
     initial_message_content = ""
-    
+
     def run_langgraph_agent():
         """Run the LangGraph agent and redirect its stdout."""
         global initial_message_content
         run_car_buyer_agent()  # Start the LangGraph workflow
-    
-    
+
     if USE_GRADIO:
-        agent_thread = threading.Thread(target=run_langgraph_agent, daemon=True)
+        agent_thread = threading.Thread(
+            target=run_langgraph_agent, daemon=True)
         agent_thread.start()
-    
+
         initial_message_content = get_initial_message()
-    
-        initial_messages = [{"role": "assistant", "content": initial_message_content}]
-    
+
+        initial_messages = [{"role": "assistant",
+                             "content": initial_message_content}]
+
         chat = gr.ChatInterface(interact_with_agent,
-                        chatbot=gr.Chatbot(label="Car Buyer Chatbot", autoscroll=True, scale=1, value=initial_messages, type="messages", height=200),
-                        type="messages").launch()
-    
+                                chatbot=gr.Chatbot(label="Car Buyer Chatbot", autoscroll=True,
+                                                   scale=1, value=initial_messages, type="messages", height=200),
+                                type="messages").launch()
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

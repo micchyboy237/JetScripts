@@ -1,6 +1,6 @@
 from IPython.display import display, Image
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate
@@ -78,11 +78,14 @@ We'll define the state that our agent will maintain throughout its operation.
 """
 logger.info("### Define Agent State")
 
+
 class PlannerState(TypedDict):
-    messages: Annotated[List[HumanMessage | AIMessage], "The messages in the conversation"]
+    messages: Annotated[List[HumanMessage | AIMessage],
+                        "The messages in the conversation"]
     city: str
     interests: List[str]
     itinerary: str
+
 
 """
 ### Set Up Language Model and Prompts
@@ -93,7 +96,8 @@ llm = ChatOllama(model="llama3.2")
 
 
 itinerary_prompt = ChatPromptTemplate.from_messages([
-    ("system", "You are a helpful travel assistant. Create a day trip itinerary for {city} based on the user's interests: {interests}. Provide a brief, bulleted itinerary."),
+    ("system",
+     "You are a helpful travel assistant. Create a day trip itinerary for {city} based on the user's interests: {interests}. Provide a brief, bulleted itinerary."),
     ("human", "Create an itinerary for my day trip."),
 ])
 
@@ -104,6 +108,7 @@ Now we'll define the main functions that our agent will use: get city, get inter
 """
 logger.info("### Define Agent Functions")
 
+
 def input_city(state: PlannerState) -> PlannerState:
     logger.debug("Please enter the city you want to visit for your day trip:")
     user_message = input("Your input: ")
@@ -113,8 +118,10 @@ def input_city(state: PlannerState) -> PlannerState:
         "messages": state['messages'] + [HumanMessage(content=user_message)],
     }
 
+
 def input_interests(state: PlannerState) -> PlannerState:
-    logger.debug(f"Please enter your interests for the trip to {state['city']} (comma-separated):")
+    logger.debug(
+        f"Please enter your interests for the trip to {state['city']} (comma-separated):")
     user_message = input("Your input: ")
     return {
         **state,
@@ -122,9 +129,12 @@ def input_interests(state: PlannerState) -> PlannerState:
         "messages": state['messages'] + [HumanMessage(content=user_message)],
     }
 
+
 def create_itinerary(state: PlannerState) -> PlannerState:
-    logger.debug(f"Creating an itinerary for {state['city']} based on interests: {', '.join(state['interests'])}...")
-    response = llm.invoke(itinerary_prompt.format_messages(city=state['city'], interests=", ".join(state['interests'])))
+    logger.debug(
+        f"Creating an itinerary for {state['city']} based on interests: {', '.join(state['interests'])}...")
+    response = llm.invoke(itinerary_prompt.format_messages(
+        city=state['city'], interests=", ".join(state['interests'])))
     logger.debug("\nFinal Itinerary:")
     logger.debug(response.content)
     return {
@@ -132,6 +142,7 @@ def create_itinerary(state: PlannerState) -> PlannerState:
         "messages": state['messages'] + [AIMessage(content=response.content)],
         "itinerary": response.content,
     }
+
 
 """
 ### Create and Compile the Graph
@@ -172,6 +183,7 @@ display(
 """
 logger.info("### Define the function that runs the graph")
 
+
 def run_travel_planner(user_request: str):
     logger.debug(f"Initial Request: {user_request}\n")
     state = {
@@ -183,6 +195,7 @@ def run_travel_planner(user_request: str):
 
     for output in app.stream(state):
         pass  # The nodes themselves now handle all printing
+
 
 """
 ### Use case example

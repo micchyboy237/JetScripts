@@ -1,11 +1,11 @@
 from datasets import Dataset
-from jet.llm.ollama.base_langchain import ChatOllama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.llm.ollama.base_langchain.embeddings import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.text_splitter import (
-Language,
-RecursiveCharacterTextSplitter,
-TokenTextSplitter,
+    Language,
+    RecursiveCharacterTextSplitter,
+    TokenTextSplitter,
 )
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.documents import Document
@@ -87,7 +87,6 @@ len(pages)
 logger.info("## Step 4: Define chunking functions")
 
 
-
 def fixed_token_split(
     docs: List[Document], chunk_size: int, chunk_overlap: int
 ) -> List[Document]:
@@ -106,6 +105,7 @@ def fixed_token_split(
         encoding_name="cl100k_base", chunk_size=chunk_size, chunk_overlap=chunk_overlap
     )
     return splitter.split_documents(docs)
+
 
 def recursive_split(
     docs: List[Document],
@@ -133,7 +133,8 @@ def recursive_split(
                 language
             )
         except (NameError, ValueError):
-            logger.debug(f"No separators found for language {language}. Using defaults.")
+            logger.debug(
+                f"No separators found for language {language}. Using defaults.")
 
     splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         encoding_name="cl100k_base",
@@ -142,6 +143,7 @@ def recursive_split(
         separators=separators,
     )
     return splitter.split_documents(docs)
+
 
 def semantic_split(docs: List[Document]) -> List[Document]:
     """
@@ -158,6 +160,7 @@ def semantic_split(docs: List[Document]) -> List[Document]:
     )
     return splitter.split_documents(docs)
 
+
 """
 ## Step 5: Generate the evaluation dataset
 """
@@ -170,7 +173,8 @@ generator_llm = ChatOllama(model="llama3.2")
 critic_llm = ChatOllama(model="llama3.2")
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
-generator = TestsetGenerator.from_langchain(generator_llm, critic_llm, embeddings)
+generator = TestsetGenerator.from_langchain(
+    generator_llm, critic_llm, embeddings)
 
 distributions = {simple: 0.5, multi_context: 0.4, reasoning: 0.1}
 
@@ -190,11 +194,13 @@ testset.head()
 logger.info("## Step 6: Evaluate chunking strategies")
 
 
-client = MongoClient(MONGODB_URI, appname="devrel.showcase.chunking_strategies")
+client = MongoClient(
+    MONGODB_URI, appname="devrel.showcase.chunking_strategies")
 DB_NAME = "evals"
 COLLECTION_NAME = "chunking"
 ATLAS_VECTOR_SEARCH_INDEX_NAME = "vector_index"
 MONGODB_COLLECTION = client[DB_NAME][COLLECTION_NAME]
+
 
 def create_vector_store(docs: List[Document]) -> MongoDBAtlasVectorSearch:
     """
@@ -219,10 +225,12 @@ def create_vector_store(docs: List[Document]) -> MongoDBAtlasVectorSearch:
 
 # nest_asyncio.apply()
 
+
 tqdm.get_lock().locks = []
 
 QUESTIONS = testset.question.to_list()
 GROUND_TRUTH = testset.ground_truth.to_list()
+
 
 def perform_eval(docs: List[Document]) -> Dict[str, float]:
     """
@@ -240,7 +248,8 @@ def perform_eval(docs: List[Document]) -> Dict[str, float]:
         "contexts": [],
     }
 
-    logger.debug(f"Deleting existing documents in the collection {DB_NAME}.{COLLECTION_NAME}")
+    logger.debug(
+        f"Deleting existing documents in the collection {DB_NAME}.{COLLECTION_NAME}")
     MONGODB_COLLECTION.delete_many({})
     logger.debug("Deletion complete")
     vector_store = create_vector_store(docs)
@@ -248,7 +257,8 @@ def perform_eval(docs: List[Document]) -> Dict[str, float]:
     logger.debug("Getting contexts for evaluation set")
     for question in tqdm(QUESTIONS):
         eval_data["contexts"].append(
-            [doc.page_content for doc in vector_store.similarity_search(question, k=3)]
+            [doc.page_content for doc in vector_store.similarity_search(
+                question, k=3)]
         )
     dataset = Dataset.from_dict(eval_data)
 
@@ -261,17 +271,20 @@ def perform_eval(docs: List[Document]) -> Dict[str, float]:
     )
     return result
 
+
 for chunk_size in [100, 200, 500, 1000]:
     chunk_overlap = int(0.15 * chunk_size)
     logger.debug(f"CHUNK SIZE: {chunk_size}")
     logger.debug("------ Fixed token without overlap ------")
-    logger.debug(f"Result: {perform_eval(fixed_token_split(pages, chunk_size, 0))}")
+    logger.debug(
+        f"Result: {perform_eval(fixed_token_split(pages, chunk_size, 0))}")
     logger.debug("------ Fixed token with overlap ------")
     logger.debug(
         f"Result: {perform_eval(fixed_token_split(pages, chunk_size, chunk_overlap))}"
     )
     logger.debug("------ Recursive with overlap ------")
-    logger.debug(f"Result: {perform_eval(recursive_split(pages, chunk_size, chunk_overlap))}")
+    logger.debug(
+        f"Result: {perform_eval(recursive_split(pages, chunk_size, chunk_overlap))}")
     logger.debug("------ Recursive Python splitter with overlap ------")
     logger.debug(
         f"Result: {perform_eval(recursive_split(pages, chunk_size, chunk_overlap, Language.PYTHON))}"

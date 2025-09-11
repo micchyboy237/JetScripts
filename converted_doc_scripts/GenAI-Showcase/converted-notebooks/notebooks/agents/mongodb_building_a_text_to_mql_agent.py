@@ -1,4 +1,4 @@
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.messages import AIMessage
 from langchain_core.runnables import RunnableConfig
@@ -146,11 +146,6 @@ logger.info("# System Setup and Configuration")
 # !pip install -U langgraph langgraph-checkpoint-mongodb langchain-mongodb langchain-ollama ollama pymongo
 
 
-
-
-
-
-
 logger.debug("📦 All dependencies installed successfully!")
 
 """
@@ -234,7 +229,8 @@ This dataset demonstrates real-world complexity suitable for testing aggregation
 """
 logger.info("# Data Discovery")
 
-logger.debug("\n📋 Available Collections:", list(db.get_usable_collection_names()))
+logger.debug("\n📋 Available Collections:",
+             list(db.get_usable_collection_names()))
 
 logger.debug("\n📊 Movies Collection Schema Sample:")
 logger.debug(db.get_collection_info(["movies"])[:500] + "...")
@@ -300,6 +296,7 @@ This maintains all functionality of the standard LangGraph memory system while a
 """
 logger.info("# Persisting Agent Outputs")
 
+
 class LLMSummarizingMongoDBSaver(MongoDBSaver):
     """MongoDB saver with LLM-powered intelligent summarization"""
 
@@ -351,7 +348,8 @@ class LLMSummarizingMongoDBSaver(MongoDBSaver):
                     tool_info.append(f"{tool_name}({tool_args})")
                 context_parts.append(f"Tool calls: {', '.join(tool_info)}")
 
-            context = "\n".join(context_parts) if context_parts else "No content"
+            context = "\n".join(
+                context_parts) if context_parts else "No content"
 
             prompt = f"""Summarize this conversation step in 2-5 words with a relevant emoji.
 
@@ -401,7 +399,8 @@ Summary:"""
 
             enhanced_metadata = metadata.copy() if metadata else {}
             enhanced_metadata["step_summary"] = step_summary
-            enhanced_metadata["step_timestamp"] = checkpoint.get("ts", "unknown")
+            enhanced_metadata["step_timestamp"] = checkpoint.get(
+                "ts", "unknown")
 
             messages = checkpoint.get("channel_values", {}).get("messages", [])
             enhanced_metadata["step_number"] = len(messages)
@@ -411,6 +410,7 @@ Summary:"""
         except Exception as e:
             logger.debug(f"❌ Error adding LLM summary: {e}")
             return super().put(config, checkpoint, metadata, new_versions)
+
 
 """
 ## Thread Inspection and Debugging
@@ -451,6 +451,7 @@ Step 5 [14:23:49]
 """
 logger.info("## Thread Inspection and Debugging")
 
+
 def inspect_thread_with_summaries_enhanced(
     thread_id: str, limit: int = 20, show_details: bool = False
 ):
@@ -460,7 +461,8 @@ def inspect_thread_with_summaries_enhanced(
         collection = db_checkpoints.checkpoints
 
         checkpoints = list(
-            collection.find({"thread_id": thread_id}).sort("_id", 1).limit(limit)
+            collection.find({"thread_id": thread_id}).sort(
+                "_id", 1).limit(limit)
         )
 
         if not checkpoints:
@@ -488,7 +490,8 @@ def inspect_thread_with_summaries_enhanced(
                     decoded_metadata = msgpack.unpackb(
                         metadata, raw=False, strict_map_key=False
                     )
-                    step_summary = decoded_metadata.get("step_summary", "No summary")
+                    step_summary = decoded_metadata.get(
+                        "step_summary", "No summary")
                 except (msgpack.UnpackException, ValueError) as e:
                     step_summary = "Unable to decode"
 
@@ -499,7 +502,8 @@ def inspect_thread_with_summaries_enhanced(
                 consecutive_count += 1
             else:
                 if consecutive_count > 0:
-                    logger.debug(f"   └─ (repeated {consecutive_count} more times)")
+                    logger.debug(
+                        f"   └─ (repeated {consecutive_count} more times)")
 
                 logger.debug(f"\n📍 Step {i} [{time_str}]")
                 logger.debug(f"   {step_summary}")
@@ -547,6 +551,7 @@ agent.invoke({"messages": [("user", "Count all movies")]}, config)
 """
 logger.info("# ReAct Agent Creation Functions")
 
+
 def create_react_agent_with_enhanced_memory():
     """Create ReAct agent with LLM-powered summarizing checkpointer"""
     system_message = MONGODB_AGENT_SYSTEM_PROMPT.format(top_k=5)
@@ -558,6 +563,7 @@ def create_react_agent_with_enhanced_memory():
         prompt=system_message,
         checkpointer=summarizing_checkpointer,
     )
+
 
 """
 # Core LangGraph Components
@@ -591,6 +597,7 @@ Deterministic node that automatically lists all available MongoDB collections. A
 """
 logger.info("### Workflow Node Functions")
 
+
 def list_collections(state: MessagesState):
     """Deterministic node to list available collections"""
     call = {
@@ -604,11 +611,13 @@ def list_collections(state: MessagesState):
     summary = AIMessage(f"Available collections: {resp.content}")
     return {"messages": [call_msg, resp, summary]}
 
+
 """
 #### `call_get_schema(state: MessagesState)`
 LLM decision node that prompts the LLM to select which collections to examine and calls the schema tool. The LLM determines required schema information based on the user's query.
 """
 logger.info("#### `call_get_schema(state: MessagesState)`")
+
 
 def call_get_schema(state: MessagesState):
     """Prompt LLM to select and call schema tool"""
@@ -616,11 +625,13 @@ def call_get_schema(state: MessagesState):
     resp = llm_with.invoke(state["messages"])
     return {"messages": [resp]}
 
+
 """
 #### `generate_query(state: MessagesState)`
 Core query generation that converts user natural language into MongoDB aggregation pipeline. Uses the complete agent system prompt with conversation context.
 """
 logger.info("#### `generate_query(state: MessagesState)`")
+
 
 def generate_query(state: MessagesState):
     """Generate MongoDB aggregation pipeline"""
@@ -630,11 +641,13 @@ def generate_query(state: MessagesState):
     )
     return {"messages": [resp]}
 
+
 """
 #### `check_query(state: MessagesState)`
 Query validation that verifies and sanitizes the generated query before execution. Helps identify syntax errors and potential issues.
 """
 logger.info("#### `check_query(state: MessagesState)`")
+
 
 def check_query(state: MessagesState):
     """Validate and sanitize generated query"""
@@ -647,6 +660,7 @@ def check_query(state: MessagesState):
     )
     resp.id = state["messages"][-1].id
     return {"messages": [resp]}
+
 
 """
 #### `format_answer(state: MessagesState)`
@@ -739,6 +753,7 @@ def format_answer(state):
 
     return {"messages": [AIMessage(content=formatted_response)]}
 
+
 """
 ### Control Flow
 
@@ -747,9 +762,11 @@ Conditional edge that determines if the generated query requires validation. Rou
 """
 logger.info("### Control Flow")
 
+
 def need_checker(state: MessagesState) -> Literal[END, "check_query"]:
     """Conditional edge: run checker if tool call present"""
     return "check_query" if state["messages"][-1].tool_calls else END
+
 
 """
 ## Custom LangGraph Agent Creation
@@ -786,6 +803,7 @@ START → list_collections → call_get_schema → get_schema → generate_query
 """
 logger.info("## Custom LangGraph Agent Creation")
 
+
 def create_langgraph_agent_with_enhanced_memory():
     """Create custom LangGraph agent with LLM-powered summarizing checkpointer"""
     summarizing_checkpointer = LLMSummarizingMongoDBSaver(client, llm)
@@ -807,9 +825,11 @@ def create_langgraph_agent_with_enhanced_memory():
     g.add_conditional_edges("generate_query", need_checker)
     g.add_edge("check_query", "run_query")
     g.add_edge("run_query", "format_answer")
-    g.add_edge("format_answer", END)  # Direct to END - checkpoints handle persistence
+    # Direct to END - checkpoints handle persistence
+    g.add_edge("format_answer", END)
 
     return g.compile(checkpointer=summarizing_checkpointer)
+
 
 """
 # Agent Initialization
@@ -883,6 +903,7 @@ execute_react_with_memory("session_1", "Count all movies from 2020")
 """
 logger.info("## Agent Execution Functions")
 
+
 def execute_react_with_memory(thread_id: str, user_input: str):
     """Execute ReAct agent with persistent memory"""
     config = {"configurable": {"thread_id": thread_id}}
@@ -898,6 +919,7 @@ def execute_react_with_memory(thread_id: str, user_input: str):
 
     for event in events:
         event["messages"][-1].pretty_logger.debug()
+
 
 """
 ### `execute_graph_with_memory(thread_id: str, user_input: str)`
@@ -921,6 +943,7 @@ Both functions automatically save conversation state to MongoDB, enabling follow
 """
 logger.info("### `execute_graph_with_memory(thread_id: str, user_input: str)`")
 
+
 def execute_graph_with_memory(thread_id: str, user_input: str):
     """Execute LangGraph agent with persistent memory"""
     config = {"configurable": {"thread_id": thread_id}}
@@ -936,6 +959,7 @@ def execute_graph_with_memory(thread_id: str, user_input: str):
         stream_mode="values",
     ):
         step["messages"][-1].pretty_logger.debug()
+
 
 """
 # Memory Management Functions
@@ -973,6 +997,7 @@ Total checkpoints: 147
 """
 logger.info("# Memory Management Functions")
 
+
 def list_conversation_threads():
     """List all available conversation threads"""
     try:
@@ -997,6 +1022,7 @@ def list_conversation_threads():
         logger.debug(f"❌ Error listing threads: {e}")
         return []
 
+
 """
 ### `inspect_thread_history(thread_id: str, limit: int = 10)`
 
@@ -1014,6 +1040,7 @@ Inspects the conversation history for a specific thread, showing step-by-step ex
 **Usage:** `inspect_thread_history("session_123", limit=5)`
 """
 logger.info("### `inspect_thread_history(thread_id: str, limit: int = 10)`")
+
 
 def inspect_thread_history(thread_id: str, limit: int = 10):
     """Inspect conversation history for a specific thread"""
@@ -1035,7 +1062,8 @@ def inspect_thread_history(thread_id: str, limit: int = 10):
                 return []
 
             logger.debug(f"🔍 Thread History: {thread_id}")
-            logger.debug(f"📊 Showing {len(checkpoints)} most recent checkpoints")
+            logger.debug(
+                f"📊 Showing {len(checkpoints)} most recent checkpoints")
             logger.debug("=" * 60)
 
             for i, checkpoint in enumerate(reversed(checkpoints), 1):
@@ -1053,7 +1081,8 @@ def inspect_thread_history(thread_id: str, limit: int = 10):
                             tool_calls = last_msg.get("tool_calls", [])
 
                             if tool_calls:
-                                tool_name = tool_calls[0].get("name", "unknown")
+                                tool_name = tool_calls[0].get(
+                                    "name", "unknown")
                                 logger.debug(f"   🔧 Tool Call: {tool_name}")
                             elif content:
                                 preview = (
@@ -1068,6 +1097,7 @@ def inspect_thread_history(thread_id: str, limit: int = 10):
         except Exception as e:
             logger.debug(f"❌ Error inspecting thread: {e}")
             return []
+
 
 """
 ### `clear_thread_history(thread_id: str)`
@@ -1084,6 +1114,7 @@ Completely removes all conversation history for a specific thread from MongoDB.
 """
 logger.info("### `clear_thread_history(thread_id: str)`")
 
+
 def clear_thread_history(thread_id: str):
     """Clear conversation history for a specific thread"""
     try:
@@ -1091,14 +1122,17 @@ def clear_thread_history(thread_id: str):
 
         collection = db_checkpoints.checkpoints
         result = collection.delete_many({"thread_id": thread_id})
-        logger.debug(f"🗑️ Cleared {result.deleted_count} checkpoints from thread: {thread_id}")
+        logger.debug(
+            f"🗑️ Cleared {result.deleted_count} checkpoints from thread: {thread_id}")
 
         writes_collection = db_checkpoints.checkpoint_writes
         writes_result = writes_collection.delete_many({"thread_id": thread_id})
-        logger.debug(f"🗑️ Cleared {writes_result.deleted_count} checkpoint writes")
+        logger.debug(
+            f"🗑️ Cleared {writes_result.deleted_count} checkpoint writes")
 
     except Exception as e:
         logger.debug(f"❌ Error clearing thread: {e}")
+
 
 """
 ### `memory_system_stats()`
@@ -1127,6 +1161,7 @@ Database: checkpointing_db
 """
 logger.info("### `memory_system_stats()`")
 
+
 def memory_system_stats():
     """Show comprehensive memory statistics"""
     try:
@@ -1154,6 +1189,7 @@ def memory_system_stats():
     except Exception as e:
         logger.debug(f"❌ Error getting stats: {e}")
         return {}
+
 
 """
 # Demonstration Functions
@@ -1187,6 +1223,7 @@ Demonstrates core text-to-MQL functionality with 5 standalone queries of increas
 """
 logger.info("# Demonstration Functions")
 
+
 def demo_basic_queries():
     """Demonstrate basic text-to-MQL functionality"""
     logger.debug("🎬 DEMO: Basic Text-to-MQL Queries")
@@ -1211,6 +1248,7 @@ def demo_basic_queries():
         if i < len(queries):
             logger.debug("\n" + "=" * 50)
 
+
 """
 ### `demo_conversation_memory()`
 
@@ -1226,6 +1264,7 @@ Demonstrates multi-turn conversation where each query builds on previous results
 **Usage:** `demo_conversation_memory()`
 """
 logger.info("### `demo_conversation_memory()`")
+
 
 def demo_conversation_memory():
     """Demonstrate conversation memory across multiple related queries"""
@@ -1251,6 +1290,7 @@ def demo_conversation_memory():
     logger.debug("\n🔍 Complete Conversation Analysis:")
     logger.debug("=" * 40)
     inspect_thread_history(thread_id)
+
 
 """
 ### `compare_agents_with_memory()`
@@ -1396,7 +1436,8 @@ def compare_agents_with_memory(
                     last_msg.pretty_logger.debug()
 
                 if step_count > recursion_limit - 5:
-                    logger.debug(f"\nApproaching recursion limit at step {step_count}")
+                    logger.debug(
+                        f"\nApproaching recursion limit at step {step_count}")
                     break
 
             react_results["success"] = True
@@ -1441,12 +1482,14 @@ def compare_agents_with_memory(
 
                 if hasattr(last_msg, "tool_calls") and last_msg.tool_calls:
                     tool_name = last_msg.tool_calls[0]["name"]
-                    logger.debug(f"  Step {step_count}: Tool call: {tool_name}")
+                    logger.debug(
+                        f"  Step {step_count}: Tool call: {tool_name}")
                 elif hasattr(last_msg, "content") and last_msg.content:
                     content_preview = last_msg.content[:50] + (
                         "..." if len(last_msg.content) > 50 else ""
                     )
-                    logger.debug(f"  Step {step_count}: Response: {content_preview}")
+                    logger.debug(
+                        f"  Step {step_count}: Response: {content_preview}")
 
                 if not hasattr(last_msg, "tool_calls") or not last_msg.tool_calls:
                     logger.debug("\nFinal LangGraph Response:")
@@ -1529,17 +1572,21 @@ def compare_agents_with_memory(
         if react_results["execution_time"] < graph_results["execution_time"]:
             logger.debug("  - ReAct agent was faster for this query")
         else:
-            logger.debug("  - LangGraph agent was more efficient for this query")
+            logger.debug(
+                "  - LangGraph agent was more efficient for this query")
         logger.debug("  - Both agents handled the query successfully")
     elif graph_results["success"] and not react_results["success"]:
         logger.debug("  - Use LangGraph agent for this type of query")
-        logger.debug("  - ReAct agent struggled with the complexity/validation")
+        logger.debug(
+            "  - ReAct agent struggled with the complexity/validation")
     elif react_results["success"] and not graph_results["success"]:
         logger.debug("  - ReAct agent was more robust for this query")
         logger.debug("  - Consider debugging LangGraph workflow")
     else:
-        logger.debug("  - Query may be too complex or have data structure issues")
-        logger.debug("  - Consider simplifying the query or debugging the dataset")
+        logger.debug(
+            "  - Query may be too complex or have data structure issues")
+        logger.debug(
+            "  - Consider simplifying the query or debugging the dataset")
 
     return {
         "react": react_results,
@@ -1547,6 +1594,7 @@ def compare_agents_with_memory(
         "query": query,
         "config": {"max_retries": max_retries, "recursion_limit": recursion_limit},
     }
+
 
 """
 ### `test_memory_functionality()`
@@ -1562,6 +1610,7 @@ Simple two-step test focused specifically on memory capabilities.
 **Usage:** `test_memory_functionality()`
 """
 logger.info("### `test_memory_functionality()`")
+
 
 def test_memory_functionality():
     """Test memory functionality with a simple example"""
@@ -1583,6 +1632,7 @@ def test_memory_functionality():
 
     return thread_id
 
+
 """
 ### `test_enhanced_summarization()`
 
@@ -1598,6 +1648,7 @@ Tests the LLM-powered summarization system with various query patterns.
 **Usage:** `test_enhanced_summarization()`
 """
 logger.info("### `test_enhanced_summarization()`")
+
 
 def test_enhanced_summarization():
     """Test the enhanced summarization system with various query patterns"""
@@ -1627,6 +1678,7 @@ def test_enhanced_summarization():
 
     return thread_id
 
+
 """
 ## Supporting Test Functions
 
@@ -1638,6 +1690,7 @@ These functions provide pre-configured test scenarios for validating agent compa
 *   `run_comparison_tests()` function executes all three scenarios in sequence, providing comprehensive assessment of both ReAct and LangGraph agent capabilities with automatic error isolation and performance benchmarking.
 """
 logger.info("## Supporting Test Functions")
+
 
 def test_simple_comparison():
     """Test with a simple query that should work"""
@@ -1769,6 +1822,7 @@ This interface is ideal for exploratory data analysis sessions where you want to
 """
 logger.info("# Interactive Query Interface")
 
+
 def interactive_query():
     """Interactive query interface with memory"""
     logger.debug("🔍 Interactive Text-to-MQL Query Interface")
@@ -1806,6 +1860,7 @@ def interactive_query():
             break
         except Exception as e:
             logger.debug(f"❌ Error: {e}")
+
 
 """
 # System Initialization and Quick Reference
@@ -1955,7 +2010,8 @@ demo_conversation_memory()
 
 """
 ## Demo 3: Enhanced Agent Comparison with Different Query Complexities"""
-logger.info("## Demo 3: Enhanced Agent Comparison with Different Query Complexities")
+logger.info(
+    "## Demo 3: Enhanced Agent Comparison with Different Query Complexities")
 """
 
 logger.debug("📊 Demo 3a: Simple Query Comparison")
@@ -1980,7 +2036,7 @@ compare_agents_with_memory(
     recursion_limit=50,
 )
 
-"""## Demo 3d: Comprehensive Test Suite"""
+"""  # Demo 3d: Comprehensive Test Suite"""
 
 logger.debug("\n" + "=" * 80 + "\n")
 logger.debug("📊 Demo 3d: Comprehensive Agent Test Suite")
@@ -1994,7 +2050,8 @@ for test_name, result in results.items():
     if result:
         react_success = "✅" if result["react"]["success"] else "❌"
         graph_success = "✅" if result["langgraph"]["success"] else "❌"
-        logger.debug(f"{test_name}: ReAct {react_success} | LangGraph {graph_success}")
+        logger.debug(
+            f"{test_name}: ReAct {react_success} | LangGraph {graph_success}")
     else:
         logger.debug(f"{test_name}: ❌ Test Failed")
 
@@ -2008,8 +2065,8 @@ list_conversation_threads()
 """
 ## Demo 5: Enhanced inspection - `inspect_thread_with_summaries_enhanced(thread_id)`
 """
-logger.info("## Demo 5: Enhanced inspection - `inspect_thread_with_summaries_enhanced(thread_id)`")
-
+logger.info(
+    "## Demo 5: Enhanced inspection - `inspect_thread_with_summaries_enhanced(thread_id)`")
 
 
 """

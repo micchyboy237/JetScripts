@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.agents import AgentType
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
@@ -53,7 +53,6 @@ By making data insights more accessible, this method has the potential to transf
 logger.info("# Data Analysis Simple Agent")
 
 
-
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
@@ -71,7 +70,8 @@ n_rows = 1000
 start_date = datetime(2022, 1, 1)
 dates = [start_date + timedelta(days=i) for i in range(n_rows)]
 
-makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet', 'Nissan', 'BMW', 'Mercedes', 'Audi', 'Hyundai', 'Kia']
+makes = ['Toyota', 'Honda', 'Ford', 'Chevrolet',
+         'Nissan', 'BMW', 'Mercedes', 'Audi', 'Hyundai', 'Kia']
 models = ['Sedan', 'SUV', 'Truck', 'Hatchback', 'Coupe', 'Van']
 colors = ['Red', 'Blue', 'Black', 'White', 'Silver', 'Gray', 'Green']
 
@@ -113,7 +113,8 @@ agent = create_pandas_dataframe_agent(
     allow_dangerous_code=True,
     agent_type=AgentType.OPENAI_FUNCTIONS,
 )
-logger.debug("Data Analysis Agent is ready. You can now ask questions about the data.")
+logger.debug(
+    "Data Analysis Agent is ready. You can now ask questions about the data.")
 
 """
 ## Define Question-Asking Function
@@ -121,6 +122,7 @@ logger.debug("Data Analysis Agent is ready. You can now ask questions about the 
 This function allows us to easily ask questions to our data analysis agent and display the results.
 """
 logger.info("## Define Question-Asking Function")
+
 
 def ask_agent(question):
     """Function to ask questions to the agent and display the response"""
@@ -131,6 +133,7 @@ def ask_agent(question):
     logger.debug(f"Question: {question}")
     logger.debug(f"Answer: {response}")
     logger.debug("---")
+
 
 """
 ## Example Questions

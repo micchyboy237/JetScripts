@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup as Soup
 from langchain_community.document_loaders.recursive_url_loader import RecursiveUrlLoader
 # from langchain_text_splitters import RecursiveCharacterTextSplitter
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd

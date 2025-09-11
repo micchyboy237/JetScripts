@@ -3,7 +3,7 @@ from athina.keys import AthinaApiKey, OpenAiApiKey
 from athina.loaders import Loader
 from datasets import Dataset
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.document_loaders import CSVLoader
@@ -77,7 +77,6 @@ vectorstore = Qdrant.from_documents(
 logger.info("## **Chromadb (Optional)**")
 
 
-
 """
 ## **Retriever**
 """
@@ -96,7 +95,8 @@ client = Client()
 prompt = client.pull_prompt("langchain-ai/rag-fusion-query-generation")
 
 generate_queries = (
-    prompt | ChatOllama(model="llama3.2") | StrOutputParser() | (lambda x: x.split("\n"))
+    prompt | ChatOllama(model="llama3.2") | StrOutputParser() | (
+        lambda x: x.split("\n"))
 )
 
 
@@ -115,6 +115,7 @@ def reciprocal_rank_fusion(results: list[list], k=60):
         for doc, score in sorted(fused_scores.items(), key=lambda x: x[1], reverse=True)
     ]
     return reranked_results
+
 
 chain = generate_queries | retriever.map() | reciprocal_rank_fusion
 
@@ -157,11 +158,13 @@ logger.info("## **Preparing Data for Evaluation**")
 question = ["what are points on a mortgage"]
 response = []
 contexts = []
-ground_truths = ["Points, sometimes also called a 'discount point', are a form of pre-paid interest."]
+ground_truths = [
+    "Points, sometimes also called a 'discount point', are a form of pre-paid interest."]
 
 for query in question:
-  response.append(rag_fusion_chain.invoke(query))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(rag_fusion_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -197,6 +200,7 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-RagasAnswerRelevancy(model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
+RagasAnswerRelevancy(
+    model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

@@ -1,7 +1,7 @@
 from IPython.display import Image, display
 from collections.abc import Sequence
 from datetime import datetime
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.agents import tool
@@ -44,7 +44,8 @@ logger.orange(f"Logs: {log_file}")
 
 ## Install Libraries
 """
-logger.info("# How To Build An Agentic Chatbot With Claude 3.5 Sonnet, LangGraph and MongoDB")
+logger.info(
+    "# How To Build An Agentic Chatbot With Claude 3.5 Sonnet, LangGraph and MongoDB")
 
 # !pip install -U --quiet langgraph langchain-community langchain-anthropic langchain-ollama langchain-mongodb langsmith
 # !pip install -U --quiet pandas ollama pymongo
@@ -73,7 +74,6 @@ os.environ["LANGCHAIN_PROJECT"] = "hr_agentic_chatbot"
 ## Synthetic Data Generation
 """
 logger.info("## Synthetic Data Generation")
-
 
 
 job_titles = [
@@ -212,7 +212,8 @@ def create_employee(
 
 
 employees = [
-    create_employee("E123456", "John", "Doe", "Software Engineer", "IT", "M987654"),
+    create_employee("E123456", "John", "Doe",
+                    "Software Engineer", "IT", "M987654"),
     create_employee(
         "E123457", "Jane", "Doe", "Senior Software Engineer", "IT", "M987654"
     ),
@@ -225,7 +226,8 @@ employees = [
     create_employee(
         "E123460", "Sarah", "Davis", "Project Manager", "Project Management", "M987657"
     ),
-    create_employee("E123461", "Robert", "Johnson", "UX Designer", "Design", "M987658"),
+    create_employee("E123461", "Robert", "Johnson",
+                    "UX Designer", "Design", "M987658"),
     create_employee(
         "E123462", "David", "Wilson", "QA Engineer", "Quality Assurance", "M987659"
     ),
@@ -250,6 +252,7 @@ df_employees.head()
 """
 logger.info("## Embedding Generation")
 
+
 def create_employee_string(employee):
     job_details = f"{employee['job_details']['job_title']} in {employee['job_details']['department']}"
     skills = ", ".join(employee["skills"])
@@ -267,10 +270,11 @@ def create_employee_string(employee):
 
 
 employee_string = create_employee_string(employees[0])
-logger.debug(f"Here's what an employee string looks like: /n {employee_string}")
+logger.debug(
+    f"Here's what an employee string looks like: /n {employee_string}")
 
-df_employees["employee_string"] = df_employees.apply(create_employee_string, axis=1)
-
+df_employees["employee_string"] = df_employees.apply(
+    create_employee_string, axis=1)
 
 
 def get_embedding(text):
@@ -398,7 +402,6 @@ Below is the vector search index definition for this notebook
 logger.info("## Vector Search Index Initalisation")
 
 
-
 def get_session_history(session_id: str) -> MongoDBChatMessageHistory:
     return MongoDBChatMessageHistory(
         MONGO_URI, session_id, database_name=DATABASE_NAME, collection_name="history"
@@ -450,8 +453,6 @@ tools = [lookup_employees]
 logger.info("## Agent Definition")
 
 
-
-
 def create_agent(llm, tools, system_message: str):
     """Create an agent."""
 
@@ -473,9 +474,11 @@ def create_agent(llm, tools, system_message: str):
     )
     prompt = prompt.partial(system_message=system_message)
     prompt = prompt.partial(time=lambda: str(datetime.now()))
-    prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
+    prompt = prompt.partial(tool_names=", ".join(
+        [tool.name for tool in tools]))
 
     return prompt | llm.bind_tools(tools)
+
 
 chatbot_agent = create_agent(
     llm,
@@ -487,8 +490,6 @@ chatbot_agent = create_agent(
 ## Node Definition
 """
 logger.info("## Node Definition")
-
-
 
 
 def agent_node(state, agent, name):
@@ -503,7 +504,8 @@ def agent_node(state, agent, name):
     }
 
 
-chatbot_node = functools.partial(agent_node, agent=chatbot_agent, name="HR Chatbot")
+chatbot_node = functools.partial(
+    agent_node, agent=chatbot_agent, name="HR Chatbot")
 tool_node = ToolNode(tools, name="tools")
 
 """
@@ -512,11 +514,10 @@ tool_node = ToolNode(tools, name="tools")
 logger.info("## State Definition")
 
 
-
-
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
     sender: str
+
 
 """
 ## Agentic Workflow Definition
@@ -530,7 +531,8 @@ workflow.add_node("chatbot", chatbot_node)
 workflow.add_node("tools", tool_node)
 
 workflow.set_entry_point("chatbot")
-workflow.add_conditional_edges("chatbot", tools_condition, {"tools": "tools", END: END})
+workflow.add_conditional_edges("chatbot", tools_condition, {
+                               "tools": "tools", END: END})
 
 workflow.add_edge("tools", "chatbot")
 
@@ -551,7 +553,6 @@ except Exception:
 ## Process and View Response
 """
 logger.info("## Process and View Response")
-
 
 
 events = graph.stream(

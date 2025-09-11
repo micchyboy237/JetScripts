@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
@@ -83,6 +83,7 @@ def create_chain(prompt_template):
     """
     prompt = PromptTemplate.from_template(prompt_template)
     return prompt | llm
+
 
 """
 ## 1. Direct Task Specification
@@ -170,6 +171,7 @@ Let's compare different zero-shot prompt structures for the same task to evaluat
 """
 logger.info("## 4. Comparative Analysis")
 
+
 def compare_prompts(task, prompt_templates):
     """
     Compare different prompt templates for the same task.
@@ -185,6 +187,7 @@ def compare_prompts(task, prompt_templates):
         logger.debug(f"{name} Prompt Result:")
         logger.debug(result)
         logger.debug("\n" + "-"*50 + "\n")
+
 
 task = "Explain concisely the concept of blockchain technology"
 

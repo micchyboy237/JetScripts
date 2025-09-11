@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -55,9 +55,11 @@ load_dotenv()
 
 llm = ChatOllama(model="llama3.2")
 
+
 def get_response(prompt):
     """Helper function to get response from the language model."""
     return llm.invoke(prompt).content
+
 
 """
 ## 1. Using Negative Examples
@@ -129,12 +131,14 @@ To evaluate and refine our negative prompts, we can create a function that check
 """
 logger.info("## 4. Evaluation and Refinement")
 
+
 def evaluate_output(output, constraints):
     """Evaluate if the output meets the given constraints."""
     results = {}
     for constraint, check_func in constraints.items():
         results[constraint] = check_func(output)
     return results
+
 
 constraints = {
     "word_count": lambda x: len(x.split()) <= 100,
@@ -150,7 +154,8 @@ if not all(evaluation_results.values()):
     refined_prompt = constraint_prompt.format(
         topic="artificial intelligence",
         style="technical and concise",  # Added 'concise' to address word count
-        excluded_words="robot, human-like, science fiction, like, as"  # Added 'like' and 'as' to avoid analogies
+        # Added 'like' and 'as' to avoid analogies
+        excluded_words="robot, human-like, science fiction, like, as"
     )
     refined_response = get_response(refined_prompt)
     logger.debug("\nRefined response:\n", refined_response)

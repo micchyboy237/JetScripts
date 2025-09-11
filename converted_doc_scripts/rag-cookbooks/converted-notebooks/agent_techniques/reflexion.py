@@ -1,5 +1,5 @@
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_core.messages import HumanMessage, ToolMessage
@@ -75,8 +75,6 @@ llm = ChatOllama(model="llama3.2")
 tavily_tool = TavilySearchResults(max_results=5)
 
 
-
-
 class Reflection(BaseModel):
     missing: str = Field(description="Critique of what is missing.")
     superfluous: str = Field(description="Critique of what is superfluous")
@@ -85,8 +83,10 @@ class Reflection(BaseModel):
 class AnswerQuestion(BaseModel):
     """Answer the question. Provide an answer, reflection, and then follow up with search queries to improve the answer."""
 
-    answer: str = Field(description="~250 word detailed answer to the question.")
-    reflection: Reflection = Field(description="Your reflection on the initial answer.")
+    answer: str = Field(
+        description="~250 word detailed answer to the question.")
+    reflection: Reflection = Field(
+        description="Your reflection on the initial answer.")
     search_queries: list[str] = Field(
         description="1-3 search queries for researching improvements to address the critique of your current answer."
     )
@@ -187,7 +187,8 @@ revision_chain = actor_prompt_template.partial(
 ) | llm.bind_tools(tools=[ReviseAnswer])
 revision_validator = PydanticToolsParser(tools=[ReviseAnswer])
 
-revisor = ResponderWithRetries(runnable=revision_chain, validator=revision_validator)
+revisor = ResponderWithRetries(
+    runnable=revision_chain, validator=revision_validator)
 
 
 revised = revisor.respond(
@@ -213,8 +214,6 @@ revised = revisor.respond(
 revised["messages"]
 
 
-
-
 def run_queries(search_queries: list[str], **kwargs):
     """Run the generated queries."""
     return tavily_tool.batch([{"query": query} for query in search_queries])
@@ -222,12 +221,11 @@ def run_queries(search_queries: list[str], **kwargs):
 
 tool_node = ToolNode(
     [
-        StructuredTool.from_function(run_queries, name=AnswerQuestion.__name__),
+        StructuredTool.from_function(
+            run_queries, name=AnswerQuestion.__name__),
         StructuredTool.from_function(run_queries, name=ReviseAnswer.__name__),
     ]
 )
-
-
 
 
 class State(TypedDict):
@@ -243,7 +241,6 @@ builder.add_node("execute_tools", tool_node)
 builder.add_node("revise", revisor.respond)
 builder.add_edge("draft", "execute_tools")
 builder.add_edge("execute_tools", "revise")
-
 
 
 def _get_num_iterations(state: list):

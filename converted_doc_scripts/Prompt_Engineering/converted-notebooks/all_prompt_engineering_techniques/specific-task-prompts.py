@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -81,7 +81,8 @@ As machines become increasingly capable, tasks considered to require "intelligen
 """
 
 summarization_chain = summarization_template | llm
-summary = summarization_chain.invoke({"text": long_text, "num_sentences": 3}).content
+summary = summarization_chain.invoke(
+    {"text": long_text, "num_sentences": 3}).content
 
 logger.debug("Summary:")
 logger.debug(summary)
@@ -130,7 +131,8 @@ language = "Python"
 task = "Create a function that takes a list of numbers and returns the average of the even numbers in the list."
 
 code_gen_chain = code_gen_template | llm
-generated_code = code_gen_chain.invoke({"language": language, "task": task}).content
+generated_code = code_gen_chain.invoke(
+    {"language": language, "task": task}).content
 
 logger.debug("Generated Code:")
 logger.debug(generated_code)
@@ -152,7 +154,8 @@ setting = "a space station orbiting a distant planet"
 theme = "the nature of humanity"
 
 creative_writing_chain = creative_writing_template | llm
-story = creative_writing_chain.invoke({"genre": genre, "setting": setting, "theme": theme}).content
+story = creative_writing_chain.invoke(
+    {"genre": genre, "setting": setting, "theme": theme}).content
 
 logger.debug("Generated Story:")
 logger.debug(story)

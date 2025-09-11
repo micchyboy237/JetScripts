@@ -3,7 +3,7 @@ from athina.keys import AthinaApiKey, OpenAiApiKey
 from athina.loaders import Loader
 from datasets import Dataset
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.document_loaders import CSVLoader
@@ -122,8 +122,9 @@ response = []
 contexts = []
 
 for query in questions:
-  response.append(rag_chain.invoke(query))
-  contexts.append([docs.page_content for docs in compression_retriever.get_relevant_documents(query)])
+    response.append(rag_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in compression_retriever.get_relevant_documents(query)])
 
 data = {
     "query": questions,
@@ -158,6 +159,7 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-RagasContextRelevancy(model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
+RagasContextRelevancy(
+    model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

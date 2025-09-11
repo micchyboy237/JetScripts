@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -66,6 +66,7 @@ load_dotenv()
 
 llm = ChatOllama(model="llama3.2")
 
+
 def run_prompt(prompt, **kwargs):
     """Helper function to run a prompt through the language model.
 
@@ -76,9 +77,11 @@ def run_prompt(prompt, **kwargs):
     Returns:
         str: The model's response.
     """
-    prompt_template = PromptTemplate(template=prompt, input_variables=list(kwargs.keys()))
+    prompt_template = PromptTemplate(
+        template=prompt, input_variables=list(kwargs.keys()))
     chain = prompt_template | llm
     return chain.invoke(kwargs).content
+
 
 """
 ## Breaking Down Complex Tasks
@@ -115,6 +118,7 @@ Now that we have our subtasks, let's create individual prompts for each and chai
 """
 logger.info("## Chaining Subtasks in Prompts")
 
+
 def analyze_profitability(revenue, net_income):
     """Analyze the company's profitability.
 
@@ -133,6 +137,7 @@ def analyze_profitability(revenue, net_income):
     Calculate the profit margin and provide a brief analysis of the company's profitability.
     """
     return run_prompt(prompt, revenue=revenue, net_income=net_income)
+
 
 def analyze_liquidity(total_assets, total_liabilities):
     """Analyze the company's liquidity.
@@ -153,6 +158,7 @@ def analyze_liquidity(total_assets, total_liabilities):
     """
     return run_prompt(prompt, total_assets=total_assets, total_liabilities=total_liabilities)
 
+
 def analyze_cash_flow(cash_flow):
     """Analyze the company's cash flow.
 
@@ -170,6 +176,7 @@ def analyze_cash_flow(cash_flow):
     """
     return run_prompt(prompt, cash_flow=cash_flow)
 
+
 profitability_analysis = analyze_profitability(10, 2)
 liquidity_analysis = analyze_liquidity(15, 7)
 cash_flow_analysis = analyze_cash_flow(3)
@@ -184,6 +191,7 @@ logger.debug("\nCash Flow Analysis:\n", cash_flow_analysis)
 Finally, let's integrate the results from our subtasks to provide an overall analysis of the company's financial health.
 """
 logger.info("## Integrating Results")
+
 
 def integrate_results(profitability, liquidity, cash_flow):
     """Integrate the results from subtasks to provide an overall analysis.
@@ -212,7 +220,9 @@ def integrate_results(profitability, liquidity, cash_flow):
     """
     return run_prompt(prompt, profitability=profitability, liquidity=liquidity, cash_flow=cash_flow)
 
-overall_analysis = integrate_results(profitability_analysis, liquidity_analysis, cash_flow_analysis)
+
+overall_analysis = integrate_results(
+    profitability_analysis, liquidity_analysis, cash_flow_analysis)
 logger.debug("Overall Financial Health Analysis:\n", overall_analysis)
 
 logger.info("\n\n[DONE]", bright=True)

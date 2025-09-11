@@ -1,10 +1,10 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain_core.prompts import PromptTemplate
 from langchain_community.tools import DuckDuckGoSearchResults
-from langchain_core.pydantic_v1 import BaseModel, Field
 from typing import List, Dict, Any, Tuple, Optional
+from pydantic import BaseModel, Field
 import nltk
 import os
 import re

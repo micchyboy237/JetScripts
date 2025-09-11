@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -59,12 +59,14 @@ load_dotenv()
 
 llm = ChatOllama(model="llama3.2")
 
+
 def get_response(prompt):
     """Helper function to get model response and print it."""
     response = llm.invoke(prompt).content
     logger.debug(response)
     logger.debug("-" * 50)
     return response
+
 
 """
 ## Exploring Different Prompt Formats

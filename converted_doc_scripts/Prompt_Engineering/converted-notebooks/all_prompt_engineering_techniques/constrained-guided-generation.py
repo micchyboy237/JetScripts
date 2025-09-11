@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.output_parsers import RegexParser
 from langchain.prompts import PromptTemplate
@@ -54,12 +54,12 @@ First, let's import the necessary libraries and set up our environment.
 logger.info("# Constrained and Guided Generation Tutorial")
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
 llm = ChatOllama(model="llama3.2")
+
 
 def display_output(output):
     """Display the model's output in a formatted manner."""
@@ -68,6 +68,7 @@ def display_output(output):
     logger.debug(output)
     logger.debug("-" * 40)
     logger.debug()
+
 
 """
 ## Setting Up Constraints for Model Outputs
@@ -158,7 +159,8 @@ logger.info("## Using Regex Parser for Structured Output")
 
 regex_parser = RegexParser(
     regex=r"COMPANY:\s*([\s\S]*?)\n\s*RESPONSIBILITIES:\s*([\s\S]*?)\n\s*QUALIFICATIONS:\s*([\s\S]*?)\n\s*EEO:\s*([\s\S]*)",
-    output_keys=["company_description", "responsibilities", "qualifications", "eeo_statement"]
+    output_keys=["company_description", "responsibilities",
+                 "qualifications", "eeo_statement"]
 )
 
 parsed_job_posting_prompt = PromptTemplate(
@@ -192,11 +194,13 @@ parsed_job_posting_prompt = PromptTemplate(
     """
 )
 
+
 def clean_output(output):
     for key, value in output.items():
         if isinstance(value, str):
             output[key] = re.sub(r'\n\s*', '\n', value.strip())
     return output
+
 
 chain = parsed_job_posting_prompt | llm
 raw_output = chain.invoke(input_variables).content

@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -49,7 +49,6 @@ Let's start by importing the necessary libraries and setting up our environment.
 logger.info("# Prompt Chaining and Sequencing Tutorial")
 
 
-
 load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
@@ -73,6 +72,7 @@ summary_prompt = PromptTemplate(
     template="Summarize the following story in one sentence:\n{story}"
 )
 
+
 def story_chain(genre):
     """Generate a story and its summary based on a given genre.
 
@@ -85,6 +85,7 @@ def story_chain(genre):
     story = (story_prompt | llm).invoke({"genre": genre}).content
     summary = (summary_prompt | llm).invoke({"story": story}).content
     return story, summary
+
 
 genre = "science fiction"
 story, summary = story_chain(genre)
@@ -112,6 +113,7 @@ takeaway_prompt = PromptTemplate(
     template="Given the following text with the main theme '{theme}' and tone '{tone}', what are the key takeaways?\n{text}"
 )
 
+
 def analyze_text(text):
     """Perform a multi-step analysis of a given text.
 
@@ -123,8 +125,10 @@ def analyze_text(text):
     """
     theme = (theme_prompt | llm).invoke({"text": text}).content
     tone = (tone_prompt | llm).invoke({"text": text}).content
-    takeaways = (takeaway_prompt | llm).invoke({"text": text, "theme": theme, "tone": tone}).content
+    takeaways = (takeaway_prompt | llm).invoke(
+        {"text": text, "theme": theme, "tone": tone}).content
     return {"theme": theme, "tone": tone, "takeaways": takeaways}
+
 
 sample_text = "The rapid advancement of artificial intelligence has sparked both excitement and concern among experts. While AI promises to revolutionize industries and improve our daily lives, it also raises ethical questions about privacy, job displacement, and the potential for misuse. As we stand on the brink of this technological revolution, it's crucial that we approach AI development with caution and foresight, ensuring that its benefits are maximized while its risks are minimized."
 
@@ -149,6 +153,7 @@ follow_up_prompt = PromptTemplate(
     template="Based on the question '{question}' and the answer '{answer}', generate a relevant follow-up question."
 )
 
+
 def dynamic_qa(initial_question, num_follow_ups=3):
     """Conduct a dynamic Q&A session with follow-up questions.
 
@@ -163,13 +168,16 @@ def dynamic_qa(initial_question, num_follow_ups=3):
     current_question = initial_question
 
     for _ in range(num_follow_ups + 1):  # +1 for the initial question
-        answer = (answer_prompt | llm).invoke({"question": current_question}).content
+        answer = (answer_prompt | llm).invoke(
+            {"question": current_question}).content
         qa_chain.append({"question": current_question, "answer": answer})
 
         if _ < num_follow_ups:  # Generate follow-up for all but the last iteration
-            current_question = (follow_up_prompt | llm).invoke({"question": current_question, "answer": answer}).content
+            current_question = (follow_up_prompt | llm).invoke(
+                {"question": current_question, "answer": answer}).content
 
     return qa_chain
+
 
 initial_question = "What are the potential applications of quantum computing?"
 qa_session = dynamic_qa(initial_question)
@@ -195,6 +203,7 @@ validate_prompt = PromptTemplate(
     template="Is the number {number} truly related to the topic '{topic}'? Answer with 'Yes' or 'No' and explain why."
 )
 
+
 def extract_number(text):
     """Extract a 4-digit number from the given text.
 
@@ -206,6 +215,7 @@ def extract_number(text):
     """
     match = re.search(r'\b\d{4}\b', text)
     return match.group() if match else None
+
 
 def robust_number_generation(topic, max_attempts=3):
     """Generate a topic-related number with validation and error handling.
@@ -223,17 +233,21 @@ def robust_number_generation(topic, max_attempts=3):
             number = extract_number(response)
 
             if not number:
-                raise ValueError(f"Failed to extract a 4-digit number from the response: {response}")
+                raise ValueError(
+                    f"Failed to extract a 4-digit number from the response: {response}")
 
-            validation = (validate_prompt | llm).invoke({"number": number, "topic": topic}).content
+            validation = (validate_prompt | llm).invoke(
+                {"number": number, "topic": topic}).content
             if validation.lower().startswith("yes"):
                 return number
             else:
-                logger.debug(f"Attempt {attempt + 1}: Number {number} was not validated. Reason: {validation}")
+                logger.debug(
+                    f"Attempt {attempt + 1}: Number {number} was not validated. Reason: {validation}")
         except Exception as e:
             logger.debug(f"Attempt {attempt + 1} failed: {str(e)}")
 
     return "Failed to generate a valid number after multiple attempts."
+
 
 topic = "World War II"
 result = robust_number_generation(topic)

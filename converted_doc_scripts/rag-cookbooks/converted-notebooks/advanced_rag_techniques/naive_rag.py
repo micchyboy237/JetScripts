@@ -3,7 +3,7 @@ from athina.keys import AthinaApiKey, OpenAiApiKey
 from athina.loaders import Loader
 from datasets import Dataset
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.llm.ollama.base_langchain import OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.document_loaders import CSVLoader
@@ -66,14 +66,14 @@ pc = PineconeClient(
 )
 
 pc.create_index(
-        name='my-index',
-        dimension=1536,
-        metric="cosine",
-        spec=ServerlessSpec(
-            cloud="aws",
-            region="us-east-1"
-        )
+    name='my-index',
+    dimension=1536,
+    metric="cosine",
+    spec=ServerlessSpec(
+        cloud="aws",
+        region="us-east-1"
     )
+)
 
 index_name = "my-index"
 
@@ -87,7 +87,6 @@ vectorstore = Pinecone.from_documents(
 ## **FAISS (Optional)**
 """
 logger.info("## **FAISS (Optional)**")
-
 
 
 """
@@ -134,8 +133,9 @@ response = []
 contexts = []
 
 for query in question:
-  response.append(rag_chain.invoke(query))
-  contexts.append([docs.page_content for docs in retriever.get_relevant_documents(query)])
+    response.append(rag_chain.invoke(query))
+    contexts.append(
+        [docs.page_content for docs in retriever.get_relevant_documents(query)])
 
 data = {
     "query": question,
@@ -170,6 +170,7 @@ AthinaApiKey.set_key(os.getenv('ATHINA_API_KEY'))
 
 dataset = Loader().load_dict(df_dict)
 
-DoesResponseAnswerQuery(model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
+DoesResponseAnswerQuery(
+    model="llama3.2", log_dir=f"{LOG_DIR}/chats").run_batch(data=dataset).to_df()
 
 logger.info("\n\n[DONE]", bright=True)

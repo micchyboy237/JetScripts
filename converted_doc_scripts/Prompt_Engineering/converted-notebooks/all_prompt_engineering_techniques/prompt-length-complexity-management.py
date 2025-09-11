@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.chains.summarize import load_summarize_chain
 from langchain.docstore.document import Document
@@ -189,6 +189,7 @@ For complex tasks that require multiple steps, we can use iterative processing. 
 """
 logger.info("### 3. Iterative Processing")
 
+
 def iterative_analysis(text, steps):
     """
     Perform iterative analysis on a given text.
@@ -208,6 +209,7 @@ def iterative_analysis(text, steps):
         )
         result = llm.invoke(prompt.format(text=result)).content
     return result
+
 
 analysis_steps = [
     "Identify the main topics discussed.",

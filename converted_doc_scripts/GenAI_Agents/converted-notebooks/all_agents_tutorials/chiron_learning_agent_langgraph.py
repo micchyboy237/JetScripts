@@ -1,7 +1,7 @@
 from IPython.display import Image, display
 from IPython.display import display
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utils.math import cosine_similarity
@@ -87,12 +87,10 @@ This notebook demonstrates a structured approach to guided learning. By combinin
 logger.info("# Chiron - A Feynman-Enhanced Learning Agent Using LangGraph")
 
 
-
 """
 # Imports
 """
 logger.info("# Imports")
-
 
 
 """
@@ -124,15 +122,18 @@ Each model is designed to capture specific aspects of the learning process while
 """
 logger.info("## Data Models Definition")
 
+
 class Goals(BaseModel):
     """Structure for defining learning goals"""
     goals: str = Field(None, description="Learning goals")
+
 
 class LearningCheckpoint(BaseModel):
     """Structure for a single checkpoint"""
     description: str = Field(..., description="Main checkpoint description")
     criteria: List[str] = Field(..., description="List of success criteria")
     verification: str = Field(..., description="How to verify this checkpoint")
+
 
 class Checkpoints(BaseModel):
     """Main checkpoints container with index tracking"""
@@ -141,9 +142,12 @@ class Checkpoints(BaseModel):
         description="List of checkpoints covering foundation, application, and mastery levels"
     )
 
+
 class SearchQuery(BaseModel):
     """Structure for search query collection"""
-    search_queries: list = Field(None, description="Search queries for retrieval.")
+    search_queries: list = Field(
+        None, description="Search queries for retrieval.")
+
 
 class LearningVerification(BaseModel):
     """Structure for verification results"""
@@ -152,19 +156,23 @@ class LearningVerification(BaseModel):
     suggestions: List[str]
     context_alignment: bool
 
+
 class FeynmanTeaching(BaseModel):
     """Structure for Feynman teaching method"""
     simplified_explanation: str
     key_concepts: List[str]
     analogies: List[str]
 
+
 class QuestionOutput(BaseModel):
     """Structure for question generation output"""
     question: str
 
+
 class InContext(BaseModel):
     """Structure for context verification"""
     is_in_context: str = Field(..., description="Yes or No")
+
 
 """
 ## Learning State Definition
@@ -176,6 +184,7 @@ Here we define the main state for our agent. This state tracks:
 - Current question-answer pair
 """
 logger.info("## Learning State Definition")
+
 
 class LearningtState(TypedDict):
     topic: str
@@ -191,6 +200,7 @@ class LearningtState(TypedDict):
     current_question: QuestionOutput
     current_answer: str
 
+
 """
 ## Helper Functions
 The system uses three utility functions:
@@ -202,6 +212,7 @@ The system uses three utility functions:
 3. `generate_checkpoint_message`: Creates formatted message for context retrieval
 """
 logger.info("## Helper Functions")
+
 
 def extract_content_from_chunks(chunks):
     """Extract and combine content from chunks with splits attribute.
@@ -221,6 +232,7 @@ def extract_content_from_chunks(chunks):
 
     return '\n'.join(content)
 
+
 def format_checkpoints_as_message(checkpoints: Checkpoints) -> str:
     """Convert Checkpoints object to a formatted string for the message.
 
@@ -238,6 +250,7 @@ def format_checkpoints_as_message(checkpoints: Checkpoints) -> str:
         for criterion in checkpoint.criteria:
             message += f"- {criterion}\n"
     return message
+
 
 def generate_checkpoint_message(checks: List[LearningCheckpoint]) -> HumanMessage:
     """Generate a formatted message for learning checkpoints that need context.
@@ -268,6 +281,7 @@ def generate_checkpoint_message(checks: List[LearningCheckpoint]) -> HumanMessag
         Please generate search queries to find relevant information.""")
 
     return checkpoints_message
+
 
 """
 ## Prompt Configuration
@@ -349,6 +363,7 @@ The `ContextStore` class manages context chunks and embeddings in memory, optimi
 """
 logger.info("## Context Storage")
 
+
 class ContextStore:
     """Store for managing context chunks and their embeddings in memory.
 
@@ -398,6 +413,7 @@ class ContextStore:
         memory = self.store.get(namespace, context_key)
         return memory.value
 
+
 """
 ## Core Learning System Functions
 The learning system is powered by eight main functions that process and update the `LearningState`:
@@ -416,13 +432,16 @@ The learning system is powered by eight main functions that process and update t
 """
 logger.info("## Core Learning System Functions")
 
+
 def generate_query(state: LearningtState):
     """Generates search queries based on learning checkpoints from current state."""
     structured_llm = llm.with_structured_output(SearchQuery)
-    checkpoints_message = HumanMessage(content=format_checkpoints_as_message(state['checkpoints']))
+    checkpoints_message = HumanMessage(
+        content=format_checkpoints_as_message(state['checkpoints']))
     messages = [checkpoint_based_query_generator, checkpoints_message]
     search_queries = structured_llm.invoke(messages)
     return {"search_queries": search_queries}
+
 
 def search_web(state: LearningtState):
     """Retrieves and processes web search results based on search queries."""
@@ -447,16 +466,19 @@ def search_web(state: LearningtState):
 
     return {"context_chunks": formatted_search_docs}
 
+
 def generate_checkpoints(state: LearningtState):
     """Creates learning checkpoints based on given topic and goals."""
     structured_llm = llm.with_structured_output(Checkpoints)
     messages = [
         learning_checkpoints_generator,
         SystemMessage(content=f"Topic: {state['topic']}"),
-        SystemMessage(content=f"Goals: {', '.join(str(goal) for goal in state['goals'])}")
+        SystemMessage(
+            content=f"Goals: {', '.join(str(goal) for goal in state['goals'])}")
     ]
     checkpoints = structured_llm.invoke(messages)
     return {"checkpoints": checkpoints}
+
 
 def chunk_context(state: LearningtState):
     """Splits context into manageable chunks and generates their embeddings."""
@@ -480,6 +502,7 @@ def chunk_context(state: LearningtState):
     )
     return {"context_chunks": content, "context_key": context_key}
 
+
 def context_validation(state: LearningtState):
     """Validates context coverage against checkpoint criteria using stored embeddings."""
     context = context_store.get_context(state['context_key'])
@@ -494,8 +517,8 @@ def context_validation(state: LearningtState):
 
         similarities = cosine_similarity([query], chunk_embeddings)[0]
         top_3_indices = sorted(range(len(similarities)),
-                             key=lambda i: similarities[i],
-                             reverse=True)[:3]
+                               key=lambda i: similarities[i],
+                               reverse=True)[:3]
         relevant_chunks = [chunks[i] for i in top_3_indices]
 
         messages = [
@@ -523,6 +546,7 @@ def context_validation(state: LearningtState):
 
     return {"search_queries": None}
 
+
 def generate_question(state: LearningtState):
     """Generates assessment questions based on current checkpoint verification requirements."""
     structured_llm = llm.with_structured_output(QuestionOutput)
@@ -543,6 +567,7 @@ def generate_question(state: LearningtState):
     question_output = structured_llm.invoke(messages)
     return {"current_question": question_output.question}
 
+
 def verify_answer(state: LearningtState):
     """Evaluates user answers against checkpoint criteria using relevant context chunks."""
     structured_llm = llm.with_structured_output(LearningVerification)
@@ -557,8 +582,8 @@ def verify_answer(state: LearningtState):
 
     similarities = cosine_similarity([query], chunk_embeddings)[0]
     top_3_indices = sorted(range(len(similarities)),
-                         key=lambda i: similarities[i],
-                         reverse=True)[:3]
+                           key=lambda i: similarities[i],
+                           reverse=True)[:3]
     relevant_chunks = [chunks[i] for i in top_3_indices]
 
     messages = [
@@ -581,6 +606,7 @@ def verify_answer(state: LearningtState):
     verification = structured_llm.invoke(messages)
     return {"verifications": verification}
 
+
 def teach_concept(state: LearningtState):
     """Creates simplified Feynman-style explanations for concepts that need reinforcement."""
     structured_llm = llm.with_structured_output(FeynmanTeaching)
@@ -602,6 +628,7 @@ def teach_concept(state: LearningtState):
     teaching = structured_llm.invoke(messages)
     return {"teachings": teaching}
 
+
 """
 ## Helper State Management Functions
 Here we define two auxiliary functions that manage the learning flow:
@@ -611,14 +638,17 @@ Here we define two auxiliary functions that manage the learning flow:
 """
 logger.info("## Helper State Management Functions")
 
+
 def user_answer(state: LearningtState):
     """Placeholder for handling user's answer input."""
     pass
+
 
 def next_checkpoint(state: LearningtState):
     """Advances to the next checkpoint in the learning sequence."""
     current_checkpoint = state['current_checkpoint'] + 1
     return {'current_checkpoint': current_checkpoint}
+
 
 """
 ## Routing Logic Functions
@@ -631,11 +661,13 @@ Four routing functions control the agent's workflow:
 """
 logger.info("## Routing Logic Functions")
 
+
 def route_context(state: LearningtState):
     """Determines whether to process existing context or generate new search queries."""
     if state.get("context"):
         return 'chunk_context'
     return 'generate_query'
+
 
 def route_verification(state: LearningtState):
     """Determines next step based on verification results and checkpoint progress."""
@@ -649,6 +681,7 @@ def route_verification(state: LearningtState):
 
     return END
 
+
 def route_teaching(state: LearningtState):
     """Routes to next checkpoint or ends session after teaching intervention."""
     current_checkpoint = state['current_checkpoint']
@@ -656,11 +689,13 @@ def route_teaching(state: LearningtState):
         return 'next_checkpoint'
     return END
 
+
 def route_search(state: LearningtState):
     """Directs flow between question generation and web search based on query status."""
     if state['search_queries'] is None:
         return "generate_question"
     return "search_web"
+
 
 """
 ## Building the Learning Flow Graph
@@ -700,11 +735,13 @@ searcher.add_node("verify_answer", verify_answer)
 searcher.add_node("teach_concept", teach_concept)
 
 searcher.add_edge(START, "generate_checkpoints")
-searcher.add_conditional_edges('generate_checkpoints', route_context,['chunk_context', 'generate_query'])
+searcher.add_conditional_edges('generate_checkpoints', route_context, [
+                               'chunk_context', 'generate_query'])
 searcher.add_edge("generate_query", "search_web")
 searcher.add_edge("search_web", "generate_question")
 searcher.add_edge("chunk_context", 'context_validation')
-searcher.add_conditional_edges('context_validation', route_search,['search_web', 'generate_question'])
+searcher.add_conditional_edges('context_validation', route_search, [
+                               'search_web', 'generate_question'])
 
 searcher.add_edge("generate_question", "user_answer")
 searcher.add_edge("user_answer", "verify_answer")
@@ -729,8 +766,8 @@ searcher.add_conditional_edges(
 searcher.add_edge("next_checkpoint", "generate_question")
 
 
-
-graph = searcher.compile(interrupt_after=["generate_checkpoints"], interrupt_before=["user_answer"], checkpointer=memory)
+graph = searcher.compile(interrupt_after=["generate_checkpoints"], interrupt_before=[
+                         "user_answer"], checkpointer=memory)
 
 display(Image(graph.get_graph(xray=1).draw_mermaid_png()))
 
@@ -742,6 +779,7 @@ display(Image(graph.get_graph(xray=1).draw_mermaid_png()))
 Helper functions to improve output readability and example visibility:
 """
 logger.info("# Agent Use Case - Learn Anemia from own note")
+
 
 def print_checkpoints(event):
     """Pretty print checkpoints information with improved visual formatting"""
@@ -783,7 +821,8 @@ def print_checkpoints(event):
                 first_line = True
 
                 for word in words:
-                    if current_length + len(word) + 1 <= 66:  # Shorter width to account for numbering
+                    # Shorter width to account for numbering
+                    if current_length + len(word) + 1 <= 66:
                         current_line.append(word)
                         current_length += len(word) + 1
                     else:
@@ -826,6 +865,7 @@ def print_checkpoints(event):
 
         logger.debug("=" * 80 + "\n")
 
+
 def print_verification_results(event):
     """Pretty print verification results with improved formatting"""
     verifications = event.get('verifications', '')
@@ -839,7 +879,8 @@ def print_verification_results(event):
         filled_length = int(understanding * bar_length)
         bar = "█" * filled_length + "░" * (bar_length - filled_length)
 
-        logger.debug(f"📈 Understanding Level: [{bar}] {understanding * 100:.1f}%\n")
+        logger.debug(
+            f"📈 Understanding Level: [{bar}] {understanding * 100:.1f}%\n")
 
         logger.debug("💡 Feedback:")
         logger.debug(f"{verifications.feedback}\n")
@@ -853,6 +894,8 @@ def print_verification_results(event):
         logger.debug(f"{verifications.context_alignment}\n")
 
         logger.debug("-" * 50 + "\n")
+
+
 def print_teaching_results(event):
     """Pretty print Feynman teaching results with improved formatting"""
     teachings = event.get('teachings', '')
@@ -899,6 +942,7 @@ def print_teaching_results(event):
         logger.debug()
 
         logger.debug("=" * 70 + "\n")
+
 
 """
 ## Example School Note
@@ -994,7 +1038,8 @@ def create_checkpoint_editor(checkpoints_model: Checkpoints):
                 checkpoints[checkpoint_index]['criteria'].pop(criterion_index)
                 update_checkpoint_widget(checkpoint_index)
 
-        criterion_container.children[0].observe(on_criterion_change, names='value')
+        criterion_container.children[0].observe(
+            on_criterion_change, names='value')
         criterion_container.children[1].on_click(remove_criterion)
 
         return criterion_container
@@ -1024,7 +1069,8 @@ def create_checkpoint_editor(checkpoints_model: Checkpoints):
             update_all_checkpoints()
 
         header = widgets.HBox([
-            widgets.HTML(f'<h3 style="margin: 0;">Checkpoint {index + 1}</h3>'),
+            widgets.HTML(
+                f'<h3 style="margin: 0;">Checkpoint {index + 1}</h3>'),
             widgets.Checkbox(
                 value=False,
                 description='Accept',
@@ -1085,7 +1131,8 @@ def create_checkpoint_editor(checkpoints_model: Checkpoints):
     def update_checkpoint_widget(index: int):
         """Updates a single checkpoint widget"""
         if 0 <= index < len(checkpoints):
-            checkpoints_widgets[index] = create_checkpoint_widget(checkpoints[index], index)
+            checkpoints_widgets[index] = create_checkpoint_widget(
+                checkpoints[index], index)
             update_main_container()
 
     def update_all_checkpoints():
@@ -1136,11 +1183,13 @@ def create_checkpoint_editor(checkpoints_model: Checkpoints):
 
     def update_main_container():
         """Updates the main container"""
-        main_container.children = tuple(checkpoints_widgets + [add_checkpoint_btn])
+        main_container.children = tuple(
+            checkpoints_widgets + [add_checkpoint_btn])
 
     main_container.get_model = get_pydantic_model
 
     return main_container
+
 
 checkpoints = event['checkpoints']
 
@@ -1157,7 +1206,8 @@ display(editor)
 logger.info("## Widget preview - Human in the loop checkpoints modifications")
 
 updated_model = editor.get_model()
-graph.update_state(thread, {"checkpoints": updated_model}, as_node="generate_checkpoints")
+graph.update_state(
+    thread, {"checkpoints": updated_model}, as_node="generate_checkpoints")
 
 """
 ## Run agent with input after printing question
@@ -1189,7 +1239,8 @@ answer_question = input("Answer the question above: ")
 """
 logger.info("## Update state with answered question")
 
-graph.update_state(thread, {"current_answer": answer_question}, as_node="user_answer")
+graph.update_state(
+    thread, {"current_answer": answer_question}, as_node="user_answer")
 
 """
 ## Run Agent and print the verification or/and teaching results
@@ -1220,7 +1271,8 @@ logger.debug(event['current_question'])
 
 answer_question = input("Answer the second question ")
 
-graph.update_state(thread, {"current_answer": answer_question}, as_node="user_answer")
+graph.update_state(
+    thread, {"current_answer": answer_question}, as_node="user_answer")
 
 """
 ## Run agent, see how he treated our lack of knowledge

@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.prompts import PromptTemplate
@@ -81,7 +81,8 @@ The strength of this approach lies in its modularity and flexibility. By using L
 
 ### Import necessary libraries
 """
-logger.info("# Tutorial: Building a Text Summarizer and Translator with LangChain")
+logger.info(
+    "# Tutorial: Building a Text Summarizer and Translator with LangChain")
 
 
 """
@@ -98,24 +99,33 @@ llm = ChatOllama(model="llama3.2")
 """
 logger.info("### first let's define the functions that the agent can use:")
 
+
 def summarize(text):
     prompt = PromptTemplate(
         input_variables=["text"],  # Specify the input variable
-        template="Summarize the following text:\n\n{text}\n\nSummary:"  # Define the template for summarization
+        # Define the template for summarization
+        template="Summarize the following text:\n\n{text}\n\nSummary:"
     )
     chain = prompt | llm  # Create a chain by piping the prompt to the language model
-    return chain.invoke({"text": text}).content  # Invoke the chain with the input text and return the content of the response
+    # Invoke the chain with the input text and return the content of the response
+    return chain.invoke({"text": text}).content
+
 
 def translate(text):
     prompt = PromptTemplate(
         input_variables=["text"],  # Specify the input variable
-        template="Translate the following text to Spanish:\n\n{text}\n\nTranslation:"  # Define the template for translation
+        # Define the template for translation
+        template="Translate the following text to Spanish:\n\n{text}\n\nTranslation:"
     )
     chain = prompt | llm  # Create a chain by piping the prompt to the language model
-    return chain.invoke({"text": text}).content  # Invoke the chain with the input text and return the content of the response
+    # Invoke the chain with the input text and return the content of the response
+    return chain.invoke({"text": text}).content
+
 
 class TextInput(BaseModel):
-    text: str = Field(description="The text to summarize or translate")  # Define a text field with a description
+    # Define a text field with a description
+    text: str = Field(description="The text to summarize or translate")
+
 
 text = "The quick brown fox jumps over the lazy dog."
 logger.debug(summarize(text))
@@ -136,7 +146,8 @@ tools = [
     StructuredTool.from_function(
         func=translate,  # The function to be wrapped as a tool
         name="Translate",  # Name of the tool
-        description="Useful for translating text to Spanish",  # Description of what the tool does
+        # Description of what the tool does
+        description="Useful for translating text to Spanish",
         args_schema=TextInput  # The Pydantic model defining the input schema
     )
 ]
@@ -147,7 +158,8 @@ tools = [
 logger.info("### Initialize the agent")
 
 prompt = PromptTemplate(
-    input_variables=["input", "agent_scratchpad"],  # Define the input variables for the prompt
+    # Define the input variables for the prompt
+    input_variables=["input", "agent_scratchpad"],
     template="""Summarize the following text and then translate the summary to Spanish:
 
 Text: {input}
@@ -174,6 +186,7 @@ agent_executor = AgentExecutor(
     early_stopping_method="force"  # Force stop after max_iterations
 )
 
+
 def run_agent_with_query(agent_executor, query):
     """
     Execute the agent with a given query and return the output.
@@ -188,6 +201,7 @@ def run_agent_with_query(agent_executor, query):
     result = agent_executor.invoke({"input": query})
 
     return result['output']
+
 
 """
 ###  Example usage

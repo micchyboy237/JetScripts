@@ -1,6 +1,6 @@
 from collections import Counter
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -79,6 +79,7 @@ Let's create a function that generates multiple reasoning paths for a given prob
 """
 logger.info("## Generating Multiple Reasoning Paths")
 
+
 def generate_multiple_paths(problem, num_paths=3):
     """
     Generate multiple reasoning paths for a given problem.
@@ -100,10 +101,12 @@ def generate_multiple_paths(problem, num_paths=3):
     paths = []
     for i in range(num_paths):
         chain = prompt_template | llm
-        response = chain.invoke({"problem": problem, "path_number": i+1}).content
+        response = chain.invoke(
+            {"problem": problem, "path_number": i+1}).content
         paths.append(response)
 
     return paths
+
 
 """
 Now, let's test our function with a sample problem.
@@ -122,6 +125,7 @@ for i, path in enumerate(paths, 1):
 Now that we have multiple reasoning paths, let's create a function to aggregate the results and determine the most consistent answer.
 """
 logger.info("## Aggregating Results")
+
 
 def aggregate_results(paths):
     """
@@ -146,6 +150,7 @@ def aggregate_results(paths):
     response = chain.invoke({"paths": "\n".join(paths)}).content
     return response
 
+
 """
 Let's apply this aggregation function to our previous results.
 """
@@ -160,6 +165,7 @@ logger.debug("Aggregated Result:\n", aggregated_result)
 To further improve our results, let's implement a self-consistency check that evaluates the reliability of our aggregated answer.
 """
 logger.info("## Self-Consistency Check")
+
 
 def self_consistency_check(problem, aggregated_result):
     """
@@ -182,13 +188,16 @@ def self_consistency_check(problem, aggregated_result):
     )
 
     chain = prompt_template | llm
-    response = chain.invoke({"problem": problem, "result": aggregated_result}).content
+    response = chain.invoke(
+        {"problem": problem, "result": aggregated_result}).content
     return response
+
 
 """
 Now, let's apply the self-consistency check to our aggregated result.
 """
-logger.info("Now, let's apply the self-consistency check to our aggregated result.")
+logger.info(
+    "Now, let's apply the self-consistency check to our aggregated result.")
 
 consistency_evaluation = self_consistency_check(problem, aggregated_result)
 logger.debug("Self-Consistency Evaluation:\n", consistency_evaluation)
@@ -199,6 +208,7 @@ logger.debug("Self-Consistency Evaluation:\n", consistency_evaluation)
 Let's demonstrate how this approach can be applied to different types of problems.
 """
 logger.info("## Applying to Different Problem Types")
+
 
 def solve_problem(problem):
     """
@@ -214,6 +224,7 @@ def solve_problem(problem):
     aggregated_result = aggregate_results(paths)
     consistency_evaluation = self_consistency_check(problem, aggregated_result)
     return aggregated_result, consistency_evaluation
+
 
 problems = [
     "What is the capital of France?",

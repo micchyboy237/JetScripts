@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -51,10 +51,12 @@ llm = ChatOllama(model="llama3.2")
 
 sentence_model = SentenceTransformer('all-MiniLM-L6-v2')
 
+
 def semantic_similarity(text1, text2):
     """Calculate semantic similarity between two texts using cosine similarity."""
     embeddings = sentence_model.encode([text1, text2])
     return cosine_similarity([embeddings[0]], [embeddings[1]])[0][0]
+
 
 """
 ## Metrics for Measuring Prompt Performance
@@ -63,9 +65,11 @@ Let's define some key metrics for evaluating prompt effectiveness:
 """
 logger.info("## Metrics for Measuring Prompt Performance")
 
+
 def relevance_score(response, expected_content):
     """Calculate relevance score based on semantic similarity to expected content."""
     return semantic_similarity(response, expected_content)
+
 
 def consistency_score(responses):
     """Calculate consistency score based on similarity between multiple responses."""
@@ -74,8 +78,10 @@ def consistency_score(responses):
     similarities = []
     for i in range(len(responses)):
         for j in range(i+1, len(responses)):
-            similarities.append(semantic_similarity(responses[i], responses[j]))
+            similarities.append(semantic_similarity(
+                responses[i], responses[j]))
     return np.mean(similarities)
+
 
 def specificity_score(response):
     """Calculate specificity score based on response length and unique word count."""
@@ -83,12 +89,14 @@ def specificity_score(response):
     unique_words = set(words)
     return len(unique_words) / len(words) if words else 0
 
+
 """
 ## Manual Evaluation Techniques
 
 Manual evaluation involves human assessment of prompt-response pairs. Let's create a function to simulate this process:
 """
 logger.info("## Manual Evaluation Techniques")
+
 
 def manual_evaluation(prompt, response, criteria):
     """Simulate manual evaluation of a prompt-response pair."""
@@ -102,6 +110,7 @@ def manual_evaluation(prompt, response, criteria):
     comments = input("Enter any additional comments: ")
     logger.debug(f"Comments: {comments}")
 
+
 prompt = "Explain the concept of machine learning in simple terms."
 response = llm.invoke(prompt).content
 criteria = ["Clarity", "Accuracy", "Simplicity"]
@@ -113,6 +122,7 @@ manual_evaluation(prompt, response, criteria)
 Now, let's implement some automated evaluation techniques:
 """
 logger.info("## Automated Evaluation Techniques")
+
 
 def automated_evaluation(prompt, response, expected_content):
     """Perform automated evaluation of a prompt-response pair."""
@@ -126,6 +136,7 @@ def automated_evaluation(prompt, response, expected_content):
 
     return {"relevance": relevance, "specificity": specificity}
 
+
 prompt = "What are the three main types of machine learning?"
 expected_content = "The three main types of machine learning are supervised learning, unsupervised learning, and reinforcement learning."
 response = llm.invoke(prompt).content
@@ -138,6 +149,7 @@ Let's compare the effectiveness of different prompts for the same task:
 """
 logger.info("## Comparative Analysis")
 
+
 def compare_prompts(prompts, expected_content):
     """Compare the effectiveness of multiple prompts for the same task."""
     results = []
@@ -146,7 +158,8 @@ def compare_prompts(prompts, expected_content):
         evaluation = automated_evaluation(prompt, response, expected_content)
         results.append({"prompt": prompt, **evaluation})
 
-    sorted_results = sorted(results, key=lambda x: x['relevance'], reverse=True)
+    sorted_results = sorted(
+        results, key=lambda x: x['relevance'], reverse=True)
 
     logger.debug("Prompt Comparison Results:")
     for i, result in enumerate(sorted_results, 1):
@@ -155,6 +168,7 @@ def compare_prompts(prompts, expected_content):
         logger.debug(f"   Specificity: {result['specificity']:.2f}")
 
     return sorted_results
+
 
 prompts = [
     "List the types of machine learning.",
@@ -171,6 +185,7 @@ Now, let's create a comprehensive prompt evaluation function that combines both 
 """
 logger.info("## Putting It All Together")
 
+
 def evaluate_prompt(prompt, expected_content, manual_criteria=['Clarity', 'Accuracy', 'Relevance']):
     """Perform a comprehensive evaluation of a prompt using both manual and automated techniques."""
     response = llm.invoke(prompt).content
@@ -182,6 +197,7 @@ def evaluate_prompt(prompt, expected_content, manual_criteria=['Clarity', 'Accur
     manual_evaluation(prompt, response, manual_criteria)
 
     return {"prompt": prompt, "response": response, **auto_results}
+
 
 prompt = "Explain the concept of overfitting in machine learning."
 expected_content = "Overfitting occurs when a model learns the training data too well, including its noise and fluctuations, leading to poor generalization on new, unseen data."

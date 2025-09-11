@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -199,7 +199,8 @@ Bob says, 'Charlie alternates between truth and lies.'
 Charlie says, 'Amy and I are both liars.'
 Determine the nature (truth-teller, liar, or alternator) of each person."""
 
-logical_reasoning_response = logical_reasoning_chain.invoke(logical_puzzle).content
+logical_reasoning_response = logical_reasoning_chain.invoke(
+    logical_puzzle).content
 logger.debug(logical_reasoning_response)
 
 logger.info("\n\n[DONE]", bright=True)

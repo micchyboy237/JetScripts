@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -102,7 +102,8 @@ financial_advisor_prompt = PromptTemplate(
 )
 
 chain = financial_advisor_prompt | llm
-response = chain.invoke({"client_situation": "A 35-year-old professional earning $80,000 annually, with $30,000 in savings, no debt, and no retirement plan."})
+response = chain.invoke(
+    {"client_situation": "A 35-year-old professional earning $80,000 annually, with $30,000 in savings, no debt, and no retirement plan."})
 logger.debug(response.content)
 
 """

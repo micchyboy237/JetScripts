@@ -4,7 +4,7 @@ async def main():
     from bs4 import BeautifulSoup
     from datetime import datetime
     from dotenv import load_dotenv
-    from jet.llm.ollama.base_langchain import ChatOllama
+    from jet.adapters.langchain.chat_ollama import ChatOllama
     from jet.logger import CustomLogger
     from langchain_core.output_parsers import JsonOutputParser
     from langchain_core.prompts import PromptTemplate
@@ -18,17 +18,16 @@ async def main():
     import re
     import requests
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     # News TL;DR using Langgraph (Too Long Didn't Read)
     
@@ -75,7 +74,7 @@ async def main():
     Install and import necessary libraries
     """
     logger.info("# News TL;DR using Langgraph (Too Long Didn't Read)")
-    
+
     # !pip install langgraph -q
     # !pip install langchain-ollama -q
     # !pip install langchain-core -q
@@ -85,12 +84,9 @@ async def main():
     # !pip install beautifulsoup4 -q
     # !pip install ipython -q
     # !pip install nest_asyncio -q
-    
-    
+
     # from getpass import getpass
-    
-    
-    
+
     """
     ## Get an NewsAPI Key
     * create a free developer account at https://newsapi.org/
@@ -116,40 +112,39 @@ async def main():
     securely add it as an environmental variable. It will not persist in this notebook.
     """
     logger.info("## Get an NewsAPI Key")
-    
+
     if os.path.exists("../.env"):
         load_dotenv()
     else:
-    #     os.environ["NEWSAPI_KEY"] = getpass("Enter your News API key: ")
-    #     os.environ["OPENAI_API_KEY"] = getpass("Enter your Ollama API key: ")
-    
+        #     os.environ["NEWSAPI_KEY"] = getpass("Enter your News API key: ")
+        #     os.environ["OPENAI_API_KEY"] = getpass("Enter your Ollama API key: ")
+
     model = "llama3.2"
     llm = ChatOllama(model="llama3.2")
-    
+
     newsapi_key = os.getenv("NEWSAPI_KEY")
     if newsapi_key:
-            logger.debug("NEWSAPI_KEY successfully loaded from .env.")
-    
+        logger.debug("NEWSAPI_KEY successfully loaded from .env.")
+
     """
     ## Test APIs
     """
     logger.info("## Test APIs")
-    
+
     llm.invoke("Why is the sky blue?").content
-    
+
     newsapi = NewsApiClient(api_key=os.getenv('NEWSAPI_KEY'))
-    
+
     query = 'ai news of the day'
-    
+
     all_articles = newsapi.get_everything(q=query,
                                           sources='google-news,bbc-news,techcrunch',
                                           domains='techcrunch.com, bbc.co.uk',
                                           language='en',
                                           sort_by='relevancy',)
-    
-    
+
     all_articles['articles'][0]
-    
+
     """
     ## Define Data Structures
     
@@ -158,19 +153,27 @@ async def main():
     result will be returned to the user.
     """
     logger.info("## Define Data Structures")
-    
+
     class GraphState(TypedDict):
-        news_query: Annotated[str, "Input query to extract news search parameters from."]
-        num_searches_remaining: Annotated[int, "Number of articles to search for."]
-        newsapi_params: Annotated[dict, "Structured argument for the News API."]
-        past_searches: Annotated[List[dict], "List of search params already used."]
-        articles_metadata: Annotated[list[dict], "Article metadata response from the News API"]
+        news_query: Annotated[str,
+                              "Input query to extract news search parameters from."]
+        num_searches_remaining: Annotated[int,
+                                          "Number of articles to search for."]
+        newsapi_params: Annotated[dict,
+                                  "Structured argument for the News API."]
+        past_searches: Annotated[List[dict],
+                                 "List of search params already used."]
+        articles_metadata: Annotated[list[dict],
+                                     "Article metadata response from the News API"]
         scraped_urls: Annotated[List[str], "List of urls already scraped."]
-        num_articles_tldr: Annotated[int, "Number of articles to create TL;DR for."]
-        potential_articles: Annotated[List[dict[str, str, str]], "Article with full text to consider summarizing."]
-        tldr_articles: Annotated[List[dict[str, str, str]], "Selected article TL;DRs."]
+        num_articles_tldr: Annotated[int,
+                                     "Number of articles to create TL;DR for."]
+        potential_articles: Annotated[List[dict[str, str, str]],
+                                      "Article with full text to consider summarizing."]
+        tldr_articles: Annotated[List[dict[str, str, str]],
+                                 "Selected article TL;DRs."]
         formatted_results: Annotated[str, "Formatted results to display."]
-    
+
     """
     ## Define NewsAPI argument data structure with Pydantic
     * the model will create a formatted dictionary of params for the NewsAPI call
@@ -178,34 +181,39 @@ async def main():
     * Langchain will parse and feed paramd descriptions to the LLM
     """
     logger.info("## Define NewsAPI argument data structure with Pydantic")
-    
+
     class NewsApiParams(BaseModel):
-        q: str = Field(description="1-3 concise keyword search terms that are not too specific")
-        sources: str =Field(description="comma-separated list of sources from: 'abc-news,abc-news-au,associated-press,australian-financial-review,axios,bbc-news,bbc-sport,bloomberg,business-insider,cbc-news,cbs-news,cnn,financial-post,fortune'")
-        from_param: str = Field(description="date in format 'YYYY-MM-DD' Two days ago minimum. Extend up to 30 days on second and subsequent requests.")
-        to: str = Field(description="date in format 'YYYY-MM-DD' today's date unless specified")
-        language: str = Field(description="language of articles 'en' unless specified one of ['ar', 'de', 'en', 'es', 'fr', 'he', 'it', 'nl', 'no', 'pt', 'ru', 'se', 'ud', 'zh']")
-        sort_by: str = Field(description="sort by 'relevancy', 'popularity', or 'publishedAt'")
-    
+        q: str = Field(
+            description="1-3 concise keyword search terms that are not too specific")
+        sources: str = Field(description="comma-separated list of sources from: 'abc-news,abc-news-au,associated-press,australian-financial-review,axios,bbc-news,bbc-sport,bloomberg,business-insider,cbc-news,cbs-news,cnn,financial-post,fortune'")
+        from_param: str = Field(
+            description="date in format 'YYYY-MM-DD' Two days ago minimum. Extend up to 30 days on second and subsequent requests.")
+        to: str = Field(
+            description="date in format 'YYYY-MM-DD' today's date unless specified")
+        language: str = Field(
+            description="language of articles 'en' unless specified one of ['ar', 'de', 'en', 'es', 'fr', 'he', 'it', 'nl', 'no', 'pt', 'ru', 'se', 'ud', 'zh']")
+        sort_by: str = Field(
+            description="sort by 'relevancy', 'popularity', or 'publishedAt'")
+
     """
     ## Define Graph Functions
     
     Define the functions (nodes) that will be used in the LangGraph workflow.
     """
     logger.info("## Define Graph Functions")
-    
+
     def generate_newsapi_params(state: GraphState) -> GraphState:
         """Based on the query, generate News API params."""
         parser = JsonOutputParser(pydantic_object=NewsApiParams)
-    
+
         today_date = datetime.now().strftime("%Y-%m-%d")
-    
+
         past_searches = state["past_searches"]
-    
+
         num_searches_remaining = state["num_searches_remaining"]
-    
+
         news_query = state["news_query"]
-    
+
         template = """
         Today is {today_date}.
     
@@ -221,84 +229,89 @@ async def main():
         Including this one, you have {num_searches_remaining} searches remaining.
         If this is your last search, use all news sources and a 30 days search range.
         """
-    
+
         prompt_template = PromptTemplate(
             template=template,
-            variables={"today": today_date, "query": news_query, "past_searches": past_searches, "num_searches_remaining": num_searches_remaining},
-            partial_variables={"format_instructions": parser.get_format_instructions()}
+            variables={"today": today_date, "query": news_query,
+                       "past_searches": past_searches, "num_searches_remaining": num_searches_remaining},
+            partial_variables={
+                "format_instructions": parser.get_format_instructions()}
         )
-    
+
         chain = prompt_template | llm | parser
-    
-        result = chain.invoke({"query": news_query, "today_date": today_date, "past_searches": past_searches, "num_searches_remaining": num_searches_remaining})
-    
+
+        result = chain.invoke({"query": news_query, "today_date": today_date,
+                              "past_searches": past_searches, "num_searches_remaining": num_searches_remaining})
+
         state["newsapi_params"] = result
-    
+
         return state
-    
+
     def retrieve_articles_metadata(state: GraphState) -> GraphState:
         """Using the NewsAPI params, perform api call."""
         newsapi_params = state["newsapi_params"]
-    
+
         state['num_searches_remaining'] -= 1
-    
+
         try:
             newsapi = NewsApiClient(api_key=os.getenv('NEWSAPI_KEY'))
-    
+
             articles = newsapi.get_everything(**newsapi_params)
-    
+
             state['past_searches'].append(newsapi_params)
-    
+
             scraped_urls = state["scraped_urls"]
-    
+
             new_articles = []
             for article in articles['articles']:
                 if article['url'] not in scraped_urls and len(state['potential_articles']) + len(new_articles) < 10:
                     new_articles.append(article)
-    
+
             state["articles_metadata"] = new_articles
-    
+
         except Exception as e:
             logger.debug(f"Error: {e}")
-    
+
         return state
-    
+
     def retrieve_articles_text(state: GraphState) -> GraphState:
         """Web scrapes to retrieve article text."""
         articles_metadata = state["articles_metadata"]
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36'
         }
-    
+
         potential_articles = []
-    
+
         for article in articles_metadata:
             url = article['url']
-    
+
             response = requests.get(url, headers=headers)
-    
+
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
-    
+
                 text = soup.get_text(strip=True)
-    
-                potential_articles.append({"title": article["title"], "url": url, "description": article["description"], "text": text})
-    
+
+                potential_articles.append(
+                    {"title": article["title"], "url": url, "description": article["description"], "text": text})
+
                 state["scraped_urls"].append(url)
-    
+
         state["potential_articles"].extend(potential_articles)
-    
+
         return state
-    
+
     def select_top_urls(state: GraphState) -> GraphState:
         """Based on the article synoses, choose the top-n articles to summarize."""
         news_query = state["news_query"]
         num_articles_tldr = state["num_articles_tldr"]
-    
+
         potential_articles = state["potential_articles"]
-    
-        formatted_metadata = "\n".join([f"{article['url']}\n{article['description']}\n" for article in potential_articles])
-    
+
+        formatted_metadata = "\n".join(
+            [f"{article['url']}\n{article['description']}\n" for article in potential_articles])
+
         prompt = f"""
         Based on the user news query:
         {news_query}
@@ -308,22 +321,22 @@ async def main():
         {formatted_metadata}
         """
         result = llm.invoke(prompt).content
-    
+
         url_pattern = r'(https?://[^\s",]+)'
-    
+
         urls = re.findall(url_pattern, result)
-    
-        tldr_articles = [article for article in potential_articles if article['url'] in urls]
-    
+
+        tldr_articles = [
+            article for article in potential_articles if article['url'] in urls]
+
         state["tldr_articles"] = tldr_articles
-    
+
         return state
-    
+
     async def summarize_articles_parallel(state: GraphState) -> GraphState:
         """Summarize the articles based on full text."""
         tldr_articles = state["tldr_articles"]
-    
-    
+
         prompt = """
         Create a * bulleted summarizing tldr for the article:
         {text}
@@ -334,40 +347,41 @@ async def main():
         * tl;dr bulleted summary
         * use bullet points for each sentence
         """
-    
+
         for i in range(len(tldr_articles)):
             text = tldr_articles[i]["text"]
             title = tldr_articles[i]["title"]
             url = tldr_articles[i]["url"]
             result = llm.invoke(prompt.format(title=title, url=url, text=text))
             tldr_articles[i]["summary"] = result.content
-    
+
         state["tldr_articles"] = tldr_articles
-    
+
         return state
-    
+
     def format_results(state: GraphState) -> GraphState:
         """Format the results for display."""
         q = [newsapi_params["q"] for newsapi_params in state["past_searches"]]
         formatted_results = f"Here are the top {len(state['tldr_articles'])} articles based on search terms:\n{', '.join(q)}\n\n"
-    
+
         tldr_articles = state["tldr_articles"]
-    
-        tldr_articles = "\n\n".join([f"{article['summary']}" for article in tldr_articles])
-    
+
+        tldr_articles = "\n\n".join(
+            [f"{article['summary']}" for article in tldr_articles])
+
         formatted_results += tldr_articles
-    
+
         state["formatted_results"] = formatted_results
-    
+
         return state
-    
+
     """
     ## Set Up LangGraph Workflow
     
     Set up decision logic to try to retrieve `num_searches_remaining` articles, while limiting attempts to 5.
     """
     logger.info("## Set Up LangGraph Workflow")
-    
+
     def articles_text_decision(state: GraphState) -> str:
         """Check results of retrieve_articles_text to determine next step."""
         if state["num_searches_remaining"] == 0:
@@ -381,23 +395,24 @@ async def main():
                 return "generate_newsapi_params"
             else:
                 return "select_top_urls"
-    
+
     """
     Define the LangGraph workflow by adding nodes and edges.
     """
     logger.info("Define the LangGraph workflow by adding nodes and edges.")
-    
+
     workflow = Graph()
-    
+
     workflow.set_entry_point("generate_newsapi_params")
-    
+
     workflow.add_node("generate_newsapi_params", generate_newsapi_params)
     workflow.add_node("retrieve_articles_metadata", retrieve_articles_metadata)
     workflow.add_node("retrieve_articles_text", retrieve_articles_text)
     workflow.add_node("select_top_urls", select_top_urls)
-    workflow.add_node("summarize_articles_parallel", summarize_articles_parallel)
+    workflow.add_node("summarize_articles_parallel",
+                      summarize_articles_parallel)
     workflow.add_node("format_results", format_results)
-    
+
     workflow.add_edge("generate_newsapi_params", "retrieve_articles_metadata")
     workflow.add_edge("retrieve_articles_metadata", "retrieve_articles_text")
     workflow.add_conditional_edges(
@@ -408,25 +423,26 @@ async def main():
             "select_top_urls": "select_top_urls",
             "END": END
         }
-        )
+    )
     workflow.add_edge("select_top_urls", "summarize_articles_parallel")
     workflow.add_conditional_edges(
         "summarize_articles_parallel",
-        lambda state: "format_results" if len(state["tldr_articles"]) > 0 else "END",
+        lambda state: "format_results" if len(
+            state["tldr_articles"]) > 0 else "END",
         {
             "format_results": "format_results",
             "END": END
         }
-        )
+    )
     workflow.add_edge("format_results", END)
-    
+
     app = workflow.compile()
-    
+
     """
     ## Display Graph Structure
     """
     logger.info("## Display Graph Structure")
-    
+
     display(
         IPImage(
             app.get_graph().draw_mermaid_png(
@@ -434,14 +450,14 @@ async def main():
             )
         )
     )
-    
+
     """
     ## Run Workflow Function
     
     Define a function to run the workflow and display results.
     """
     logger.info("## Run Workflow Function")
-    
+
     async def run_workflow(query: str, num_searches_remaining: int = 10, num_articles_tldr: int = 3):
         """Run the LangGraph workflow and display results."""
         initial_state = {
@@ -459,22 +475,22 @@ async def main():
         try:
             result = await app.ainvoke(initial_state)
             logger.success(format_json(result))
-    
+
             return result["formatted_results"]
         except Exception as e:
             logger.debug(f"An error occurred: {str(e)}")
             return None
-    
+
     """
     ## Execute Workflow
     
     Run the workflow with a sample query.
     """
     logger.info("## Execute Workflow")
-    
+
     query = "what are the top genai news of today?"
     logger.debug(await run_workflow(query, num_articles_tldr=3))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

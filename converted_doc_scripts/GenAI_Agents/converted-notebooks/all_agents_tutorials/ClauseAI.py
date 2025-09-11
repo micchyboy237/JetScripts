@@ -3,7 +3,7 @@ from IPython.display import display
 from docx import Document
 from docx.oxml import OxmlElement
 from docx.shared import RGBColor
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_community.vectorstores import Pinecone

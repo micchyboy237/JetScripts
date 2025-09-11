@@ -1,4 +1,4 @@
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.agents import AgentExecutor, create_ollama_functions_agent
 from langchain.tools import Tool
@@ -108,7 +108,6 @@ logger.info("# DataScribe: AI-Powered Schema Explorer")
 logger.info("# Import required libraries and export environment variables")
 
 
-
 # os.environ["OPENAI_API_KEY"] = "put your own key here"
 os.environ["DATABASE"] = "data/chinook.db"
 
@@ -128,12 +127,14 @@ def test_db_connection():
         track_count = cursor.fetchone()[0]
 
         conn.close()
-        logger.debug(f"Database connection successful. Found {track_count} tracks.")
+        logger.debug(
+            f"Database connection successful. Found {track_count} tracks.")
         return True
 
     except Exception as e:
         logger.debug(f"Database connection failed: {e}")
         return False
+
 
 if __name__ == "__main__":
     test_db_connection()
@@ -161,18 +162,21 @@ Setup centralised config object to keep our code [DRY](https://www.getdbt.com/bl
 """
 logger.info("# Centralised config")
 
+
 class Config:
     def __init__(self):
-#         self.ollama_api_key = os.getenv("OPENAI_API_KEY")
+        #         self.ollama_api_key = os.getenv("OPENAI_API_KEY")
         self.db = os.getenv("DATABASE")
 
         if not all([self.ollama_api_key, self.db]):
-#             raise ValueError("Missing required environment variables: OPENAI_API_KEY, DATABASE")
+            #             raise ValueError("Missing required environment variables: OPENAI_API_KEY, DATABASE")
 
         self.db_engine = SQLDatabase.from_uri(f"sqlite:///{self.db}")
 
-        self.llm = ChatOllama(model="llama3.2")  # Default model (e.g., GPT-3.5)
+        # Default model (e.g., GPT-3.5)
+        self.llm = ChatOllama(model="llama3.2")
         self.llm_gpt4 = ChatOllama(model="llama3.2")  # Explicitly use GPT-4
+
 
 """
 # Discovery Agent
@@ -183,10 +187,12 @@ The graph that is created is then used by the InterfaceAgent to help it get more
 """
 logger.info("# Discovery Agent")
 
+
 class DiscoveryAgent:
     def __init__(self):
         self.config = Config()
-        self.toolkit = SQLDatabaseToolkit(db=self.config.db_engine, llm=self.config.llm_gpt4)
+        self.toolkit = SQLDatabaseToolkit(
+            db=self.config.db_engine, llm=self.config.llm_gpt4)
         self.tools = self.toolkit.get_tools()
 
         self.tools.extend([
@@ -257,7 +263,8 @@ class DiscoveryAgent:
             """
         )
 
-        human_message = HumanMessagePromptTemplate.from_template("{input}\n\n{agent_scratchpad}")
+        human_message = HumanMessagePromptTemplate.from_template(
+            "{input}\n\n{agent_scratchpad}")
 
         return ChatPromptTemplate.from_messages([system_message, human_message])
 
@@ -266,7 +273,8 @@ class DiscoveryAgent:
         logger.info("Performing discovery...")
         prompt = "For all tables in this database, show the table name, column name, column type, if its optional. Also show Foreign key references to other columns. Do not show examples. Output only as json."
 
-        response = self.agent_executor.invoke({"input": prompt, "db_name": self.config.db})
+        response = self.agent_executor.invoke(
+            {"input": prompt, "db_name": self.config.db})
 
         graph = self.jsonToGraph(response)
         return graph
@@ -298,17 +306,21 @@ class DiscoveryAgent:
                 G.nodes[columnIds]['columnType'] = column["columnType"]
                 G.nodes[columnIds]['isOptional'] = column["isOptional"]
                 labeldict[columnIds] = column["columnName"]
-                canonicalColumns[table["tableName"] + column["columnName"]] = columnIds
+                canonicalColumns[table["tableName"] +
+                                 column["columnName"]] = columnIds
                 G.add_edge(nodeIds, columnIds)
 
         for table in data:
             for column in table["columns"]:
                 if column["foreignKeyReference"] is not None:
                     this_column = table["tableName"] + column["columnName"]
-                    reference_column_ = column["foreignKeyReference"]["table"] + column["foreignKeyReference"]["column"]
-                    G.add_edge(canonicalColumns[this_column], canonicalColumns[reference_column_])
+                    reference_column_ = column["foreignKeyReference"]["table"] + \
+                        column["foreignKeyReference"]["column"]
+                    G.add_edge(
+                        canonicalColumns[this_column], canonicalColumns[reference_column_])
 
         return G
+
 
 """
 # Discovery test
@@ -357,9 +369,11 @@ def plot_graph(G, title="Graph Visualization"):
 
     pos = nx.nx_agraph.graphviz_layout(G, prog='neato')
     plt.rcParams['figure.figsize'] = [20, 20]  # Set figure size
-    nx.draw(G, pos, labels=labels, node_color=color_map, with_labels=True)  # Draw the graph with labels and colors
+    # Draw the graph with labels and colors
+    nx.draw(G, pos, labels=labels, node_color=color_map, with_labels=True)
     plt.title(title)  # Add a title to the plot
     plt.show()  # Display the plot
+
 
 plot_graph(G)
 
@@ -372,10 +386,12 @@ This agent uses `analyze_question_with_graph` to query the db_graph to get conte
 """
 logger.info("# InferenceAgent")
 
+
 class InferenceAgent:
     def __init__(self):
         self.config = Config()
-        self.toolkit = SQLDatabaseToolkit(db=self.config.db_engine, llm=self.config.llm)
+        self.toolkit = SQLDatabaseToolkit(
+            db=self.config.db_engine, llm=self.config.llm)
         self.tools = self.toolkit.get_tools()
         self.chat_prompt = self.create_chat_prompt()
 
@@ -436,7 +452,8 @@ class InferenceAgent:
             """
         )
 
-        human_message = HumanMessagePromptTemplate.from_template("{input}\n\n{agent_scratchpad}")
+        human_message = HumanMessagePromptTemplate.from_template(
+            "{input}\n\n{agent_scratchpad}")
 
         return ChatPromptTemplate.from_messages([system_message, human_message])
 
@@ -474,7 +491,8 @@ class InferenceAgent:
                         'type': col_data['columnType'],
                         'table': node_data['tableName']
                     })
-                    logger.debug(f"    📎 Found relevant column: {col_data['columnName']}")
+                    logger.debug(
+                        f"    📎 Found relevant column: {col_data['columnName']}")
 
             analysis['tables'].append(table_info)
 
@@ -485,7 +503,8 @@ class InferenceAgent:
             if db_graph:
                 logger.debug(f"\n🔍 Analyzing query with graph: '{text}'")
 
-                graph_analysis = self.analyze_question_with_graph(db_graph, text)
+                graph_analysis = self.analyze_question_with_graph(
+                    db_graph, text)
                 logger.debug(f"\n📊 Graph Analysis Results:")
                 logger.debug(json.dumps(graph_analysis, indent=2))
 
@@ -501,12 +520,14 @@ class InferenceAgent:
                 logger.debug(f"\n📝 Enhanced prompt created with graph context")
                 return self.agent_executor.invoke({"input": enhanced_prompt, "db_name": self.config.db})['output']
 
-            logger.debug(f"\n⚡ No graph available, executing standard query: '{text}'")
+            logger.debug(
+                f"\n⚡ No graph available, executing standard query: '{text}'")
             return self.agent_executor.invoke({"input": text, "db_name": self.config.db})['output']
 
         except Exception as e:
             logger.debug(f"\n❌ Error in inference query: {str(e)}")
             return f"Error processing query: {str(e)}"
+
 
 """
 # Planning Agent
@@ -516,6 +537,7 @@ This agents role is to help the Supervisor agent to plan and delegate the steps 
 This agent breaks the users request down into steps then tags actions with the agent it needs to be delegated to, then hands the plan back to the Supervisor to execute and delegate.
 """
 logger.info("# Planning Agent")
+
 
 class PlannerAgent:
     def __init__(self):
@@ -568,6 +590,7 @@ class PlannerAgent:
             logger.error(f"Error creating plan: {str(e)}", exc_info=True)
             return ["General: Error occurred while creating plan"]
 
+
 """
 # Agent State
 
@@ -584,6 +607,7 @@ There are a few custom reducers which are used to appropriately update the state
 """
 logger.info("# Agent State")
 
+
 def db_graph_reducer():
     def _reducer(previous_value: Optional[nx.Graph], new_value: nx.Graph) -> nx.Graph:
         if previous_value is None:  # If no previous graph exists, use the new graph
@@ -591,23 +615,31 @@ def db_graph_reducer():
         return previous_value  # Otherwise, retain the existing graph
     return _reducer
 
+
 def plan_reducer():
     def _reducer(previous_value: Optional[List[str]], new_value: List[str]) -> List[str]:
-        return new_value if new_value is not None else previous_value  # Use the new plan if available
+        # Use the new plan if available
+        return new_value if new_value is not None else previous_value
     return _reducer
+
 
 def classify_input_reducer():
     def _reducer(previous_value: Optional[str], new_value: str) -> str:
         return new_value  # Always replace with the latest classification
     return _reducer
 
+
 class ConversationState(TypedDict):
     question: str  # Current user question
-    input_type: Annotated[str, classify_input_reducer()]  # Classification of the input type
-    plan: Annotated[List[str], plan_reducer()]  # Step-by-step plan to respond to the question
+    # Classification of the input type
+    input_type: Annotated[str, classify_input_reducer()]
+    # Step-by-step plan to respond to the question
+    plan: Annotated[List[str], plan_reducer()]
     db_results: NotRequired[str]  # Optional field for database query results
     response: NotRequired[str]  # Optional field for generated response
-    db_graph: Annotated[Optional[nx.Graph], db_graph_reducer()] = None  # Optional field for database graph
+    # Optional field for database graph
+    db_graph: Annotated[Optional[nx.Graph], db_graph_reducer()] = None
+
 
 """
 # Classify user input
@@ -619,6 +651,7 @@ If the user input is conversational it will simply respond itself without the ne
 If the input is database related, it triggers the planning and delegation processes.
 """
 logger.info("# Classify user input")
+
 
 def classify_user_input(state: ConversationState) -> ConversationState:
     """Classifies user input to determine if it requires database access."""
@@ -638,7 +671,8 @@ def classify_user_input(state: ConversationState) -> ConversationState:
 
     llm = ChatOllama(model="llama3.2")
     response = llm.invoke(messages)
-    classification = response.content.strip()  # Extract the category from the response
+    # Extract the category from the response
+    classification = response.content.strip()
 
     logger.info(f"Input classified as: {classification}")
 
@@ -646,6 +680,7 @@ def classify_user_input(state: ConversationState) -> ConversationState:
         **state,
         "input_type": classification
     }
+
 
 """
 # Supervisor Agent
@@ -659,6 +694,7 @@ Then the Supervisor then delegates to the Planning agent which creates a plan, b
 The Supervisor then executes the plan.
 """
 logger.info("# Supervisor Agent")
+
 
 class SupervisorAgent:
     def __init__(self):
@@ -693,7 +729,8 @@ class SupervisorAgent:
         )
 
         logger.info("Generated plan:")
-        inference_steps = [step for step in plan if step.startswith('Inference:')]
+        inference_steps = [
+            step for step in plan if step.startswith('Inference:')]
         general_steps = [step for step in plan if step.startswith('General:')]
 
         if inference_steps:
@@ -723,11 +760,14 @@ class SupervisorAgent:
 
                 if step_type.lower().strip() == 'inference':
                     try:
-                        result = self.inference_agent.query(content, state.get('db_graph'))
+                        result = self.inference_agent.query(
+                            content, state.get('db_graph'))
                         results.append(f"Step: {step}\nResult: {result}")
                     except Exception as e:
-                        logger.error(f"Error in inference step: {str(e)}", exc_info=True)
-                        results.append(f"Step: {step}\nError: Query failed - {str(e)}")
+                        logger.error(
+                            f"Error in inference step: {str(e)}", exc_info=True)
+                        results.append(
+                            f"Step: {step}\nError: Query failed - {str(e)}")
                 else:
                     results.append(f"Step: {step}\nResult: {content}")
 
@@ -742,7 +782,8 @@ class SupervisorAgent:
 
     def generate_response(self, state: ConversationState) -> ConversationState:
         logger.info("Generating final response")
-        is_chat = state.get("input_type") in ["GREETING", "CHITCHAT", "FAREWELL"]
+        is_chat = state.get("input_type") in [
+            "GREETING", "CHITCHAT", "FAREWELL"]
         prompt = self.chat_response_prompt if is_chat else self.db_response_prompt
 
         response = self.config.llm.invoke(prompt.format(
@@ -752,12 +793,14 @@ class SupervisorAgent:
 
         return {**state, "response": response.content, "plan": []}
 
+
 """
 # Discover Database
 
 This method is what is used in the StateGraph when triggered to do the database discovery, it returns an NetworkX graph object which we use to update the ConversationState object (see the Examples section below).
 """
 logger.info("# Discover Database")
+
 
 def discover_database(state: ConversationState) -> ConversationState:
     if state.get('db_graph') is None:
@@ -766,11 +809,13 @@ def discover_database(state: ConversationState) -> ConversationState:
         discovery_agent = DiscoveryAgent()
         graph = discovery_agent.discover()
 
-        logger.info("Database schema discovery complete - this will be reused for future queries")
+        logger.info(
+            "Database schema discovery complete - this will be reused for future queries")
 
         return {**state, "db_graph": graph}
 
     return state
+
 
 """
 # StateGraph
@@ -779,28 +824,37 @@ This defines the Agent StateGraph and how the agent is to "behave" and make deci
 """
 logger.info("# StateGraph")
 
+
 def create_graph():
     supervisor = SupervisorAgent()
     builder = StateGraph(ConversationState)
 
-    builder.add_node("classify_input", classify_user_input)  # Classify the user input
-    builder.add_node("discover_database", discover_database)  # Perform database discovery
-    builder.add_node("create_plan", supervisor.create_plan)  # Create a plan based on input
-    builder.add_node("execute_plan", supervisor.execute_plan)  # Execute the generated plan
-    builder.add_node("generate_response", supervisor.generate_response)  # Generate the final response
+    # Classify the user input
+    builder.add_node("classify_input", classify_user_input)
+    # Perform database discovery
+    builder.add_node("discover_database", discover_database)
+    # Create a plan based on input
+    builder.add_node("create_plan", supervisor.create_plan)
+    # Execute the generated plan
+    builder.add_node("execute_plan", supervisor.execute_plan)
+    # Generate the final response
+    builder.add_node("generate_response", supervisor.generate_response)
 
-    builder.add_edge(START, "classify_input")  # Start with input classification
+    # Start with input classification
+    builder.add_edge(START, "classify_input")
 
     builder.add_conditional_edges(
         "classify_input",
-        lambda x: "discover_database" if x.get("input_type") == "DATABASE_QUERY" else "generate_response"
+        lambda x: "discover_database" if x.get(
+            "input_type") == "DATABASE_QUERY" else "generate_response"
     )
 
     builder.add_edge("discover_database", "create_plan")
 
     builder.add_conditional_edges(
         "create_plan",
-        lambda x: "execute_plan" if x.get("plan") is not None else "generate_response"
+        lambda x: "execute_plan" if x.get(
+            "plan") is not None else "generate_response"
     )
 
     builder.add_edge("execute_plan", "generate_response")
@@ -808,6 +862,7 @@ def create_graph():
     builder.add_edge("generate_response", END)
 
     return builder.compile()
+
 
 graph = create_graph()
 

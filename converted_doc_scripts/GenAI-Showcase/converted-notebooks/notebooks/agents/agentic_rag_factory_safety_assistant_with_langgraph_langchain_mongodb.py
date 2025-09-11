@@ -6,7 +6,7 @@ async def main():
     from datasets import load_dataset
     from datetime import datetime
     from datetime import datetime, timezone
-    from jet.llm.ollama.base_langchain import ChatOllama
+    from jet.adapters.langchain.chat_ollama import ChatOllama
     from jet.llm.ollama.base_langchain import OllamaEmbeddings
     from jet.logger import CustomLogger
     from langchain.agents import tool
@@ -19,11 +19,11 @@ async def main():
     from langchain_mongodb.retrievers import MongoDBAtlasFullTextSearchRetriever
     from langchain_mongodb.retrievers import MongoDBAtlasHybridSearchRetriever
     from langgraph.checkpoint.base import (
-    BaseCheckpointSaver,
-    Checkpoint,
-    CheckpointMetadata,
-    CheckpointTuple,
-    SerializerProtocol,
+        BaseCheckpointSaver,
+        Checkpoint,
+        CheckpointMetadata,
+        CheckpointTuple,
+        SerializerProtocol,
     )
     from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
     from langgraph.graph import END, StateGraph
@@ -52,17 +52,16 @@ async def main():
     import shutil
     import tabulate
     import tiktoken
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     # Agentic RAG: Factory Safety Assistant
     
@@ -71,58 +70,53 @@ async def main():
     [![AI Learning Hub For Developers](https://img.shields.io/badge/AI%20Learning%20Hub%20For%20Developers-Click%20Here-blue)](https://www.mongodb.com/resources/use-cases/artificial-intelligence?utm_campaign=ai_learning_hub&utm_source=github&utm_medium=referral)
     """
     logger.info("# Agentic RAG: Factory Safety Assistant")
-    
+
     # %pip install --quiet datasets pandas pymongo jet.llm.ollama.base_langchain
-    
+
     # import getpass
-    
-    
+
     def set_env_securely(var_name, prompt):
-    #     value = getpass.getpass(prompt)
+        #     value = getpass.getpass(prompt)
         os.environ[var_name] = value
-    
+
     OPEN_AI_EMBEDDING_MODEL = "mxbai-embed-large"
     OPEN_AI_EMBEDDING_MODEL_DIMENSION = 256
-    
-    
+
     # set_env_securely("OPENAI_API_KEY", "Enter your Ollama API key: ")
-    
-    
+
     accidents_df = pd.read_json("accidents_incidents.json")
-    
+
     safety_df = pd.read_json("safety_procedures.json")
-    
-    
-    
-    safety_procedure_ds = load_dataset("MongoDB/safety_procedure_dataset", split="train")
+
+    safety_procedure_ds = load_dataset(
+        "MongoDB/safety_procedure_dataset", split="train")
     safety_df = pd.DataFrame(safety_procedure_ds)
-    
-    accident_reports_ds = load_dataset("MongoDB/accident_reports", split="train")
+
+    accident_reports_ds = load_dataset(
+        "MongoDB/accident_reports", split="train")
     accidents_df = pd.DataFrame(accident_reports_ds)
-    
+
     accidents_df.info()
-    
+
     accidents_df.head()
-    
+
     safety_df.info()
-    
+
     safety_df.head()
-    
-    
-    
+
     def combine_attributes(df, attributes):
         """
         Combine specified attributes of a DataFrame into a single column,
         converting all attributes to strings and handling various data types.
-    
+
         Parameters:
         df (pandas.DataFrame): The input DataFrame
         attributes (list): List of column names to combine
-    
+
         Returns:
         pandas.DataFrame: The input DataFrame with an additional 'combined_info' column
         """
-    
+
         def combine_row(row):
             combined = []
             for attr in attributes:
@@ -134,43 +128,43 @@ async def main():
                     elif not pd.isna(value):
                         combined.append(f"{attr.capitalize()}: {value!s}")
             return " ".join(combined)
-    
+
         df["combined_info"] = df.apply(combine_row, axis=1)
         return df
-    
+
     accident_attributes_to_combine = [
         "type",
         "description",
         "immediateActions",
         "rootCauses",
     ]
-    accidents_df = combine_attributes(accidents_df, accident_attributes_to_combine)
-    
-    safety_procedures_attributes_to_combine = ["title", "description", "category", "steps"]
-    safety_df = combine_attributes(safety_df, safety_procedures_attributes_to_combine)
-    
+    accidents_df = combine_attributes(
+        accidents_df, accident_attributes_to_combine)
+
+    safety_procedures_attributes_to_combine = [
+        "title", "description", "category", "steps"]
+    safety_df = combine_attributes(
+        safety_df, safety_procedures_attributes_to_combine)
+
     first_datapoint_accident = accidents_df.iloc[0]
     logger.debug(first_datapoint_accident["combined_info"])
-    
+
     first_datapoint_safety = safety_df.iloc[0]
     logger.debug(first_datapoint_safety["combined_info"])
-    
-    
+
     MAX_TOKENS = 8191  # Maximum tokens for mxbai-embed-large
     OVERLAP = 50
-    
+
     embedding_model = OllamaEmbeddings(
         model=OPEN_AI_EMBEDDING_MODEL, dimensions=OPEN_AI_EMBEDDING_MODEL_DIMENSION
     )
-    
-    
+
     def num_tokens_from_string(string: str, encoding_name: str = "cl100k_base") -> int:
         """Returns the number of tokens in a text string."""
         encoding = tiktoken.get_encoding(encoding_name)
         num_tokens = len(encoding.encode(string))
         return num_tokens
-    
-    
+
     def chunk_text(text, max_tokens=MAX_TOKENS, overlap=OVERLAP):
         """
         Split the text into overlapping chunks based on token count.
@@ -179,12 +173,11 @@ async def main():
         tokens = encoding.encode(text)
         chunks = []
         for i in range(0, len(tokens), max_tokens - overlap):
-            chunk_tokens = tokens[i : i + max_tokens]
+            chunk_tokens = tokens[i: i + max_tokens]
             chunk = encoding.decode(chunk_tokens)
             chunks.append(chunk)
         return chunks
-    
-    
+
     def get_embedding(input_data, model=OPEN_AI_EMBEDDING_MODEL):
         """
         Generate embeddings for the 'combined_attributes' column and duplicate the row for each chunk
@@ -194,19 +187,19 @@ async def main():
             text = input_data
         else:
             text = input_data["combined_info"]
-    
+
         if not text.strip():
             logger.debug("Attempted to get embedding for empty text.")
             return []
-    
+
         chunks = chunk_text(text)
-    
+
         chunk_embeddings = []
         for chunk in chunks:
             chunk = chunk.replace("\n", " ")
             embedding = embedding_model.embed_query(text=chunk)
             chunk_embeddings.append(embedding)
-    
+
         if isinstance(input_data, str):
             return chunk_embeddings[0]
         duplicated_rows = []
@@ -215,7 +208,7 @@ async def main():
             new_row["embedding"] = embedding
             duplicated_rows.append(new_row)
         return duplicated_rows
-    
+
     duplicated_data_accidents = []
     for _, row in tqdm(
         accidents_df.iterrows(),
@@ -224,9 +217,9 @@ async def main():
     ):
         duplicated_rows = get_embedding(row)
         duplicated_data_accidents.extend(duplicated_rows)
-    
+
     accidents_df = pd.DataFrame(duplicated_data_accidents)
-    
+
     duplicated_data_safey = []
     for _, row in tqdm(
         safety_df.iterrows(),
@@ -235,55 +228,51 @@ async def main():
     ):
         duplicated_rows = get_embedding(row)
         duplicated_data_safey.extend(duplicated_rows)
-    
+
     safety_df = pd.DataFrame(duplicated_data_safey)
-    
+
     accidents_df.head()
-    
+
     safety_df.head()
-    
+
     set_env_securely("MONGO_URI", "Enter your MongoDB URI: ")
-    
-    
-    
+
     def get_mongo_client(mongo_uri):
         """Establish and validate connection to the MongoDB."""
-    
+
         client = pymongo.MongoClient(
             mongo_uri, appname="devrel.showcase.factory_safety_assistant.python"
         )
-    
+
         ping_result = client.admin.command("ping")
         if ping_result.get("ok") == 1.0:
             logger.debug("Connection to MongoDB successful")
             return client
         logger.debug("Connection to MongoDB failed")
         return None
-    
-    
+
     MONGO_URI = os.environ["MONGO_URI"]
-    
+
     if not MONGO_URI:
         logger.debug("MONGO_URI not set in environment variables")
-    
+
     mongo_client = get_mongo_client(MONGO_URI)
-    
+
     DB_NAME = "factory_safety_use_case"
     SAFETY_PROCEDURES_COLLECTION = "safety_procedures"
     ACCIDENTS_REPORT_COLLECTION = "accident_report"
-    
+
     db = mongo_client.get_database(DB_NAME)
-    safety_procedure_collection = db.get_collection(SAFETY_PROCEDURES_COLLECTION)
+    safety_procedure_collection = db.get_collection(
+        SAFETY_PROCEDURES_COLLECTION)
     accident_report_collection = db.get_collection(ACCIDENTS_REPORT_COLLECTION)
-    
-    
-    
+
     def setup_vector_search_index_with_filter(
         collection, index_definition, index_name="vector_index_with_filter"
     ):
         """
         Setup a vector search index for a MongoDB collection.
-    
+
         Args:
         collection: MongoDB collection object
         index_definition: Dictionary containing the index definition
@@ -293,14 +282,17 @@ async def main():
             definition=index_definition,
             name=index_name,
         )
-    
+
         try:
-            result = collection.create_search_index(model=new_vector_search_index_model)
+            result = collection.create_search_index(
+                model=new_vector_search_index_model)
             logger.debug(f"Creating index '{index_name}'...")
-            logger.debug(f"New index '{index_name}' created successfully:", result)
+            logger.debug(
+                f"New index '{index_name}' created successfully:", result)
         except Exception as e:
-            logger.debug(f"Error creating new vector search index '{index_name}': {e!s}")
-    
+            logger.debug(
+                f"Error creating new vector search index '{index_name}': {e!s}")
+
     vector_search_index_definition_safety_procedure = {
         "mappings": {
             "dynamic": True,
@@ -314,7 +306,7 @@ async def main():
             },
         }
     }
-    
+
     vector_search_index_definition_accident_reports = {
         "mappings": {
             "dynamic": True,
@@ -328,37 +320,35 @@ async def main():
             },
         }
     }
-    
+
     setup_vector_search_index_with_filter(
         safety_procedure_collection, vector_search_index_definition_safety_procedure
     )
     setup_vector_search_index_with_filter(
         accident_report_collection, vector_search_index_definition_accident_reports
     )
-    
+
     safety_procedure_collection.delete_many({})
     accident_report_collection.delete_many({})
-    
-    
-    
+
     def insert_df_to_mongodb(df, collection, batch_size=1000):
         """
         Insert a pandas DataFrame into a MongoDB collection.
-    
+
         Parameters:
         df (pandas.DataFrame): The DataFrame to insert
         collection (pymongo.collection.Collection): The MongoDB collection to insert into
         batch_size (int): Number of documents to insert in each batch
-    
+
         Returns:
         int: Number of documents successfully inserted
         """
         total_inserted = 0
-    
+
         records = df.to_dict("records")
-    
+
         for i in range(0, len(records), batch_size):
-            batch = records[i : i + batch_size]
+            batch = records[i: i + batch_size]
             try:
                 result = collection.insert_many(batch, ordered=False)
                 total_inserted += len(result.inserted_ids)
@@ -370,25 +360,27 @@ async def main():
                 logger.debug(
                     f"Batch {i//batch_size + 1} partially inserted. {bwe.details['nInserted']} inserted, {len(bwe.details['writeErrors'])} failed."
                 )
-    
+
         return total_inserted
-    
+
     def print_dataframe_info(df, df_name):
         logger.debug(f"\n{df_name} DataFrame info:")
         logger.debug(df.info())
         logger.debug(f"\nFirst few rows of the {df_name} DataFrame:")
         logger.debug(df.head())
-    
+
     try:
-        total_inserted_safety = insert_df_to_mongodb(safety_df, safety_procedure_collection)
+        total_inserted_safety = insert_df_to_mongodb(
+            safety_df, safety_procedure_collection)
         logger.debug(
             f"Safety procedures data ingestion completed. Total documents inserted: {total_inserted_safety}"
         )
     except Exception as e:
-        logger.debug(f"An error occurred while inserting safety procedures: {e}")
+        logger.debug(
+            f"An error occurred while inserting safety procedures: {e}")
         logger.debug("Pandas version:", pd.__version__)
         print_dataframe_info(safety_df, "Safety Procedures")
-    
+
     try:
         total_inserted_accidents = insert_df_to_mongodb(
             accidents_df, accident_report_collection
@@ -397,10 +389,11 @@ async def main():
             f"Accident reports data ingestion completed. Total documents inserted: {total_inserted_accidents}"
         )
     except Exception as e:
-        logger.debug(f"An error occurred while inserting accident reports: {e}")
+        logger.debug(
+            f"An error occurred while inserting accident reports: {e}")
         logger.debug("Pandas version:", pd.__version__)
         print_dataframe_info(accidents_df, "Accident Reports")
-    
+
     logger.debug("\nInsertion Summary:")
     logger.debug(
         f"Safety Procedures inserted: {total_inserted_safety if 'total_inserted_safety' in locals() else 'Failed'}"
@@ -408,24 +401,24 @@ async def main():
     logger.debug(
         f"Accident Reports inserted: {total_inserted_accidents if 'total_inserted_accidents' in locals() else 'Failed'}"
     )
-    
+
     def vector_search(user_query, collection):
         """
         Perform a vector search in the MongoDB collection based on the user query.
-    
+
         Args:
         user_query (str): The user's query string.
         collection (MongoCollection): The MongoDB collection to search.
-    
+
         Returns:
         list: A list of matching documents.
         """
-    
+
         query_embedding = get_embedding(user_query)
-    
+
         if query_embedding is None:
             return "Invalid query or embedding generation failed."
-    
+
         vector_search_stage = {
             "$vectorSearch": {
                 "index": "vector_index_with_filter",
@@ -435,11 +428,11 @@ async def main():
                 "limit": 5,  # Return top 4 matches
             }
         }
-    
+
         unset_stage = {
             "$unset": "embedding"  # Exclude the 'embedding' field from the results
         }
-    
+
         project_stage = {
             "$project": {
                 "_id": 0,  # Exclude the _id field,
@@ -449,80 +442,81 @@ async def main():
                 },
             }
         }
-    
+
         pipeline = [vector_search_stage, unset_stage, project_stage]
-    
+
         results = collection.aggregate(pipeline)
         return list(results)
-    
+
     def get_vector_search_result(query, collection):
         get_knowledge = vector_search(query, collection)
         search_results = []
         for result in get_knowledge:
             search_results.append(
-                [result.get("score", "N/A"), result.get("combined_info", "N/A")]
+                [result.get("score", "N/A"),
+                 result.get("combined_info", "N/A")]
             )
         return search_results
-    
-    
+
     query = "Get me a saftey procedure related to helmet incidents"
-    source_information = get_vector_search_result(query, safety_procedure_collection)
-    
+    source_information = get_vector_search_result(
+        query, safety_procedure_collection)
+
     table_headers = ["Similarity Score", "Combined Information"]
-    table = tabulate.tabulate(source_information, headers=table_headers, tablefmt="grid")
-    
+    table = tabulate.tabulate(
+        source_information, headers=table_headers, tablefmt="grid")
+
     combined_information = f"""Query: {query}
     
     Continue to answer the query by using the Search Results:
     
     {table}
     """
-    
+
     logger.debug(combined_information)
-    
+
     # %pip install --quiet -U langchain langchain_mongodb langgraph langsmith motor jet.llm.ollama.base_langchain # langchain-groq
-    
+
     # set_env_securely("ANTHROPIC_API_KEY", "Enter your Ollama API key: ")
-    
+
     set_env_securely("GROQ_API_KEY", "Enter your Groq API key: ")
-    
+
     def create_collection_search_index(collection, index_definition, index_name):
         """
         Create a search index for a MongoDB Atlas collection.
-    
+
         Args:
         collection: MongoDB collection object
         index_definition: Dictionary defining the index mappings
         index_name: String name for the index
-    
+
         Returns:
         str: Result of the index creation operation
         """
-    
+
         try:
             search_index_model = SearchIndexModel(
                 definition=index_definition, name=index_name
             )
-    
+
             result = collection.create_search_index(model=search_index_model)
             logger.debug(f"Search index '{index_name}' created successfully")
             return result
         except Exception as e:
             logger.debug(f"Error creating search index: {e!s}")
             return None
-    
-    
+
     def print_collection_search_indexes(collection):
         """
         Print all search indexes for a given collection.
-    
+
         Args:
         collection: MongoDB collection object
         """
         logger.debug(f"\nSearch indexes for collection '{collection.name}':")
         for index in collection.list_search_indexes():
             logger.debug(f"Index: {index['name']}")
-    
+
     safety_procedure_collection_text_index_definition = {
         "mappings": {
             "dynamic": True,
@@ -534,36 +528,35 @@ async def main():
             },
         }
     }
-    
+
     create_collection_search_index(
         safety_procedure_collection,
         safety_procedure_collection_text_index_definition,
         "text_search_index",
     )
-    
+
     print_collection_search_indexes(safety_procedure_collection)
-    
+
     accident_report_collection_text_index_definition = {
         "mappings": {
             "dynamic": True,
             "fields": {"type": {"type": "string"}, "description": {"type": "string"}},
         }
     }
-    
+
     create_collection_search_index(
         accident_report_collection,
         accident_report_collection_text_index_definition,
         "text_search_index",
     )
-    
+
     print_collection_search_indexes(accident_report_collection)
-    
-    
+
     ATLAS_VECTOR_SEARCH_INDEX = "vector_index_with_filter"
     embedding_model = OllamaEmbeddings(
         model=OPEN_AI_EMBEDDING_MODEL, dimensions=OPEN_AI_EMBEDDING_MODEL_DIMENSION
     )
-    
+
     vector_store_safety_procedures = MongoDBAtlasVectorSearch.from_connection_string(
         connection_string=MONGO_URI,
         namespace=DB_NAME + "." + SAFETY_PROCEDURES_COLLECTION,
@@ -571,22 +564,22 @@ async def main():
         index_name=ATLAS_VECTOR_SEARCH_INDEX,
         text_key="combined_info",
     )
-    
+
     hybrid_search = MongoDBAtlasHybridSearchRetriever(
         vectorstore=vector_store_safety_procedures,
         search_index_name="text_search_index",
         top_k=5,
     )
-    
+
     hybrid_search_result = hybrid_search.get_relevant_documents(query)
-    
+
     def hybrid_search_results_to_table(search_results):
         """
         Convert hybrid search results to a formatted markdown table.
-    
+
         Args:
         search_results (list): List of Document objects containing search results
-    
+
         Returns:
         str: Formatted markdown table of search results
         """
@@ -604,49 +597,46 @@ async def main():
                     "Total Score": round(metadata["score"], 5),
                 }
             )
-    
+
         df = pd.DataFrame(data)
-    
-        table = tabulate.tabulate(df, headers="keys", tablefmt="pipe", showindex=False)
-    
+
+        table = tabulate.tabulate(
+            df, headers="keys", tablefmt="pipe", showindex=False)
+
         return table
-    
+
     table = hybrid_search_results_to_table(hybrid_search_result)
     logger.debug(table)
-    
-    
+
     full_text_search = MongoDBAtlasFullTextSearchRetriever(
         collection=safety_procedure_collection,
         search_index_name="text_search_index",
         search_field="description",
         top_k=5,
     )
-    full_text_search_result = full_text_search.get_relevant_documents("Guidelines")
-    
+    full_text_search_result = full_text_search.get_relevant_documents(
+        "Guidelines")
+
     logger.debug(full_text_search_result)
-    
+
     """
     ## MongoDB Checkpointer
     """
     logger.info("## MongoDB Checkpointer")
-    
-    
-    
-    
+
     class JsonPlusSerializerCompat(JsonPlusSerializer):
         def loads(self, data: bytes) -> Any:
             if data.startswith(b"\x80") and data.endswith(b"."):
                 return pickle.loads(data)
             return super().loads(data)
-    
-    
+
     class MongoDBSaver(AbstractContextManager, BaseCheckpointSaver):
         serde = JsonPlusSerializerCompat()
-    
+
         client: AsyncIOMotorClient
         db_name: str
         collection_name: str
-    
+
         def __init__(
             self,
             client: AsyncIOMotorClient,
@@ -660,10 +650,10 @@ async def main():
             self.db_name = db_name
             self.collection_name = collection_name
             self.collection = client[db_name][collection_name]
-    
+
         def __enter__(self) -> Self:
             return self
-    
+
         def __exit__(
             self,
             __exc_type: Optional[type[BaseException]],
@@ -671,7 +661,7 @@ async def main():
             __traceback: Optional[TracebackType],
         ) -> Optional[bool]:
             return True
-    
+
         async def aget_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
             if config["configurable"].get("thread_ts"):
                 query = {
@@ -680,7 +670,7 @@ async def main():
                 }
             else:
                 query = {"thread_id": config["configurable"]["thread_id"]}
-    
+
             doc = await self.collection.find_one(query, sort=[("thread_ts", -1)])
             logger.success(format_json(doc))
             if doc:
@@ -700,7 +690,7 @@ async def main():
                     ),
                 )
             return None
-    
+
         async def alist(
             self,
             config: Optional[RunnableConfig],
@@ -716,12 +706,13 @@ async def main():
                 for key, value in filter.items():
                     query[f"metadata.{key}"] = value
             if before is not None:
-                query["thread_ts"] = {"$lt": before["configurable"]["thread_ts"]}
-    
+                query["thread_ts"] = {
+                    "$lt": before["configurable"]["thread_ts"]}
+
             cursor = self.collection.find(query).sort("thread_ts", -1)
             if limit:
                 cursor = cursor.limit(limit)
-    
+
             async for doc in cursor:
                 yield CheckpointTuple(
                     {
@@ -743,7 +734,7 @@ async def main():
                         else None
                     ),
                 )
-    
+
         async def aput(
             self,
             config: RunnableConfig,
@@ -766,10 +757,11 @@ async def main():
                     "thread_ts": checkpoint["id"],
                 }
             }
-    
+
         def get_tuple(self, config: RunnableConfig) -> Optional[CheckpointTuple]:
-            raise NotImplementedError("Use aget_tuple for asynchronous operations")
-    
+            raise NotImplementedError(
+                "Use aget_tuple for asynchronous operations")
+
         def list(
             self,
             config: Optional[RunnableConfig],
@@ -779,7 +771,7 @@ async def main():
             limit: Optional[int] = None,
         ):
             raise NotImplementedError("Use alist for asynchronous operations")
-    
+
         def put(
             self,
             config: RunnableConfig,
@@ -787,7 +779,7 @@ async def main():
             metadata: CheckpointMetadata,
         ) -> RunnableConfig:
             raise NotImplementedError("Use aput for asynchronous operations")
-    
+
         async def aput_writes(
             self,
             config: RunnableConfig,
@@ -805,97 +797,89 @@ async def main():
                     "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 docs.append(doc)
-    
+
             if docs:
                 await self.collection.insert_many(docs)
-    
+
     """
     ## Tool Definitions
     """
     logger.info("## Tool Definitions")
-    
-    
-    
-    
+
     @tool
     def safety_procedures_vector_search_tool(query: str, k: int = 5):
         """
         Perform a vector similarity search on safety procedures.
-    
+
         Args:
             query (str): The search query string.
             k (int, optional): Number of top results to return. Defaults to 5.
-    
+
         Returns:
             list: List of tuples (Document, score), where Document is a safety procedure
                   and score is the similarity score (lower is more similar).
-    
+
         Note:
             Uses the global vector_store_safety_procedures for the search.
         """
-    
+
         vector_search_results = vector_store_safety_procedures.similarity_search_with_score(
             query=query, k=k
         )
         return vector_search_results
-    
-    
+
     @tool
     def safety_procedures_full_text_search_tool(query: str, k: int = 5):
         """
         Perform a full-text search on safety procedures.
-    
+
         Args:
             query (str): The search query string.
             k (int, optional): Number of top results to return. Defaults to 5.
-    
+
         Returns:
             list: Relevant safety procedure documents matching the query.
         """
-    
+
         full_text_search = MongoDBAtlasFullTextSearchRetriever(
             collection=safety_procedure_collection,
             search_index_name="text_search_index",
             search_field="description",
             top_k=k,
         )
-    
-        full_text_search_result = full_text_search.get_relevant_documents(query)
-    
-    
+
+        full_text_search_result = full_text_search.get_relevant_documents(
+            query)
+
     @tool
     def safety_procedures_hybrid_search_tool(query: str):
         """
         Perform a hybrid (vector + full-text) search on safety procedures.
-    
+
         Args:
             query (str): The search query string.
-    
+
         Returns:
             list: Relevant safety procedure documents from hybrid search.
-    
+
         Note:
             Uses both vector_store_safety_procedures and text_search_index.
         """
-    
+
         hybrid_search = MongoDBAtlasHybridSearchRetriever(
             vectorstore=vector_store_safety_procedures,
             search_index_name="text_search_index",
             top_k=5,
         )
-    
+
         hybrid_search_result = hybrid_search.get_relevant_documents(query)
-    
+
         return hybrid_search_result
-    
-    
-    
-    
+
     class Step(BaseModel):
         stepNumber: int = Field(..., ge=1)
         description: str
-    
-    
+
     class SafetyProcedure(BaseModel):
         procedureId: str
         title: str
@@ -903,54 +887,53 @@ async def main():
         category: str
         steps: List[Step]
         lastUpdated: datetime = Field(default_factory=datetime.now)
-    
-    
+
     def create_safety_procedure_document(procedure_data: dict) -> dict:
         """
         Create a new safety procedure document from a dictionary, using Pydantic for validation.
-    
+
         Args:
         procedure_data (dict): Dictionary representing the new safety procedure
-    
+
         Returns:
         dict: Validated and formatted safety procedure document
-    
+
         Raises:
         ValidationError: If the input data doesn't match the SafetyProcedure schema
         """
         try:
             safety_procedure = SafetyProcedure(**procedure_data)
-    
+
             document = safety_procedure.dict()
-    
+
             for i, step in enumerate(document["steps"], start=1):
                 step["stepNumber"] = i
-    
+
             return document
         except Exception as e:
             raise ValueError(f"Invalid safety procedure data: {e!s}")
-    
-    
+
     @tool
     def create_new_safety_procedures(new_procedure: dict):
         """
         Create and validate a new safety procedure document.
-    
+
         Args:
             new_procedure (dict): Dictionary containing the new safety procedure data.
-    
+
         Returns:
             dict: Validated and formatted safety procedure document.
-    
+
         Raises:
             ValueError: If the input data is invalid or doesn't match the required schema.
-    
+
         Note:
             Uses Pydantic for data validation via create_safety_procedure_document function.
         """
-        new_safety_procedure_document = create_safety_procedure_document(new_procedure)
+        new_safety_procedure_document = create_safety_procedure_document(
+            new_procedure)
         return new_safety_procedure_document
-    
+
     vector_store_accident_reports = MongoDBAtlasVectorSearch.from_connection_string(
         connection_string=MONGO_URI,
         namespace=DB_NAME + "." + ACCIDENTS_REPORT_COLLECTION,
@@ -958,21 +941,20 @@ async def main():
         index_name=ATLAS_VECTOR_SEARCH_INDEX,
         text_key="combined_info",
     )
-    
-    
+
     @tool
     def accident_reports_vector_search_tool(query: str, k: int = 5):
         """
         Perform a vector similarity search on accident reports.
-    
+
         Args:
             query (str): The search query string.
             k (int, optional): Number of top results to return. Defaults to 5.
-    
+
         Returns:
             list: List of tuples (Document, score), where Document is an accident report
                   and score is the similarity score (lower is more similar).
-    
+
         Note:
             Uses the global vector_store_accident_reports for the search.
         """
@@ -980,17 +962,16 @@ async def main():
             query=query, k=k
         )
         return vector_search_results
-    
-    
+
     @tool
     def accident_reports_full_text_search_tool(query: str, k: int = 5):
         """
         Perform a full-text search on accident reports.
-    
+
         Args:
             query (str): The search query string.
             k (int, optional): Number of top results to return. Defaults to 5.
-    
+
         Returns:
             list: Relevant accident report documents matching the query.
         """
@@ -1000,21 +981,20 @@ async def main():
             search_field="description",
             top_k=k,
         )
-    
+
         return full_text_search.get_relevant_documents(query)
-    
-    
+
     @tool
     def accident_reports_hybrid_search_tool(query: str):
         """
         Perform a hybrid (vector + full-text) search on accident reports.
-    
+
         Args:
             query (str): The search query string.
-    
+
         Returns:
             list: Relevant accident report documents from hybrid search.
-    
+
         Note:
             Uses both vector_store_accident_reports and accident_text_search_index.
         """
@@ -1023,61 +1003,57 @@ async def main():
             search_index_name="text_search_index",
             top_k=5,
         )
-    
+
         return hybrid_search.get_relevant_documents(query)
-    
+
     @tool
     def create_new_accident_report(new_report: dict):
         """
         Create and validate a new accident report document.
-    
+
         Args:
             new_report (dict): Dictionary containing the new accident report data.
-    
+
         Returns:
             dict: Validated and formatted accident report document.
-    
+
         Raises:
             ValueError: If the input data is invalid or doesn't match the required schema.
-    
+
         Note:
             This function should implement proper validation and formatting for accident reports.
         """
         return new_report  # This should be replaced with actual implementation
-    
+
     safety_procedure_collection_tools = [
         safety_procedures_vector_search_tool,
         safety_procedures_full_text_search_tool,
         safety_procedures_hybrid_search_tool,
         create_new_safety_procedures,
     ]
-    
+
     accident_report_collection_tools = [
         accident_reports_vector_search_tool,
         accident_reports_full_text_search_tool,
         accident_reports_hybrid_search_tool,
         create_new_accident_report,
     ]
-    
+
     """
     ## LLM Defintion
     """
     logger.info("## LLM Defintion")
-    
-    
+
     llm = ChatOllama(model="llama3.2")
-    
+
     """
     ## Agent Definition
     """
     logger.info("## Agent Definition")
-    
-    
-    
-    
+
     def create_agent(llm, tools, system_message: str):
         """Create an agent."""
-    
+
         prompt = ChatPromptTemplate.from_messages(
             [
                 (
@@ -1096,15 +1072,16 @@ async def main():
         )
         prompt = prompt.partial(system_message=system_message)
         prompt = prompt.partial(time=lambda: str(datetime.now()))
-        prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
-    
+        prompt = prompt.partial(tool_names=", ".join(
+            [tool.name for tool in tools]))
+
         return prompt | llm.bind_tools(tools)
-    
+
     toolbox = []
-    
+
     toolbox.extend(safety_procedure_collection_tools)
     toolbox.extend(accident_report_collection_tools)
-    
+
     chatbot_agent = create_agent(
         llm,
         toolbox,
@@ -1195,103 +1172,91 @@ async def main():
           DO NOT MAKE UP ANY INFORMATION.
         """,
     )
-    
+
     """
     ## State Definition
     """
     logger.info("## State Definition")
-    
-    
-    
-    
+
     class AgentState(TypedDict):
         messages: Annotated[List[BaseMessage], operator.add]
         sender: str
-    
+
     """
     ## Node Definition
     """
     logger.info("## Node Definition")
-    
-    
-    
-    
+
     def agent_node(state, agent, name):
         result = agent.invoke(state)
         if isinstance(result, ToolMessage):
             pass
         else:
-            result = AIMessage(**result.dict(exclude={"type", "name"}), name=name)
+            result = AIMessage(
+                **result.dict(exclude={"type", "name"}), name=name)
         return {
             "messages": [result],
             "sender": name,
         }
-    
-    
+
     chatbot_node = functools.partial(
         agent_node, agent=chatbot_agent, name="Factory Safety Assistant Agent( FSAA)"
     )
     tool_node = ToolNode(toolbox, name="tools")
-    
+
     """
     ## Agentic Workflow Definition
     """
     logger.info("## Agentic Workflow Definition")
-    
-    
+
     workflow = StateGraph(AgentState)
-    
+
     workflow.add_node("chatbot", chatbot_node)
     workflow.add_node("tools", tool_node)
-    
+
     workflow.set_entry_point("chatbot")
-    workflow.add_conditional_edges("chatbot", tools_condition, {"tools": "tools", END: END})
-    
+    workflow.add_conditional_edges("chatbot", tools_condition, {
+                                   "tools": "tools", END: END})
+
     workflow.add_edge("tools", "chatbot")
-    
-    
+
     mongo_client = AsyncIOMotorClient(MONGO_URI)
     mongodb_checkpointer = MongoDBSaver(mongo_client, DB_NAME, "state_store")
-    
+
     graph = workflow.compile(checkpointer=mongodb_checkpointer)
-    
-    
+
     try:
         display(Image(graph.get_graph(xray=True).draw_mermaid_png()))
     except Exception:
         pass
-    
-    
-    
+
     def sanitize_name(name: str) -> str:
         """Sanitize the name to match the pattern '^[a-zA-Z0-9_-]+$'."""
         return re.sub(r"[^a-zA-Z0-9_-]", "_", name)
-    
-    
-    
-    
+
     async def chat_loop():
         config = {"configurable": {"thread_id": "0"}}
-    
+
         while True:
             user_input = await asyncio.get_event_loop().run_in_executor(
-                    None, input, "User: "
-                )
+                None, input, "User: "
+            )
             logger.success(format_json(user_input))
             if user_input.lower() in ["quit", "exit", "q"]:
                 logger.debug("Goodbye!")
                 break
-    
+
             sanitized_name = (
                 sanitize_name("Human") or "Anonymous"
             )  # Fallback if sanitized name is empty
-            state = {"messages": [HumanMessage(content=user_input, name=sanitized_name)]}
-    
+            state = {"messages": [HumanMessage(
+                content=user_input, name=sanitized_name)]}
+
             logger.debug("Assistant: ", end="", flush=True)
-    
+
             max_retries = 3
             retry_delay = 1
-    
+
             for attempt in range(max_retries):
                 try:
                     for chunk in graph.stream(state, config, stream_mode="values"):
@@ -1299,12 +1264,15 @@ async def main():
                             last_message = chunk["messages"][-1]
                             if isinstance(last_message, AIMessage):
                                 last_message.name = (
-                                    sanitize_name(last_message.name or "AI") or "AI"
+                                    sanitize_name(
+                                        last_message.name or "AI") or "AI"
                                 )
-                                logger.debug(last_message.content, end="", flush=True)
+                                logger.debug(last_message.content,
+                                             end="", flush=True)
                         elif isinstance(last_message, ToolMessage):
                             logger.debug(f"\n[Tool Used: {last_message.name}]")
-                            logger.debug(f"Tool Call ID: {last_message.tool_call_id}")
+                            logger.debug(
+                                f"Tool Call ID: {last_message.tool_call_id}")
                             logger.debug(f"Content: {last_message.content}")
                             logger.debug("Assistant: ", end="", flush=True)
                     break
@@ -1315,17 +1283,18 @@ async def main():
                         await asyncio.sleep(retry_delay)
                         retry_delay *= 2
                     else:
-                        logger.debug(f"\nMax retries reached. Ollama API error: {e!s}")
+                        logger.debug(
+                            f"\nMax retries reached. Ollama API error: {e!s}")
                         break
-    
+
             logger.debug("\n")  # New line after the complete response
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     await chat_loop()
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

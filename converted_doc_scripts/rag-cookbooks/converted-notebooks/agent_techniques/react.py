@@ -3,7 +3,7 @@ from crewai import Crew, Process
 from crewai import Task
 from datetime import datetime
 from google.colab import userdata
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain import hub
 from langchain.agents import AgentExecutor
@@ -71,10 +71,12 @@ def get_current_date(tool_input=None) -> str:
     """
     return datetime.now().strftime("%Y-%m-%d")
 
+
 @tool
 def web_search(query: str) -> str:
     """Tool for performing web search."""
     return search.invoke(query)
+
 
 @tool
 def get_stock_price(ticker: str) -> float:
@@ -87,6 +89,7 @@ def get_stock_price(ticker: str) -> float:
     history = ticker_data.history(period="1y")
     return history['Close']
 
+
 @tool
 def yahoo_finance_news(query: str) -> str:
     """Fetches news articles related to a query from Yahoo Finance.
@@ -96,6 +99,7 @@ def yahoo_finance_news(query: str) -> str:
     """
     news_tool = YahooFinanceNewsTool()
     return news_tool.invoke(query)
+
 
 tools = [get_stock_price, web_search, yahoo_finance_news, get_current_date]
 
@@ -108,9 +112,11 @@ prompt = hub.pull("hwchase17/react")
 
 agent = create_react_agent(llm, tools, prompt)
 
-agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+agent_executor = AgentExecutor(
+    agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
 
-agent_executor.invoke({"input": "stocks analysis for Elon musk company for last month and latest news about company?"})
+agent_executor.invoke(
+    {"input": "stocks analysis for Elon musk company for last month and latest news about company?"})
 
 """
 ## **CrewAI ReAct Agent**
@@ -125,17 +131,17 @@ stock_insight_agent = Agent(
     tools=tools,
     verbose=True,
     llm=llm,
-    )
+)
 
 stock_analysis_task = Task(
     description=(
         "Use tools to gather insights about: '{query}'. "
         "Determine the best approach dynamically based on the user's query and use the appropriate tools. "
         "If the query involves a time/period ('now', 'current', 'today', 'recent', or refers to a specific timeframe), use `get_current_date()` to determine today's date before using other tools."
-        ),
+    ),
     expected_output="A structured summary of the stock analysis and insights.",
     agent=stock_insight_agent
-    )
+)
 
 crew = Crew(
     agents=[stock_insight_agent],
@@ -143,13 +149,15 @@ crew = Crew(
     process=Process.sequential,
     verbose=True,
     manager_llm=llm
-    )
+)
 
-result = crew.kickoff(inputs={"query": "is it worth buying apple stock for now?"})
+result = crew.kickoff(
+    inputs={"query": "is it worth buying apple stock for now?"})
 
 logger.debug(result)
 
-result = crew.kickoff(inputs={"query": "stocks price analysis for Elon musk company for last month and latest news about company?"})
+result = crew.kickoff(inputs={
+                      "query": "stocks price analysis for Elon musk company for last month and latest news about company?"})
 
 logger.debug(result)
 

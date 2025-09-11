@@ -1,4 +1,4 @@
-from jet.llm.ollama.base_langchain import ChatOllama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import CustomLogger
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
@@ -82,7 +82,8 @@ This guide is designed to take you on a journey that develops your understanding
 
 ## Install Libaries
 """
-logger.info("# **Pragmatic LLM Application Development: From RAG Pipleines to AI Agents**")
+logger.info(
+    "# **Pragmatic LLM Application Development: From RAG Pipleines to AI Agents**")
 
 # ! pip install pandas ollama pymongo llmlingua
 
@@ -106,7 +107,6 @@ OPEN_AI_EMBEDDING_MODEL_DIMENSION = 1536
 ## 1.1 Synthetic Data Creation
 """
 logger.info("## 1.1 Synthetic Data Creation")
-
 
 
 job_titles = [
@@ -245,7 +245,8 @@ def create_employee(
 
 
 employees = [
-    create_employee("E123456", "John", "Doe", "Software Engineer", "IT", "M987654"),
+    create_employee("E123456", "John", "Doe",
+                    "Software Engineer", "IT", "M987654"),
     create_employee(
         "E123457", "Jane", "Doe", "Senior Software Engineer", "IT", "M987654"
     ),
@@ -258,7 +259,8 @@ employees = [
     create_employee(
         "E123460", "Sarah", "Davis", "Project Manager", "Project Management", "M987657"
     ),
-    create_employee("E123461", "Robert", "Johnson", "UX Designer", "Design", "M987658"),
+    create_employee("E123461", "Robert", "Johnson",
+                    "UX Designer", "Design", "M987658"),
     create_employee(
         "E123462", "David", "Wilson", "QA Engineer", "Quality Assurance", "M987659"
     ),
@@ -283,6 +285,7 @@ df_employees.head()
 """
 logger.info("## 1.2 Embedding Data For Vector Search")
 
+
 def create_employee_string(employee):
     job_details = f"{employee['job_details']['job_title']} in {employee['job_details']['department']}"
     skills = ", ".join(employee["skills"])
@@ -300,9 +303,12 @@ def create_employee_string(employee):
 
 
 employee_string = create_employee_string(employees[0])
-logger.debug(f"Here's what an employee string looks like: /n {employee_string}")
+logger.debug(
+    f"Here's what an employee string looks like: /n {employee_string}")
 
-df_employees["employee_string"] = df_employees.apply(create_employee_string, axis=1)
+df_employees["employee_string"] = df_employees.apply(
+    create_employee_string, axis=1)
+
 
 def get_embedding(text):
     """Generate an embedding for the given text using Ollama's API."""
@@ -327,7 +333,8 @@ def get_embedding(text):
 
 
 try:
-    df_employees["embedding"] = df_employees["employee_string"].apply(get_embedding)
+    df_employees["embedding"] = df_employees["employee_string"].apply(
+        get_embedding)
     logger.debug("Embeddings generated for employees")
 except Exception as e:
     logger.debug(f"Error applying embedding function to DataFrame: {e}")
@@ -358,12 +365,15 @@ MONGO_URI = os.environ.get("MONGO_URI")
 DATABASE_NAME = "demo_company_employees"
 COLLECTION_NAME = "employees_records"
 
+
 def get_mongo_client(mongo_uri):
     """Establish connection to the MongoDB."""
 
-    client = MongoClient(mongo_uri, appname="devrel.showcase.workshop.rag_to_agent")
+    client = MongoClient(
+        mongo_uri, appname="devrel.showcase.workshop.rag_to_agent")
     logger.debug("Connection to MongoDB successful")
     return client
+
 
 if not MONGO_URI:
     logger.debug("MONGO_URI not set in environment variables")
@@ -408,6 +418,7 @@ Below is the vector search index definition for this notebook
 """
 logger.info("## 1.4 Vector Index Creation")
 
+
 def vector_search(user_query, collection, vector_index="vector_index"):
     """
     Perform a vector search in the MongoDB collection based on the user query.
@@ -443,10 +454,12 @@ def vector_search(user_query, collection, vector_index="vector_index"):
 
     return list(results)
 
+
 """
 ## 1.6 Handling User Query
 """
 logger.info("## 1.6 Handling User Query")
+
 
 def handle_user_query(query, collection):
     get_knowledge = vector_search(query, collection)
@@ -500,6 +513,7 @@ def handle_user_query(query, collection):
 
     return (completion.choices[0].message.content), search_result
 
+
 query = "Who is the CEO?"
 response, source_information = handle_user_query(query, collection)
 
@@ -509,8 +523,6 @@ logger.debug(f"Response: {response}")
 ## 1.7 Handling User Query (With Prompt Compression)
 """
 logger.info("## 1.7 Handling User Query (With Prompt Compression)")
-
-
 
 
 llm_lingua = PromptCompressor(
@@ -534,7 +546,6 @@ def compress_query_prompt(context):
     logger.debug("-------")
 
     return compressed_prompt
-
 
 
 def handle_user_query_with_compression(query, collection):
@@ -585,8 +596,10 @@ def handle_user_query_with_compression(query, collection):
 
     return (completion.choices[0].message.content), search_result
 
+
 query = "Who is the CEO?"
-response, source_information = handle_user_query_with_compression(query, collection)
+response, source_information = handle_user_query_with_compression(
+    query, collection)
 
 logger.debug(f"Response: {response}")
 
@@ -612,7 +625,8 @@ vector_store = MongoDBAtlasVectorSearch.from_connection_string(
     text_key="employee_string",
 )
 
-retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": 5})
+retriever = vector_store.as_retriever(
+    search_type="similarity", search_kwargs={"k": 5})
 
 
 template = """
@@ -624,6 +638,7 @@ Question: {question}
 custom_rag_prompt = PromptTemplate.from_template(template)
 
 llm = ChatOllama(model="llama3.2")
+
 
 def format_docs(docs):
     return "\n\n".join(doc.page_content for doc in docs)
@@ -647,7 +662,8 @@ logger.debug("Answer: " + answer)
 logger.info("#### Prompt Compression with LangChain and LLMLingua")
 
 
-compressor = LLMLinguaCompressor(model_name="ollama-community/gpt2", device_map="cpu")
+compressor = LLMLinguaCompressor(
+    model_name="ollama-community/gpt2", device_map="cpu")
 compression_retriever = ContextualCompressionRetriever(
     base_compressor=compressor, base_retriever=retriever
 )

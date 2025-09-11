@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import PromptTemplate
 import os
@@ -84,6 +84,7 @@ Now, let's explore strategies for resolving ambiguity in prompts.
 """
 logger.info("## Resolving Ambiguity")
 
+
 def resolve_ambiguity(prompt, context):
     """
     Resolve ambiguity in a prompt by providing additional context.
@@ -98,6 +99,7 @@ def resolve_ambiguity(prompt, context):
     clarified_prompt = f"{context}\n\nBased on this context, {prompt}"
     return llm.invoke(clarified_prompt).content
 
+
 ambiguous_prompt = "Tell me about the bank."
 contexts = [
     "You are a financial advisor discussing savings accounts.",
@@ -106,7 +108,8 @@ contexts = [
 
 for context in contexts:
     logger.debug(f"Context: {context}")
-    logger.debug(f"Clarified response: {resolve_ambiguity(ambiguous_prompt, context)}")
+    logger.debug(
+        f"Clarified response: {resolve_ambiguity(ambiguous_prompt, context)}")
     logger.debug("-" * 50)
 
 """
@@ -115,6 +118,7 @@ for context in contexts:
 Let's explore some techniques for writing clearer prompts to improve AI responses.
 """
 logger.info("## Techniques for Writing Clearer Prompts")
+
 
 def compare_prompt_clarity(original_prompt, improved_prompt):
     """
@@ -131,10 +135,12 @@ def compare_prompt_clarity(original_prompt, improved_prompt):
     improved_response = llm.invoke(improved_prompt).content
     return original_response, improved_response
 
+
 original_prompt = "How do I make it?"
 improved_prompt = "Provide a step-by-step guide for making a classic margherita pizza, including ingredients and cooking instructions."
 
-original_response, improved_response = compare_prompt_clarity(original_prompt, improved_prompt)
+original_response, improved_response = compare_prompt_clarity(
+    original_prompt, improved_prompt)
 
 logger.debug("Original Prompt Response:")
 logger.debug(original_response)
@@ -182,6 +188,7 @@ unclear_prompts = [
     "Why is it important?"
 ]
 
+
 def improve_prompt_clarity(unclear_prompt):
     """
     Improve the clarity of a given prompt.
@@ -194,6 +201,7 @@ def improve_prompt_clarity(unclear_prompt):
     """
     improvement_prompt = f"The following prompt is unclear: '{unclear_prompt}'. Please provide a clearer, more specific version of this prompt. output just the improved prompt and nothing else."
     return llm.invoke(improvement_prompt).content
+
 
 for prompt in unclear_prompts:
     improved_prompt = improve_prompt_clarity(prompt)

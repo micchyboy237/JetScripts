@@ -1,5 +1,5 @@
 from IPython.display import Image, display
-from jet.llm.ollama.base_langchain import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
 from langchain.prompts import ChatPromptTemplate
 from langchain_community.tools import TavilySearchResults
@@ -101,17 +101,18 @@ Each platform has dedicated prompts tailored to its unique requirements:
 
 ```python
 instagram_prompt = ChatPromptTemplate.from_template("""
-logger.info("# Building Content Intelligence: A Multi-Platform Content Generation Agent with LangGraph")
-You are a creative social media strategist specializing in Instagram content.  
+logger.info(
+    "# Building Content Intelligence: A Multi-Platform Content Generation Agent with LangGraph")
+You are a creative social media strategist specializing in Instagram content.
 
-**Input Details:**  
-1. Text: {text}  
-2. Research: {research}  
+**Input Details: **
+1. Text: {text}
+2. Research: {research}
 
-Your task is to create an **Instagram post caption** with:
+Your task is to create an ** Instagram post caption ** with:
 - Engaging Caption
 - Hashtag Suggestions
-- Call-to-Action (CTA)
+- Call-to-Action(CTA)
 - Emoji Usage
 ...
 """)
@@ -187,10 +188,10 @@ logger.info("## Implementation Benefits")
 
 def _set_env(name: str):
     if not os.getenv(name):
-#         os.environ[name] = getpass.getpass(f"{name}: ")
+        #         os.environ[name] = getpass.getpass(f"{name}: ")
 
+        # _set_env("OPENAI_API_KEY")
 
-# _set_env("OPENAI_API_KEY")
 
 _set_env("LANGCHAIN_API_KEY")
 _set_env("LANGCHAIN_ENDPOINT")
@@ -200,41 +201,41 @@ _set_env("LANGCHAIN_TRACING_V2")
 _set_env("TAVILY_API_KEY")
 
 user_details = {
-  "user_name": "LangGraph Team",
-  "business_name": "LangGraph",
-  "industry": "AI Tools and Frameworks",
-  "business_type": "Tech Startup",
-  "target_audience": ["AI Developers", "Machine Learning Enthusiasts", "Enterprise AI Teams"],
-  "tone": "Professional",
-  "objectives": ["Awareness", "Education"],
-  "platforms": ["LinkedIn", "Twitter", "Medium"],
-  "preferred_platforms": ["LinkedIn", "Twitter"],
-  "platform_specific_details": {
-    "twitter_handle": "@LangGraphAI",
-    "linkedin_page": "linkedin.com/company/langgraph",
-    "medium_page": "medium.com/langgraph"
-  },
-  "campaigns": [
-    {
-      "title": "Memory Management Module Launch",
-      "date": "2024-05-20",
-      "platform": "LinkedIn",
-      "success_metric": "1000+ Shares"
-    }
-  ],
-  "popular_hashtags": ["#LangGraph", "#MemoryManagement", "#AIFrameworks"],
-  "themes": ["Memory Management", "AI Agent Development"],
-  "short_length": 280,
-  "long_length": 2000,
-  "assets_link": "https://drive.google.com/drive/folders/langgraph-assets",
-  "colors": ["#1E88E5", "#FFC107"],
-  "brand_keywords": ["Innovative", "Efficient"],
-  "restricted_keywords": ["Buggy", "Outdated"],
-  "competitors": ["LangChain", "Pinecone"],
-  "competitor_metrics": ["Content Shares", "Follower Growth"],
-  "posting_schedule": ["Tuesday 10 AM", "Friday 3 PM"],
-  "formats": ["Carousel", "Technical Blog"],
-  "personal_preferences": "Use technical terms but keep explanations concise."
+    "user_name": "LangGraph Team",
+    "business_name": "LangGraph",
+    "industry": "AI Tools and Frameworks",
+    "business_type": "Tech Startup",
+    "target_audience": ["AI Developers", "Machine Learning Enthusiasts", "Enterprise AI Teams"],
+    "tone": "Professional",
+    "objectives": ["Awareness", "Education"],
+    "platforms": ["LinkedIn", "Twitter", "Medium"],
+    "preferred_platforms": ["LinkedIn", "Twitter"],
+    "platform_specific_details": {
+        "twitter_handle": "@LangGraphAI",
+        "linkedin_page": "linkedin.com/company/langgraph",
+        "medium_page": "medium.com/langgraph"
+    },
+    "campaigns": [
+        {
+            "title": "Memory Management Module Launch",
+            "date": "2024-05-20",
+            "platform": "LinkedIn",
+            "success_metric": "1000+ Shares"
+        }
+    ],
+    "popular_hashtags": ["#LangGraph", "#MemoryManagement", "#AIFrameworks"],
+    "themes": ["Memory Management", "AI Agent Development"],
+    "short_length": 280,
+    "long_length": 2000,
+    "assets_link": "https://drive.google.com/drive/folders/langgraph-assets",
+    "colors": ["#1E88E5", "#FFC107"],
+    "brand_keywords": ["Innovative", "Efficient"],
+    "restricted_keywords": ["Buggy", "Outdated"],
+    "competitors": ["LangChain", "Pinecone"],
+    "competitor_metrics": ["Content Shares", "Follower Growth"],
+    "posting_schedule": ["Tuesday 10 AM", "Friday 3 PM"],
+    "formats": ["Carousel", "Technical Blog"],
+    "personal_preferences": "Use technical terms but keep explanations concise."
 }
 
 """
@@ -243,32 +244,39 @@ user_details = {
 logger.info("# Let's Define States for the Agent")
 
 
-Platform = Literal["Twitter","Linkedin","Instagram", "Blog"]
+Platform = Literal["Twitter", "Linkedin", "Instagram", "Blog"]
+
 
 class InputState(TypedDict):
     text: str
     platforms: list[Platform]
+
 
 class SumamryOutputState(TypedDict):
     text: str
     text_summary: str
     platforms: list[Platform]
 
+
 class ResearchOutputState(TypedDict):
     text: str
     research: str
     platforms: list[Platform]
+
 
 class IntentMatchingInputState(TypedDict):
     text: str
     research: str
     platforms: list[Platform]
 
+
 class FinalState(TypedDict):
     contents: Annotated[list, operator.add]
 
+
 class GeneratedContent(TypedDict):
     generated_content: str
+
 
 """
 # Let's Define our Agent Nodes:
@@ -324,29 +332,38 @@ research_tool = TavilySearchResults(
     include_images=True,
 )
 
+
 class ReserachQuestions(TypedDict):
     questions: List[str]
+
 
 def summary_text(state: InputState) -> SumamryOutputState:
     logger.debug("******* Generating summary of the given text *************")
     summary = summ_model.invoke(state["text"]).content
     return {"text": state["text"], "platforms": state["platforms"], "text_summary": summary}
 
+
 def research_node(state: SumamryOutputState) -> ResearchOutputState:
     logger.debug("******* Researching for the best content *************")
-    input_ = {"user_details": user_details, "text_summary": state["text_summary"], "platforms": state["platforms"]}
-    res = model.with_structured_output(ReserachQuestions, strict=True).invoke(research_agent_prompt.invoke(input_))
+    input_ = {"user_details": user_details,
+              "text_summary": state["text_summary"], "platforms": state["platforms"]}
+    res = model.with_structured_output(ReserachQuestions, strict=True).invoke(
+        research_agent_prompt.invoke(input_))
     response = research_tool.batch(res["questions"])
     research = ""
-    for i,ques in enumerate(res["questions"]):
+    for i, ques in enumerate(res["questions"]):
         research += "question: " + ques + "\n"
-        research += "Answers" + "\n\n".join([res["content"] for res in response[i]]) + "\n\n"
+        research += "Answers" + \
+            "\n\n".join([res["content"] for res in response[i]]) + "\n\n"
 
     return {"text": state["text"], "platforms": state["platforms"], "research": research}
 
+
 def IntentMatching(state: ResearchOutputState):
     logger.debug("******* Sending data to each Platfrom *************")
-    {"text": state["text"],"research": state["research"], "platforms": state["platforms"]}
+    {"text": state["text"], "research": state["research"],
+        "platforms": state["platforms"]}
+
 
 """
 # Let's Make Platform Specific Nodes
@@ -465,35 +482,45 @@ Your task is to create a **markdown-formatted blog post** with the following str
 
 """)
 
+
 def Insta(state: IntentMatchingInputState) -> FinalState:
     if not "Instagram" in state["platforms"]:
         return {"contents": [""]}
-    res = model.invoke(instagram_prompt.invoke({"text": state["text"], "research": state["research"]}))
+    res = model.invoke(instagram_prompt.invoke(
+        {"text": state["text"], "research": state["research"]}))
     return {"contents": [res.content]}
+
 
 def Twitter(state: IntentMatchingInputState) -> FinalState:
     if not "Twitter" in state["platforms"]:
         return {"contents": [""]}
-    res = model.invoke(twitter_prompt.invoke({"text": state["text"], "research": state["research"]}))
+    res = model.invoke(twitter_prompt.invoke(
+        {"text": state["text"], "research": state["research"]}))
     return {"contents": [res.content]}
+
 
 def Linkedin(state: IntentMatchingInputState) -> FinalState:
     if not "Linkedin" in state["platforms"]:
         return {"contents": [""]}
-    res = model.invoke(linkedin_prompt.invoke({"text": state["text"], "research": state["research"]}))
-    return { "contents": [res.content]}
+    res = model.invoke(linkedin_prompt.invoke(
+        {"text": state["text"], "research": state["research"]}))
+    return {"contents": [res.content]}
+
 
 def Blog(state: IntentMatchingInputState) -> FinalState:
     if not "Blog" in state["platforms"]:
         return {"contents": [""]}
-    res = model.invoke(blog_prompt.invoke({"text": state["text"], "research": state["research"]}))
-    return { "contents": [res.content]}
+    res = model.invoke(blog_prompt.invoke(
+        {"text": state["text"], "research": state["research"]}))
+    return {"contents": [res.content]}
 
-def combining_content(state:FinalState) -> GeneratedContent:
+
+def combining_content(state: FinalState) -> GeneratedContent:
     final_content = ""
     for content in state["contents"]:
         final_content += content + "\n\n"
     return {"generated_content": final_content}
+
 
 """
 # Defining Graph
@@ -501,10 +528,9 @@ def combining_content(state:FinalState) -> GeneratedContent:
 logger.info("# Defining Graph")
 
 
-
 builder = StateGraph(input=InputState, output=GeneratedContent)
 
-builder.add_node("summary_node",summary_text)
+builder.add_node("summary_node", summary_text)
 builder.add_node("research_node", research_node)
 builder.add_node("intent_matching_node", IntentMatching)
 builder.add_node("instagram", Insta)
@@ -567,7 +593,7 @@ Conclusion
 LangGraph's memory management system is designed to handle both short-term and long-term memory effectively. Short-term memory focuses on maintaining context within a single session, while long-term memory allows for the retention of information across multiple sessions. This dual approach enhances the capabilities of LangGraph applications, enabling them to deliver more coherent and personalized interactions. By leveraging techniques such as namespaces and structured storage, LangGraph provides a flexible and powerful framework for managing memory in conversational AI applications.
 
 
-""", "platforms": ["Twitter","Blog"]})
+""", "platforms": ["Twitter", "Blog"]})
 
 logger.debug(res["generated_content"])
 
@@ -589,7 +615,8 @@ logger.debug(res["generated_content"])
 * generate texutal Content with language tone within seconds
 * Give insights over the content
 """
-logger.info("# Additional Considerations: Discuss limitations, potential improvements, or specific use cases.")
+logger.info(
+    "# Additional Considerations: Discuss limitations, potential improvements, or specific use cases.")
 
 
 logger.info("\n\n[DONE]", bright=True)
