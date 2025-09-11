@@ -1,8 +1,8 @@
 from dotenv import load_dotenv
 from jet.llm.ollama.base_langchain import ChatOllama
 from jet.logger import CustomLogger
-from langchain import PromptTemplate
-from langchain.tools import DuckDuckGoSearchResults
+from langchain_core.prompts import PromptTemplate
+from langchain_community.tools import DuckDuckGoSearchResults
 from langchain_core.pydantic_v1 import BaseModel, Field
 from typing import List, Dict, Any, Tuple, Optional
 import nltk
@@ -101,9 +101,12 @@ This cell defines the data model for text summarization.
 """
 logger.info("## Define Data Models")
 
+
 class SummarizeText(BaseModel):
     """Model for text to be summarized."""
-    text: str = Field(..., title="Text to summarize", description="The text to be summarized")
+    text: str = Field(..., title="Text to summarize",
+                      description="The text to be summarized")
+
 
 """
 ## Helper Functions
@@ -111,6 +114,7 @@ class SummarizeText(BaseModel):
 This section contains helper functions for parsing search results and performing web searches.
 """
 logger.info("## Helper Functions")
+
 
 def parse_search_results(results_string: str) -> List[dict]:
     """Parse a string representation of search results into a list of dictionaries."""
@@ -154,8 +158,10 @@ def perform_web_search(query: str, specific_site: Optional[str] = None) -> Tuple
             logger.debug(f"Web results: {web_results}")
             combined_results = parse_search_results(web_results)[:3]
 
-        web_knowledge = [result.get('snippet', '') for result in combined_results]
-        sources = [(result.get('title', 'Untitled'), result.get('link', '')) for result in combined_results]
+        web_knowledge = [result.get('snippet', '')
+                         for result in combined_results]
+        sources = [(result.get('title', 'Untitled'), result.get('link', ''))
+                   for result in combined_results]
 
         logger.debug(f"Processed web_knowledge: {web_knowledge}")
         logger.debug(f"Processed sources: {sources}")
@@ -165,12 +171,14 @@ def perform_web_search(query: str, specific_site: Optional[str] = None) -> Tuple
         traceback.print_exc()
         return [], []
 
+
 """
 ## Text Summarization Function
 
 This cell defines the function to summarize text using Ollama's language model.
 """
 logger.info("## Text Summarization Function")
+
 
 def summarize_text(text: str, source: Tuple[str, str]) -> str:
     """Summarize the given text using Ollama's language model."""
@@ -185,7 +193,8 @@ def summarize_text(text: str, source: Tuple[str, str]) -> str:
         input_data = {"text": text}
         summary = summary_chain.invoke(input_data)
 
-        summary_content = summary.content if hasattr(summary, 'content') else str(summary)
+        summary_content = summary.content if hasattr(
+            summary, 'content') else str(summary)
 
         formatted_summary = f"Source: {source[0]} ({source[1]})\n{summary_content.strip()}\n"
         return formatted_summary
@@ -193,12 +202,14 @@ def summarize_text(text: str, source: Tuple[str, str]) -> str:
         logger.debug(f"Error in summarize_text: {str(e)}")
         return ""
 
+
 """
 ## Main Search and Summarize Function
 
 This cell defines the main function that combines web search and text summarization.
 """
 logger.info("## Main Search and Summarize Function")
+
 
 def search_summarize(query: str, specific_site: Optional[str] = None) -> str:
     """Perform a web search and summarize the results."""
@@ -208,10 +219,12 @@ def search_summarize(query: str, specific_site: Optional[str] = None) -> str:
         logger.debug("No web knowledge or sources found.")
         return ""
 
-    summaries = [summarize_text(knowledge, source) for knowledge, source in zip(web_knowledge, sources) if summarize_text(knowledge, source)]
+    summaries = [summarize_text(knowledge, source) for knowledge, source in zip(
+        web_knowledge, sources) if summarize_text(knowledge, source)]
 
     combined_summary = "\n".join(summaries)
     return combined_summary
+
 
 """
 ## Example Usage
@@ -221,9 +234,11 @@ This cell demonstrates how to use the search_summarize function.
 logger.info("## Example Usage")
 
 query = "What are the latest advancements in artificial intelligence?"
-specific_site = "https://www.nature.com"  # Optional: specify a site or set to None
+# Optional: specify a site or set to None
+specific_site = "https://www.nature.com"
 result = search_summarize(query, specific_site)
-logger.debug(f"Summary of latest advancements in AI (including information from {specific_site if specific_site else 'various sources'}):")
+logger.debug(
+    f"Summary of latest advancements in AI (including information from {specific_site if specific_site else 'various sources'}):")
 logger.debug(result)
 
 logger.info("\n\n[DONE]", bright=True)

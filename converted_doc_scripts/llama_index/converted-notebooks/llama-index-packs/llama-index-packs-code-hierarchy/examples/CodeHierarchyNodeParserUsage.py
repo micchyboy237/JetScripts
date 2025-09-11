@@ -1,6 +1,7 @@
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
+# from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
+from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter as OllamaFunctionCalling
 from jet.logger import logger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.agent.workflow import FunctionAgent
