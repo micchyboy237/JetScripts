@@ -344,14 +344,33 @@ def read_rst_file(file):
     return source_groups
 
 
-def read_python_file(file, remove_triple_quoted_definitions: bool = False):
+def read_python_file(file: str, remove_triple_quoted_definitions: bool = False) -> List[dict]:
+    """
+    Read a Python file and return its content as a single code block.
+
+    Args:
+        file (str): Path to the Python file.
+        remove_triple_quoted_definitions (bool): Whether to remove triple-quoted strings.
+
+    Returns:
+        List[dict]: List containing a single dictionary with the code block.
+
+    Raises:
+        ValueError: If the file does not have a .py extension or cannot be accessed.
+        OSError: If the file name is too long or other file system errors occur.
+    """
     if not file.endswith('.py'):
         raise ValueError("File must have .py extension")
-    with open(file, 'r', encoding='utf-8') as f:
-        source = f.read()
+
+    try:
+        with open(file, 'r', encoding='utf-8') as f:
+            source = f.read()
+    except OSError as e:
+        raise OSError(f"Failed to read file {file}: {e}") from e
+
     # Remove comments to clean up the code
-    source = remove_comments(source, remove_triple_quoted_definitions)
-    # Treat the entire file as a single code block
+    # source = remove_comments(source, remove_triple_quoted_definitions)
+
     return [{
         "type": "code",
         "code": source.strip()
@@ -702,6 +721,8 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
     ]
     include_files = []
     exclude_files = [

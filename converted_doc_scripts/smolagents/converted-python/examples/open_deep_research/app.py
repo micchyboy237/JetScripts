@@ -16,8 +16,13 @@ logger.info(f"Logs: {log_file}")
 PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
 os.makedirs(PERSIST_DIR, exist_ok=True)
 
+
+
+
 agent = create_agent()
+
 demo = GradioUI(agent)
+
 if __name__ == "__main__":
     demo.launch()
 

@@ -15,6 +15,8 @@ logger.info(f"Logs: {log_file}")
 PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
 os.makedirs(PERSIST_DIR, exist_ok=True)
 
+
+
 agent = CodeAgent(
     tools=[WebSearchTool()],
     model=InferenceClientModel(model_id="meta-llama/Llama-3.3-70B-Instruct", provider="fireworks-ai"),
@@ -24,7 +26,9 @@ agent = CodeAgent(
     description="This is an example agent.",
     step_callbacks=[],
     stream_outputs=True,
+    # use_structured_outputs_internally=True,
 )
+
 GradioUI(agent, file_upload_folder="./data").launch()
 
 logger.info("\n\n[DONE]", bright=True)
