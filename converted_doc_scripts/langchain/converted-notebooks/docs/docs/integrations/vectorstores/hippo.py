@@ -45,7 +45,6 @@ Note: Python version needs to be >=3.8.
 logger.info("## Best Practices")
 
 
-
 """
 ### Loading Knowledge Documents
 """
@@ -71,7 +70,7 @@ Below, we create the Ollama or Azure embedding model using the OllamaEmbeddings 
 """
 logger.info("### Declaring the Embedding Model")
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ### Declaring Hippo Client

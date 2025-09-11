@@ -76,7 +76,7 @@ logger.info(
     "Create the Cassandra VectorStore with a standard [index analyzer](https://docs.datastax.com/en/astra/astra-db-vector/cql/use-analyzers-with-cql.html). The index analyzer is needed to enable term matching.")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = Cassandra(
     embedding=embeddings,
     table_name="test_hybrid",

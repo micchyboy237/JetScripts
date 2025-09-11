@@ -5,8 +5,8 @@ from langchain.docstore import InMemoryDocstore
 from langchain.retrievers import TimeWeightedVectorStoreRetriever
 from langchain_community.vectorstores import FAISS
 from langchain_experimental.generative_agents import (
-GenerativeAgent,
-GenerativeAgentMemory,
+    GenerativeAgent,
+    GenerativeAgentMemory,
 )
 from termcolor import colored
 from typing import List
@@ -41,7 +41,6 @@ logger.info("# Generative Agents in LangChain")
 
 
 logging.basicConfig(level=logging.ERROR)
-
 
 
 USER_NAME = "Person A"  # The name you want to use when interviewing the agent.
@@ -93,8 +92,6 @@ Now that we've walked through the definition, we will create two characters name
 logger.info("## Memory Lifecycle")
 
 
-
-
 def relevance_score_fn(score: float) -> float:
     """Return a similarity score on a scale [0, 1]."""
     return 1.0 - score / math.sqrt(2)
@@ -102,7 +99,7 @@ def relevance_score_fn(score: float) -> float:
 
 def create_new_memory_retriever():
     """Create a new vector store retriever unique to the agent."""
-    embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+    embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
     embedding_size = 1536
     index = faiss.IndexFlatL2(embedding_size)
     vectorstore = FAISS(
@@ -116,18 +113,22 @@ def create_new_memory_retriever():
         vectorstore=vectorstore, other_score_keys=["importance"], k=15
     )
 
+
 tommies_memory = GenerativeAgentMemory(
     llm=LLM,
     memory_retriever=create_new_memory_retriever(),
     verbose=False,
-    reflection_threshold=8,  # we will give this a relatively low number to show how reflection works
+    # we will give this a relatively low number to show how reflection works
+    reflection_threshold=8,
 )
 
 tommie = GenerativeAgent(
     name="Tommie",
     age=25,
-    traits="anxious, likes design, talkative",  # You can add more persistent traits here
-    status="looking for a job",  # When connected to a virtual world, we can have the characters update their status
+    # You can add more persistent traits here
+    traits="anxious, likes design, talkative",
+    # When connected to a virtual world, we can have the characters update their status
+    status="looking for a job",
     memory_retriever=create_new_memory_retriever(),
     llm=LLM,
     memory=tommies_memory,
@@ -156,10 +157,12 @@ Before sending our character on their way, let's ask them a few questions.
 """
 logger.info("## Pre-Interview with Character")
 
+
 def interview_agent(agent: GenerativeAgent, message: str) -> str:
     """Help the notebook user interact with the agent."""
     new_message = f"{USER_NAME} says {message}"
     return agent.generate_dialogue_response(new_message)[1]
+
 
 interview_agent(tommie, "What do you like to do?")
 
@@ -299,6 +302,7 @@ Generative agents are much more complex when they interact with a virtual enviro
 """
 logger.info("## Dialogue between Generative Agents")
 
+
 def run_conversation(agents: List[GenerativeAgent], initial_observation: str) -> None:
     """Runs a conversation between agents."""
     _, observation = agents[1].generate_reaction(initial_observation)
@@ -316,6 +320,7 @@ def run_conversation(agents: List[GenerativeAgent], initial_observation: str) ->
         if break_dialogue:
             break
         turns += 1
+
 
 agents = [tommie, eve]
 run_conversation(

@@ -49,7 +49,7 @@ logger.info(
 
 
 collection = "Name of your collection"
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

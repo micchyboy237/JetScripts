@@ -1,5 +1,5 @@
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent
 from langchain.chains import LLMChain
@@ -35,7 +35,6 @@ This notebook builds on top of [baby agi](baby_agi.html), but shows how you can 
 logger.info("# BabyAGI with Tools")
 
 
-
 """
 ## Connect to the Vector Store
 
@@ -46,11 +45,12 @@ logger.info("## Connect to the Vector Store")
 # %pip install faiss-cpu > /dev/null
 # %pip install google-search-results > /dev/null
 
-embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
-vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+vectorstore = FAISS(embeddings_model.embed_query,
+                    index, InMemoryDocstore({}), {})
 
 """
 ## Define the Chains
@@ -95,7 +95,7 @@ prompt = ZeroShotAgent.create_prompt(
     input_variables=["objective", "task", "context", "agent_scratchpad"],
 )
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 llm_chain = LLMChain(llm=llm, prompt=prompt)
 tool_names = [tool.name for tool in tools]
 agent = ZeroShotAgent(llm_chain=llm_chain, allowed_tools=tool_names)

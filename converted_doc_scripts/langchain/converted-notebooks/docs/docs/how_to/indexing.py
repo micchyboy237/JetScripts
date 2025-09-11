@@ -103,7 +103,7 @@ logger.info("Initialize a vector store and set up the embeddings:")
 
 collection_name = "test_index"
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 
 vectorstore = ElasticsearchStore(
     es_url="http://localhost:9200", index_name="test_index", embedding=embedding

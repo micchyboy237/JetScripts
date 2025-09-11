@@ -77,7 +77,7 @@ docs = [
 ]
 
 vectorstore = PineconeVectorStore.from_documents(
-    docs, index_name="sample", embedding=OllamaEmbeddings(model="mxbai-embed-large")
+    docs, index_name="sample", embedding=OllamaEmbeddings(model="nomic-embed-text")
 )
 
 """

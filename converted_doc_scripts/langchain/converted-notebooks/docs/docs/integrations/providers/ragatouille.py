@@ -89,7 +89,7 @@ text = get_wikipedia_page("Hayao_Miyazaki")
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 texts = text_splitter.create_documents([text])
 
-retriever = FAISS.from_documents(texts, OllamaEmbeddings(model="mxbai-embed-large")).as_retriever(
+retriever = FAISS.from_documents(texts, OllamaEmbeddings(model="nomic-embed-text")).as_retriever(
     search_kwargs={"k": 10}
 )
 

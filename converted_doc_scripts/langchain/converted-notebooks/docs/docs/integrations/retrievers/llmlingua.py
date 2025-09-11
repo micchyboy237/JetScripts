@@ -58,7 +58,7 @@ text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=500, chunk_overlap=100)
 texts = text_splitter.split_documents(documents)
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 retriever = FAISS.from_documents(
     texts, embedding).as_retriever(search_kwargs={"k": 20})
 

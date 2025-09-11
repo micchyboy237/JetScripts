@@ -43,7 +43,7 @@ logger.info(
     "We want to use `OllamaEmbeddings` so we have to get the Ollama API Key.")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

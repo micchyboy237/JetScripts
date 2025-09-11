@@ -114,7 +114,7 @@ logger.debug("Cache cleared")
 """
 logger.info("## Using RedisSemanticCache")
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 semantic_cache = RedisSemanticCache(
     redis_url=REDIS_URL, embeddings=embeddings, distance_threshold=0.2
 )

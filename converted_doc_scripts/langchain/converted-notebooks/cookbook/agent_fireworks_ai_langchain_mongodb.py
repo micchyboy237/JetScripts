@@ -103,7 +103,7 @@ logger.debug("Data ingestion into MongoDB completed")
 logger.info("## Create Vector Search Index Defintion")
 
 
-embedding_model = OllamaEmbeddings(model="mxbai-embed-large")
+embedding_model = OllamaEmbeddings(model="nomic-embed-text")
 
 vector_store = MongoDBAtlasVectorSearch.from_connection_string(
     connection_string=MONGO_URI,

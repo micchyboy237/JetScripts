@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.docstore import InMemoryDocstore
 from langchain_community.vectorstores import FAISS
@@ -34,7 +34,6 @@ Although BabyAGI uses specific vectorstores/model providers (Pinecone, Ollama), 
 logger.info("# BabyAGI User Guide")
 
 
-
 """
 ## Connect to the Vector Store
 
@@ -43,11 +42,12 @@ Depending on what vectorstore you use, this step may look different.
 logger.info("## Connect to the Vector Store")
 
 
-embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
-vectorstore = FAISS(embeddings_model.embed_query, index, InMemoryDocstore({}), {})
+vectorstore = FAISS(embeddings_model.embed_query,
+                    index, InMemoryDocstore({}), {})
 
 """
 ### Run the BabyAGI
@@ -58,7 +58,7 @@ logger.info("### Run the BabyAGI")
 
 OBJECTIVE = "Write a weather report for SF today"
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 verbose = False
 max_iterations: Optional[int] = 3

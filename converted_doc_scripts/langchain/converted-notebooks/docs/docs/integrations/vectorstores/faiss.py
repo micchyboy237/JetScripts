@@ -58,7 +58,7 @@ logger.info(
 logger.info("## Initialization")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 index = faiss.IndexFlatL2(len(embeddings.embed_query("hello world")))

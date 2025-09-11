@@ -52,7 +52,7 @@ logger.info(
 # databricks_token = getpass.getpass("Databricks token:")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 emb_dim = len(embeddings.embed_query("hello"))
 
 vector_search_endpoint_name = "vector_search_demo_endpoint"

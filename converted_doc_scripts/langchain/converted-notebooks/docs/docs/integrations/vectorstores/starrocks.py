@@ -1,9 +1,9 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import (
-DirectoryLoader,
-UnstructuredMarkdownLoader,
+    DirectoryLoader,
+    UnstructuredMarkdownLoader,
 )
 from langchain_community.vectorstores import StarRocks
 from langchain_community.vectorstores.starrocks import StarRocksSettings
@@ -64,7 +64,8 @@ documents = loader.load()
 """
 Split docs into tokens, and set `update_vectordb = True` because there are new docs/tokens.
 """
-logger.info("Split docs into tokens, and set `update_vectordb = True` because there are new docs/tokens.")
+logger.info(
+    "Split docs into tokens, and set `update_vectordb = True` because there are new docs/tokens.")
 
 text_splitter = TokenTextSplitter(chunk_size=400, chunk_overlap=50)
 split_docs = text_splitter.split_documents(documents)
@@ -82,12 +83,15 @@ logger.debug("# docs  = %d, # splits = %d" % (len(documents), len(split_docs)))
 """
 logger.info("## Create vectordb instance")
 
+
 def gen_starrocks(update_vectordb, embeddings, settings):
     if update_vectordb:
-        docsearch = StarRocks.from_documents(split_docs, embeddings, config=settings)
+        docsearch = StarRocks.from_documents(
+            split_docs, embeddings, config=settings)
     else:
         docsearch = StarRocks(embeddings, settings)
     return docsearch
+
 
 """
 ## Convert tokens into embeddings and put them into vectordb
@@ -103,7 +107,7 @@ Configuring StarRocks instance is pretty much like configuring mysql instance. Y
 """
 logger.info("## Convert tokens into embeddings and put them into vectordb")
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 settings = StarRocksSettings()
 settings.port = 41003
@@ -122,7 +126,7 @@ update_vectordb = False
 """
 logger.info("## Build QA and ask question to it")
 
-llm = Ollama()
+llm = ChatOllama()
 qa = RetrievalQA.from_chain_type(
     llm=llm, chain_type="stuff", retriever=docsearch.as_retriever()
 )

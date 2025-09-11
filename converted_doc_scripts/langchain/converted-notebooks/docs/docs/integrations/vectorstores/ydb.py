@@ -60,7 +60,7 @@ logger.info("### Credentials")
 logger.info("## Initialization")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 settings = YDBSettings(

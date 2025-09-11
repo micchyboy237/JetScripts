@@ -80,7 +80,7 @@ docs = [
     ),
 ]
 vectorstore = Chroma.from_documents(
-    docs, OllamaEmbeddings(model="mxbai-embed-large"))
+    docs, OllamaEmbeddings(model="nomic-embed-text"))
 
 """
 ### Creating our self-querying retriever

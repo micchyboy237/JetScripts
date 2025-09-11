@@ -55,7 +55,7 @@ To configure Pinecone, set the following environment variable:
 logger.info("# How to do per-user retrieval")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = PineconeVectorStore(
     index_name="test-example", embedding=embeddings)
 

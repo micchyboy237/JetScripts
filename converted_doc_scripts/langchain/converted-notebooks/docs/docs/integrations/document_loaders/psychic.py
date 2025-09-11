@@ -56,7 +56,7 @@ logger.info("## Converting the docs to embeddings")
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(documents)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 docsearch = Chroma.from_documents(texts, embeddings)
 chain = RetrievalQAWithSourcesChain.from_chain_type(
     Ollama(temperature=0), chain_type="stuff", retriever=docsearch.as_retriever()

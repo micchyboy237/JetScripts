@@ -60,7 +60,7 @@ logger.info("## Retrieving full documents")
 
 child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
 vectorstore = Chroma(
-    collection_name="full_documents", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+    collection_name="full_documents", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
 )
 store = InMemoryStore()
 retriever = ParentDocumentRetriever(
@@ -106,7 +106,7 @@ logger.info("## Retrieving larger chunks")
 parent_splitter = RecursiveCharacterTextSplitter(chunk_size=2000)
 child_splitter = RecursiveCharacterTextSplitter(chunk_size=400)
 vectorstore = Chroma(
-    collection_name="split_parents", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+    collection_name="split_parents", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
 )
 store = InMemoryStore()
 

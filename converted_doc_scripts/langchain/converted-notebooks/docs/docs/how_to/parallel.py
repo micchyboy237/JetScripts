@@ -67,7 +67,7 @@ logger.info("# How to invoke runnables in parallel")
 
 
 vectorstore = FAISS.from_texts(
-    ["harrison worked at kensho"], embedding=OllamaEmbeddings(model="mxbai-embed-large")
+    ["harrison worked at kensho"], embedding=OllamaEmbeddings(model="nomic-embed-text")
 )
 retriever = vectorstore.as_retriever()
 template = """Answer the question based only on the following context:
@@ -117,9 +117,8 @@ In the example below, we use itemgetter to extract specific keys from the map:
 logger.info("## Using itemgetter as shorthand")
 
 
-
 vectorstore = FAISS.from_texts(
-    ["harrison worked at kensho"], embedding=OllamaEmbeddings(model="mxbai-embed-large")
+    ["harrison worked at kensho"], embedding=OllamaEmbeddings(model="nomic-embed-text")
 )
 retriever = vectorstore.as_retriever()
 
@@ -154,9 +153,11 @@ logger.info("## Parallelize steps")
 
 
 model = ChatOllama(model="llama3.2")
-joke_chain = ChatPromptTemplate.from_template("tell me a joke about {topic}") | model
+joke_chain = ChatPromptTemplate.from_template(
+    "tell me a joke about {topic}") | model
 poem_chain = (
-    ChatPromptTemplate.from_template("write a 2-line poem about {topic}") | model
+    ChatPromptTemplate.from_template(
+        "write a 2-line poem about {topic}") | model
 )
 
 map_chain = RunnableParallel(joke=joke_chain, poem=poem_chain)

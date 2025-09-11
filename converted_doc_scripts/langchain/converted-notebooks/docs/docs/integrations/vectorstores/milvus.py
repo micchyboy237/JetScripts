@@ -50,7 +50,7 @@ No credentials are needed to use the `Milvus` vector store.
 logger.info("### Credentials")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ### Milvus Lite
@@ -314,7 +314,7 @@ logger.info("## Hybrid Search")
 
 vectorstore = Milvus.from_documents(
     documents=documents,
-    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
     builtin_function=BM25BuiltInFunction(),
     vector_field=["dense", "sparse"],
     connection_args={

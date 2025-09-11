@@ -73,7 +73,7 @@ For production, we recommend you run with security enabled. To connect with logi
 logger.info("### Running with Authentication")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 elastic_vector_search = ElasticsearchStore(

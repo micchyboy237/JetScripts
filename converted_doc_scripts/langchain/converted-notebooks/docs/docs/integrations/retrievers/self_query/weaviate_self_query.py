@@ -38,7 +38,7 @@ logger.info("# Weaviate")
 # %pip install --upgrade --quiet  lark weaviate-client
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

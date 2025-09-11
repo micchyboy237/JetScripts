@@ -93,7 +93,8 @@ doc_splits = text_splitter.split_documents(docs_list)
 encoding = tiktoken.get_encoding("cl100k_base")
 encoding = tiktoken.encoding_for_model("gpt-3.5-turbo")
 for d in doc_splits:
-    logger.debug("The document is %s tokens" % len(encoding.encode(d.page_content)))
+    logger.debug("The document is %s tokens" %
+                 len(encoding.encode(d.page_content)))
 
 """
 ## Index 
@@ -103,11 +104,10 @@ Nomic embeddings [here](https://docs.nomic.ai/reference/endpoints/nomic-embed-te
 logger.info("## Index")
 
 
-
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
-    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
 )
 retriever = vectorstore.as_retriever()
 

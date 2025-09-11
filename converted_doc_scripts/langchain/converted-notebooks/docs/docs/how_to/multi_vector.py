@@ -62,7 +62,7 @@ text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000)
 docs = text_splitter.split_documents(docs)
 
 vectorstore = Chroma(
-    collection_name="full_documents", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+    collection_name="full_documents", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
 )
 
 """
@@ -171,7 +171,7 @@ We can then initialize a `MultiVectorRetriever` as before, indexing the summarie
 logger.info("We can then initialize a `MultiVectorRetriever` as before, indexing the summaries in our vector store, and retaining the original documents in our document store:")
 
 vectorstore = Chroma(collection_name="summaries",
-                     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
+                     embedding_function=OllamaEmbeddings(model="nomic-embed-text"))
 store = InMemoryByteStore()
 id_key = "doc_id"
 retriever = MultiVectorRetriever(
@@ -252,7 +252,7 @@ hypothetical_questions = chain.batch(docs, {"max_concurrency": 5})
 
 
 vectorstore = Chroma(
-    collection_name="hypo-questions", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+    collection_name="hypo-questions", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
 )
 store = InMemoryByteStore()
 id_key = "doc_id"

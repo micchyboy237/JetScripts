@@ -44,7 +44,7 @@ logger.info(
 # activeloop_token = getpass.getpass("Activeloop Token:")
 os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large"))
+embeddings = OllamaEmbeddings(model="nomic-embed-text"))
 
     """
 disallowed_special=() is required to avoid `Exception: 'utf-8' codec can't decode byte 0xff in position 0: invalid start byte` from tiktoken for some repositories

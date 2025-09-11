@@ -58,9 +58,7 @@ We leverage the [`langchain`](https://github.com/hwchase17/langchain) library in
 logger.info("# SalesGPT - Context-Aware AI Sales Assistant With Knowledge Base and Ability Generate Stripe Payment Links")
 
 
-
 load_dotenv()
-
 
 
 """
@@ -100,6 +98,7 @@ The agent employs an assistant who keeps it in check as in what stage of the con
 """
 logger.info("### SalesGPT architecture")
 
+
 class StageAnalyzerChain(LLMChain):
     """Chain to analyze which conversation stage should the conversation move into."""
 
@@ -132,6 +131,7 @@ class StageAnalyzerChain(LLMChain):
             input_variables=["conversation_history"],
         )
         return cls(prompt=prompt, llm=llm, verbose=verbose)
+
 
 class SalesConversationChain(LLMChain):
     """Chain to generate the next utterance for the conversation."""
@@ -178,6 +178,7 @@ class SalesConversationChain(LLMChain):
         )
         return cls(prompt=prompt, llm=llm, verbose=verbose)
 
+
 conversation_stages = {
     "1": "Introduction: Start the conversation by introducing yourself and your company. Be polite and respectful while keeping the tone of the conversation professional. Your greeting should be welcoming. Always clarify in your greeting the reason why you are contacting the prospect.",
     "2": "Qualification: Qualify the prospect by confirming if they are the right person to talk to regarding your product/service. Ensure that they have the authority to make purchasing decisions.",
@@ -192,7 +193,7 @@ verbose = True
 llm = ChatOllama(
     model="llama3.2",
     temperature=0.9,
-#     ollama_api_key=os.getenv("OPENAI_API_KEY"),
+    #     ollama_api_key=os.getenv("OPENAI_API_KEY"),
 )
 
 stage_analyzer_chain = StageAnalyzerChain.from_llm(llm, verbose=verbose)
@@ -255,6 +256,7 @@ with open("sample_product_catalog.txt", "w") as f:
 
 product_catalog = "sample_product_catalog.txt"
 
+
 def setup_knowledge_base(product_catalog: str = None):
     """
     We assume that the product knowledge base is simply a text file.
@@ -266,7 +268,7 @@ def setup_knowledge_base(product_catalog: str = None):
     texts = text_splitter.split_text(product_catalog)
 
     llm = ChatOllama(model="llama3.2")
-    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+    embeddings = OllamaEmbeddings(model="nomic-embed-text")
     docsearch = Chroma.from_texts(
         texts, embeddings, collection_name="product-knowledge-base"
     )
@@ -275,6 +277,7 @@ def setup_knowledge_base(product_catalog: str = None):
         llm=llm, chain_type="stuff", retriever=docsearch.as_retriever()
     )
     return knowledge_base
+
 
 knowledge_base = setup_knowledge_base("sample_product_catalog.txt")
 knowledge_base.run("What products do you have available?")
@@ -289,7 +292,6 @@ In order to set up your AI agent to use a payment gateway to generate payment li
 to feed the product name to price_id mapping which allows you to generate the payment links.
 """
 logger.info("### Payment gateway")
-
 
 
 os.environ["GPT_MODEL"] = "gpt-4-turbo-preview"
@@ -351,8 +353,6 @@ def get_product_id_from_query(query, product_price_id_mapping_path):
     return product_id
 
 
-
-
 def generate_stripe_payment_link(query: str) -> str:
     """Generate a stripe payment link for a customer based on a single query string."""
 
@@ -364,7 +364,8 @@ def generate_stripe_payment_link(query: str) -> str:
     price_id = get_product_id_from_query(query, PRODUCT_PRICE_MAPPING)
     price_id = json.loads(price_id)
     payload = json.dumps(
-        {"prompt": query, **price_id, "stripe_key": os.getenv("STRIPE_API_KEY")}
+        {"prompt": query, **price_id,
+            "stripe_key": os.getenv("STRIPE_API_KEY")}
     )
     headers = {
         "Content-Type": "application/json",
@@ -375,6 +376,7 @@ def generate_stripe_payment_link(query: str) -> str:
     )
     return response.text
 
+
 generate_stripe_payment_link(
     query="Please generate a payment link for John Doe to buy two mattresses - the Classic Harmony Spring Mattress"
 )
@@ -383,6 +385,7 @@ generate_stripe_payment_link(
 ## Setup agent tools
 """
 logger.info("## Setup agent tools")
+
 
 def get_tools(product_catalog):
 
@@ -402,12 +405,15 @@ def get_tools(product_catalog):
 
     return tools
 
+
 """
 ### Set up the SalesGPT Controller with the Sales Agent and Stage Analyzer
 
 #### The Agent has access to a Knowledge Base and can autonomously sell your products via Stripe
 """
-logger.info("### Set up the SalesGPT Controller with the Sales Agent and Stage Analyzer")
+logger.info(
+    "### Set up the SalesGPT Controller with the Sales Agent and Stage Analyzer")
+
 
 class CustomPromptTemplateForTools(StringPromptTemplate):
     template: str
@@ -426,8 +432,6 @@ class CustomPromptTemplateForTools(StringPromptTemplate):
         )
         kwargs["tool_names"] = ", ".join([tool.name for tool in tools])
         return self.template.format(**kwargs)
-
-
 
 
 class SalesConvoOutputParser(AgentOutputParser):
@@ -455,6 +459,7 @@ class SalesConvoOutputParser(AgentOutputParser):
     @property
     def _type(self) -> str:
         return "sales-agent"
+
 
 SALES_AGENT_TOOLS_PROMPT = """
 Never forget your name is {salesperson_name}. You work as a {salesperson_role}.
@@ -513,6 +518,7 @@ Previous conversation history:
 Thought:
 {agent_scratchpad}
 """
+
 
 class SalesGPT(Chain):
     """Controller model for the Sales Agent."""
@@ -607,7 +613,8 @@ class SalesGPT(Chain):
                 conversation_type=self.conversation_type,
             )
 
-        logger.debug(f"{self.salesperson_name}: ", ai_message.rstrip("<END_OF_TURN>"))
+        logger.debug(f"{self.salesperson_name}: ",
+                     ai_message.rstrip("<END_OF_TURN>"))
         agent_name = self.salesperson_name
         ai_message = agent_name + ": " + ai_message
         if "<END_OF_TURN>" not in ai_message:
@@ -619,7 +626,8 @@ class SalesGPT(Chain):
     @classmethod
     def from_llm(cls, llm: BaseLLM, verbose: bool = False, **kwargs) -> "SalesGPT":
         """Initialize the SalesGPT Controller."""
-        stage_analyzer_chain = StageAnalyzerChain.from_llm(llm, verbose=verbose)
+        stage_analyzer_chain = StageAnalyzerChain.from_llm(
+            llm, verbose=verbose)
 
         sales_conversation_utterance_chain = SalesConversationChain.from_llm(
             llm, verbose=verbose
@@ -675,6 +683,7 @@ class SalesGPT(Chain):
             verbose=verbose,
             **kwargs,
         )
+
 
 """
 # Set up the AI Sales Agent and start the conversation
@@ -739,7 +748,8 @@ sales_agent.determine_conversation_stage()
 
 sales_agent.step()
 
-sales_agent.human_step("What mattresses do you have and how much do they cost?")
+sales_agent.human_step(
+    "What mattresses do you have and how much do they cost?")
 
 sales_agent.determine_conversation_stage()
 

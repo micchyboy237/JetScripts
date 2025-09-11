@@ -61,7 +61,7 @@ documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ### Create a local dataset
@@ -174,7 +174,7 @@ dataset_path = f"hub://{username}/langchain_testing_python"
 
 docs = text_splitter.split_documents(documents)
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 db = DeeplakeVectorStore(
     dataset_path=dataset_path, embedding_function=embeddings, overwrite=True
 )
@@ -189,7 +189,7 @@ dataset_path = f"hub://{username}/langchain_testing"
 
 docs = text_splitter.split_documents(documents)
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 db = DeeplakeVectorStore(
     dataset_path=dataset_path,
     embedding_function=embeddings,
@@ -221,7 +221,7 @@ logger.info("### Creating vector stores on AWS S3")
 # could be also ./local/path (much faster locally), hub://bucket/path/to/dataset, gcs://path/to/dataset, etc.
 dataset_path = "s3://BUCKET/langchain_test"
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 db = DeeplakeVectorStore.from_documents(
     docs,
     dataset_path=dataset_path,

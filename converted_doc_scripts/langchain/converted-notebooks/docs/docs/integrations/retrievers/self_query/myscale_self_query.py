@@ -62,7 +62,7 @@ if "MYSCALE_PASSWORD" not in os.environ:
     #     os.environ["MYSCALE_PASSWORD"] = getpass.getpass("MyScale Password:")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ## Create some sample data

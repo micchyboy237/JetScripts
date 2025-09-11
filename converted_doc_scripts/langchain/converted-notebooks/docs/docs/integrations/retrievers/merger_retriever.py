@@ -41,7 +41,7 @@ logger.info("# LOTR (Merger Retriever)")
 
 all_mini = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 multi_qa_mini = HuggingFaceEmbeddings(model_name="multi-qa-MiniLM-L6-dot-v1")
-filter_embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+filter_embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 ABS_PATH = os.path.dirname(os.path.abspath(__file__))
 DB_DIR = os.path.join(ABS_PATH, "db")

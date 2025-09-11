@@ -55,7 +55,7 @@ logger.info("## Using with a Vector Store")
 # %pip install --upgrade --quiet  langchain-ollama faiss-cpu
 
 
-underlying_embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+underlying_embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 store = LocalFileStore("./cache/")
 

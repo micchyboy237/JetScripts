@@ -139,7 +139,7 @@ use for the embeddings:
 logger.info("If you are using a direct-access index or a delta-sync index with self-managed embeddings,")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 vector_store = DatabricksVectorSearch(
     endpoint=endpoint_name,

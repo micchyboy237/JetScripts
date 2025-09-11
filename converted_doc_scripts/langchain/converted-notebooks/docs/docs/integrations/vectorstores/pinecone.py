@@ -82,7 +82,7 @@ if not pc.has_index(index_name):
 index = pc.Index(index_name)
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 vector_store = PineconeVectorStore(index=index, embedding=embeddings)

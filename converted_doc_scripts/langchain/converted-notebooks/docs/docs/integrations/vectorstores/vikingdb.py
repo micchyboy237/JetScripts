@@ -50,7 +50,7 @@ documents = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=10, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 db = VikingDB.from_documents(
     docs,

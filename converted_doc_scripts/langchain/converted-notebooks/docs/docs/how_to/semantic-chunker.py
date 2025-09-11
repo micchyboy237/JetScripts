@@ -51,7 +51,7 @@ To instantiate a [SemanticChunker](https://python.langchain.com/api_reference/ex
 logger.info("## Create Text Splitter")
 
 
-text_splitter = SemanticChunker(OllamaEmbeddings(model="mxbai-embed-large"))
+text_splitter = SemanticChunker(OllamaEmbeddings(model="nomic-embed-text"))
 
 """
 ## Split Text
@@ -79,7 +79,7 @@ The default way to split is based on percentile. In this method, all differences
 logger.info("## Breakpoints")
 
 text_splitter = SemanticChunker(
-    OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type="percentile"
+    OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="percentile"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])
@@ -95,7 +95,7 @@ In this method, any difference greater than X standard deviations is split. The 
 logger.info("### Standard Deviation")
 
 text_splitter = SemanticChunker(
-    OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type="standard_deviation"
+    OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="standard_deviation"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])
@@ -111,7 +111,7 @@ In this method, the interquartile distance is used to split chunks. The interqua
 logger.info("### Interquartile")
 
 text_splitter = SemanticChunker(
-    OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type="interquartile"
+    OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="interquartile"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])
@@ -128,7 +128,7 @@ Similar to the percentile method, the split can be adjusted by the keyword argum
 logger.info("### Gradient")
 
 text_splitter = SemanticChunker(
-    OllamaEmbeddings(model="mxbai-embed-large"), breakpoint_threshold_type="gradient"
+    OllamaEmbeddings(model="nomic-embed-text"), breakpoint_threshold_type="gradient"
 )
 
 docs = text_splitter.create_documents([state_of_the_union])

@@ -201,7 +201,7 @@ logger.info("## RAG based approach")
 
 texts = text_splitter.split_text(document.page_content)
 vectorstore = FAISS.from_texts(
-    texts, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+    texts, embedding=OllamaEmbeddings(model="nomic-embed-text"))
 
 retriever = vectorstore.as_retriever(
     search_kwargs={"k": 1}

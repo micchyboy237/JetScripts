@@ -177,7 +177,7 @@ answer the component parts, and then put them together to answer the broader que
 Here is a question:
 {query}"""
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 prompt_templates = [physics_template, math_template]
 prompt_embeddings = embeddings.embed_documents(prompt_templates)
 

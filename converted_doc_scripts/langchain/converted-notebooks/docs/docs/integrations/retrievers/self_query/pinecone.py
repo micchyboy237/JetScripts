@@ -67,7 +67,7 @@ index_name = "langchain-self-retriever-demo"
 pc = Pinecone(api_key=api_key)
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 if index_name not in pc.list_indexes().names():
     pc.create_index(

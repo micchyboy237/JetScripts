@@ -110,7 +110,7 @@ logger.info("## Store")
 baseline = Chroma.from_texts(
     texts=all_splits_pypdf_texts,
     collection_name="baseline",
-    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
 )
 retriever_baseline = baseline.as_retriever()
 
@@ -221,7 +221,7 @@ def create_multi_vector_retriever(
 
 
 multi_vector_img = Chroma(
-    collection_name="multi_vector_img", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+    collection_name="multi_vector_img", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
 )
 
 retriever_multi_vector_img = create_multi_vector_retriever(
@@ -255,7 +255,7 @@ plt_img_base64(docs[1])
 logger.info("### Option 2b: Multi-vector retriever w/ image summaries")
 
 multi_vector_text = Chroma(
-    collection_name="multi_vector_text", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+    collection_name="multi_vector_text", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
 )
 
 retriever_multi_vector_img_summary = create_multi_vector_retriever(

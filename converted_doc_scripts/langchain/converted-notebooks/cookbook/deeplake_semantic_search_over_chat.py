@@ -49,7 +49,7 @@ os.environ["ACTIVELOOP_TOKEN"] = activeloop_token
 # os.environ["ACTIVELOOP_ORG"] = getpass.getpass("Activeloop Org:")
 
 org_id = os.environ["ACTIVELOOP_ORG"]
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 dataset_path = "hub://" + org_id + "/data"
 
@@ -82,7 +82,7 @@ texts = text_splitter.create_documents(pages)
 logger.debug(texts)
 
 dataset_path = "hub://" + org_id + "/data"
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 db = DeepLake.from_documents(
     texts, embeddings, dataset_path=dataset_path, overwrite=True
 )

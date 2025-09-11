@@ -97,7 +97,7 @@ logger.info("### Vector search over PDFs")
 
 
 vector_store = InMemoryVectorStore.from_documents(
-    pages, OllamaEmbeddings(model="mxbai-embed-large"))
+    pages, OllamaEmbeddings(model="nomic-embed-text"))
 docs = vector_store.similarity_search("What is LayoutParser?", k=2)
 for doc in docs:
     logger.debug(f"Page {doc.metadata['page']}: {doc.page_content[:300]}\n")

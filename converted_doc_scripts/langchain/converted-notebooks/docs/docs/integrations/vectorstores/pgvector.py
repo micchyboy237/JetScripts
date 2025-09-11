@@ -72,7 +72,7 @@ logger.info("### Credentials")
 logger.info("## Instantiation")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 # Uses psycopg3!

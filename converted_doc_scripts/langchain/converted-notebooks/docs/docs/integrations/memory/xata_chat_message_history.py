@@ -104,7 +104,7 @@ Let's create the vector store and add some sample docs to it:
 logger.info("To store the documents that the chatbot will search for answers, add a table named `docs` to your `langchain` database using the Xata UI, and add the following columns:")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 texts = [
     "Xata is a Serverless Data platform based on PostgreSQL",

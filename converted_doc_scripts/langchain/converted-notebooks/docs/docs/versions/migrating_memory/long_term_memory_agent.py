@@ -63,12 +63,10 @@ logger.info("# A Long-Term Memory Agent")
 
 def _set_env(var: str):
     if not os.environ.get(var):
-#         os.environ[var] = getpass.getpass(f"{var}: ")
+        #         os.environ[var] = getpass.getpass(f"{var}: ")
 
-
-# _set_env("OPENAI_API_KEY")
+        # _set_env("OPENAI_API_KEY")
 _set_env("TAVILY_API_KEY")
-
 
 
 """
@@ -78,7 +76,8 @@ First, let's define the vectorstore where we will be storing our memories. Memor
 """
 logger.info("## Define vectorstore for memories")
 
-recall_vector_store = InMemoryVectorStore(OllamaEmbeddings(model="mxbai-embed-large"))
+recall_vector_store = InMemoryVectorStore(
+    OllamaEmbeddings(model="nomic-embed-text"))
 
 """
 ### Define tools
@@ -86,7 +85,6 @@ recall_vector_store = InMemoryVectorStore(OllamaEmbeddings(model="mxbai-embed-la
 Next, let's define our memory tools. We will need a tool to store the memories and another tool to search them to find the most relevant memory.
 """
 logger.info("### Define tools")
-
 
 
 def get_user_id(config: RunnableConfig) -> str:
@@ -121,10 +119,12 @@ def search_recall_memories(query: str, config: RunnableConfig) -> List[str]:
     )
     return [document.page_content for document in documents]
 
+
 """
 Additionally, let's give our agent ability to search the web using [Tavily](https://tavily.com/).
 """
-logger.info("Additionally, let's give our agent ability to search the web using [Tavily](https://tavily.com/).")
+logger.info(
+    "Additionally, let's give our agent ability to search the web using [Tavily](https://tavily.com/).")
 
 search = TavilySearch(max_results=1)
 tools = [save_recall_memory, search_recall_memories, search]
@@ -136,8 +136,10 @@ Our graph state will contain just two channels -- `messages` for keeping track o
 """
 logger.info("### Define state, nodes and edges")
 
+
 class State(MessagesState):
     recall_memories: List[str]
+
 
 prompt = ChatPromptTemplate.from_messages(
     [
@@ -206,7 +208,8 @@ def agent(state: State) -> State:
     """
     bound = prompt | model_with_tools
     recall_str = (
-        "<recall_memory>\n" + "\n".join(state["recall_memories"]) + "\n</recall_memory>"
+        "<recall_memory>\n" +
+        "\n".join(state["recall_memories"]) + "\n</recall_memory>"
     )
     prediction = bound.invoke(
         {
@@ -252,6 +255,7 @@ def route_tools(state: State):
 
     return END
 
+
 """
 ## Build the graph
 
@@ -282,6 +286,7 @@ Let's run the agent for the first time and tell it some information about the us
 """
 logger.info("## Run the agent!")
 
+
 def pretty_print_stream_chunk(chunk):
     for node, updates in chunk.items():
         logger.debug(f"Update from node: {node}")
@@ -291,6 +296,7 @@ def pretty_print_stream_chunk(chunk):
             logger.debug(updates)
 
         logger.debug("\n")
+
 
 config = {"configurable": {"user_id": "1", "thread_id": "1"}}
 
@@ -320,7 +326,8 @@ for chunk in graph.stream(
 """
 Now we can use the saved information about our user on a different thread. Let's try it out:
 """
-logger.info("Now we can use the saved information about our user on a different thread. Let's try it out:")
+logger.info(
+    "Now we can use the saved information about our user on a different thread. Let's try it out:")
 
 config = {"configurable": {"user_id": "1", "thread_id": "2"}}
 
@@ -337,7 +344,8 @@ Finally, let's use the search tool together with the rest of the conversation co
 logger.info("Notice how the agent is loading the most relevant memories before answering, and in our case suggests the dinner recommendations based on both the food preferences as well as location.")
 
 for chunk in graph.stream(
-    {"messages": [("user", "what's the address for joe's in greenwich village?")]},
+    {"messages": [
+        ("user", "what's the address for joe's in greenwich village?")]},
     config=config,
 ):
     pretty_print_stream_chunk(chunk)
@@ -355,8 +363,8 @@ For simplicity, we use the same vector database as before, but the `save_recall_
 """
 logger.info("## Adding structured memories")
 
-recall_vector_store = InMemoryVectorStore(OllamaEmbeddings(model="mxbai-embed-large"))
-
+recall_vector_store = InMemoryVectorStore(
+    OllamaEmbeddings(model="nomic-embed-text"))
 
 
 class KnowledgeTriple(TypedDict):
@@ -381,6 +389,7 @@ def save_recall_memory(memories: List[KnowledgeTriple], config: RunnableConfig) 
         )
         recall_vector_store.add_documents([document])
     return memories
+
 
 """
 We can then compile the graph exactly as before:
@@ -412,7 +421,8 @@ for chunk in graph.stream({"messages": [("user", "Hi, I'm Alice.")]}, config=con
 """
 Note that the application elects to extract knowledge-triples from the user's statements:
 """
-logger.info("Note that the application elects to extract knowledge-triples from the user's statements:")
+logger.info(
+    "Note that the application elects to extract knowledge-triples from the user's statements:")
 
 for chunk in graph.stream(
     {"messages": [("user", "My friend John likes Pizza.")]}, config=config
@@ -422,7 +432,8 @@ for chunk in graph.stream(
 """
 As before, the memories generated from one thread are accessed in another thread from the same user:
 """
-logger.info("As before, the memories generated from one thread are accessed in another thread from the same user:")
+logger.info(
+    "As before, the memories generated from one thread are accessed in another thread from the same user:")
 
 config = {"configurable": {"user_id": "3", "thread_id": "2"}}
 
@@ -434,7 +445,8 @@ for chunk in graph.stream(
 """
 Optionally, for illustrative purposes we can visualize the knowledge graph extracted by the model:
 """
-logger.info("Optionally, for illustrative purposes we can visualize the knowledge graph extracted by the model:")
+logger.info(
+    "Optionally, for illustrative purposes we can visualize the knowledge graph extracted by the model:")
 
 # %pip install -U --quiet matplotlib networkx
 

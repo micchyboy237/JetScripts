@@ -323,7 +323,7 @@ def create_multi_vector_retriever(
 
 
 vectorstore = Chroma(
-    collection_name="mm_rag_cj_blog", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+    collection_name="mm_rag_cj_blog", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
 )
 
 retriever_multi_vector_img = create_multi_vector_retriever(

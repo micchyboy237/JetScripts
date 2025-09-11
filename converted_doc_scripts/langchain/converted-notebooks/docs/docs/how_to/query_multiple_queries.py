@@ -63,7 +63,7 @@ async def main():
     logger.info("### Create Index")
 
     texts = ["Harrison worked at Kensho", "Ankush worked at Facebook"]
-    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+    embeddings = OllamaEmbeddings(model="nomic-embed-text")
     vectorstore = Chroma.from_texts(
         texts,
         embeddings,

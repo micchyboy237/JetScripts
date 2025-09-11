@@ -109,7 +109,7 @@ From this point onward, `GelVectorStore` can be used as a drop-in replacement fo
 logger.info("## Instantiation")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 vector_store = GelVectorStore(

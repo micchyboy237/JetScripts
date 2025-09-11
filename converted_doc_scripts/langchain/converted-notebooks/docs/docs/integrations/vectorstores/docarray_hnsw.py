@@ -46,7 +46,7 @@ documents = TextLoader("../../how_to/state_of_the_union.txt").load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 db = DocArrayHnswSearch.from_documents(
     docs, embeddings, work_dir="hnswlib_store/", n_dim=1536

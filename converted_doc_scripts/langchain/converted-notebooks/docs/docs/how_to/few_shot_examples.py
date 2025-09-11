@@ -150,7 +150,7 @@ logger.info("## Using an example selector")
 
 example_selector = SemanticSimilarityExampleSelector.from_examples(
     examples,
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     Chroma,
     k=1,
 )

@@ -1,11 +1,11 @@
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllamaEmbeddings
 from jet.logger import logger
 from langchain.agents import (
-AgentExecutor,
-AgentOutputParser,
-LLMSingleActionAgent,
-Tool,
+    AgentExecutor,
+    AgentOutputParser,
+    LLMSingleActionAgent,
+    Tool,
 )
 from langchain.chains import LLMChain
 from langchain.prompts import StringPromptTemplate
@@ -43,7 +43,6 @@ In this notebook we will create a somewhat contrived example. We will have one l
 Do necessary imports, etc.
 """
 logger.info("# Custom agent with tool retrieval")
-
 
 
 """
@@ -88,7 +87,8 @@ docs = [
     for i, t in enumerate(ALL_TOOLS)
 ]
 
-vector_store = FAISS.from_documents(docs, OllamaEmbeddings(model="mxbai-embed-large"))
+vector_store = FAISS.from_documents(
+    docs, OllamaEmbeddings(model="nomic-embed-text"))
 
 retriever = vector_store.as_retriever()
 
@@ -96,6 +96,7 @@ retriever = vector_store.as_retriever()
 def get_tools(query):
     docs = retriever.invoke(query)
     return [ALL_TOOLS[d.metadata["index"]] for d in docs]
+
 
 """
 We can now test this retriever to see if it seems to work.
@@ -139,7 +140,6 @@ The custom prompt template now has the concept of a `tools_getter`, which we cal
 logger.info("The custom prompt template now has the concept of a `tools_getter`, which we call on the input to select the tools to use.")
 
 
-
 class CustomPromptTemplate(StringPromptTemplate):
     template: str
     tools_getter: Callable
@@ -158,6 +158,7 @@ class CustomPromptTemplate(StringPromptTemplate):
         kwargs["tool_names"] = ", ".join([tool.name for tool in tools])
         return self.template.format(**kwargs)
 
+
 prompt = CustomPromptTemplate(
     template=template,
     tools_getter=get_tools,
@@ -171,11 +172,13 @@ The output parser is unchanged from the previous notebook, since we are not chan
 """
 logger.info("## Output parser")
 
+
 class CustomOutputParser(AgentOutputParser):
     def parse(self, llm_output: str) -> Union[AgentAction, AgentFinish]:
         if "Final Answer:" in llm_output:
             return AgentFinish(
-                return_values={"output": llm_output.split("Final Answer:")[-1].strip()},
+                return_values={"output": llm_output.split(
+                    "Final Answer:")[-1].strip()},
                 log=llm_output,
             )
         regex = r"Action\s*\d*\s*:(.*?)\nAction\s*\d*\s*Input\s*\d*\s*:[\s]*(.*)"
@@ -188,6 +191,7 @@ class CustomOutputParser(AgentOutputParser):
             tool=action, tool_input=action_input.strip(" ").strip('"'), log=llm_output
         )
 
+
 output_parser = CustomOutputParser()
 
 """
@@ -197,7 +201,7 @@ Also the same as the previous notebook.
 """
 logger.info("## Set up LLM, stop sequence, and the agent")
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 llm_chain = LLMChain(llm=llm, prompt=prompt)
 

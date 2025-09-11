@@ -44,7 +44,7 @@ examples = [
 
 example_selector = MaxMarginalRelevanceExampleSelector.from_examples(
     examples,
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     FAISS,
     k=2,
 )
@@ -60,7 +60,7 @@ logger.debug(mmr_prompt.format(adjective="worried"))
 
 example_selector = SemanticSimilarityExampleSelector.from_examples(
     examples,
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     FAISS,
     k=2,
 )

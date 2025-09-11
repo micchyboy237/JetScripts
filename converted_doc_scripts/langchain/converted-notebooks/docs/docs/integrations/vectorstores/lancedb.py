@@ -54,7 +54,7 @@ loader = TextLoader("../../how_to/state_of_the_union.txt")
 documents = loader.load()
 
 documents = CharacterTextSplitter().split_documents(documents)
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ##### For LanceDB cloud, you can invoke the vector store as follows :

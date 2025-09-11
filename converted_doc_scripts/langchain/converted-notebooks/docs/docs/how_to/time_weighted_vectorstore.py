@@ -45,7 +45,7 @@ A low `decay rate` (in this, to be extreme, we will set it close to 0) means mem
 """
 logger.info("## Low decay rate")
 
-embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
 vectorstore = FAISS(embeddings_model, index, InMemoryDocstore({}), {})
@@ -69,7 +69,7 @@ With a high `decay rate` (e.g., several 9's), the `recency score` quickly goes t
 """
 logger.info("## High decay rate")
 
-embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
 vectorstore = FAISS(embeddings_model, index, InMemoryDocstore({}), {})

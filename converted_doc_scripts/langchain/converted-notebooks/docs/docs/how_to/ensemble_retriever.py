@@ -53,7 +53,7 @@ doc_list_2 = [
     "You like oranges",
 ]
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 faiss_vectorstore = FAISS.from_texts(
     doc_list_2, embedding, metadatas=[{"source": 2}] * len(doc_list_2)
 )

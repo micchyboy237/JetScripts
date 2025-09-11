@@ -5,9 +5,9 @@ from langchain.chains import LLMChain, RetrievalQAWithSourcesChain
 from langchain_community.vectorstores import Yellowbrick
 from langchain_core.documents import Document
 from langchain_core.prompts.chat import (
-ChatPromptTemplate,
-HumanMessagePromptTemplate,
-SystemMessagePromptTemplate,
+    ChatPromptTemplate,
+    HumanMessagePromptTemplate,
+    SystemMessagePromptTemplate,
 )
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 import os
@@ -65,7 +65,8 @@ You'll also need your Username, Password, and Database name from the welcome ema
 
 The following should be modified to include the information for your Yellowbrick database and OpenAPI Key
 """
-logger.info("## Setup: Enter the information used to connect to Yellowbrick and Ollama API")
+logger.info(
+    "## Setup: Enter the information used to connect to Yellowbrick and Ollama API")
 
 YBUSER = "[SANDBOX USER]"
 YBPASSWORD = "[SANDBOX PASSWORD]"
@@ -93,7 +94,8 @@ embedding_table = "my_embeddings"
 
 We will use langchain to query ChatGPT.  As there is no Vector Store, ChatGPT will have no context in which to answer the question.
 """
-logger.info("## Part 1: Creating a baseline chatbot backed by ChatGpt without a Vector Store")
+logger.info(
+    "## Part 1: Creating a baseline chatbot backed by ChatGpt without a Vector Store")
 
 system_template = """If you don't know the answer, Make up your best guess."""
 messages = [
@@ -172,7 +174,8 @@ conn.close()
 ## Part 3: Extract the documents to index from an existing table in Yellowbrick
 Extract document paths and contents from an existing Yellowbrick table. We'll use these documents to create embeddings from in the next step.
 """
-logger.info("## Part 3: Extract the documents to index from an existing table in Yellowbrick")
+logger.info(
+    "## Part 3: Extract the documents to index from an existing table in Yellowbrick")
 
 yellowbrick_doc_connection_string = (
     f"postgres://{urlparse.quote(YBUSER)}:{YBPASSWORD}@{YBHOST}:5432/{YB_DOC_DATABASE}"
@@ -204,14 +207,16 @@ logger.info("## Part 4: Load the Yellowbrick Vector Store with Documents")
 DOCUMENT_BASE_URL = "https://docs.yellowbrick.com/6.7.1/"  # Actual URL
 
 
-separator = "\n## "  # This separator assumes Markdown docs from the repo uses ### as logical main header most of the time
+# This separator assumes Markdown docs from the repo uses ### as logical main header most of the time
+separator = "\n## "
 chunk_size_limit = 2000
 max_chunk_overlap = 200
 
 documents = [
     Document(
         page_content=document[1],
-        metadata={"source": DOCUMENT_BASE_URL + document[0].replace(".md", ".html")},
+        metadata={"source": DOCUMENT_BASE_URL +
+                  document[0].replace(".md", ".html")},
     )
     for document in yellowbrick_documents
 ]
@@ -225,7 +230,7 @@ split_docs = text_splitter.split_documents(documents)
 
 docs_text = [doc.page_content for doc in split_docs]
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vector_store = Yellowbrick.from_documents(
     documents=split_docs,
     embedding=embeddings,
@@ -242,7 +247,8 @@ Next, we add Yellowbrick as a vector store. The vector store has been populated 
 
 We'll send the same queries as above to see the impoved responses.
 """
-logger.info("## Part 5: Creating a chatbot that uses Yellowbrick as the vector store")
+logger.info(
+    "## Part 5: Creating a chatbot that uses Yellowbrick as the vector store")
 
 system_template = """Use the following pieces of context to answer the users question.
 Take note of the sources and include them in the answer in the format: "SOURCES: source1 source2", use "SOURCES" in capital letters regardless of the number of sources.
@@ -256,7 +262,7 @@ messages = [
 prompt = ChatPromptTemplate.from_messages(messages)
 
 vector_store = Yellowbrick(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     yellowbrick_connection_string,
     embedding_table,  # Change the table name to reflect your embeddings
 )
@@ -287,7 +293,6 @@ def print_result_sources(query):
     display(Markdown(output_text))
 
 
-
 print_result_sources("How many databases can be in a Yellowbrick Instance?")
 
 print_result_sources("Whats an easy way to add users in bulk to Yellowbrick?")
@@ -316,7 +321,7 @@ messages = [
 prompt = ChatPromptTemplate.from_messages(messages)
 
 vector_store = Yellowbrick(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     yellowbrick_connection_string,
     embedding_table,  # Change the table name to reflect your embeddings
 )
@@ -352,7 +357,6 @@ def print_result_sources(query):
   {", ".join(list(set([doc.metadata["source"] for doc in result["source_documents"]])))}
     """
     display(Markdown(output_text))
-
 
 
 print_result_sources("How many databases can be in a Yellowbrick Instance?")

@@ -56,7 +56,7 @@ The memory here is used for the agents intermediate steps
 logger.info("## Set up memory")
 
 
-embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)

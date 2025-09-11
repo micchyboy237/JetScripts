@@ -94,7 +94,7 @@ conn = Surreal("ws://localhost:8000/rpc")
 conn.signin({"username": "root", "password": "root"})
 conn.use("langchain", "demo")
 vector_store = SurrealDBVectorStore(
-    OllamaEmbeddings(model="mxbai-embed-large"), conn)
+    OllamaEmbeddings(model="nomic-embed-text"), conn)
 
 """
 ## Manage vector store

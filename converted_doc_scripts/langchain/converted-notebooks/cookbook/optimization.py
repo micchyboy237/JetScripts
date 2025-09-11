@@ -53,7 +53,7 @@ We will use a self-query retriever
 logger.info("## Create the initial retrieval chain")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 records = df.to_dict("records")
 documents = [Document(page_content=d["Overview"], metadata=d) for d in records]

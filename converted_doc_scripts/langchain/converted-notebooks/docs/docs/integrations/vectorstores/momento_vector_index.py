@@ -108,7 +108,7 @@ Indexing your data is as simple as instantiating the `MomentoVectorIndex` object
 logger.info("# Index your data")
 
 vector_db = MomentoVectorIndex.from_documents(
-    docs, OllamaEmbeddings(model="mxbai-embed-large"), index_name="sotu"
+    docs, OllamaEmbeddings(model="nomic-embed-text"), index_name="sotu"
 )
 
 """

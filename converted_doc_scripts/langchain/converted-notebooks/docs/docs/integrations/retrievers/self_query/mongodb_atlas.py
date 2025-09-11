@@ -58,7 +58,7 @@ INDEX_NAME = "Name of a search index defined on the collection"
 MongoClient = MongoClient(CONNECTION_STRING)
 collection = MongoClient[DB_NAME][COLLECTION_NAME]
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

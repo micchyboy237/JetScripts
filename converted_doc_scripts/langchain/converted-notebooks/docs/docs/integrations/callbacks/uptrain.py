@@ -11,7 +11,7 @@ from langchain_core.output_parsers.string import StrOutputParser
 from langchain_core.prompts.chat import ChatPromptTemplate
 from langchain_core.runnables.passthrough import RunnablePassthrough
 from langchain_text_splitters import (
-RecursiveCharacterTextSplitter,
+    RecursiveCharacterTextSplitter,
 )
 import os
 import shutil
@@ -92,7 +92,8 @@ documents = loader.load()
 """
 logger.info("## Split the document into chunks")
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=0)
 chunks = text_splitter.split_documents(documents)
 
 """
@@ -100,7 +101,7 @@ chunks = text_splitter.split_documents(documents)
 """
 logger.info("## Create the retriever")
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 db = FAISS.from_documents(chunks, embeddings)
 retriever = db.as_retriever()
 
@@ -205,7 +206,8 @@ To evaluate this retriever, UpTrain will run the following evaluation:
 """
 logger.info("# 2. Multi Query Generation")
 
-multi_query_retriever = MultiQueryRetriever.from_llm(retriever=retriever, llm=llm)
+multi_query_retriever = MultiQueryRetriever.from_llm(
+    retriever=retriever, llm=llm)
 
 uptrain_callback = UpTrainCallbackHandler(key_type=KEY_TYPE, api_key=API_KEY)
 config = {"callbacks": [uptrain_callback]}

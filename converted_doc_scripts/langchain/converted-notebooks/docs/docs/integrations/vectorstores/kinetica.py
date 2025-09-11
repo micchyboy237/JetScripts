@@ -61,7 +61,7 @@ logger.info(
 load_dotenv()
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 HOST = os.getenv("KINETICA_HOST", "http://127.0.0.1:9191")
 USERNAME = os.getenv("KINETICA_USERNAME", "")

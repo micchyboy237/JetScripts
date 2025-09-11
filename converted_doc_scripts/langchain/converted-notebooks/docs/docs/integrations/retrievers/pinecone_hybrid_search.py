@@ -90,7 +90,7 @@ Embeddings are used for the dense vectors, tokenizer is used for the sparse vect
 logger.info("## Get embeddings and sparse encoders")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 To encode the text to sparse values you can either choose SPLADE or BM25. For out of domain tasks we recommend using BM25.

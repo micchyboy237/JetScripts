@@ -2,12 +2,12 @@ from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders.blob_loaders.youtube_audio import (
-YoutubeAudioLoader,
+    YoutubeAudioLoader,
 )
 from langchain_community.document_loaders.generic import GenericLoader
 from langchain_community.document_loaders.parsers.audio import (
-OllamaWhisperParser,
-OllamaWhisperParserLocal,
+    OllamaWhisperParser,
+    OllamaWhisperParserLocal,
 )
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -74,7 +74,8 @@ if local:
         YoutubeAudioLoader(urls, save_dir), OllamaWhisperParserLocal()
     )
 else:
-    loader = GenericLoader(YoutubeAudioLoader(urls, save_dir), OllamaWhisperParser())
+    loader = GenericLoader(YoutubeAudioLoader(
+        urls, save_dir), OllamaWhisperParser())
 docs = loader.load()
 
 docs[0].page_content[0:500]
@@ -90,10 +91,11 @@ logger.info("### Building a chat app from YouTube video")
 combined_docs = [doc.page_content for doc in docs]
 text = " ".join(combined_docs)
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1500, chunk_overlap=150)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1500, chunk_overlap=150)
 splits = text_splitter.split_text(text)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectordb = FAISS.from_texts(splits, embeddings)
 
 qa_chain = RetrievalQA.from_chain_type(

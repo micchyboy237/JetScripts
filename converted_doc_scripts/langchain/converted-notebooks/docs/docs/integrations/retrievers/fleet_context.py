@@ -77,7 +77,7 @@ def _populate_vectorstore(
         metadatas.append(row.metadata)
     return vectorstore_cls.from_embeddings(
         texts_embeddings,
-        OllamaEmbeddings(model="mxbai-embed-large"),
+        OllamaEmbeddings(model="nomic-embed-text"),
         metadatas=metadatas,
     )
 

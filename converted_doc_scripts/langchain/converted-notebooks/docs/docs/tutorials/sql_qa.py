@@ -495,7 +495,7 @@ Let's select an [embeddings model](/docs/integrations/text_embedding/) and [vect
 logger.info("Using this function, we can create a **retriever tool** that the agent can execute at its discretion.")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 **Select a vector store**:

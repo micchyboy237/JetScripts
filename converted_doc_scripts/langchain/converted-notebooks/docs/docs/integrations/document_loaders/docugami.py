@@ -128,7 +128,7 @@ We will just use the output of the `DocugamiLoader` as-is to set up a retrieval 
 logger.info("The documents returned by the loader are already split, so we don't need to use a text splitter. Optionally, we can use the metadata on each document, for example the structure or tag attributes, to do any post-processing we want.")
 
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 vectordb = Chroma.from_documents(documents=chunks, embedding=embedding)
 retriever = vectordb.as_retriever()
 qa_chain = RetrievalQA.from_chain_type(
@@ -258,7 +258,7 @@ for id, chunk in list(children_by_id.items())[:5]:
 
 
 vectorstore = Chroma(collection_name="big2small",
-                     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
+                     embedding_function=OllamaEmbeddings(model="nomic-embed-text"))
 
 store = InMemoryStore()
 

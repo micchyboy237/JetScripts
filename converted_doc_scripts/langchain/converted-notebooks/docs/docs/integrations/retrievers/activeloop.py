@@ -75,7 +75,7 @@ if "ACTIVELOOP_TOKEN" not in os.environ:
     )  # Get your API token from https://app.activeloop.ai, click on your profile picture in the top right corner, and select "API Tokens"
 
 token = os.getenv("ACTIVELOOP_TOKEN")
-ollama_embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+ollama_embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 db = DeepLake(
     dataset_path=f"hub://{ORG_ID}/deeplake-docs-deepmemory",  # org_id stands for your username or organization from activeloop

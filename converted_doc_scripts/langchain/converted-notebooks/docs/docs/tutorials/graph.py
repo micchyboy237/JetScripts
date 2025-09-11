@@ -288,7 +288,7 @@ examples = [
 ]
 
 example_selector = SemanticSimilarityExampleSelector.from_examples(
-    examples, OllamaEmbeddings(model="mxbai-embed-large"), Neo4jVector, k=5, input_keys=["question"]
+    examples, OllamaEmbeddings(model="nomic-embed-text"), Neo4jVector, k=5, input_keys=["question"]
 )
 
 """

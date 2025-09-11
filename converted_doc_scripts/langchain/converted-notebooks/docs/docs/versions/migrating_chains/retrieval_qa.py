@@ -60,7 +60,8 @@ data = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 all_splits = text_splitter.split_documents(data)
 
-vectorstore = FAISS.from_documents(documents=all_splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = FAISS.from_documents(
+    documents=all_splits, embedding=OllamaEmbeddings(model="nomic-embed-text"))
 
 llm = ChatOllama(model="llama3.2")
 
@@ -112,13 +113,16 @@ qa_chain.invoke("What are autonomous agents?")
 """
 The LCEL implementation exposes the internals of what's happening around retrieving, formatting documents, and passing them through a prompt to the LLM, but it is more verbose. You can customize and wrap this composition logic in a helper function, or use the higher-level [`create_retrieval_chain`](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.retrieval.create_retrieval_chain.html) and [`create_stuff_documents_chain`](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.combine_documents.stuff.create_stuff_documents_chain.html) helper method:
 """
-logger.info("The LCEL implementation exposes the internals of what's happening around retrieving, formatting documents, and passing them through a prompt to the LLM, but it is more verbose. You can customize and wrap this composition logic in a helper function, or use the higher-level [`create_retrieval_chain`](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.retrieval.create_retrieval_chain.html) and [`create_stuff_documents_chain`](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.combine_documents.stuff.create_stuff_documents_chain.html) helper method:")
+logger.info(
+    "The LCEL implementation exposes the internals of what's happening around retrieving, formatting documents, and passing them through a prompt to the LLM, but it is more verbose. You can customize and wrap this composition logic in a helper function, or use the higher-level [`create_retrieval_chain`](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.retrieval.create_retrieval_chain.html) and [`create_stuff_documents_chain`](https://python.langchain.com/api_reference/langchain/chains/langchain.chains.combine_documents.stuff.create_stuff_documents_chain.html) helper method:")
 
 
 retrieval_qa_chat_prompt = hub.pull("langchain-ai/retrieval-qa-chat")
 
-combine_docs_chain = create_stuff_documents_chain(llm, retrieval_qa_chat_prompt)
-rag_chain = create_retrieval_chain(vectorstore.as_retriever(), combine_docs_chain)
+combine_docs_chain = create_stuff_documents_chain(
+    llm, retrieval_qa_chat_prompt)
+rag_chain = create_retrieval_chain(
+    vectorstore.as_retriever(), combine_docs_chain)
 
 rag_chain.invoke({"input": "What are autonomous agents?"})
 

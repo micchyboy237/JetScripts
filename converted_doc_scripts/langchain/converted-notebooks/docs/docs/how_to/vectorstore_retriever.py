@@ -48,7 +48,7 @@ loader = TextLoader("state_of_the_union.txt")
 documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(documents)
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = FAISS.from_documents(texts, embeddings)
 
 """

@@ -58,7 +58,7 @@ loader = TextLoader("../../how_to/state_of_the_union.txt")
 documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ### Create the SKLearnVectorStore, index the document corpus and run a sample query

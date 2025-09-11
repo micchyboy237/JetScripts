@@ -68,7 +68,7 @@ texts = text_splitter.split_documents(documents)
 for idx, text in enumerate(texts):
     text.metadata["id"] = idx
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 retriever = FAISS.from_documents(
     texts, embedding).as_retriever(search_kwargs={"k": 20})
 

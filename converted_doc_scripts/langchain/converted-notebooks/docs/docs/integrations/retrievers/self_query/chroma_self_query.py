@@ -50,7 +50,7 @@ logger.info(
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass("Ollama API Key:")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

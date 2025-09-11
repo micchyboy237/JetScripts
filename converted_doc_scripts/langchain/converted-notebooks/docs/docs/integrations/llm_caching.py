@@ -205,7 +205,7 @@ logger.info("### Semantic cache")
 
 set_llm_cache(
     RedisSemanticCache(redis_url="redis://localhost:6379",
-                       embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+                       embedding=OllamaEmbeddings(model="nomic-embed-text"))
 )
 
 # %%time
@@ -510,7 +510,7 @@ This cache will do a semantic similarity search and return a hit if it finds a c
 logger.info("### Semantic cache")
 
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 
 
 set_llm_cache(
@@ -588,7 +588,7 @@ This cache will do a semantic similarity search and return a hit if it finds a c
 logger.info("### Semantic cache")
 
 
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 
 
 set_llm_cache(
@@ -639,7 +639,7 @@ set_llm_cache(
     AzureCosmosDBSemanticCache(
         cosmosdb_connection_string=CONNECTION_STRING,
         cosmosdb_client=None,
-        embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+        embedding=OllamaEmbeddings(model="nomic-embed-text"),
         database_name=DB_NAME,
         collection_name=COLLECTION_NAME,
         num_lists=num_lists,
@@ -702,7 +702,7 @@ cosmos_database_properties_test: Dict[str, Any] = {}
 set_llm_cache(
     AzureCosmosDBNoSqlSemanticCache(
         cosmos_client=cosmos_client,
-        embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+        embedding=OllamaEmbeddings(model="nomic-embed-text"),
         vector_embedding_policy=get_vector_embedding_policy(),
         indexing_policy=get_vector_indexing_policy(),
         cosmos_container_properties=cosmos_container_properties_test,
@@ -870,7 +870,7 @@ logger.info("## `OpenSearch` semantic cache")
 
 set_llm_cache(
     OpenSearchSemanticCache(
-        opensearch_url="http://localhost:9200", embedding=OllamaEmbeddings(model="mxbai-embed-large")
+        opensearch_url="http://localhost:9200", embedding=OllamaEmbeddings(model="nomic-embed-text")
     )
 )
 
@@ -892,7 +892,7 @@ logger.info("## `SingleStoreDB` semantic cache")
 
 set_llm_cache(
     SingleStoreSemanticCache(
-        embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+        embedding=OllamaEmbeddings(model="nomic-embed-text"),
         host="root:pass@localhost:3306/db",
     )
 )
@@ -1101,7 +1101,7 @@ BUCKET_NAME = "langchain-testing"
 SCOPE_NAME = "_default"
 COLLECTION_NAME = "semantic-cache"
 INDEX_NAME = "semantic-cache-index"
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 cache = CouchbaseSemanticCache(
     cluster=cluster,

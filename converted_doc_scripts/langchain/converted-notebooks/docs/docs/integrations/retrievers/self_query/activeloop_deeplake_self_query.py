@@ -55,7 +55,7 @@ if "ACTIVELOOP_TOKEN" not in os.environ:
     #     os.environ["ACTIVELOOP_TOKEN"] = getpass.getpass("Activeloop token:")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

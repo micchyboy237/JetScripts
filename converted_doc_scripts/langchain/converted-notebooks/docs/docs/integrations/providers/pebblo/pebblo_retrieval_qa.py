@@ -79,7 +79,7 @@ logger.info("### Identity-aware Data Ingestion")
 
 
 llm = ChatOllama()
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 collection_name = "pebblo-identity-and-semantic-rag"
 
 page_content = """

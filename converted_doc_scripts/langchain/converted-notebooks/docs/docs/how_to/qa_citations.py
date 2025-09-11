@@ -394,7 +394,7 @@ This approach effectively updates our `retrieve` step to compress the documents.
 logger.info("## Retrieval post-processing")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 We can now rewrite the `retrieve` step:

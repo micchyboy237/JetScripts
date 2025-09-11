@@ -73,7 +73,7 @@ docker exec ollama ollama run llama2
 logger.info("## Select embeddings model")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ## Split documents into segments

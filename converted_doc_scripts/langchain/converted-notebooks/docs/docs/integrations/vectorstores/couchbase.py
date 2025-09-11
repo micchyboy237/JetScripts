@@ -118,7 +118,7 @@ Below, we create the vector store object with the cluster information and the se
       logger.info("### Simple Instantiation")
 
 
-        embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+        embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
         vector_store = CouchbaseSearchVectorStore(

@@ -1,13 +1,13 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain_community.document_loaders import (
-DirectoryLoader,
-UnstructuredMarkdownLoader,
+    DirectoryLoader,
+    UnstructuredMarkdownLoader,
 )
 from langchain_community.vectorstores.apache_doris import (
-ApacheDoris,
-ApacheDorisSettings,
+    ApacheDoris,
+    ApacheDorisSettings,
 )
 from langchain_text_splitters import TokenTextSplitter
 import os
@@ -71,7 +71,8 @@ documents = loader.load()
 """
 Split docs into tokens, and set `update_vectordb = True` because there are new docs/tokens.
 """
-logger.info("Split docs into tokens, and set `update_vectordb = True` because there are new docs/tokens.")
+logger.info(
+    "Split docs into tokens, and set `update_vectordb = True` because there are new docs/tokens.")
 
 text_splitter = TokenTextSplitter(chunk_size=400, chunk_overlap=50)
 split_docs = text_splitter.split_documents(documents)
@@ -89,12 +90,15 @@ logger.debug("# docs  = %d, # splits = %d" % (len(documents), len(split_docs)))
 """
 logger.info("## Create vectordb instance")
 
+
 def gen_apache_doris(update_vectordb, embeddings, settings):
     if update_vectordb:
-        docsearch = ApacheDoris.from_documents(split_docs, embeddings, config=settings)
+        docsearch = ApacheDoris.from_documents(
+            split_docs, embeddings, config=settings)
     else:
         docsearch = ApacheDoris(embeddings, settings)
     return docsearch
+
 
 """
 ## Convert tokens into embeddings and put them into vectordb
@@ -117,7 +121,7 @@ logger.info("## Convert tokens into embeddings and put them into vectordb")
 
 update_vectordb = True
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 settings = ApacheDorisSettings()
 settings.port = 9030
@@ -136,7 +140,7 @@ update_vectordb = False
 """
 logger.info("## Build QA and ask question to it")
 
-llm = Ollama()
+llm = ChatOllama()
 qa = RetrievalQA.from_chain_type(
     llm=llm, chain_type="stuff", retriever=docsearch.as_retriever()
 )

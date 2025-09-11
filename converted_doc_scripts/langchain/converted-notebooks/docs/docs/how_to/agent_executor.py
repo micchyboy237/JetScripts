@@ -144,7 +144,7 @@ documents = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200
 ).split_documents(docs)
 vector = FAISS.from_documents(
-    documents, OllamaEmbeddings(model="mxbai-embed-large"))
+    documents, OllamaEmbeddings(model="nomic-embed-text"))
 retriever = vector.as_retriever()
 
 retriever.invoke("how to upload a dataset")[0]

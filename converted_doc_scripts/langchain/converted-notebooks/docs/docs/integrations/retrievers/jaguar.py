@@ -64,7 +64,7 @@ Instantiate a Jaguar vector store
 """
 url = "http://192.168.5.88:8080/fwww/"
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 pod = "vdb"
 
@@ -122,7 +122,7 @@ store = "langchain_test_store"
 vector_index = "v"
 vector_type = "cosine_fraction_float"
 vector_dimension = 10
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = Jaguar(
     pod, store, vector_index, vector_type, vector_dimension, url, embeddings
 )

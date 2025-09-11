@@ -88,7 +88,7 @@ docs = text_splitter.split_documents(documents)
 """
 logger.info("### 3. Insert Documents")
 
-# embeddings = OllamaEmbeddings(model="mxbai-embed-large")  # Verify OPENAI_API_KEY environment variable
+# embeddings = OllamaEmbeddings(model="nomic-embed-text")  # Verify OPENAI_API_KEY environment variable
 
 docsearch = Rockset(
     client=rockset_client,

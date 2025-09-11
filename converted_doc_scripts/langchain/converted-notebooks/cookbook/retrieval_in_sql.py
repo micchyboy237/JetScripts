@@ -67,7 +67,7 @@ Let's generate the embedding for each *track title* and store it as a new column
     logger.info("Let's generate the embedding for each *track title* and store it as a new column in our "Track" table")
 
 
-    embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+    embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 
     tracks = db.run('SELECT "Name" FROM "Track"')
     song_titles = [s[0] for s in eval(tracks)]

@@ -76,7 +76,7 @@ For some testing scenarios and quick experiments, you may prefer to keep all the
 logger.info("## Initialization")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 client = QdrantClient(":memory:")

@@ -170,7 +170,7 @@ Instead, what we can do is create an index over the relevant values and then que
 logger.info("### Find and all relevant values")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = Chroma.from_texts(
     names, embeddings, collection_name="author_names")
 

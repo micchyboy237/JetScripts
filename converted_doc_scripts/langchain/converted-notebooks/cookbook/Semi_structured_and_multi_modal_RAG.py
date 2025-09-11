@@ -229,7 +229,7 @@ logger.info("### Add to vectorstore")
 
 
 vectorstore = Chroma(collection_name="summaries",
-                     embedding_function=OllamaEmbeddings(model="mxbai-embed-large"))
+                     embedding_function=OllamaEmbeddings(model="nomic-embed-text"))
 
 store = InMemoryStore()
 id_key = "doc_id"

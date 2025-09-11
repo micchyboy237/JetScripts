@@ -152,7 +152,7 @@ llm = ChatOllama(model="llama3.2")
 logger.info("import EmbeddingTabs from "@theme/EmbeddingTabs";")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 

@@ -191,7 +191,7 @@ LangChain supports embeddings from [dozens of providers](/docs/integrations/text
 logger.info("## Embeddings")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 vector_1 = embeddings.embed_query(all_splits[0].page_content)
 vector_2 = embeddings.embed_query(all_splits[1].page_content)

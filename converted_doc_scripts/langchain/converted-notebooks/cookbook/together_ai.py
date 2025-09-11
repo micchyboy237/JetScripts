@@ -43,7 +43,8 @@ loader = PyPDFLoader("~/Desktop/mixtral.pdf")
 data = loader.load()
 
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=2000, chunk_overlap=0)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=2000, chunk_overlap=0)
 all_splits = text_splitter.split_documents(data)
 
 
@@ -53,7 +54,7 @@ embeddings = TogetherEmbeddings(model="togethercomputer/m2-bert-80M-8k-retrieval
 vectorstore = Chroma.from_documents(
     documents=all_splits,
     collection_name="rag-chroma",
-    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
 )
 
 retriever = vectorstore.as_retriever()

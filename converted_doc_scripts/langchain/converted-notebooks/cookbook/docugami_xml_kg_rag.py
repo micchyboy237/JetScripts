@@ -255,7 +255,7 @@ logger.info("### Add to vectorstore")
 
 def build_retriever(text_elements, tables, table_summaries):
     vectorstore = Chroma(
-        collection_name="summaries", embedding_function=OllamaEmbeddings(model="mxbai-embed-large")
+        collection_name="summaries", embedding_function=OllamaEmbeddings(model="nomic-embed-text")
     )
 
     store = InMemoryStore()

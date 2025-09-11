@@ -1,6 +1,6 @@
 from cassandra.cluster import Cluster
 from datasets import (
-load_dataset,
+    load_dataset,
 )
 from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
@@ -55,7 +55,7 @@ _(specifically, recent versions of `datasets`, `ollama`, `pypdf` and `tiktoken` 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass("OPENAI_API_KEY = ")
 
-embe = OllamaEmbeddings(model="mxbai-embed-large")
+embe = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ## Import the Vector Store
@@ -85,7 +85,8 @@ session = cluster.connect()
 """
 You can now set the session, along with your desired keyspace name, as a global CassIO parameter:
 """
-logger.info("You can now set the session, along with your desired keyspace name, as a global CassIO parameter:")
+logger.info(
+    "You can now set the session, along with your desired keyspace name, as a global CassIO parameter:")
 
 
 CASSANDRA_KEYSPACE = input("CASSANDRA_KEYSPACE = ")
@@ -196,7 +197,8 @@ results_filtered = vstore.similarity_search(
 for res in results_filtered:
     logger.debug(f"* {res.page_content} [{res.metadata}]")
 
-results = vstore.similarity_search_with_score("Our life is what we make of it", k=3)
+results = vstore.similarity_search_with_score(
+    "Our life is what we make of it", k=3)
 for res, score in results:
     logger.debug(f"* [SIM={score:3f}] {res.page_content} [{res.metadata}]")
 
@@ -222,7 +224,8 @@ delete_1 = vstore.delete(inserted_ids[:3])
 logger.debug(f"all_succeed={delete_1}")  # True, all documents deleted
 
 delete_2 = vstore.delete(inserted_ids[2:5])
-logger.debug(f"some_succeeds={delete_2}")  # True, though some IDs were gone already
+# True, though some IDs were gone already
+logger.debug(f"some_succeeds={delete_2}")
 
 """
 ## A minimal RAG chain
@@ -235,8 +238,8 @@ The next cells will implement a simple RAG pipeline:
 logger.info("## A minimal RAG chain")
 
 # !curl -L \
-    "https://github.com/awesome-astra/datasets/blob/main/demo-resources/what-is-philosophy/what-is-philosophy.pdf?raw=true" \
-    -o "what-is-philosophy.pdf"
+"https://github.com/awesome-astra/datasets/blob/main/demo-resources/what-is-philosophy/what-is-philosophy.pdf?raw=true" \
+    - o "what-is-philosophy.pdf"
 
 pdf_loader = PyPDFLoader("what-is-philosophy.pdf")
 splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=64)
@@ -272,7 +275,8 @@ chain = (
     | StrOutputParser()
 )
 
-chain.invoke("How does Russel elaborate on Peirce's idea of the security blanket?")
+chain.invoke(
+    "How does Russel elaborate on Peirce's idea of the security blanket?")
 
 """
 For more, check out a complete RAG template using Astra DB through CQL [here](https://github.com/langchain-ai/langchain/tree/master/templates/cassandra-entomology-rag).

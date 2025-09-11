@@ -56,7 +56,7 @@ logger.info(
 """
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 index_name = "langchain_demo"
 

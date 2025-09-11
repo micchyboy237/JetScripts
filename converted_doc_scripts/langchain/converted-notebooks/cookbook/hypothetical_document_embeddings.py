@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import HypotheticalDocumentEmbedder, LLMChain
 from langchain.prompts import PromptTemplate
@@ -30,14 +30,15 @@ In order to use HyDE, we therefore need to provide a base embedding model, as we
 logger.info("# Improve document indexing with HyDE")
 
 
-base_embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-llm = Ollama()
+base_embeddings = OllamaEmbeddings(model="nomic-embed-text")
+llm = ChatOllama()
 
 """
 
 """
 
-embeddings = HypotheticalDocumentEmbedder.from_llm(llm, base_embeddings, "web_search")
+embeddings = HypotheticalDocumentEmbedder.from_llm(
+    llm, base_embeddings, "web_search")
 
 result = embeddings.embed_query("Where is the Taj Mahal?")
 
@@ -47,7 +48,7 @@ We can also generate multiple documents and then combine the embeddings for thos
 """
 logger.info("## Multiple generations")
 
-multi_llm = Ollama(n=4, best_of=4)
+multi_llm = ChatOllama(n=4, best_of=4)
 
 embeddings = HypotheticalDocumentEmbedder.from_llm(
     multi_llm, base_embeddings, "web_search"

@@ -71,7 +71,7 @@ Let's add some documents.
 logger.info("Let's add some documents.")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

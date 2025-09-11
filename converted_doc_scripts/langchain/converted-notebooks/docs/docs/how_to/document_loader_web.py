@@ -192,7 +192,7 @@ logger.info("### Vector search over page content")
 
 
 vector_store = InMemoryVectorStore.from_documents(
-    setup_docs, OllamaEmbeddings(model="mxbai-embed-large"))
+    setup_docs, OllamaEmbeddings(model="nomic-embed-text"))
 retrieved_docs = vector_store.similarity_search("Install Tavily", k=2)
 for doc in retrieved_docs:
     logger.debug(f"Page {doc.metadata['url']}: {doc.page_content[:300]}\n")

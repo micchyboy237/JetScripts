@@ -58,7 +58,7 @@ documents = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0).split_docume
     documents
 )
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 Epsilla vectordb is running with default host "localhost" and port "8888". We have a custom db path, db name and collection name instead of the default ones.

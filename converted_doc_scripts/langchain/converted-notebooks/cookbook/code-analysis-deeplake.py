@@ -111,7 +111,7 @@ This can take several minutes.
 logger.info("Then embed chunks and upload them to the DeepLake.")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 embeddings
 
 

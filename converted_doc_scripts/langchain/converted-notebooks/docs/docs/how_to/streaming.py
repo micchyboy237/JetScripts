@@ -306,7 +306,7 @@ os.makedirs(PERSIST_DIR, exist_ok=True)
 
     vectorstore = FAISS.from_texts(
         ["harrison worked at kensho", "harrison likes spicy food"],
-        embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+        embedding=OllamaEmbeddings(model="nomic-embed-text"),
     )
     retriever = vectorstore.as_retriever()
 

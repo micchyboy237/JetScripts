@@ -102,7 +102,7 @@ This example adds text to the Meilisearch vector database without having to init
 logger.info("### Adding text and embeddings")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 embedders = {
     "default": {
         "source": "userProvided",

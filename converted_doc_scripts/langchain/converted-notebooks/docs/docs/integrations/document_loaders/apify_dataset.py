@@ -66,12 +66,14 @@ For example, if your dataset items are structured like this:
 
 The mapping function in the code below will convert them to LangChain `Document` format, so that you can use them further with any LLM model (e.g. for question answering).
 """
-logger.info("Then provide a function that maps Apify dataset record fields to LangChain `Document` format.")
+logger.info(
+    "Then provide a function that maps Apify dataset record fields to LangChain `Document` format.")
 
 loader = ApifyDatasetLoader(
     dataset_id="your-dataset-id",
     dataset_mapping_function=lambda dataset_item: Document(
-        page_content=dataset_item["text"], metadata={"source": dataset_item["url"]}
+        page_content=dataset_item["text"], metadata={
+            "source": dataset_item["url"]}
     ),
 )
 
@@ -93,7 +95,8 @@ loader = ApifyDatasetLoader(
 )
 
 index = VectorstoreIndexCreator(
-    vectorstore_cls=InMemoryVectorStore, embedding=OllamaEmbeddings(model="mxbai-embed-large")
+    vectorstore_cls=InMemoryVectorStore, embedding=OllamaEmbeddings(
+        model="nomic-embed-text")
 ).from_loaders([loader])
 
 llm = ChatOllama(model="llama3.2")

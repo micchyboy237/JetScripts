@@ -61,7 +61,7 @@ logger.info("### Credentials")
 logger.info("## Instantiation")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 settings = ClickhouseSettings(table="clickhouse_example")

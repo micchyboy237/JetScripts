@@ -107,7 +107,7 @@ Instantiate our vector store using an explicit embedding class:
 logger.info("## Initialization")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 vector_store_explicit_embeddings = AstraDBVectorStore(
@@ -133,7 +133,7 @@ logger.info("### Server-side embedding initialization ("vectorize", method 2)")
 
 ollama_vectorize_options = VectorServiceOptions(
     provider="ollama",
-    model_name="mxbai-embed-large",
+    model_name="nomic-embed-text",
     authentication={
         #         "providerKey": "OPENAI_API_KEY",
     },

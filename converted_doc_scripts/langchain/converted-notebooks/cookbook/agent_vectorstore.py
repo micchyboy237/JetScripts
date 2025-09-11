@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama, OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
 from jet.logger import logger
 from langchain.agents import Tool
 from langchain.chains import RetrievalQA
@@ -38,7 +38,7 @@ logger.info("# Combine agents and vector stores")
 # os.environ["OPENAI_API_KEY"] = ""
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 
 relevant_parts = []
@@ -54,8 +54,9 @@ documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(documents)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
-docsearch = Chroma.from_documents(texts, embeddings, collection_name="state-of-union")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
+docsearch = Chroma.from_documents(
+    texts, embeddings, collection_name="state-of-union")
 
 state_of_union = RetrievalQA.from_chain_type(
     llm=llm, chain_type="stuff", retriever=docsearch.as_retriever()

@@ -215,7 +215,7 @@ logger.info("Now we can embed and store all of our values in a vector database:"
 
 
 vector_db = FAISS.from_texts(
-    proper_nouns, OllamaEmbeddings(model="mxbai-embed-large"))
+    proper_nouns, OllamaEmbeddings(model="nomic-embed-text"))
 retriever = vector_db.as_retriever(search_kwargs={"k": 15})
 
 """

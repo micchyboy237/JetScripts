@@ -157,7 +157,7 @@ examples = [
 ]
 
 to_vectorize = [" ".join(example.values()) for example in examples]
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = Chroma.from_texts(to_vectorize, embeddings, metadatas=examples)
 
 """

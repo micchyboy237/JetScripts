@@ -72,7 +72,7 @@ text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000, chunk_overlap=200)
 splits = text_splitter.split_documents(list_docs)
 vectorstore = Chroma.from_documents(
-    documents=splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+    documents=splits, embedding=OllamaEmbeddings(model="nomic-embed-text"))
 
 retriever = vectorstore.as_retriever(k=2)
 

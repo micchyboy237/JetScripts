@@ -74,7 +74,7 @@ Below is a basic initialization, including the use of a directory to save the da
 logger.info("## Initialization")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 #### Running Locally (In-Memory)

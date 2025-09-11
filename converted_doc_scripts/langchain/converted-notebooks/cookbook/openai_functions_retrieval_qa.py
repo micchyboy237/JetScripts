@@ -46,7 +46,7 @@ text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(documents)
 for i, text in enumerate(texts):
     text.metadata["source"] = f"{i}-pl"
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 docsearch = Chroma.from_documents(texts, embeddings)
 
 

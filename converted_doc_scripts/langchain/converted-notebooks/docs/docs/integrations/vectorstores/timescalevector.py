@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 from dotenv import find_dotenv, load_dotenv
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.chat_ollama import ChatOllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import RetrievalQA
 from langchain.chains.query_constructor.base import AttributeInfo
@@ -70,21 +70,18 @@ logger.info("# Timescale Vector (Postgres)")
 """
 In this example, we'll use `OllamaEmbeddings`, so let's load your Ollama API key.
 """
-logger.info("In this example, we'll use `OllamaEmbeddings`, so let's load your Ollama API key.")
-
+logger.info(
+    "In this example, we'll use `OllamaEmbeddings`, so let's load your Ollama API key.")
 
 
 _ = load_dotenv(find_dotenv())
 # OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
 
-
-
 """
 Next we'll import the needed Python libraries and libraries from LangChain. Note that we import the `timescale-vector` library as well as the TimescaleVector LangChain vectorstore.
 """
 logger.info("Next we'll import the needed Python libraries and libraries from LangChain. Note that we import the `timescale-vector` library as well as the TimescaleVector LangChain vectorstore.")
-
 
 
 """
@@ -99,7 +96,7 @@ documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 Next, we'll load the service URL for our Timescale database. 
@@ -195,7 +192,6 @@ To illustrate how to use TimescaleVector's time-based vector search functionalit
 First lets load in the git log data into a new collection in our PostgreSQL database named `timescale_commits`.
 """
 logger.info("## 2. Similarity Search with time-based filtering")
-
 
 
 """
@@ -625,7 +621,6 @@ t
 logger.info("W")
 
 
-
 def create_uuid(date_string: str):
     if date_string is None:
         return None
@@ -634,10 +629,13 @@ def create_uuid(date_string: str):
     uuid = client.uuid_from_time(datetime_obj)
     return str(uuid)
 
+
 """
 Next, we'll define a metadata function to extract the relevant metadata from the JSON record. We'll pass this function to the JSONLoader. See the [JSON document loader docs](/docs/how_to/document_loader_json) for more details.
 """
-logger.info("Next, we'll define a metadata function to extract the relevant metadata from the JSON record. We'll pass this function to the JSONLoader. See the [JSON document loader docs](/docs/how_to/document_loader_json) for more details.")
+logger.info(
+    "Next, we'll define a metadata function to extract the relevant metadata from the JSON record. We'll pass this function to the JSONLoader. See the [JSON document loader docs](/docs/how_to/document_loader_json) for more details.")
+
 
 def split_name(input_string: str) -> Tuple[str, str]:
     if input_string is None:
@@ -645,7 +643,7 @@ def split_name(input_string: str) -> Tuple[str, str]:
     start = input_string.find("<")
     end = input_string.find(">")
     name = input_string[:start].strip()
-    email = input_string[start + 1 : end].strip()
+    email = input_string[start + 1: end].strip()
     return name, email
 
 
@@ -672,7 +670,8 @@ def create_date(input_string: str) -> datetime:
     month = month_dict[components[1]]
     year = components[4]
     time = components[3]
-    timezone_offset_minutes = int(components[5])  # Convert the offset to minutes
+    # Convert the offset to minutes
+    timezone_offset_minutes = int(components[5])
     timezone_hours = timezone_offset_minutes // 60  # Calculate the hours
     timezone_minutes = timezone_offset_minutes % 60  # Calculate the remaining minutes
     timestamp_tz_str = (
@@ -690,12 +689,14 @@ def extract_metadata(record: dict, metadata: dict) -> dict:
     metadata["commit_hash"] = record["commit"]
     return metadata
 
+
 """
 Next, you'll need to [download the sample dataset](https://s3.amazonaws.com/assets.timescale.com/ai/ts_git_log.json) and place it in the same directory as this notebook.
 
 You can use following command:
 """
-logger.info("Next, you'll need to [download the sample dataset](https://s3.amazonaws.com/assets.timescale.com/ai/ts_git_log.json) and place it in the same directory as this notebook.")
+logger.info(
+    "Next, you'll need to [download the sample dataset](https://s3.amazonaws.com/assets.timescale.com/ai/ts_git_log.json) and place it in the same directory as this notebook.")
 
 # !curl -O https://s3.amazonaws.com/assets.timescale.com/ai/ts_git_log.json
 
@@ -752,7 +753,7 @@ Finally, we'll create the TimescaleVector instance. We specify the `ids` argumen
 logger.info("Next we'll create a Timescale Vector instance from the collection of documents that we finished pre-processsing.")
 
 COLLECTION_NAME = "timescale_commits"
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 db = TimescaleVector.from_documents(
     embedding=embeddings,
@@ -774,8 +775,10 @@ Let's take a look at each method below:
 """
 logger.info("### Querying vectors by time and similarity")
 
-start_dt = datetime(2023, 8, 1, 22, 10, 35)  # Start date = 1 August 2023, 22:10:35
-end_dt = datetime(2023, 8, 30, 22, 10, 35)  # End date = 30 August 2023, 22:10:35
+# Start date = 1 August 2023, 22:10:35
+start_dt = datetime(2023, 8, 1, 22, 10, 35)
+# End date = 30 August 2023, 22:10:35
+end_dt = datetime(2023, 8, 30, 22, 10, 35)
 td = timedelta(days=7)  # Time delta = 7 days
 
 query = "What's new with TimescaleDB functions?"
@@ -801,7 +804,8 @@ Note how the query only returns results within the specified date range.
 
 Method 2: Filter within a provided start date, and a time delta later.
 """
-logger.info("Note how the query only returns results within the specified date range.")
+logger.info(
+    "Note how the query only returns results within the specified date range.")
 
 docs_with_score = db.similarity_search_with_score(
     query, start_date=start_dt, time_delta=td
@@ -821,7 +825,8 @@ Method 3: Filter within a provided end date and a time delta earlier.
 """
 logger.info("Once again, notice how we get results within the specified time filter, different from the previous query.")
 
-docs_with_score = db.similarity_search_with_score(query, end_date=end_dt, time_delta=td)
+docs_with_score = db.similarity_search_with_score(
+    query, end_date=end_dt, time_delta=td)
 
 for doc, score in docs_with_score:
     logger.debug("-" * 80)
@@ -862,7 +867,8 @@ We can also use this functionality for question answering, where we want to find
 """
 logger.info("The main takeaway is that in each result above, only vectors within the specified time range are returned. These queries are very efficient as they only need to search the relevant partitions.")
 
-retriever = db.as_retriever(search_kwargs={"start_date": start_dt, "end_date": end_dt})
+retriever = db.as_retriever(
+    search_kwargs={"start_date": start_dt, "end_date": end_dt})
 
 
 llm = ChatOllama(model="llama3.2")
@@ -900,7 +906,7 @@ Important note: In PostgreSQL, each table can only have one index on a particula
 logger.info("## 3. Using ANN Search Indexes to Speed Up Queries")
 
 COLLECTION_NAME = "timescale_commits"
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 db = TimescaleVector(
     collection_name=COLLECTION_NAME,
     service_url=SERVICE_URL,
@@ -941,7 +947,8 @@ db.create_index(index_type="ivfflat", num_lists=20, num_records=1000)
 """
 In general, we recommend using the default timescale vector index, or the HNSW index.
 """
-logger.info("In general, we recommend using the default timescale vector index, or the HNSW index.")
+logger.info(
+    "In general, we recommend using the default timescale vector index, or the HNSW index.")
 
 db.drop_index()
 db.create_index()
@@ -959,7 +966,7 @@ logger.info("## 4. Self Querying Retriever with Timescale Vector")
 
 COLLECTION_NAME = "timescale_commits"
 vectorstore = TimescaleVector(
-    embedding_function=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding_function=OllamaEmbeddings(model="nomic-embed-text"),
     collection_name=COLLECTION_NAME,
     service_url=SERVICE_URL,
 )
@@ -994,7 +1001,7 @@ metadata_field_info = [
 ]
 document_content_description = "The git log commit summary containing the commit hash, author, date of commit, change summary and change details"
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 retriever = SelfQueryRetriever.from_llm(
     llm,
     vectorstore,
@@ -1011,17 +1018,20 @@ Run the queries below and note how you can specify a query, query with a filter,
 
 This illustrates the power of the self-query retriever. You can use it to perform complex searches over your vectorstore without you or your users having to write any SQL directly!
 """
-logger.info("Now let's test out the self-querying retriever on our gitlog dataset.")
+logger.info(
+    "Now let's test out the self-querying retriever on our gitlog dataset.")
 
 retriever.invoke("What are improvements made to continuous aggregates?")
 
 retriever.invoke("What commits did Sven Klemm add?")
 
-retriever.invoke("What commits about timescaledb_functions did Sven Klemm add?")
+retriever.invoke(
+    "What commits about timescaledb_functions did Sven Klemm add?")
 
 retriever.invoke("What commits were added in July 2023?")
 
-retriever.invoke("What are two commits about hierarchical continuous aggregates?")
+retriever.invoke(
+    "What are two commits about hierarchical continuous aggregates?")
 
 """
 ## 5. Working with an existing TimescaleVector vectorstore
@@ -1033,7 +1043,7 @@ To work with an existing Timescale Vector store, we need to know the name of the
 logger.info("## 5. Working with an existing TimescaleVector vectorstore")
 
 COLLECTION_NAME = "timescale_commits"
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = TimescaleVector(
     collection_name=COLLECTION_NAME,
     service_url=SERVICE_URL,
@@ -1075,10 +1085,12 @@ Deleting using metadata is especially useful if you want to periodically update 
 logger.info("Deleting using metadata is especially useful if you want to periodically update information scraped from a particular source, or particular date or some other metadata attribute.")
 
 vectorstore.add_documents(
-    [Document(page_content="Hello World", metadata={"source": "www.example.com/hello"})]
+    [Document(page_content="Hello World", metadata={
+              "source": "www.example.com/hello"})]
 )
 vectorstore.add_documents(
-    [Document(page_content="Adios", metadata={"source": "www.example.com/adios"})]
+    [Document(page_content="Adios", metadata={
+              "source": "www.example.com/adios"})]
 )
 
 vectorstore.delete_by_metadata({"source": "www.example.com/adios"})

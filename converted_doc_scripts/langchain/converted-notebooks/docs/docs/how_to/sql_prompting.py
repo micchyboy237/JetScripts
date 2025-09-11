@@ -198,7 +198,7 @@ logger.info("## Dynamic few-shot examples")
 
 example_selector = SemanticSimilarityExampleSelector.from_examples(
     examples,
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     FAISS,
     k=5,
     input_keys=["input"],

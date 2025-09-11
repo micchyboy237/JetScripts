@@ -50,7 +50,7 @@ logger.info("## Create New Retriever with Texts")
 
 retriever = SVMRetriever.from_texts(
     ["foo", "bar", "world", "hello", "foo bar"], OllamaEmbeddings(
-        model="mxbai-embed-large")
+        model="nomic-embed-text")
 )
 
 """

@@ -210,7 +210,7 @@ query_website_tool = WebpageQATool(qa_chain=load_qa_with_sources_chain(llm))
 logger.info("### Set up memory")
 
 
-embeddings_model = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings_model = OllamaEmbeddings(model="nomic-embed-text")
 embedding_size = 1536
 index = faiss.IndexFlatL2(embedding_size)
 vectorstore = FAISS(embeddings_model.embed_query,

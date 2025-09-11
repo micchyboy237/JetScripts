@@ -317,7 +317,7 @@ class MyDoc(BaseDoc):
     director: str
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 docs = DocList[MyDoc](

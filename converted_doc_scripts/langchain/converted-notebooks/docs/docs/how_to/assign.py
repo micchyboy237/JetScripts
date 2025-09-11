@@ -80,7 +80,7 @@ logger.info("## Streaming")
 
 
 vectorstore = FAISS.from_texts(
-    ["harrison worked at kensho"], embedding=OllamaEmbeddings(model="mxbai-embed-large")
+    ["harrison worked at kensho"], embedding=OllamaEmbeddings(model="nomic-embed-text")
 )
 retriever = vectorstore.as_retriever()
 template = """Answer the question based only on the following context:

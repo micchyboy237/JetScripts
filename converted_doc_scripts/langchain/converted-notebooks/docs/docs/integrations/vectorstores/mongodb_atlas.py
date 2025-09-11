@@ -70,7 +70,7 @@ logger.info(
 logger.info("## Initialization")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 
 client = MongoClient(MONGODB_ATLAS_CLUSTER_URI)

@@ -269,7 +269,7 @@ Now that our query construction chain is in a decent place, let's try using it w
 logger.info("## Using with a self-querying retriever")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 ## Populating vectorstore

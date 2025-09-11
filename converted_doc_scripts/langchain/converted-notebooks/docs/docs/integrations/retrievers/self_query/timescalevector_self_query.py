@@ -88,7 +88,7 @@ _ = load_dotenv(find_dotenv())
 TIMESCALE_SERVICE_URL = os.environ["TIMESCALE_SERVICE_URL"]
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 Here's the sample documents we'll use for this demo. The data is about movies, and has both content and metadata fields with information about particular movie.

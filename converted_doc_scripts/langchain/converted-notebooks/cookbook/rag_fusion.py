@@ -50,7 +50,7 @@ all_documents = {
 }
 
 vectorstore = PineconeVectorStore.from_texts(
-    list(all_documents.values()), OllamaEmbeddings(model="mxbai-embed-large"), index_name="rag-fusion"
+    list(all_documents.values()), OllamaEmbeddings(model="nomic-embed-text"), index_name="rag-fusion"
 )
 
 """
@@ -86,7 +86,7 @@ logger.info("## Define the full chain")
 original_query = "impact of climate change"
 
 vectorstore = PineconeVectorStore.from_existing_index(
-    "rag-fusion", OllamaEmbeddings(model="mxbai-embed-large"))
+    "rag-fusion", OllamaEmbeddings(model="nomic-embed-text"))
 retriever = vectorstore.as_retriever()
 
 

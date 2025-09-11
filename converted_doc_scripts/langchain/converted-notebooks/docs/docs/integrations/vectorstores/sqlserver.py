@@ -56,7 +56,6 @@ If you want to get best in-class automated tracing of your model calls you can a
 logger.info("## Credentials")
 
 
-
 """
 ## Initialization
 """
@@ -68,8 +67,8 @@ Find your Azure SQL DB connection string in the Azure portal under your database
 
 For more info: [Connect to Azure SQL DB - Python](https:\learn.microsoft.com\en-us\azure\azure-sql\database\connect-query-python?view=azuresql)
 """
-logger.info("Find your Azure SQL DB connection string in the Azure portal under your database settings")
-
+logger.info(
+    "Find your Azure SQL DB connection string in the Azure portal under your database settings")
 
 
 _CONNECTION_STRING = (
@@ -92,7 +91,7 @@ logger.info("In this example we use Azure Ollama to generate embeddings , howeve
 
 
 azure_endpoint = "https://<YOUR_ENDPOINT>.ollama.azure.com/"
-azure_deployment_name_embedding = "mxbai-embed-large"
+azure_deployment_name_embedding = "nomic-embed-text"
 azure_deployment_name_chatcompletion = "chatcompletion"
 azure_api_version = "2023-05-15"
 azure_
@@ -120,8 +119,10 @@ logger.info("## Manage vector store")
 
 vector_store = SQLServer_VectorStore(
     connection_string=_CONNECTION_STRING,
-    distance_strategy=DistanceStrategy.COSINE,  # optional, if not provided, defaults to COSINE
-    embedding_function=embeddings,  # you can use different embeddings provided in LangChain
+    # optional, if not provided, defaults to COSINE
+    distance_strategy=DistanceStrategy.COSINE,
+    # you can use different embeddings provided in LangChain
+    embedding_function=embeddings,
     embedding_length=1536,
     table_name="langchain_test_table",  # using table with a custom name
 )
@@ -201,7 +202,8 @@ For a full list of the different searches you can execute on a Azure SQL vector 
 
 ### Similarity Search when you already have embeddings you want to search on
 """
-logger.info("### Similarity Search when you already have embeddings you want to search on")
+logger.info(
+    "### Similarity Search when you already have embeddings you want to search on")
 
 simsearch_by_vector = vector_store.similarity_search_by_vector(
     [-0.0033353185281157494, -0.017689190804958344, -0.01590404286980629, ...]
@@ -250,7 +252,8 @@ loader = AzureBlobStorageFileLoader(
 
 documents = loader.load()
 
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=1000, chunk_overlap=100)
 split_documents = text_splitter.split_documents(documents)
 
 logger.debug(f"Number of split documents: {len(split_documents)}")
@@ -306,8 +309,6 @@ Read more about Langchain RAG tutorials & the terminologies mentioned above [her
 logger.info("## Usage for retrieval-augmented generation")
 
 
-
-
 def get_answer_and_sources(user_query: str):
     docs_with_score: List[Tuple[Document, float]] = (
         vector_store.similarity_search_with_score(
@@ -361,6 +362,7 @@ def get_answer_and_sources(user_query: str):
 
     logger.debug("\nSources:")
     logger.debug(df.to_markdown(index=False))
+
 
 user_query = "How did Harry feel when he first learnt that he was a Wizard?"
 

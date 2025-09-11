@@ -96,7 +96,7 @@ logger.info("### Installation")
 
 # Step 1: Create / load some documents and build a vector store
 docs = [...]
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = FAISS.from_documents(docs, embeddings)
 
 # Step 2: Initialize the retriever

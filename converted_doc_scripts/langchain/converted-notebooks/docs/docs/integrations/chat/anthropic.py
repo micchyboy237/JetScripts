@@ -82,8 +82,8 @@ logger.info("# ChatOllama")
 """
 To enable automated tracing of your model calls, set your [LangSmith](https://docs.smith.langchain.com/) API key:
 """
-logger.info("To enable automated tracing of your model calls, set your [LangSmith](https://docs.smith.langchain.com/) API key:")
-
+logger.info(
+    "To enable automated tracing of your model calls, set your [LangSmith](https://docs.smith.langchain.com/) API key:")
 
 
 """
@@ -167,11 +167,11 @@ Content from a single Ollama AI message can either be a single string or a **lis
 logger.info("## Content blocks")
 
 
-
 class GetWeather(BaseModel):
     """Get the current weather in a given location"""
 
-    location: str = Field(..., description="The city and state, e.g. San Francisco, CA")
+    location: str = Field(...,
+                          description="The city and state, e.g. San Francisco, CA")
 
 
 llm_with_tools = llm.bind_tools([GetWeather])
@@ -276,7 +276,6 @@ To use it, specify the `thinking` parameter when initializing `ChatOllama`. It c
 You will need to specify a token budget to use this feature. See usage example below:
 """
 logger.info("## Multimodal")
-
 
 
 llm = ChatOllama(
@@ -459,21 +458,24 @@ query = "Hi! I'm Bob."
 input_message = HumanMessage([{"type": "text", "text": query}])
 output = app.invoke({"messages": [input_message]}, config)
 output["messages"][-1].pretty_logger.debug()
-logger.debug(f"\n{output['messages'][-1].usage_metadata['input_token_details']}")
+logger.debug(
+    f"\n{output['messages'][-1].usage_metadata['input_token_details']}")
 
 query = f"Check out this readme: {readme}"
 
 input_message = HumanMessage([{"type": "text", "text": query}])
 output = app.invoke({"messages": [input_message]}, config)
 output["messages"][-1].pretty_logger.debug()
-logger.debug(f"\n{output['messages'][-1].usage_metadata['input_token_details']}")
+logger.debug(
+    f"\n{output['messages'][-1].usage_metadata['input_token_details']}")
 
 query = "What was my name again?"
 
 input_message = HumanMessage([{"type": "text", "text": query}])
 output = app.invoke({"messages": [input_message]}, config)
 output["messages"][-1].pretty_logger.debug()
-logger.debug(f"\n{output['messages'][-1].usage_metadata['input_token_details']}")
+logger.debug(
+    f"\n{output['messages'][-1].usage_metadata['input_token_details']}")
 
 """
 In the [LangSmith trace](https://smith.langchain.com/public/4d0584d8-5f9e-4b91-8704-93ba2ccf416a/r), toggling "raw output" will show exactly what messages are sent to the chat model, including `cache_control` keys.
@@ -586,7 +588,7 @@ The tool here takes a search query and a `category` string literal, but any vali
 
 
 # Set up vector store
-embeddings = init_embeddings("ollama:mxbai-embed-large")
+embeddings = init_embeddings("ollama:nomic-embed-text")
 vector_store = InMemoryVectorStore(embeddings)
 
 document_1 = Document(
@@ -688,7 +690,6 @@ Ollama also lets you specify your own splits using [custom document](https://doc
 logger.info("# Create agent")
 
 
-
 def format_to_anthropic_documents(documents: list[str]):
     return {
         "type": "document",
@@ -745,7 +746,8 @@ llm = ChatOllama(model="llama3.2")
 tool = {"type": "web_search_20250305", "name": "web_search", "max_uses": 3}
 llm_with_tools = llm.bind_tools([tool])
 
-response = llm_with_tools.invoke("How do I update a web app to TypeScript 5.5?")
+response = llm_with_tools.invoke(
+    "How do I update a web app to TypeScript 5.5?")
 
 """
 #### Web search + structured output
@@ -755,13 +757,13 @@ When combining web search tools with structured output, it's important to **bind
 logger.info("#### Web search + structured output")
 
 
-
 class ResearchResult(BaseModel):
     """Structured research result from web search."""
 
     topic: str = Field(description="The research topic")
     summary: str = Field(description="Summary of key findings")
-    key_points: list[str] = Field(description="List of important points discovered")
+    key_points: list[str] = Field(
+        description="List of important points discovered")
 
 
 websearch_tools = [
@@ -777,7 +779,8 @@ llm = ChatOllama(model="llama3.2")
 llm_with_search = llm.bind_tools(websearch_tools)
 research_llm = llm_with_search.with_structured_output(ResearchResult)
 
-result = research_llm.invoke("Research the latest developments in quantum computing")
+result = research_llm.invoke(
+    "Research the latest developments in quantum computing")
 logger.debug(f"Topic: {result.topic}")
 logger.debug(f"Summary: {result.summary}")
 logger.debug(f"Key Points: {result.key_points}")

@@ -181,7 +181,7 @@ documents = [
 ]
 
 vectorstore = InMemoryVectorStore.from_documents(
-    documents, embedding=OllamaEmbeddings(model="mxbai-embed-large")
+    documents, embedding=OllamaEmbeddings(model="nomic-embed-text")
 )
 
 retriever = vectorstore.as_retriever(

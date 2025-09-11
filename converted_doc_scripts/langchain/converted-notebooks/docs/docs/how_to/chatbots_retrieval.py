@@ -86,7 +86,7 @@ logger.info("Then we embed and store those chunks in a vector database:")
 
 
 vectorstore = Chroma.from_documents(
-    documents=all_splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+    documents=all_splits, embedding=OllamaEmbeddings(model="nomic-embed-text"))
 
 """
 And finally, let's create a retriever from our initialized vectorstore:

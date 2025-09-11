@@ -49,7 +49,7 @@ if "NEO4J_PASSWORD" not in os.environ:
     #     os.environ["NEO4J_PASSWORD"] = getpass.getpass("Neo4j Password:")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 docs = [
     Document(

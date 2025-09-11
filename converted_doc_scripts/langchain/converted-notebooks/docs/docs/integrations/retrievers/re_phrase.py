@@ -38,7 +38,6 @@ Create a vector store.
 logger.info("# RePhraseQuery")
 
 
-
 logging.basicConfig()
 logging.getLogger("langchain.retrievers.re_phraser").setLevel(logging.INFO)
 
@@ -48,7 +47,8 @@ data = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 all_splits = text_splitter.split_documents(data)
 
-vectorstore = Chroma.from_documents(documents=all_splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = Chroma.from_documents(
+    documents=all_splits, embedding=OllamaEmbeddings(model="nomic-embed-text"))
 
 """
 ### Using the default prompt
@@ -58,9 +58,9 @@ The default prompt used in the `from_llm` classmethod:
 ```
 DEFAULT_TEMPLATE = """
 logger.info("### Using the default prompt")You are an assistant tasked with taking a natural language \
-query from a user and converting it into a query for a vectorstore. \
-In this process, you strip out information that is not relevant for \
-the retrieval task. Here is the user query: {question}"""
+    query from a user and converting it into a query for a vectorstore. \
+    In this process, you strip out information that is not relevant for \
+    the retrieval task. Here is the user query: {question}"""
 ```
 """
 

@@ -104,7 +104,7 @@ logger.info("## Create a Vector Database from PDF Text")
 
 # %%time
 logger.debug("Create a Vector Database from PDF text...")
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 texts = [p.page_content for p in pages]
 metadata = pd.DataFrame(index=list(range(len(texts))))
 metadata["tag"] = "law"

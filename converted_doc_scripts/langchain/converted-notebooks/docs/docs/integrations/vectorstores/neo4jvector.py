@@ -60,7 +60,7 @@ documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 url = "bolt://localhost:7687"
 username = "neo4j"
@@ -72,7 +72,7 @@ password = "password"
 logger.info("## Similarity Search with Cosine Distance (Default)")
 
 db = Neo4jVector.from_documents(
-    docs, OllamaEmbeddings(model="mxbai-embed-large"), url=url, username=username, password=password
+    docs, OllamaEmbeddings(model="nomic-embed-text"), url=url, username=username, password=password
 )
 
 query = "What did the president say about Ketanji Brown Jackson"
@@ -95,7 +95,7 @@ logger.info("## Working with vectorstore")
 index_name = "vector"  # default index name
 
 store = Neo4jVector.from_existing_index(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,
@@ -112,7 +112,7 @@ store.query(
 )
 
 existing_graph = Neo4jVector.from_existing_graph(
-    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,
@@ -135,7 +135,7 @@ store.query(
     "MERGE (p1:Person {name:'Leann'}) "
     "MERGE (p1)-[:FRIEND {text:'example text', embedding:$embedding}]->(p2)",
     params={"embedding": OllamaEmbeddings(
-        model="mxbai-embed-large").embed_query("example text")},
+        model="nomic-embed-text").embed_query("example text")},
 )
 relationship_index = "relationship_vector"
 store.query(
@@ -152,7 +152,7 @@ OPTIONS {indexConfig: {
 )
 
 relationship_vector = Neo4jVector.from_existing_relationship_index(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,
@@ -247,7 +247,7 @@ retrieval_query = """
 RETURN "Name:" + node.name AS text, score, {foo:"bar"} AS metadata
 """
 retrieval_example = Neo4jVector.from_existing_index(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,
@@ -265,7 +265,7 @@ retrieval_query = """
 RETURN node {.name, .age, .hobby} AS text, score, {foo:"bar"} AS metadata
 """
 retrieval_example = Neo4jVector.from_existing_index(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,
@@ -284,7 +284,7 @@ retrieval_query = """
 RETURN node {.*, embedding:Null, extra: $extra} AS text, score, {foo:"bar"} AS metadata
 """
 retrieval_example = Neo4jVector.from_existing_index(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,
@@ -302,7 +302,7 @@ logger.info("## Hybrid search (vector + keyword)")
 
 hybrid_db = Neo4jVector.from_documents(
     docs,
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,
@@ -318,7 +318,7 @@ index_name = "vector"  # default index name
 keyword_index_name = "keyword"  # default keyword index name
 
 store = Neo4jVector.from_existing_index(
-    OllamaEmbeddings(model="mxbai-embed-large"),
+    OllamaEmbeddings(model="nomic-embed-text"),
     url=url,
     username=username,
     password=password,

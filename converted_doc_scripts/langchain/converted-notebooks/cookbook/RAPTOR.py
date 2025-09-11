@@ -134,7 +134,7 @@ Be sure to set the relevant API keys:
 logger.info("## Models")
 
 
-embd = OllamaEmbeddings(model="mxbai-embed-large")
+embd = OllamaEmbeddings(model="nomic-embed-text")
 
 
 model = ChatOllama(model="llama3.2")

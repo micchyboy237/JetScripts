@@ -73,7 +73,7 @@ To initialize a `HanaDB` vector store, you need a database connection and an emb
 logger.info("### Initialization")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 - #### Using Internal Embeddings

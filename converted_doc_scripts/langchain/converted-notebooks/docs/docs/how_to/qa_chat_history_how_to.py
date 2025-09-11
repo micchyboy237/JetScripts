@@ -112,7 +112,7 @@ An [embedding model](/docs/integrations/text_embedding/):
 logger.info("An [embedding model](/docs/integrations/text_embedding/):")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 """
 And a [vector store](/docs/integrations/vectorstores/):

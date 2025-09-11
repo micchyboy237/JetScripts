@@ -42,7 +42,7 @@ logger.info(
     "First we embed some artificial documents and index them in a basic in-memory vector store. We will use [Ollama](/docs/integrations/providers/ollama/) embeddings, but any LangChain vector store or embeddings model will suffice.")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 texts = [
     "Basquetball is a great sport.",

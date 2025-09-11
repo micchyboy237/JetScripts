@@ -75,7 +75,7 @@ logger.info("## Initialization")
 url = f"mariadb+mariadbconnector://myuser:mypassword@localhost/langchain"
 
 vectorstore = MariaDBStore(
-    embeddings=OllamaEmbeddings(model="mxbai-embed-large"),
+    embeddings=OllamaEmbeddings(model="nomic-embed-text"),
     embedding_length=1536,
     datasource=url,
     collection_name="my_docs",

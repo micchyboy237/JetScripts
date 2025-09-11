@@ -61,12 +61,12 @@ logger.info("### Create Index")
 
 
 texts = ["Harrison worked at Kensho"]
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = Chroma.from_texts(texts, embeddings, collection_name="harrison")
 retriever_harrison = vectorstore.as_retriever(search_kwargs={"k": 1})
 
 texts = ["Ankush worked at Facebook"]
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = Chroma.from_texts(texts, embeddings, collection_name="ankush")
 retriever_ankush = vectorstore.as_retriever(search_kwargs={"k": 1})
 

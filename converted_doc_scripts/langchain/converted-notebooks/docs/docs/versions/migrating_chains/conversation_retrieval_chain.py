@@ -60,7 +60,8 @@ data = loader.load()
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=0)
 all_splits = text_splitter.split_documents(data)
 
-vectorstore = FAISS.from_documents(documents=all_splits, embedding=OllamaEmbeddings(model="mxbai-embed-large"))
+vectorstore = FAISS.from_documents(
+    documents=all_splits, embedding=OllamaEmbeddings(model="nomic-embed-text"))
 
 llm = ChatOllama(model="llama3.2")
 
@@ -80,7 +81,8 @@ Chat History:
 Follow Up Input: {question}
 Standalone question:"""
 
-condense_question_prompt = ChatPromptTemplate.from_template(condense_question_template)
+condense_question_prompt = ChatPromptTemplate.from_template(
+    condense_question_template)
 
 qa_template = """
 You are an assistant for question-answering tasks.
