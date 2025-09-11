@@ -13,12 +13,12 @@ from typing import Literal
 from typing_extensions import Annotated
 from typing_extensions import Annotated, List, TypedDict
 from typing_extensions import List, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs"
-import CodeBlock from "@theme/CodeBlock"
-import EmbeddingTabs from "@theme/EmbeddingTabs"
-import TabItem from '@theme/TabItem'
-import Tabs from '@theme/Tabs'
-import VectorStoreTabs from "@theme/VectorStoreTabs"
+# import ChatModelTabs from "@theme/ChatModelTabs"
+# import CodeBlock from "@theme/CodeBlock"
+# import EmbeddingTabs from "@theme/EmbeddingTabs"
+# import TabItem from '@theme/TabItem'
+# import Tabs from '@theme/Tabs'
+# import VectorStoreTabs from "@theme/VectorStoreTabs"
 import bs4
 import os
 import shutil
@@ -149,7 +149,7 @@ llm = ChatOllama(model="llama3.2")
 
 <EmbeddingTabs/>
 """
-logger.info("import EmbeddingTabs from "@theme/EmbeddingTabs";")
+# logger.info("import EmbeddingTabs from "@theme/EmbeddingTabs";")
 
 
 embeddings = OllamaEmbeddings(model="nomic-embed-text")
@@ -158,7 +158,7 @@ embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 <VectorStoreTabs/>
 """
-logger.info("import VectorStoreTabs from "@theme/VectorStoreTabs";")
+# logger.info("import VectorStoreTabs from "@theme/VectorStoreTabs";")
 
 
 vector_store = InMemoryVectorStore(embeddings)

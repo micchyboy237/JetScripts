@@ -14,9 +14,9 @@ from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import create_react_agent
 from typing_extensions import Annotated
 from typing_extensions import TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs"
-import EmbeddingTabs from "@theme/EmbeddingTabs"
-import VectorStoreTabs from "@theme/VectorStoreTabs"
+# import ChatModelTabs from "@theme/ChatModelTabs"
+# import EmbeddingTabs from "@theme/EmbeddingTabs"
+# import VectorStoreTabs from "@theme/VectorStoreTabs"
 import ast
 import os
 import re
@@ -503,7 +503,7 @@ embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 <VectorStoreTabs/>
 """
-logger.info("import VectorStoreTabs from "@theme/VectorStoreTabs";")
+# logger.info("import VectorStoreTabs from "@theme/VectorStoreTabs";")
 
 
 vector_store = InMemoryVectorStore(embeddings)
@@ -560,7 +560,7 @@ for step in agent.stream(
     {"messages": [{"role": "user", "content": question}]},
     stream_mode="values",
 ):
-    step["messages"][-1].pretty_logger.debug()
+    logger.success(step["messages"][-1])
 
 """
 As we can see, both in the streamed steps and in the [LangSmith trace](https://smith.langchain.com/public/1d757ed2-5688-4458-9400-023594e2c5a7/r), the agent used the `search_proper_nouns` tool in order to check how to correctly query the database for this specific artist.

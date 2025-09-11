@@ -10,10 +10,10 @@ from langgraph.graph import START, MessagesState, StateGraph
 from langgraph.graph.message import add_messages
 from typing import Sequence
 from typing_extensions import Annotated, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import CodeBlock from "@theme/CodeBlock";
-import TabItem from '@theme/TabItem';
-import Tabs from '@theme/Tabs';
+# import ChatModelTabs from "@theme/ChatModelTabs";
+# import CodeBlock from "@theme/CodeBlock";
+# import TabItem from '@theme/TabItem';
+# import Tabs from '@theme/Tabs';
 import os
 import shutil
 
@@ -145,7 +145,8 @@ This makes for a terrible chatbot experience!
 
 To get around this, we need to pass the entire [conversation history](/docs/concepts/chat_history) into the model. Let's see what happens when we do that:
 """
-logger.info("Let's take a look at the example [LangSmith trace](https://smith.langchain.com/public/5c21cb92-2814-4119-bae9-d02b8db577ac/r)")
+logger.info(
+    "Let's take a look at the example [LangSmith trace](https://smith.langchain.com/public/5c21cb92-2814-4119-bae9-d02b8db577ac/r)")
 
 
 model.invoke(
@@ -205,7 +206,8 @@ query = "Hi! I'm Bob."
 
 input_messages = [HumanMessage(query)]
 output = app.invoke({"messages": input_messages}, config)
-output["messages"][-1].pretty_logger.debug()  # output contains all messages in state
+# output contains all messages in state
+output["messages"][-1].pretty_logger.debug()
 
 query = "What's my name?"
 
@@ -342,8 +344,6 @@ Note that we have added a new `language` input to the prompt. Our application no
 logger.info("Note that we have added a new `language` input to the prompt. Our application now has two parameters-- the input `messages` and `language`. We should update our application's state to reflect this:")
 
 
-
-
 class State(TypedDict):
     messages: Annotated[Sequence[BaseMessage], add_messages]
     language: str
@@ -477,7 +477,8 @@ output["messages"][-1].pretty_logger.debug()
 """
 But if we ask about information that is within the last few messages, it remembers:
 """
-logger.info("But if we ask about information that is within the last few messages, it remembers:")
+logger.info(
+    "But if we ask about information that is within the last few messages, it remembers:")
 
 config = {"configurable": {"thread_id": "abc678"}}
 

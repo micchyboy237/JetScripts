@@ -1,5 +1,5 @@
 from IPython.display import Image, display
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent
 from langchain.tools import SteamshipImageGenerationTool
@@ -34,9 +34,7 @@ You can get your Steamship api key here: https://steamship.com/account/api
 logger.info("# Multi-modal outputs: Image & Text")
 
 
-
-
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 """
 ## Dall-E
@@ -50,6 +48,7 @@ mrkl = initialize_agent(
 )
 
 output = mrkl.run("How would you visualize a parot playing soccer?")
+
 
 def show_output(output):
     """Display the multi-modal output from the agent."""
@@ -68,6 +67,7 @@ def show_output(output):
             display(Image(Block.get(Steamship(), _id=maybe_block_id.group()).raw()))
         else:
             logger.debug(output, end="\n\n")
+
 
 """
 ## StableDiffusion

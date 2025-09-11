@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_experimental.llm_symbolic_math.base import LLMSymbolicMathChain
 import os
@@ -23,7 +23,7 @@ This notebook showcases using LLMs and Python to Solve Algebraic Equations. Unde
 logger.info("# LLM Symbolic Math")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 llm_symbolic_math = LLMSymbolicMathChain.from_llm(llm)
 
 """
@@ -31,7 +31,8 @@ llm_symbolic_math = LLMSymbolicMathChain.from_llm(llm)
 """
 logger.info("## Integrals and derivates")
 
-llm_symbolic_math.invoke("What is the derivative of sin(x)*exp(x) with respect to x?")
+llm_symbolic_math.invoke(
+    "What is the derivative of sin(x)*exp(x) with respect to x?")
 
 llm_symbolic_math.invoke(
     "What is the integral of exp(x)*sin(x) + exp(x)*cos(x) with respect to x?"

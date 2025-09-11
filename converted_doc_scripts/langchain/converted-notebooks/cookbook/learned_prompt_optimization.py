@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.globals import set_debug
 from langchain.prompts import PromptTemplate
@@ -37,7 +37,6 @@ The example laid out below is a toy example to demonstrate the applicability of 
 logger.info("# Learned Prompt Variable Injection via RL")
 
 
-
 meals = [
     "Beef Enchiladas with Feta cheese. Mexican-Greek fusion",
     "Chicken Flatbreads with red sauce. Italian-Mexican fusion",
@@ -46,7 +45,7 @@ meals = [
 ]
 
 
-llm = Ollama(model="llama3.2")
+llm = ChatOllama(model="llama3.2")
 
 """
 ##### Initialize the RL chain with provided defaults
@@ -55,7 +54,6 @@ The prompt template which will be used to query the LLM needs to be defined.
 It can be anything, but here `{meal}` is being used and is going to be replaced by one of the meals above, the RL chain will try to pick and inject the best meal
 """
 logger.info("##### Initialize the RL chain with provided defaults")
-
 
 
 PROMPT_TEMPLATE = """Here is the description of a meal: "{meal}".
@@ -172,13 +170,13 @@ In a more realistic scenario it is likely that you have a well defined scoring f
 """
 logger.info("In a more realistic scenario it is likely that you have a well defined scoring function for what was selected. For example, you might be doing few-shot prompting and want to select prompt examples for a natural language to sql translation task. In that case the scorer could be: did the sql that was generated run in an sql engine? In that case you want to plugin a scoring function. In the example below I will just check if the meal picked was vegetarian or not.")
 
+
 class CustomSelectionScorer(rl_chain.SelectionScorer):
     def score_response(
         self, inputs, llm_response: str, event: rl_chain.PickBestEvent
     ) -> float:
         logger.debug(event.based_on)
         logger.debug(event.to_select_from)
-
 
         selected_meal = event.to_select_from["meal"][event.selected.index]
         logger.debug(f"selected meal: {selected_meal}")
@@ -196,6 +194,7 @@ class CustomSelectionScorer(rl_chain.SelectionScorer):
                     return 0.0
         else:
             raise NotImplementedError("I don't know how to score this user")
+
 
 chain = rl_chain.PickBest.from_llm(
     llm=llm,
@@ -216,6 +215,7 @@ response = chain.run(
 You can track the chains progress by using the metrics mechanism provided. I am going to expand the users to Tom and Anna, and extend the scoring function. I am going to initialize two chains, one with the default learning policy and one with a built-in random policy (i.e. selects a meal randomly), and plot their scoring progress.
 """
 logger.info("## How can I track the chains progress")
+
 
 class CustomSelectionScorer(rl_chain.SelectionScorer):
     def score_preference(self, preference, selected_meal):
@@ -242,6 +242,7 @@ class CustomSelectionScorer(rl_chain.SelectionScorer):
         else:
             raise NotImplementedError("I don't know how to score this user")
 
+
 chain = rl_chain.PickBest.from_llm(
     llm=llm,
     prompt=PROMPT,
@@ -256,7 +257,8 @@ random_chain = rl_chain.PickBest.from_llm(
     selection_scorer=CustomSelectionScorer(),
     metrics_step=5,
     metrics_window_size=5,  # rolling window average
-    policy=rl_chain.PickBestRandomPolicy,  # set the random policy instead of default
+    # set the random policy instead of default
+    policy=rl_chain.PickBestRandomPolicy,
 )
 
 for _ in range(20):
@@ -504,7 +506,8 @@ REWARD_PROMPT = PromptTemplate(
 chain = rl_chain.PickBest.from_llm(
     llm=llm,
     prompt=PROMPT,
-    selection_scorer=rl_chain.AutoSelectionScorer(llm=llm, prompt=REWARD_PROMPT),
+    selection_scorer=rl_chain.AutoSelectionScorer(
+        llm=llm, prompt=REWARD_PROMPT),
 )
 
 chain.run(

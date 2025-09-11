@@ -1,12 +1,12 @@
 from jet.transformers.formatters import format_json
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import ConstitutionalChain, LLMChain
 from langchain.chains.constitutional_ai.models import ConstitutionalPrinciple
 from langchain.chains.constitutional_ai.prompts import (
-CRITIQUE_PROMPT,
-REVISION_PROMPT,
+    CRITIQUE_PROMPT,
+    REVISION_PROMPT,
 )
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
@@ -60,7 +60,7 @@ logger.info("# Migrating from ConstitutionalChain")
 logger.info("## Legacy")
 
 
-llm = Ollama()
+llm = ChatOllama()
 
 qa_prompt = PromptTemplate(
     template="Q: {question} A:",
@@ -105,14 +105,14 @@ Note that we are also able to stream intermediate steps with this implementation
 logger.info("## LangGraph")
 
 
-
 llm = ChatOllama(model="llama3.2")
 
 
 class Critique(TypedDict):
     """Generate a critique, if needed."""
 
-    critique_needed: Annotated[bool, ..., "Whether or not a critique is needed."]
+    critique_needed: Annotated[bool, ...,
+                               "Whether or not a critique is needed."]
     critique: Annotated[str, ..., "If needed, the critique."]
 
 
@@ -163,23 +163,23 @@ async def critique_and_revise(state: State):
     response = state["initial_response"]
     for principle in state["constitutional_principles"]:
         critique = await critique_chain.ainvoke(
+            {
+                "query": state["query"],
+                "response": response,
+                "critique_request": principle.critique_request,
+            }
+        )
+        logger.success(format_json(critique))
+        if critique["critique_needed"]:
+            revision = await revision_chain.ainvoke(
                 {
                     "query": state["query"],
                     "response": response,
                     "critique_request": principle.critique_request,
+                    "critique": critique["critique"],
+                    "revision_request": principle.revision_request,
                 }
             )
-        logger.success(format_json(critique))
-        if critique["critique_needed"]:
-            revision = await revision_chain.ainvoke(
-                    {
-                        "query": state["query"],
-                        "response": response,
-                        "critique_request": principle.critique_request,
-                        "critique": critique["critique"],
-                        "revision_request": principle.revision_request,
-                    }
-                )
             logger.success(format_json(revision))
             response = revision
             critiques_and_revisions.append((critique["critique"], revision))

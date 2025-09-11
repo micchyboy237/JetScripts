@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 import os
 import shutil
@@ -41,7 +41,7 @@ Below we use a `|` to help visualize the delimiter between tokens.
 logger.info("# How to stream responses from an LLM")
 
 
-llm = Ollama(model="llama3.2", temperature=0, max_tokens=512)
+llm = ChatOllama(model="llama3.2", temperature=0, max_tokens=512)
 for chunk in llm.stream("Write me a 1 verse song about sparkling water."):
     logger.debug(chunk, end="|", flush=True)
 
@@ -53,7 +53,7 @@ Let's see how to stream in an async setting using `astream`.
 logger.info("## Async streaming")
 
 
-llm = Ollama(model="llama3.2", temperature=0, max_tokens=512)
+llm = ChatOllama(model="llama3.2", temperature=0, max_tokens=512)
 for chunk in llm.stream("Write me a 1 verse song about sparkling water."):
     logger.debug(chunk, end="|", flush=True)
 
@@ -71,7 +71,7 @@ LLMs also support the standard [astream events](https://python.langchain.com/api
 logger.info("## Async event streaming")
 
 
-llm = Ollama(model="llama3.2", temperature=0, max_tokens=512)
+llm = ChatOllama(model="llama3.2", temperature=0, max_tokens=512)
 
 idx = 0
 

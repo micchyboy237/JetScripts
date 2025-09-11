@@ -4,7 +4,7 @@ from langchain.chat_models import init_chat_model
 from langchain_tavily import TavilySearch
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 import os
 import shutil
 
@@ -190,7 +190,8 @@ logger.debug(f"Tool calls: {response.tool_calls}")
 """
 Now, let's try calling it with some input that would expect a tool to be called.
 """
-logger.info("Now, let's try calling it with some input that would expect a tool to be called.")
+logger.info(
+    "Now, let's try calling it with some input that would expect a tool to be called.")
 
 query = "Search for the weather in SF"
 response = model_with_tools.invoke([{"role": "user", "content": query}])
@@ -237,7 +238,8 @@ In order to see exactly what is happening under the hood (and to make sure it's 
 
 Let's now try it out on an example where it should be invoking the tool
 """
-logger.info("In order to see exactly what is happening under the hood (and to make sure it's not calling a tool) we can take a look at the [LangSmith trace](https://smith.langchain.com/public/28311faa-e135-4d6a-ab6b-caecf6482aaa/r)")
+logger.info(
+    "In order to see exactly what is happening under the hood (and to make sure it's not calling a tool) we can take a look at the [LangSmith trace](https://smith.langchain.com/public/28311faa-e135-4d6a-ab6b-caecf6482aaa/r)")
 
 input_message = {"role": "user", "content": "Search for the weather in SF"}
 response = agent_executor.invoke({"messages": [input_message]})
@@ -309,7 +311,8 @@ Example [LangSmith trace](https://smith.langchain.com/public/fa73960b-0f7d-4910-
 
 If you want to start a new conversation, all you have to do is change the `thread_id` used
 """
-logger.info("Example [LangSmith trace](https://smith.langchain.com/public/fa73960b-0f7d-4910-b73d-757a12f33b2b/r)")
+logger.info(
+    "Example [LangSmith trace](https://smith.langchain.com/public/fa73960b-0f7d-4910-b73d-757a12f33b2b/r)")
 
 config = {"configurable": {"thread_id": "xyz123"}}
 

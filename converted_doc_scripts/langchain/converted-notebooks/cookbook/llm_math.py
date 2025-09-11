@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMMathChain
 import os
@@ -24,7 +24,7 @@ This notebook showcases using LLMs and Python REPLs to do complex word math prob
 logger.info("# Math chain")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 llm_math = LLMMathChain.from_llm(llm, verbose=True)
 
 llm_math.invoke("What is 13 raised to the .3432 power?")

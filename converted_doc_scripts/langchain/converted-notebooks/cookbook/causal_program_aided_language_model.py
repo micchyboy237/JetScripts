@@ -1,5 +1,5 @@
 from IPython.display import SVG
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_experimental.cpal.base import CPALChain
 from langchain_experimental.pal_chain import PALChain
@@ -54,7 +54,7 @@ Outline of code examples demoed in this notebook.
 logger.info("# Causal program-aided language (CPAL) chain")
 
 
-llm = Ollama(temperature=0, max_tokens=512)
+llm = ChatOllama(temperature=0, max_tokens=512)
 cpal_chain = CPALChain.from_univariate_prompt(llm=llm, verbose=True)
 pal_chain = PALChain.from_math_prompt(llm=llm, verbose=True)
 

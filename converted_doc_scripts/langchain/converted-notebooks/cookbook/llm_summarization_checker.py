@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMSummarizationCheckerChain
 import os
@@ -26,8 +26,9 @@ You can control the number of times the checker runs by setting the `max_checks`
 logger.info("# Summarization checker chain")
 
 
-llm = Ollama(temperature=0)
-checker_chain = LLMSummarizationCheckerChain.from_llm(llm, verbose=True, max_checks=2)
+llm = ChatOllama(temperature=0)
+checker_chain = LLMSummarizationCheckerChain.from_llm(
+    llm, verbose=True, max_checks=2)
 text = """
 Your 9-year old might like these recent discoveries made by The James Webb Space Telescope (JWST):
 • In 2023, The JWST spotted a number of galaxies nicknamed "green peas." They were given this name because they are small, round, and green, like peas.
@@ -37,14 +38,16 @@ These discoveries can spark a child's imagination about the infinite wonders of 
 checker_chain.run(text)
 
 
-llm = Ollama(temperature=0)
-checker_chain = LLMSummarizationCheckerChain.from_llm(llm, verbose=True, max_checks=3)
+llm = ChatOllama(temperature=0)
+checker_chain = LLMSummarizationCheckerChain.from_llm(
+    llm, verbose=True, max_checks=3)
 text = "The Greenland Sea is an outlying portion of the Arctic Ocean located between Iceland, Norway, the Svalbard archipelago and Greenland. It has an area of 465,000 square miles and is one of five oceans in the world, alongside the Pacific Ocean, Atlantic Ocean, Indian Ocean, and the Southern Ocean. It is the smallest of the five oceans and is covered almost entirely by water, some of which is frozen in the form of glaciers and icebergs. The sea is named after the island of Greenland, and is the Arctic Ocean's main outlet to the Atlantic. It is often frozen over so navigation is limited, and is considered the northern branch of the Norwegian Sea."
 checker_chain.run(text)
 
 
-llm = Ollama(temperature=0)
-checker_chain = LLMSummarizationCheckerChain.from_llm(llm, max_checks=3, verbose=True)
+llm = ChatOllama(temperature=0)
+checker_chain = LLMSummarizationCheckerChain.from_llm(
+    llm, max_checks=3, verbose=True)
 text = "Mammals can lay eggs, birds can lay eggs, therefore birds are mammals."
 checker_chain.run(text)
 

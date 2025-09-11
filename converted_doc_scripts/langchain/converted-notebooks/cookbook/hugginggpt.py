@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_experimental.autonomous_agents import HuggingGPT
 from transformers import load_tool
@@ -60,7 +60,7 @@ We create an instance of HuggingGPT and use ChatGPT as the controller to rule th
 logger.info("## Setup model and HuggingGPT")
 
 
-llm = Ollama(model_name="gpt-3.5-turbo")
+llm = ChatOllama(model_name="gpt-3.5-turbo")
 agent = HuggingGPT(llm, hf_tools)
 
 """

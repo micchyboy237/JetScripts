@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.cache import SQLiteCache
 from langchain_core.caches import InMemoryCache
@@ -36,7 +36,7 @@ logger.info("# How to cache LLM responses")
 #     os.environ["OPENAI_API_KEY"] = getpass()
 
 
-llm = Ollama(model="llama3.2", n=2, best_of=2)
+llm = ChatOllama(model="llama3.2", n=2, best_of=2)
 
 # %%time
 

@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.output_parsers import DatetimeOutputParser
 from langchain_core.output_parsers import StrOutputParser
@@ -50,8 +50,8 @@ logger.info("# How to add fallbacks to a runnable")
 """
 First, let's mock out what happens if we hit a RateLimitError from Ollama
 """
-logger.info("First, let's mock out what happens if we hit a RateLimitError from Ollama")
-
+logger.info(
+    "First, let's mock out what happens if we hit a RateLimitError from Ollama")
 
 
 request = httpx.Request("GET", "/")
@@ -121,7 +121,7 @@ prompt_template = """Instructions: You should always include a compliment in you
 
 Question: Why did the {animal} cross the road?"""
 prompt = PromptTemplate.from_template(prompt_template)
-llm = Ollama()
+llm = ChatOllama()
 good_chain = prompt | llm
 
 chain = bad_chain.with_fallbacks([good_chain])

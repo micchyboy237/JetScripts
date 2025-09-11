@@ -5,10 +5,10 @@ from langchain_core.utils.function_calling import tool_example_to_messages
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from typing import Optional
-import ChatModelTabs from "@theme/ChatModelTabs";
-import CodeBlock from "@theme/CodeBlock";
-import TabItem from '@theme/TabItem';
-import Tabs from '@theme/Tabs';
+# import ChatModelTabs from "@theme/ChatModelTabs";
+# import CodeBlock from "@theme/CodeBlock";
+# import TabItem from '@theme/TabItem';
+# import Tabs from '@theme/Tabs';
 import os
 import shutil
 
@@ -92,19 +92,18 @@ We'll use Pydantic to define an example schema  to extract personal information.
 logger.info("# Build an Extraction Chain")
 
 
-
-
 class Person(BaseModel):
     """Information about a person."""
 
-
-    name: Optional[str] = Field(default=None, description="The name of the person")
+    name: Optional[str] = Field(
+        default=None, description="The name of the person")
     hair_color: Optional[str] = Field(
         default=None, description="The color of the person's hair if known"
     )
     height_in_meters: Optional[str] = Field(
         default=None, description="Height measured in meters"
     )
+
 
 """
 There are two best practices when defining schema:
@@ -180,13 +179,11 @@ This can be easily achieved using pydantic by nesting models inside one another.
 logger.info("## Multiple Entities")
 
 
-
-
 class Person(BaseModel):
     """Information about a person."""
 
-
-    name: Optional[str] = Field(default=None, description="The name of the person")
+    name: Optional[str] = Field(
+        default=None, description="The name of the person")
     hair_color: Optional[str] = Field(
         default=None, description="The color of the person's hair if known"
     )
@@ -200,12 +197,14 @@ class Data(BaseModel):
 
     people: List[Person]
 
+
 """
 :::important
 Extraction results might not be perfect here. Read on to see how to use **Reference Examples** to improve the quality of extraction, and check out our extraction [how-to](/docs/how_to/#extraction) guides for more detail.
 :::
 """
-logger.info("Extraction results might not be perfect here. Read on to see how to use **Reference Examples** to improve the quality of extraction, and check out our extraction [how-to](/docs/how_to/#extraction) guides for more detail.")
+logger.info(
+    "Extraction results might not be perfect here. Read on to see how to use **Reference Examples** to improve the quality of extraction, and check out our extraction [how-to](/docs/how_to/#extraction) guides for more detail.")
 
 structured_llm = llm.with_structured_output(schema=Data)
 text = "My name is Jeff, my hair is black and i am 6 feet tall. Anna has the same color hair as me."
@@ -268,7 +267,8 @@ examples = [
     ),
     (
         "Fiona traveled far from France to Spain.",
-        Data(people=[Person(name="Fiona", height_in_meters=None, hair_color=None)]),
+        Data(
+            people=[Person(name="Fiona", height_in_meters=None, hair_color=None)]),
     ),
 ]
 
@@ -280,12 +280,14 @@ for txt, tool_call in examples:
         ai_response = "Detected people."
     else:
         ai_response = "Detected no people."
-    messages.extend(tool_example_to_messages(txt, [tool_call], ai_response=ai_response))
+    messages.extend(tool_example_to_messages(
+        txt, [tool_call], ai_response=ai_response))
 
 """
 Inspecting the result, we see these two example pairs generated eight messages:
 """
-logger.info("Inspecting the result, we see these two example pairs generated eight messages:")
+logger.info(
+    "Inspecting the result, we see these two example pairs generated eight messages:")
 
 for message in messages:
     message.pretty_logger.debug()
@@ -308,7 +310,8 @@ In this example, the model is liable to erroneously generate records of people.
 
 Because our few-shot examples contain examples of "negatives", we encourage the model to behave correctly in this case:
 """
-logger.info("In this example, the model is liable to erroneously generate records of people.")
+logger.info(
+    "In this example, the model is liable to erroneously generate records of people.")
 
 structured_llm.invoke(messages + [message_no_extraction])
 

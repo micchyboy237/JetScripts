@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama.embeddings import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain_core.documents import Document
 from langchain_core.embeddings import Embeddings
@@ -61,12 +61,12 @@ logger.info("# A Long-Term Memory Agent")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
-        #         os.environ[var] = getpass.getpass(f"{var}: ")
+# def _set_env(var: str):
+#     if not os.environ.get(var):
+#         os.environ[var] = getpass.getpass(f"{var}: ")
 
-        # _set_env("OPENAI_API_KEY")
-_set_env("TAVILY_API_KEY")
+#         _set_env("OPENAI_API_KEY")
+# _set_env("TAVILY_API_KEY")
 
 
 """

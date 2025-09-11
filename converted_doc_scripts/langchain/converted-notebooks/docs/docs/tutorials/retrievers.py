@@ -1,17 +1,17 @@
 from jet.transformers.formatters import format_json
 from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_core.documents import Document
 from langchain_core.runnables import chain
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from typing import List
-import CodeBlock from "@theme/CodeBlock"
-import EmbeddingTabs from "@theme/EmbeddingTabs"
-import TabItem from '@theme/TabItem'
-import Tabs from '@theme/Tabs'
-import VectorStoreTabs from "@theme/VectorStoreTabs"
+# import CodeBlock from "@theme/CodeBlock"
+# import EmbeddingTabs from "@theme/EmbeddingTabs"
+# import TabItem from '@theme/TabItem'
+# import Tabs from '@theme/Tabs'
+# import VectorStoreTabs from "@theme/VectorStoreTabs"
 import os
 import shutil
 
@@ -215,7 +215,8 @@ LangChain includes a suite of [integrations](/docs/integrations/vectorstores) wi
 logger.info("## Vector stores")
 
 
-vector_store = Chroma(embedding_function=embeddings)
+vector_store = Chroma(embedding_function=embeddings,
+                      persist_directory=PERSIST_DIR)
 
 """
 Having instantiated our vector store, we can now index the documents.

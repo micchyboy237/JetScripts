@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMCheckerChain
 import os
@@ -23,7 +23,7 @@ This notebook showcases how to use LLMCheckerChain.
 logger.info("# Self-checking chain")
 
 
-llm = Ollama(temperature=0.7)
+llm = ChatOllama(temperature=0.7)
 
 text = "What type of mammal lays the biggest eggs?"
 

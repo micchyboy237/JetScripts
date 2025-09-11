@@ -1,12 +1,14 @@
+from jet.file.utils import save_file
 from jet.transformers.formatters import format_json
 from IPython.display import Image
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.combine_documents.reduce import (
-acollapse_docs,
-split_list_of_docs,
+    acollapse_docs,
+    split_list_of_docs,
 )
 from langchain.chains.llm import LLMChain
 from langchain_community.document_loaders import WebBaseLoader
@@ -16,10 +18,10 @@ from langchain_text_splitters import CharacterTextSplitter
 from langgraph.constants import Send
 from langgraph.graph import END, START, StateGraph
 from typing import Annotated, List, Literal, TypedDict
-import ChatModelTabs from "@theme/ChatModelTabs";
-import CodeBlock from "@theme/CodeBlock";
-import TabItem from '@theme/TabItem';
-import Tabs from '@theme/Tabs';
+# import ChatModelTabs from "@theme/ChatModelTabs";
+# import CodeBlock from "@theme/CodeBlock";
+# import TabItem from '@theme/TabItem';
+# import Tabs from '@theme/Tabs';
 import operator
 import os
 import shutil
@@ -150,7 +152,8 @@ os.environ["LANGSMITH_TRACING"] = "true"
 """
 First we load in our documents. We will use [WebBaseLoader](https://python.langchain.com/api_reference/community/document_loaders/langchain_community.document_loaders.web_base.WebBaseLoader.html) to load a blog post:
 """
-logger.info("First we load in our documents. We will use [WebBaseLoader](https://python.langchain.com/api_reference/community/document_loaders/langchain_community.document_loaders.web_base.WebBaseLoader.html) to load a blog post:")
+logger.info(
+    "First we load in our documents. We will use [WebBaseLoader](https://python.langchain.com/api_reference/community/document_loaders/langchain_community.document_loaders.web_base.WebBaseLoader.html) to load a blog post:")
 
 
 loader = WebBaseLoader("https://lilianweng.github.io/posts/2023-06-23-agent/")
@@ -277,8 +280,7 @@ logger.debug(f"Generated {len(split_docs)} documents.")
 """
 Next, we define our graph. Note that we define an artificially low maximum token length of 1,000 tokens to illustrate the "collapsing" step.
 """
-logger.info("Next, we define our graph. Note that we define an artificially low maximum token length of 1,000 tokens to illustrate the "collapsing" step.")
-
+logger.info("Next, we define our graph. Note that we define an artificially low maximum token length of 1,000 tokens to illustrate the \"collapsing\" step.")
 
 
 token_max = 1000
@@ -300,9 +302,9 @@ class SummaryState(TypedDict):
     content: str
 
 
-async def generate_summary(state: SummaryState):
+def generate_summary(state: SummaryState):
     prompt = map_prompt.invoke(state["content"])
-    response = await llm.ainvoke(prompt)
+    response = llm.invoke(prompt)
     logger.success(format_json(response))
     return {"summaries": [response.content]}
 
@@ -370,10 +372,11 @@ app = graph.compile()
 """
 LangGraph allows the graph structure to be plotted to help visualize its function:
 """
-logger.info("LangGraph allows the graph structure to be plotted to help visualize its function:")
+logger.info(
+    "LangGraph allows the graph structure to be plotted to help visualize its function:")
 
-
-Image(app.get_graph().draw_mermaid_png())
+# Image(app.get_graph().draw_mermaid_png())
+render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png")
 
 """
 When running the application, we can stream the graph to observe its sequence of steps. Below, we will simply print out the name of the step.
@@ -389,6 +392,7 @@ for step in app.stream(
     logger.debug(list(step.keys()))
 
 logger.debug(step)
+save_file(app, f"{OUTPUT_DIR}/workflow_state.json")
 
 """
 In the corresponding [LangSmith trace](https://smith.langchain.com/public/9d7b1d50-e1d6-44c9-9ab2-eabef621c883/r) we can see the individual LLM calls, grouped under their respective nodes.

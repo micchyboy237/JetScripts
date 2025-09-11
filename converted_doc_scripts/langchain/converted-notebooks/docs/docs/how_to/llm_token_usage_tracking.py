@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_community.callbacks import get_ollama_callback
 from langchain_core.prompts import PromptTemplate
@@ -54,7 +54,7 @@ The callback handler does not currently support streaming token counts for legac
 logger.info("# How to track token usage for LLMs")
 
 
-llm = Ollama(model_name="gpt-3.5-turbo-instruct")
+llm = ChatOllama(model_name="gpt-3.5-turbo-instruct")
 
 with get_ollama_callback() as cb:
     result = llm.invoke("Tell me a joke")
@@ -75,7 +75,7 @@ Anything inside the context manager will get tracked. Here's an example of using
 logger.info("### Multiple calls")
 
 
-llm = Ollama(model_name="gpt-3.5-turbo-instruct")
+llm = ChatOllama(model_name="gpt-3.5-turbo-instruct")
 
 template = PromptTemplate.from_template("Tell me a joke about {topic}")
 chain = template | llm
@@ -112,7 +112,7 @@ Note that when using legacy language models in a streaming context, token counts
 logger.info("## Streaming")
 
 
-llm = Ollama(model_name="gpt-3.5-turbo-instruct")
+llm = ChatOllama(model_name="gpt-3.5-turbo-instruct")
 
 with get_ollama_callback() as cb:
     for chunk in llm.stream("Tell me a joke"):

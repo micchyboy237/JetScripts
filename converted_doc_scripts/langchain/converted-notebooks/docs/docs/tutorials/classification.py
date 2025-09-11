@@ -2,7 +2,7 @@ from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 import os
 import shutil
 
@@ -51,7 +51,7 @@ Let's see a very straightforward example of how we can use Ollama tool calling f
 """
 logger.info("# Classify Text into Labels")
 
-pip install -U langchain-core
+# pip install -U langchain-core
 
 """
 We'll need to load a [chat model](/docs/integrations/chat/):
@@ -67,7 +67,8 @@ llm = ChatOllama(model="llama3.2")
 """
 Let's specify a Pydantic model with a few properties and their expected type in our schema.
 """
-logger.info("Let's specify a Pydantic model with a few properties and their expected type in our schema.")
+logger.info(
+    "Let's specify a Pydantic model with a few properties and their expected type in our schema.")
 
 
 tagging_prompt = ChatPromptTemplate.from_template(
@@ -130,6 +131,7 @@ Let's redeclare our Pydantic model to control for each of the previously mention
 """
 logger.info("## Finer control")
 
+
 class Classification(BaseModel):
     sentiment: str = Field(..., enum=["happy", "neutral", "sad"])
     aggressiveness: int = Field(
@@ -140,6 +142,7 @@ class Classification(BaseModel):
     language: str = Field(
         ..., enum=["spanish", "english", "french", "german", "italian"]
     )
+
 
 tagging_prompt = ChatPromptTemplate.from_template(
     """

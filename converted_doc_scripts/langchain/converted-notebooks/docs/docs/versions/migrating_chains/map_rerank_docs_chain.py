@@ -1,7 +1,7 @@
 from jet.transformers.formatters import format_json
 from IPython.display import Image
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.chains import LLMChain, MapRerankDocumentsChain
 from langchain.output_parsers.regex import RegexParser
@@ -48,8 +48,10 @@ logger.info("# Migrating from MapRerankDocumentsChain")
 
 
 documents = [
-    Document(page_content="Alice has blue eyes", metadata={"title": "book_chapter_2"}),
-    Document(page_content="Bob has brown eyes", metadata={"title": "book_chapter_1"}),
+    Document(page_content="Alice has blue eyes",
+             metadata={"title": "book_chapter_2"}),
+    Document(page_content="Bob has brown eyes",
+             metadata={"title": "book_chapter_1"}),
     Document(
         page_content="Charlie has green eyes", metadata={"title": "book_chapter_3"}
     ),
@@ -66,7 +68,7 @@ logger.info("### Legacy")
 
 
 document_variable_name = "context"
-llm = Ollama()
+llm = ChatOllama()
 prompt_template = (
     "What color are Bob's eyes? "
     "Output both your answer and a score (1-10) of how confident "
@@ -111,9 +113,7 @@ We will need to install `langgraph`:
 """
 logger.info("### LangGraph")
 
-pip install -qU langgraph
-
-
+pip install - qU langgraph
 
 
 class AnswerWithScore(TypedDict):
@@ -127,7 +127,6 @@ prompt_template = "What color are Bob's eyes?\n\nContext: {context}"
 prompt = ChatPromptTemplate.from_template(prompt_template)
 
 map_chain = prompt | llm.with_structured_output(AnswerWithScore)
-
 
 
 class State(TypedDict):

@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.prompts.prompt import PromptTemplate
 from langchain_experimental.llm_bash.base import LLMBashChain
@@ -26,7 +26,7 @@ This notebook showcases using LLMs and a bash process to perform simple filesyst
 logger.info("# Bash chain")
 
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 
 text = "Please write a bash script that prints 'Hello World' to the console."
 
@@ -79,7 +79,8 @@ logger.info("## Persistent Terminal")
 
 
 persistent_process = BashProcess(persistent=True)
-bash_chain = LLMBashChain.from_llm(llm, bash_process=persistent_process, verbose=True)
+bash_chain = LLMBashChain.from_llm(
+    llm, bash_process=persistent_process, verbose=True)
 
 text = "List the current directory then move up a level."
 

@@ -1,12 +1,13 @@
+from jet.file import save_file
 from dotenv import load_dotenv
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import ChatPromptTemplate
-import ChatModelTabs from "@theme/ChatModelTabs";
-import CodeBlock from "@theme/CodeBlock";
-import TabItem from '@theme/TabItem';
-import Tabs from '@theme/Tabs';
+# import ChatModelTabs from "@theme/ChatModelTabs";
+# import CodeBlock from "@theme/CodeBlock";
+# import TabItem from '@theme/TabItem';
+# import Tabs from '@theme/Tabs';
 import os
 import shutil
 
@@ -63,8 +64,8 @@ To install LangChain run:
 </Tabs>
 HIDE_IN_NB -->
 """
-logger.info("# Build a simple LLM application with chat models and prompt templates")
-
+logger.info(
+    "# Build a simple LLM application with chat models and prompt templates")
 
 
 """
@@ -134,7 +135,9 @@ messages = [
     HumanMessage(content="hi!"),
 ]
 
-model.invoke(messages)
+
+response = model.invoke(messages)
+save_file(response, f"{OUTPUT_DIR}/response.json")
 
 """
 :::tip
@@ -161,8 +164,14 @@ Because chat models are [Runnables](/docs/concepts/runnables/), they expose a st
 """
 logger.info("### Streaming")
 
+stream_response = ""
+content = ""
 for token in model.stream(messages):
     logger.debug(token.content, end="|")
+    content += token.content
+    stream_response = token
+stream_response.content = content
+save_file(stream_response, f"{OUTPUT_DIR}/stream_response.md")
 
 """
 You can find more details on streaming chat model outputs in [this guide](/docs/how_to/chat_streaming/).
@@ -192,7 +201,8 @@ Note that `ChatPromptTemplate` supports multiple [message roles](/docs/concepts/
 
 The input to this prompt template is a dictionary. We can play around with this prompt template by itself to see what it does by itself
 """
-logger.info("Note that `ChatPromptTemplate` supports multiple [message roles](/docs/concepts/messages/#role) in a single template. We format the `language` parameter into the system message, and the user `text` into a user message.")
+logger.info(
+    "Note that `ChatPromptTemplate` supports multiple [message roles](/docs/concepts/messages/#role) in a single template. We format the `language` parameter into the system message, and the user `text` into a user message.")
 
 prompt = prompt_template.invoke({"language": "Italian", "text": "hi!"})
 
@@ -211,7 +221,7 @@ Finally, we can invoke the chat model on the formatted prompt:
 logger.info("Finally, we can invoke the chat model on the formatted prompt:")
 
 response = model.invoke(prompt)
-logger.debug(response.content)
+save_file(response, f"{OUTPUT_DIR}/formatted_prompt_response.json")
 
 """
 :::tip

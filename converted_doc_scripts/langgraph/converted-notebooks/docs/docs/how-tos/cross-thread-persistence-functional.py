@@ -83,8 +83,8 @@ logger.info("# How to add cross-thread persistence (functional API)")
 # import getpass
 
 
-def _set_env(var: str):
-    if not os.environ.get(var):
+# def _set_env(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
@@ -129,8 +129,6 @@ in_memory_store = InMemoryStore(
 logger.info("### Create workflow")
 
 
-
-
 model = ChatOllama(model="llama3.2")
 
 
@@ -146,7 +144,8 @@ def call_model(messages: list[BaseMessage], memory_store: BaseStore, user_id: st
         memory = "User name is Bob"
         memory_store.put(namespace, str(uuid.uuid4()), {"data": memory})
 
-    response = model.invoke([{"role": "system", "content": system_msg}] + messages)
+    response = model.invoke(
+        [{"role": "system", "content": system_msg}] + messages)
     return response
 
 
@@ -163,6 +162,7 @@ def workflow(
     inputs = add_messages(previous, inputs)
     response = call_model(inputs, store, user_id).result()
     return entrypoint.final(value=response, save=add_messages(inputs, response))
+
 
 """
 !!! note Note

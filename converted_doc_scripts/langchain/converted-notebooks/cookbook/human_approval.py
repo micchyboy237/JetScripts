@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.agents import AgentType, initialize_agent, load_tools
 from langchain.callbacks import HumanApprovalCallbackHandler
@@ -70,9 +70,10 @@ def _approve(_input: str) -> bool:
     return resp.lower() in ("yes", "y")
 
 
-callbacks = [HumanApprovalCallbackHandler(should_check=_should_check, approve=_approve)]
+callbacks = [HumanApprovalCallbackHandler(
+    should_check=_should_check, approve=_approve)]
 
-llm = Ollama(temperature=0)
+llm = ChatOllama(temperature=0)
 tools = load_tools(["wikipedia", "llm-math", "terminal"], llm=llm)
 agent = initialize_agent(
     tools,

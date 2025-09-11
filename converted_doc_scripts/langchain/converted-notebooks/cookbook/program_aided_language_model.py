@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import Ollama
+from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain_experimental.pal_chain import PALChain
 import os
@@ -24,7 +24,7 @@ Implements Program-Aided Language Models, as in https://arxiv.org/pdf/2211.10435
 logger.info("# Program-aided language model (PAL) chain")
 
 
-llm = Ollama(temperature=0, max_tokens=512)
+llm = ChatOllama(temperature=0, max_tokens=512)
 
 """
 ## Math Prompt
