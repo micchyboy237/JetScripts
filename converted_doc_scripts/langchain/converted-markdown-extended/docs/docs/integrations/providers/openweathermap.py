@@ -1,0 +1,73 @@
+from jet.logger import logger
+from langchain_community.utilities import OpenWeatherMapAPIWrapper
+from langchain_community.utilities.openweathermap import OpenWeatherMapAPIWrapper
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+# OpenWeatherMap
+
+>[OpenWeatherMap](https://openweathermap.org/api/) provides all essential weather data for a specific location:
+>- Current weather
+>- Minute forecast for 1 hour
+>- Hourly forecast for 48 hours
+>- Daily forecast for 8 days
+>- National weather alerts
+>- Historical weather data for 40+ years back
+
+This page covers how to use the `OpenWeatherMap API` within LangChain.
+
+## Installation and Setup
+
+- Install requirements with
+"""
+logger.info("# OpenWeatherMap")
+
+pip install pyowm
+
+"""
+- Go to OpenWeatherMap and sign up for an account to get your API key [here](https://openweathermap.org/api/)
+- Set your API key as `OPENWEATHERMAP_API_KEY` environment variable
+
+## Wrappers
+
+### Utility
+
+There exists a OpenWeatherMapAPIWrapper utility which wraps this API. To import this utility:
+"""
+logger.info("## Wrappers")
+
+
+"""
+For a more detailed walkthrough of this wrapper, see [this notebook](/docs/integrations/tools/openweathermap).
+
+### Tool
+
+You can also easily load this wrapper as a Tool (to use with an Agent).
+You can do this with:
+"""
+logger.info("### Tool")
+
+
+os.environ["OPENWEATHERMAP_API_KEY"] = ""
+weather = OpenWeatherMapAPIWrapper()
+tools = [weather.run]
+
+"""
+For more information on tools, see [this page](/docs/how_to/tools_builtin).
+"""
+logger.info("For more information on tools, see [this page](/docs/how_to/tools_builtin).")
+
+logger.info("\n\n[DONE]", bright=True)

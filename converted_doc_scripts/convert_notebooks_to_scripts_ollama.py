@@ -720,9 +720,10 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
     ]
     include_files = []
     exclude_files = [
@@ -734,7 +735,7 @@ if __name__ == "__main__":
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
         {"ext": [".mdx"], "output_base_dir": "converted-markdown-extended"},
-        {"ext": [".py"], "output_base_dir": "converted-python"},
+        # {"ext": [".py"], "output_base_dir": "converted-python"},
     ]
     all_extensions = [
         ext for mapping in extension_mappings for ext in mapping["ext"]]

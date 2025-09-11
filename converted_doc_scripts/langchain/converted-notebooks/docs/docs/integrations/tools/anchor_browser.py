@@ -1,0 +1,190 @@
+from jet.logger import logger
+from langchain.chat_models import init_chat_model
+from langchain_anchorbrowser import (
+AnchorContentTool,
+AnchorScreenshotTool,
+AdvancedAnchorWebTaskTool,
+)
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableConfig, chain
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+---
+sidebar_label: anchor_browser
+---
+
+# Anchor Browser
+
+Anchor is a platform for AI Agentic browser automation, which solves the challenge of automating workflows for web applications that lack APIs or have limited API coverage. It simplifies the creation, deployment, and management of browser-based automations, transforming complex web interactions into simple API endpoints.
+
+This notebook provides a quick overview for getting started with Anchor Browser tools. For more information of Anchor Browser visit [Anchorbrowser.io](https://anchorbrowser.io?utm=langchain) or the [Anchor Browser Docs](https://docs.anchorbrowser.io?utm=langchain)
+
+## Overview
+
+### Integration details
+
+Anchor Browser package for LangChain is [langchain-anchorbrowser](https://pypi.org/project/langchain-anchorbrowser), and the current latest version is ![PyPI - Version](https://img.shields.io/pypi/v/langchain-anchorbrowser?style=flat-square&label=%20).
+
+
+### Tool features
+| Tool Name | Package | Description | Parameters |
+| :--- | :--- | :--- | :---|
+| `AnchorContentTool` | langchain-anchorbrowser | Extract text content from web pages | `url`, `format` |
+| `AnchorScreenshotTool` | langchain-anchorbrowser | Take screenshots of web pages | `url`, `width`, `height`, `image_quality`, `wait`, `scroll_all_content`, `capture_full_height`, `s3_target_address` |
+| `AnchorWebTaskToolKit` | langchain-anchorbrowser | Perform intelligent web tasks using AI (Simple & Advanced modes) | see below |
+
+The parameters allowed in `langchain-anchorbrowser` are only a subset of those listed in the Anchor Browser API reference respectively: [Get Webpage Content](https://docs.anchorbrowser.io/sdk-reference/tools/get-webpage-content?utm=langchain), [Screenshot Webpage](https://docs.anchorbrowser.io/sdk-reference/tools/screenshot-webpage?utm=langchain), and [Perform Web Task](https://docs.anchorbrowser.io/sdk-reference/ai-tools/perform-web-task?utm=langchain).
+
+**Info:** Anchor currently implements `SimpleAnchorWebTaskTool` and `AdvancedAnchorWebTaskTool` tools for langchain with `browser_use` agent. For 
+
+#### AnchorWebTaskToolKit Tools
+
+The difference between each tool in this toolkit is the pydantic configuration structure.
+| Tool Name | Package | Parameters |
+| :--- | :--- | :--- |
+| `SimpleAnchorWebTaskTool` | langchain-anchorbrowser | prompt, url |
+| `AdvancedAnchorWebTaskTool` | langchain-anchorbrowser | prompt, url, output_schema |
+
+## Setup
+
+The integration lives in the `langchain-anchorbrowser` package.
+"""
+logger.info("# Anchor Browser")
+
+# %pip install --quiet -U langchain-anchorbrowser
+
+"""
+### Credentials
+
+Use your Anchor Browser Credentials. Get them on Anchor Browser [API Keys page](https://app.anchorbrowser.io/api-keys?utm=langchain) as needed.
+"""
+logger.info("### Credentials")
+
+# import getpass
+
+if not os.environ.get("ANCHORBROWSER_API_KEY"):
+#     os.environ["ANCHORBROWSER_API_KEY"] = getpass.getpass("ANCHORBROWSER API key:\n")
+
+"""
+## Instantiation
+
+Instantiace easily Anchor Browser tools instances.
+"""
+logger.info("## Instantiation")
+
+
+anchor_content_tool = AnchorContentTool()
+anchor_screenshot_tool = AnchorScreenshotTool()
+anchor_advanced_web_task_tool = AdvancedAnchorWebTaskTool()
+
+"""
+## Invocation
+
+### [Invoke directly with args](/docs/concepts/tools/#use-the-tool-directly)
+
+The full available argument list appear above in the tool features table.
+"""
+logger.info("## Invocation")
+
+anchor_content_tool.invoke(
+    {"url": "https://www.anchorbrowser.io", "format": "markdown"}
+)
+
+anchor_screenshot_tool.invoke(
+    {"url": "https://docs.anchorbrowser.io", "width": 1280, "height": 720}
+)
+
+anchor_advanced_web_task_tool.invoke(
+    {
+        "prompt": "Collect the node names and their CPU average %",
+        "url": "https://play.grafana.org/a/grafana-k8s-app/navigation/nodes?from=now-1h&to=now&refresh=1m",
+        "output_schema": {
+            "nodes_cpu_usage": [
+                {"node": "string", "cluster": "string", "cpu_avg_percentage": "number"}
+            ]
+        },
+    }
+)
+
+"""
+### [Invoke with ToolCall](/docs/concepts/tool_calling/#tool-execution)
+
+We can also invoke the tool with a model-generated ToolCall, in which case a ToolMessage will be returned:
+"""
+logger.info("### [Invoke with ToolCall](/docs/concepts/tool_calling/#tool-execution)")
+
+model_generated_tool_call = {
+    "args": {"url": "https://www.anchorbrowser.io", "format": "markdown"},
+    "id": "1",
+    "name": anchor_content_tool.name,
+    "type": "tool_call",
+}
+anchor_content_tool.invoke(model_generated_tool_call)
+
+"""
+## Chaining
+
+We can use our tool in a chain by first binding it to a [tool-calling model](/docs/how_to/tool_calling/) and then calling it:
+## Use within an agent
+"""
+logger.info("## Chaining")
+
+# %pip install -qU langchain langchain-ollama
+
+
+llm = init_chat_model(model="llama3.2", model_provider="ollama")
+
+# if not os.environ.get("OPENAI_API_KEY"):
+#     os.environ["OPENAI_API_KEY"] = getpass.getpass("OPENAI API key:\n")
+
+
+prompt = ChatPromptTemplate(
+    [
+        ("system", "You are a helpful assistant."),
+        ("human", "{user_input}"),
+        ("placeholder", "{messages}"),
+    ]
+)
+
+llm_with_tools = llm.bind_tools(
+    [anchor_content_tool], tool_choice=anchor_content_tool.name
+)
+
+llm_chain = prompt | llm_with_tools
+
+
+@chain
+def tool_chain(user_input: str, config: RunnableConfig):
+    input_ = {"user_input": user_input}
+    ai_msg = llm_chain.invoke(input_, config=config)
+    tool_msgs = anchor_content_tool.batch(ai_msg.tool_calls, config=config)
+    return llm_chain.invoke({**input_, "messages": [ai_msg, *tool_msgs]}, config=config)
+
+
+tool_chain.invoke(input())
+
+"""
+## API reference
+
+ - [PyPi](https://pypi.org/project/langchain-anchorbrowser)
+ - [Github](https://github.com/anchorbrowser/langchain-anchorbrowser)
+ - [Anchor Browser Docs](https://docs.anchorbrowser.io/introduction?utm=langchain)
+ - [Anchor Browser API Reference](https://docs.anchorbrowser.io/api-reference/ai-tools/perform-web-task?utm=langchain)
+"""
+logger.info("## API reference")
+
+logger.info("\n\n[DONE]", bright=True)
