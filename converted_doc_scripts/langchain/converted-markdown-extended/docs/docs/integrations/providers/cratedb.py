@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama, OllamaEmbeddings
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.globals import set_llm_cache
 from langchain.text_splitter import CharacterTextSplitter
@@ -47,9 +47,9 @@ using Docker or Podman. This is not recommended for production use.
 """
 logger.info("# CrateDB")
 
-docker run --name=cratedb --rm \
-  --publish=4200:4200 --publish=5432:5432 --env=CRATE_HEAP_SIZE=2g \
-  crate:latest -Cdiscovery.type=single-node
+docker run - -name = cratedb - -rm \
+    - -publish = 4200: 4200 - -publish = 5432: 5432 - -env = CRATE_HEAP_SIZE = 2g \
+    crate: latest - Cdiscovery.type = single-node
 
 """
 #### Deploy cluster on CrateDB Cloud
@@ -62,7 +62,7 @@ and a few others that are needed for this tutorial.
 """
 logger.info("#### Deploy cluster on CrateDB Cloud")
 
-pip install --upgrade langchain-cratedb langchain-ollama unstructured
+pip install - -upgrade langchain-cratedb langchain-ollama unstructured
 
 """
 ## Documentation
@@ -86,7 +86,8 @@ logger.info("## Documentation")
 # export OPENAI_API_KEY=sk-XJZ...
 
 
-loader = UnstructuredURLLoader(urls=["https://github.com/langchain-ai/langchain/raw/refs/tags/langchain-core==0.3.28/docs/docs/how_to/state_of_the_union.txt"])
+loader = UnstructuredURLLoader(
+    urls=["https://github.com/langchain-ai/langchain/raw/refs/tags/langchain-core==0.3.28/docs/docs/how_to/state_of_the_union.txt"])
 documents = loader.load()
 text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
 docs = text_splitter.split_documents(documents)

@@ -25,10 +25,9 @@ PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
 os.makedirs(PERSIST_DIR, exist_ok=True)
 
 
-
 # from langchain_community.document_loaders import PyPDFLoader
 
-# from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+# from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 
 
 # from smolagents.agents import ToolCallingAgent
@@ -40,7 +39,7 @@ source_docs = [
     Document(page_content=doc["text"], metadata={"source": doc["source"].split("/")[1]}) for doc in knowledge_base
 ]
 
-## For your own PDFs, you can use the following code to load them into source_docs
+# For your own PDFs, you can use the following code to load them into source_docs
 # pdf_directory = "pdfs"
 # pdf_files = [
 #     os.path.join(pdf_directory, f)
@@ -74,14 +73,17 @@ for doc in tqdm(source_docs):
             docs_processed.append(new_doc)
 
 
-logger.debug("Embedding documents... This should take a few minutes (5 minutes on MacBook with M1 Pro)")
+logger.debug(
+    "Embedding documents... This should take a few minutes (5 minutes on MacBook with M1 Pro)")
 # Initialize embeddings and ChromaDB vector store
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 
 # embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
-vector_store = Chroma.from_documents(docs_processed, embeddings, persist_directory="./chroma_db")
+vector_store = Chroma.from_documents(
+    docs_processed, embeddings, persist_directory="./chroma_db")
 
 
 class RetrieverTool(Tool):
@@ -105,7 +107,8 @@ class RetrieverTool(Tool):
         assert isinstance(query, str), "Your search query must be a string"
         docs = self.vector_store.similarity_search(query, k=3)
         return "\nRetrieved documents:\n" + "".join(
-            [f"\n\n===== Document {str(i)} =====\n" + doc.page_content for i, doc in enumerate(docs)]
+            [f"\n\n===== Document {str(i)} =====\n" +
+             doc.page_content for i, doc in enumerate(docs)]
         )
 
 

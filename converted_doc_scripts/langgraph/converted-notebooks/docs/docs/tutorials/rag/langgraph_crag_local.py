@@ -1,6 +1,6 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings  # api
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings  # api
 from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings  # local
 from jet.logger import logger
 from langchain import hub
@@ -81,10 +81,9 @@ logger.info("# Corrective RAG (CRAG) using local LLMs")
 
 def _set_env(key: str):
     if key not in os.environ:
-#         os.environ[key] = getpass.getpass(f"{key}:")
+        #         os.environ[key] = getpass.getpass(f"{key}:")
 
-
-# _set_env("OPENAI_API_KEY")
+        # _set_env("OPENAI_API_KEY")
 _set_env("TAVILY_API_KEY")
 
 """
@@ -177,7 +176,8 @@ retrieval_grader = prompt | llm | JsonOutputParser()
 question = "agent memory"
 docs = retriever.invoke(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "documents": doc_txt}))
+logger.debug(retrieval_grader.invoke(
+    {"question": question, "documents": doc_txt}))
 
 
 prompt = PromptTemplate(
@@ -211,7 +211,6 @@ web_search_tool = TavilySearchResults(k=3)
 Here we'll explicitly define the majority of the control flow, only using an LLM to define a single branch point following grading.
 """
 logger.info("## Create the Graph")
-
 
 
 class GraphState(TypedDict):
@@ -262,7 +261,8 @@ def generate(state):
 
     question = state["question"]
     documents = state["documents"]
-    generation = rag_chain.invoke({"documents": documents, "question": question})
+    generation = rag_chain.invoke(
+        {"documents": documents, "question": question})
     steps = state["steps"]
     steps.append("generate_answer")
     return {
@@ -375,7 +375,6 @@ custom_graph = workflow.compile()
 display(Image(custom_graph.get_graph(xray=True).draw_mermaid_png()))
 
 
-
 def predict_custom_agent_local_answer(example: dict):
     config = {"configurable": {"thread_id": str(uuid.uuid4())}}
     state_dict = custom_graph.invoke(
@@ -436,7 +435,8 @@ if not client.has_dataset(dataset_name=dataset_name):
     inputs, outputs = zip(
         *[({"input": text}, {"output": label}) for text, label in examples]
     )
-    client.create_examples(inputs=inputs, outputs=outputs, dataset_id=dataset.id)
+    client.create_examples(
+        inputs=inputs, outputs=outputs, dataset_id=dataset.id)
 
 """
 Now, we'll use an `LLM as a grader` to compare both agent responses to our ground truth reference answer.
@@ -472,6 +472,7 @@ def answer_evaluator(run, example) -> dict:
     )
     score = score["Score"]
     return {"key": "answer_v_reference_score", "score": score}
+
 
 """
 ### Trajectory

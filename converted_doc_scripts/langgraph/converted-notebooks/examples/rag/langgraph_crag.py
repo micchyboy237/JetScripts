@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.schema import Document
@@ -65,10 +65,9 @@ logger.info("# Corrective RAG (CRAG)")
 
 def _set_env(key: str):
     if key not in os.environ:
-#         os.environ[key] = getpass.getpass(f"{key}:")
+        #         os.environ[key] = getpass.getpass(f"{key}:")
 
-
-# _set_env("OPENAI_API_KEY")
+        # _set_env("OPENAI_API_KEY")
 _set_env("TAVILY_API_KEY")
 
 """
@@ -113,7 +112,6 @@ retriever = vectorstore.as_retriever()
 logger.info("## LLMs")
 
 
-
 class GradeDocuments(BaseModel):
     """Binary score for relevance check on retrieved documents."""
 
@@ -131,7 +129,8 @@ system = """You are a grader assessing relevance of a retrieved document to a us
 grade_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Retrieved document: \n\n {document} \n\n User question: {question}"),
+        ("human",
+         "Retrieved document: \n\n {document} \n\n User question: {question}"),
     ]
 )
 
@@ -139,7 +138,8 @@ retrieval_grader = grade_prompt | structured_llm_grader
 question = "agent memory"
 docs = retriever.get_relevant_documents(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+logger.debug(retrieval_grader.invoke(
+    {"question": question, "document": doc_txt}))
 
 
 prompt = hub.pull("rlm/rag-prompt")
@@ -191,8 +191,6 @@ Now let's create our graph that will use CRAG
 logger.info("## Create Graph")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -208,7 +206,6 @@ class GraphState(TypedDict):
     generation: str
     web_search: str
     documents: List[str]
-
 
 
 def retrieve(state):
@@ -320,8 +317,6 @@ def web_search(state):
     return {"documents": documents, "question": question}
 
 
-
-
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
@@ -346,6 +341,7 @@ def decide_to_generate(state):
     else:
         logger.debug("---DECISION: GENERATE---")
         return "generate"
+
 
 """
 ### Compile Graph

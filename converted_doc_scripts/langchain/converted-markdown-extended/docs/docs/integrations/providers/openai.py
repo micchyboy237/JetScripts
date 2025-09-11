@@ -2,7 +2,7 @@ from jet.adapters.langchain.chat_ollama import AzureChatOllama
 from jet.adapters.langchain.chat_ollama import AzureOllama
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.adapters.langchain.chat_ollama import Ollama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.adapters import ollama as lc_ollama
 from langchain.chains import OllamaModerationChain
@@ -65,7 +65,8 @@ logger.info("## Chat model")
 """
 If you are using a model hosted on `Azure`, you should use different wrapper for that:
 """
-logger.info("If you are using a model hosted on `Azure`, you should use different wrapper for that:")
+logger.info(
+    "If you are using a model hosted on `Azure`, you should use different wrapper for that:")
 
 
 """
@@ -81,7 +82,8 @@ logger.info("## LLM")
 """
 If you are using a model hosted on `Azure`, you should use different wrapper for that:
 """
-logger.info("If you are using a model hosted on `Azure`, you should use different wrapper for that:")
+logger.info(
+    "If you are using a model hosted on `Azure`, you should use different wrapper for that:")
 
 
 """

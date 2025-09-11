@@ -1,6 +1,7 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import BaseMessage
@@ -67,13 +68,13 @@ logger.info("# Hierarchical Agent Teams")
 # import getpass
 
 
-def _set_if_undefined(var: str):
-    if not os.environ.get(var):
+# def _set_if_undefined(var: str):
+#     if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"Please provide your {var}")
 
 
 # _set_if_undefined("OPENAI_API_KEY")
-_set_if_undefined("TAVILY_API_KEY")
+# _set_if_undefined("TAVILY_API_KEY")
 
 """
 <div class="admonition tip">
@@ -96,7 +97,6 @@ The research team can use a search engine and url scraper to find information on
 logger.info("## Create Tools")
 
 
-
 tavily_tool = TavilySearch(max_results=5)
 
 
@@ -112,6 +112,7 @@ def scrape_webpages(urls: List[str]) -> str:
         ]
     )
 
+
 """
 **Document writing team tools**
 
@@ -121,7 +122,6 @@ We define some bare-bones file-access tools below.
 Note that this gives the agents access to your file-system, which can be unsafe. We also haven't optimized the tool descriptions for performance.
 """
 logger.info("Next up, we will give some tools for the doc writing team to use.")
-
 
 
 _TEMP_DIRECTORY = TemporaryDirectory()
@@ -192,7 +192,6 @@ def edit_document(
     return f"Document edited and saved to {file_name}"
 
 
-
 repl = PythonREPL()
 
 
@@ -208,6 +207,7 @@ def python_repl_tool(
         return f"Failed to execute. Error: {repr(e)}"
     return f"Successfully executed:\n```python\n{code}\n```\nStdout: {result}"
 
+
 """
 ## Helper Utilities
 
@@ -219,8 +219,6 @@ We are going to create a few utility functions to make it more concise when we w
 These will simplify the graph compositional code at the end for us so it's easier to see what's going on.
 """
 logger.info("## Helper Utilities")
-
-
 
 
 class State(MessagesState):
@@ -256,6 +254,7 @@ def make_supervisor_node(llm: BaseChatModel, members: list[str]) -> str:
 
     return supervisor_node
 
+
 """
 ## Define Agent Teams
 
@@ -278,7 +277,8 @@ def search_node(state: State) -> Command[Literal["supervisor"]]:
     return Command(
         update={
             "messages": [
-                HumanMessage(content=result["messages"][-1].content, name="search")
+                HumanMessage(content=result["messages"]
+                             [-1].content, name="search")
             ]
         },
         goto="supervisor",
@@ -293,7 +293,8 @@ def web_scraper_node(state: State) -> Command[Literal["supervisor"]]:
     return Command(
         update={
             "messages": [
-                HumanMessage(content=result["messages"][-1].content, name="web_scraper")
+                HumanMessage(content=result["messages"]
+                             [-1].content, name="web_scraper")
             ]
         },
         goto="supervisor",
@@ -315,8 +316,8 @@ research_builder.add_node("web_scraper", web_scraper_node)
 research_builder.add_edge(START, "supervisor")
 research_graph = research_builder.compile()
 
-
-display(Image(research_graph.get_graph().draw_mermaid_png()))
+# display(Image(research_graph.get_graph().draw_mermaid_png()))
+render_mermaid_graph(research_graph, f"{OUTPUT_DIR}/research_graph_output.png")
 
 """
 We can give this team work directly. Try it out below.
@@ -356,7 +357,8 @@ def doc_writing_node(state: State) -> Command[Literal["supervisor"]]:
     return Command(
         update={
             "messages": [
-                HumanMessage(content=result["messages"][-1].content, name="doc_writer")
+                HumanMessage(content=result["messages"]
+                             [-1].content, name="doc_writer")
             ]
         },
         goto="supervisor",
@@ -378,7 +380,8 @@ def note_taking_node(state: State) -> Command[Literal["supervisor"]]:
     return Command(
         update={
             "messages": [
-                HumanMessage(content=result["messages"][-1].content, name="note_taker")
+                HumanMessage(content=result["messages"]
+                             [-1].content, name="note_taker")
             ]
         },
         goto="supervisor",
@@ -422,8 +425,9 @@ paper_writing_builder.add_node("chart_generator", chart_generating_node)
 paper_writing_builder.add_edge(START, "supervisor")
 paper_writing_graph = paper_writing_builder.compile()
 
-
-display(Image(paper_writing_graph.get_graph().draw_mermaid_png()))
+# display(Image(paper_writing_graph.get_graph().draw_mermaid_png()))
+render_mermaid_graph(paper_writing_graph,
+                     f"{OUTPUT_DIR}/paper_writing_graph_output.png")
 
 for s in paper_writing_graph.stream(
     {
@@ -451,7 +455,9 @@ logger.info("## Add Layers")
 
 llm = ChatOllama(model="llama3.2")
 
-teams_supervisor_node = make_supervisor_node(llm, ["research_team", "writing_team"])
+teams_supervisor_node = make_supervisor_node(
+    llm, ["research_team", "writing_team"])
+
 
 def call_research_team(state: State) -> Command[Literal["supervisor"]]:
     response = research_graph.invoke({"messages": state["messages"][-1]})
@@ -489,8 +495,8 @@ super_builder.add_node("writing_team", call_paper_writing_team)
 super_builder.add_edge(START, "supervisor")
 super_graph = super_builder.compile()
 
-
-display(Image(super_graph.get_graph().draw_mermaid_png()))
+# display(Image(super_graph.get_graph().draw_mermaid_png()))
+render_mermaid_graph(super_graph, f"{OUTPUT_DIR}/super_graph_output.png")
 
 for s in super_graph.stream(
     {

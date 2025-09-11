@@ -2,7 +2,7 @@ from IPython.display import Image, display
 from IPython.display import Markdown
 from datetime import datetime, timedelta
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from joblib import dump as jl_dump
 from joblib import load as jl_load
@@ -123,6 +123,7 @@ class TaxonomyGenerationState(TypedDict):
     minibatches: List[List[int]]
     clusters: Annotated[List[List[dict]], operator.add]
 
+
 """
 ### Define nodes
 
@@ -131,7 +132,6 @@ class TaxonomyGenerationState(TypedDict):
 Chat logs can get quite long. Our taxonomy generation step needs to see large, diverse minibatches to be able to adequately capture the distribution of categories. To ensure they can all fit efficiently into the context window, we first summarize each chat log. Downstream steps will use these summaries instead of the raw doc content.
 """
 logger.info("### Define nodes")
-
 
 
 summary_prompt = hub.pull("wfh/tnt-llm-summary-generation").partial(
@@ -147,7 +147,8 @@ def parse_summary(xml_string: str) -> dict:
     explanation_match = re.search(explanation_pattern, xml_string, re.DOTALL)
 
     summary = summary_match.group(1).strip() if summary_match else ""
-    explanation = explanation_match.group(1).strip() if explanation_match else ""
+    explanation = explanation_match.group(
+        1).strip() if explanation_match else ""
 
     return {"summary": summary, "explanation": explanation}
 
@@ -195,7 +196,6 @@ Each minibatch contains a random sample of docs. This lets the flow identify ina
 logger.info("#### 2. Split into Minibatches")
 
 
-
 def get_minibatches(state: TaxonomyGenerationState, config: RunnableConfig):
     batch_size = config["configurable"].get("batch_size", 200)
     original = state["documents"]
@@ -207,12 +207,12 @@ def get_minibatches(state: TaxonomyGenerationState, config: RunnableConfig):
     num_full_batches = len(indices) // batch_size
 
     batches = [
-        indices[i * batch_size : (i + 1) * batch_size] for i in range(num_full_batches)
+        indices[i * batch_size: (i + 1) * batch_size] for i in range(num_full_batches)
     ]
 
     leftovers = len(indices) % batch_size
     if leftovers:
-        last_batch = indices[num_full_batches * batch_size :]
+        last_batch = indices[num_full_batches * batch_size:]
         elements_to_add = batch_size - leftovers
         last_batch += random.sample(indices, elements_to_add)
         batches.append(last_batch)
@@ -221,14 +221,13 @@ def get_minibatches(state: TaxonomyGenerationState, config: RunnableConfig):
         "minibatches": batches,
     }
 
+
 """
 #### 3.a Taxonomy Generation Utilities
 
 This section of the graph is a generate -> update 🔄 -> review cycle. Each node shares a LOT of logic, which we have factored out into the shared functions below.
 """
 logger.info("#### 3.a Taxonomy Generation Utilities")
-
-
 
 
 def parse_taxa(output_text: str) -> Dict:
@@ -298,6 +297,7 @@ def invoke_taxonomy_chain(
         "clusters": [updated_taxonomy["clusters"]],
     }
 
+
 """
 #### 3. Generate initial taxonomy
 """
@@ -327,6 +327,7 @@ def generate_taxonomy(
         generate_taxonomy_chain, state, config, state["minibatches"][0]
     )
 
+
 """
 #### 4. Update Taxonomy
 
@@ -351,6 +352,7 @@ def update_taxonomy(
     return invoke_taxonomy_chain(
         update_taxonomy_chain, state, config, state["minibatches"][which_mb]
     )
+
 
 """
 #### 5. Review Taxonomy
@@ -379,6 +381,7 @@ def review_taxonomy(
     return invoke_taxonomy_chain(
         review_taxonomy_chain, state, config, indices[:batch_size]
     )
+
 
 """
 ### Compile the Graph
@@ -436,7 +439,6 @@ You will likely have to customize the `run_to_doc` function below, since your ex
 logger.info("## Use the graph")
 
 
-
 project_name = "YOUR PROJECT NAME"  # Update to your own project
 client = Client()
 
@@ -475,13 +477,13 @@ def run_to_doc(run) -> Doc:
         "content": ("\n".join(turns)),
     }
 
+
 """
 #### Invoke
 
 Now convert the runs to docs and kick off your graph flow. This will take some time! The summary step takes the longest. If you want to speed things up, you could try splitting the load across model providers.
 """
 logger.info("#### Invoke")
-
 
 
 set_llm_cache(InMemoryCache())
@@ -520,7 +522,6 @@ for step in stream:
 Below, render the final result as markdown:
 """
 logger.info("## Final Result")
-
 
 
 def format_taxonomy_md(clusters):
@@ -577,7 +578,8 @@ def parse_labels(output_text: str) -> Dict:
         output_text,
         re.DOTALL,
     )
-    categories = [{"category": category.strip()} for category in category_matches]
+    categories = [{"category": category.strip()}
+                  for category in category_matches]
     if len(categories) > 1:
         logger.warning(f"Multiple selected categories: {categories}")
     label = categories[0]
@@ -608,7 +610,8 @@ updated_docs = [{**doc, **category} for doc, category in zip(docs, results)]
 
 encoder = OllamaEmbeddings(model="mxbai-embed-large")
 vectors = encoder.embed_documents([doc["content"] for doc in docs])
-embedded_docs = [{**doc, "embedding": v} for doc, v in zip(updated_docs, vectors)]
+embedded_docs = [{**doc, "embedding": v}
+                 for doc, v in zip(updated_docs, vectors)]
 
 """
 #### Train Classifier

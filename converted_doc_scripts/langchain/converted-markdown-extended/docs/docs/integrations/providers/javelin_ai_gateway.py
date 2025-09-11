@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.chains import LLMChain
 from langchain_community.chat_models import ChatJavelinAIGateway
@@ -48,7 +48,7 @@ Set the Javelin's API key as an environment variable:
 """
 logger.info("Set the Javelin's API key as an environment variable:")
 
-export JAVELIN_API_KEY=...
+export JAVELIN_API_KEY = ...
 
 """
 ## Completions Example

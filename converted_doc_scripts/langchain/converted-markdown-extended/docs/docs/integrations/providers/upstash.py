@@ -1,9 +1,9 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain.cache import UpstashRedisCache
 from langchain.text_splitter import CharacterTextSplitter
 from langchain_community.chat_message_histories import (
-UpstashRedisChatMessageHistory,
+    UpstashRedisChatMessageHistory,
 )
 from langchain_community.document_loaders import TextLoader
 from langchain_community.vectorstores.upstash import UpstashVectorStore
@@ -72,7 +72,8 @@ Upstash Vector embeds these text and executes the request with these embeddings.
 feature, [create an Upstash Vector index by selecting a model](https://upstash.com/docs/vector/features/embeddingmodels#using-a-model)
 and simply pass `embedding=True`:
 """
-logger.info("An alternative way of `UpstashVectorStore` is to pass `embedding=True`. This is a unique")
+logger.info(
+    "An alternative way of `UpstashVectorStore` is to pass `embedding=True`. This is a unique")
 
 
 os.environ["UPSTASH_VECTOR_REST_URL"] = "<UPSTASH_VECTOR_REST_URL>"
@@ -128,7 +129,8 @@ The size of the batch can be controlled using the `embedding_chunk_size` paramet
 The embedded vectors are then stored in the Upstash Vector database. When they are sent, multiple vectors are batched together to reduce the number of HTTP requests.
 The size of the batch can be controlled using the `batch_size` parameter. Upstash Vector has a limit of 1000 vectors per batch in the free tier.
 """
-logger.info("When inserting documents, first they are embedded using the `Embeddings` object.")
+logger.info(
+    "When inserting documents, first they are embedded using the `Embeddings` object.")
 
 store.add_documents(
     documents,

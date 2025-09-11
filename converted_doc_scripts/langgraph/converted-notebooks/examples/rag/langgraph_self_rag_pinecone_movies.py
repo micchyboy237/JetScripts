@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain_core.pydantic_v1 import BaseModel, Field
@@ -83,7 +83,6 @@ for doc in docs:
 logger.info("## Structured Output - Retrieval Grader")
 
 
-
 class GradeDocuments(BaseModel):
     """Binary score for relevance check on retrieved documents."""
 
@@ -108,7 +107,6 @@ Standard RAG
 logger.info("# Generation Step")
 
 
-
 class GradeHallucinations(BaseModel):
     """Binary score for hallucination present in generation answer."""
 
@@ -125,6 +123,7 @@ hallucination_prompt = hub.pull("efriis/self-rag-hallucination-grader")
 hallucination_grader = hallucination_prompt | structured_llm_grader
 logger.debug(generation)
 hallucination_grader.invoke({"documents": docs, "generation": generation})
+
 
 class GradeAnswer(BaseModel):
     """Binary score to assess answer addresses question."""
@@ -155,8 +154,6 @@ Capture the flow in as a graph.
 logger.info("# Graph")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -170,8 +167,6 @@ class GraphState(TypedDict):
     question: str
     generation: str
     documents: List[str]
-
-
 
 
 """

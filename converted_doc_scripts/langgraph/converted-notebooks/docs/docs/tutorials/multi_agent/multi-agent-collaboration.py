@@ -1,6 +1,7 @@
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.messages import BaseMessage, HumanMessage
 from langchain_core.tools import tool
 from langchain_experimental.utilities import PythonREPL
@@ -55,10 +56,9 @@ logger.info("# Multi-agent network")
 
 def _set_if_undefined(var: str):
     if not os.environ.get(var):
-#         os.environ[var] = getpass.getpass(f"Please provide your {var}")
+        #         os.environ[var] = getpass.getpass(f"Please provide your {var}")
 
-
-# _set_if_undefined("ANTHROPIC_API_KEY")
+        # _set_if_undefined("ANTHROPIC_API_KEY")
 _set_if_undefined("TAVILY_API_KEY")
 
 """
@@ -74,7 +74,6 @@ _set_if_undefined("TAVILY_API_KEY")
 We will also define some tools that our agents will use in the future
 """
 logger.info("## Define tools")
-
 
 
 tavily_tool = TavilySearch(max_results=5)
@@ -98,6 +97,7 @@ def python_repl_tool(
         result_str + "\n\nIf you have completed all tasks, respond with FINAL ANSWER."
     )
 
+
 """
 ## Create graph
 
@@ -111,6 +111,7 @@ First, we'll create a utility to create a system prompt for each agent.
 """
 logger.info("## Create graph")
 
+
 def make_system_prompt(suffix: str) -> str:
     return (
         "You are a helpful AI assistant, collaborating with other assistants."
@@ -121,8 +122,6 @@ def make_system_prompt(suffix: str) -> str:
         " prefix your response with FINAL ANSWER so the team knows to stop."
         f"\n{suffix}"
     )
-
-
 
 
 llm = ChatOllama(model="llama3.2")
@@ -181,6 +180,7 @@ def chart_node(state: MessagesState) -> Command[Literal["researcher", END]]:
         goto=goto,
     )
 
+
 """
 ### Define the Graph
 
@@ -196,11 +196,11 @@ workflow.add_node("chart_generator", chart_node)
 workflow.add_edge(START, "researcher")
 graph = workflow.compile()
 
-
-try:
-    display(Image(graph.get_graph().draw_mermaid_png()))
-except Exception:
-    pass
+# try:
+#     display(Image(graph.get_graph().draw_mermaid_png()))
+# except Exception:
+#     pass
+render_mermaid_graph(graph, f"{OUTPUT_DIR}/graph_output.png")
 
 """
 ## Invoke

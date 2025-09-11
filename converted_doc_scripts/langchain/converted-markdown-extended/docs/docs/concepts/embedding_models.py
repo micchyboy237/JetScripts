@@ -1,4 +1,4 @@
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 import numpy as np
 import os
@@ -95,7 +95,8 @@ len(embeddings), len(embeddings[0])
 """
 For convenience, you can also use the `embed_query` method to embed a single text:
 """
-logger.info("For convenience, you can also use the `embed_query` method to embed a single text:")
+logger.info(
+    "For convenience, you can also use the `embed_query` method to embed a single text:")
 
 query_embedding = embeddings_model.embed_query("What is the meaning of life?")
 
@@ -135,6 +136,7 @@ def cosine_similarity(vec1, vec2):
     norm_vec1 = np.linalg.norm(vec1)
     norm_vec2 = np.linalg.norm(vec2)
     return dot_product / (norm_vec1 * norm_vec2)
+
 
 similarity = cosine_similarity(query_result, document_result)
 logger.debug("Cosine Similarity:", similarity)

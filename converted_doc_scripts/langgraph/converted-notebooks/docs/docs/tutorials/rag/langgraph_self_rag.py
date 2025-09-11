@@ -1,5 +1,5 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.logger import logger
 from langchain import hub
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -75,10 +75,10 @@ logger.info("# Self-RAG")
 
 def _set_env(key: str):
     if key not in os.environ:
-#         os.environ[key] = getpass.getpass(f"{key}:")
+        #         os.environ[key] = getpass.getpass(f"{key}:")
 
+        # _set_env("OPENAI_API_KEY")
 
-# _set_env("OPENAI_API_KEY")
 
 """
 <div class="admonition tip">
@@ -129,8 +129,6 @@ retriever = vectorstore.as_retriever()
 logger.info("## LLMs")
 
 
-
-
 class GradeDocuments(BaseModel):
     """Binary score for relevance check on retrieved documents."""
 
@@ -149,7 +147,8 @@ system = """You are a grader assessing relevance of a retrieved document to a us
 grade_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Retrieved document: \n\n {document} \n\n User question: {question}"),
+        ("human",
+         "Retrieved document: \n\n {document} \n\n User question: {question}"),
     ]
 )
 
@@ -157,7 +156,8 @@ retrieval_grader = grade_prompt | structured_llm_grader
 question = "agent memory"
 docs = retriever.invoke(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+logger.debug(retrieval_grader.invoke(
+    {"question": question, "document": doc_txt}))
 
 
 prompt = hub.pull("rlm/rag-prompt")
@@ -173,6 +173,7 @@ rag_chain = prompt | llm | StrOutputParser()
 
 generation = rag_chain.invoke({"context": docs, "question": question})
 logger.debug(generation)
+
 
 class GradeHallucinations(BaseModel):
     """Binary score for hallucination present in generation answer."""
@@ -190,12 +191,14 @@ system = """You are a grader assessing whether an LLM generation is grounded in 
 hallucination_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
+        ("human",
+         "Set of facts: \n\n {documents} \n\n LLM generation: {generation}"),
     ]
 )
 
 hallucination_grader = hallucination_prompt | structured_llm_grader
 hallucination_grader.invoke({"documents": docs, "generation": generation})
+
 
 class GradeAnswer(BaseModel):
     """Binary score to assess answer addresses question."""
@@ -213,7 +216,8 @@ system = """You are a grader assessing whether an answer addresses / resolves a 
 answer_prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system),
-        ("human", "User question: \n\n {question} \n\n LLM generation: {generation}"),
+        ("human",
+         "User question: \n\n {question} \n\n LLM generation: {generation}"),
     ]
 )
 
@@ -247,8 +251,6 @@ Capture the flow in as a graph.
 logger.info("# Graph")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -262,6 +264,7 @@ class GraphState(TypedDict):
     question: str
     generation: str
     documents: List[str]
+
 
 def retrieve(state):
     """
@@ -347,8 +350,6 @@ def transform_query(state):
     return {"documents": documents, "question": better_question}
 
 
-
-
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
@@ -398,17 +399,21 @@ def grade_generation_v_documents_and_question(state):
     if grade == "yes":
         logger.debug("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.debug("---GRADE GENERATION vs QUESTION---")
-        score = answer_grader.invoke({"question": question, "generation": generation})
+        score = answer_grader.invoke(
+            {"question": question, "generation": generation})
         grade = score.binary_score
         if grade == "yes":
             logger.debug("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
         else:
-            logger.debug("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
+            logger.debug(
+                "---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
     else:
-        plogger.debug("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        plogger.debug(
+            "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         return "not supported"
+
 
 """
 ## Build Graph
