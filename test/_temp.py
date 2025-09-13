@@ -6,16 +6,13 @@ METADATA = {
 
 
 def check(candidate):
-    assert candidate('(()()) ((())) () ((())()())') == [
-        '(()())', '((()))', '()', '((())()())'
-    ]
-    assert candidate('() (()) ((())) (((())))') == [
-        '()', '(())', '((()))', '(((())))'
-    ]
-    assert candidate('(()(())((())))') == [
-        '(()(())((())))'
-    ]
-    assert candidate('( ) (( )) (( )( ))') == ['()', '(())', '(()())']
+    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.3) == True
+    assert candidate([1.0, 2.0, 3.9, 4.0, 5.0, 2.2], 0.05) == False
+    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.95) == True
+    assert candidate([1.0, 2.0, 5.9, 4.0, 5.0], 0.8) == False
+    assert candidate([1.0, 2.0, 3.0, 4.0, 5.0, 2.0], 0.1) == True
+    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 1.0) == True
+    assert candidate([1.1, 2.2, 3.1, 4.1, 5.1], 0.5) == False
 
 
 def run_tests(candidate):
@@ -23,49 +20,38 @@ def run_tests(candidate):
         check(candidate)
         print("ALL TESTS PASSED !")
         print("TERMINATE")
-    except AssertionError:
-        print("SOME TESTS FAILED - TRY AGAIN !")
+    except AssertionError as e:
+        print(f"SOME TESTS FAILED - TRY AGAIN! Error: {str(e)}")
 
 
-def separate_paren_groups(paren_string: str) -> List[str]:
+def has_close_elements(numbers: List[float], threshold: float) -> bool:
     """
-    Input to this function is a string containing multiple groups of nested parentheses.
-    Your goal is to separate those group into separate strings and return the list of those.
+    Check if in given list of numbers, are any two numbers closer to each other than 
+    given threshold.
 
-    Separate groups are balanced (each open brace is properly closed) and not nested within each other
-    Ignore any spaces in the input string.
+    Args:
+        numbers (List[float]): A list of floating point numbers.
+        threshold (float): The minimum difference required between two numbers.
 
-    >>> separate_paren_groups('( ) (( )) (( )( ))')
-    ['()', '(())', '(()())']
+    Returns:
+        bool: True if any two numbers are closer than the threshold, False otherwise.
     """
-    # Initialize an empty stack to keep track of opening parentheses
-    stack = []
 
-    # Initialize an empty list to store the result
-    result = []
+    # Sort the list in ascending order
+    numbers.sort()
 
-    # Iterate over each character in the input string
-    for char in paren_string:
-        # If the character is an opening parenthesis, push it onto the stack
-        if char == '(':
-            stack.append(char)
-        # If the character is a closing parenthesis
-        elif char == ')':
-            # If the stack is not empty, pop the corresponding opening parenthesis from the stack
-            if stack:
-                stack.pop()
-            # If the stack is empty, it means we have found a complete group of parentheses
-            else:
-                # Join all characters in the result list into a single string and add it to the result list
-                result.append(''.join(result))
-                # Reset the result list for the next group
-                result = []
+    # Iterate over the sorted list to compare each number with its next one
+    for i in range(len(numbers) - 1):
 
-    # If there are any remaining opening parentheses in the stack, it means they do not have a corresponding closing parenthesis
-    if stack:
-        raise ValueError("Unbalanced parentheses")
+        # Calculate the difference between the current and next number
+        diff = abs(numbers[i] - numbers[i + 1])
 
-    return result
+        # If the difference is less than or equal to the threshold, return True
+        if diff <= threshold:
+            return True
+
+    # If no pair of numbers with a difference less than or equal to the threshold is found, return False
+    return False
 
 
-run_tests(separate_paren_groups)
+run_tests(has_close_elements)
