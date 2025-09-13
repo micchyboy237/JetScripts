@@ -116,7 +116,7 @@ model_client = ChatCompletionClient.load_component(config)
 Open AI:
 
 ```python
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="sk-xxx")
 ```
@@ -143,7 +143,7 @@ You can use a the `OpenAIChatCompletionClient` to connect to an OpenAI-Compatibl
 but you need to specify the `base_url` and `model_info`.
 
 ```python
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 custom_model_client = OpenAIChatCompletionClient(
     model="custom-model-name",
@@ -198,7 +198,7 @@ import asyncio
 import tempfile
 
 from autogen_core.models import UserMessage
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
 from autogen_ext.cache_store.diskcache import DiskCacheStore
 from diskcache import Cache
@@ -252,7 +252,7 @@ In `v0.4`, it is similar, but you need to specify `model_client` instead of `llm
 
 ```python
 from autogen_agentchat.agents import AssistantAgent
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="sk-xxx", seed=42, temperature=0)
 
@@ -275,7 +275,7 @@ import asyncio
 from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core import CancellationToken
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
@@ -313,7 +313,7 @@ from pathlib import Path
 from autogen_agentchat.messages import MultiModalMessage
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core import CancellationToken, Image
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
@@ -495,7 +495,7 @@ import json
 from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core import CancellationToken
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
@@ -585,7 +585,7 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
 from autogen_agentchat.ui import Console
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
@@ -611,7 +611,7 @@ async def main() -> None:
     stream = group_chat.run_stream(task="Write a python script to print 'Hello, world!'")
     # `Console` is a simple UI to display the stream.
     await Console(stream)
-    
+
     # Close the connection to the model client.
     await model_client.close()
 
@@ -670,7 +670,7 @@ both the tool calling and tool execution.
 ```python
 import asyncio
 from autogen_core import CancellationToken
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
 
@@ -901,7 +901,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
@@ -961,7 +961,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 def create_team(model_client : OpenAIChatCompletionClient) -> RoundRobinGroupChat:
     writer = AssistantAgent(
@@ -1068,7 +1068,7 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 # Note: This example uses mock tools instead of real APIs for demonstration purposes
 def search_web_tool(query: str) -> str:
@@ -1315,7 +1315,7 @@ from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core import CancellationToken
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
@@ -1332,7 +1332,7 @@ async def main() -> None:
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
         print("Assistant:", response.chat_message.to_text())
-    
+
     await model_client.close()
 
 asyncio.run(main())

@@ -9,7 +9,7 @@ from autogen_agentchat.base import Handoff, Response, TaskResult, TerminationCon
 from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core import AgentRuntime, CancellationToken, SingleThreadedAgentRuntime
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_agentchat.messages import (
     BaseAgentEvent,
     BaseChatMessage,

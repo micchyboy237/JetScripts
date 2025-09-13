@@ -10,7 +10,7 @@ from jet.vectors.document_types import HeaderDocument
 from jet.file.utils import load_file, save_file
 from jet.models.model_types import LLMModelType
 from jet.llm.mlx.token_utils import get_tokenizer_fn, count_tokens
-from jet.token.token_utils import split_headers
+from jet._token.token_utils import split_headers
 from jet.utils.file import find_files_recursively
 from jet.wordnet.analyzers.classes.text_analyzer import TextAnalyzer
 from jet.wordnet.analyzers.text_analysis import analyze_readability

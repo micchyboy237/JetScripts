@@ -5,7 +5,7 @@ from llama_index.core.utils import set_global_tokenizer
 from pydantic import BaseModel, Field
 
 from jet.file.utils import save_file, load_file
-from jet.token.token_utils import get_ollama_tokenizer
+from jet._token.token_utils import get_ollama_tokenizer
 from jet.transformers.formatters import format_json
 from jet.logger import logger
 

@@ -1,7 +1,7 @@
 import logging
 from typing import Optional, Sequence
 from jet.helpers.prompt.custom_prompt_helpers import OllamaPromptHelper
-from jet.token.token_utils import get_tokenizer
+from jet._token.token_utils import get_tokenizer
 from llama_index.core.base.llms.types import ChatMessage
 from llama_index.core.prompts import BasePromptTemplate, ChatPromptTemplate
 from llama_index.core.llms.llm import LLM

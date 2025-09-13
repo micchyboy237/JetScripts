@@ -3,7 +3,7 @@ from jet.wordnet.words import get_words
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from pydantic import BaseModel, Field
 from jet.logger import logger
-from jet.token.token_utils import get_model_max_tokens, token_counter
+from jet._token.token_utils import get_model_max_tokens, token_counter
 from jet.utils.commands import copy_to_clipboard
 from llama_index.core import SimpleDirectoryReader
 from jet.vectors.reranker.helpers.structured_llm_rerank import StructuredLLMRerank

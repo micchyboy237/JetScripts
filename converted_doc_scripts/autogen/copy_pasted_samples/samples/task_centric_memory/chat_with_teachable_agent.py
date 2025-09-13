@@ -1,13 +1,13 @@
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_ext.experimental.task_centric_memory import MemoryController
 from autogen_ext.experimental.task_centric_memory.utils import Teachability
 
 
 async def main():
     # Create a client
-    client = OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", )
+    client = OllamaChatCompletionClient(model="llama3.2")
 
     # Create an instance of Task-Centric Memory, passing minimal parameters for this simple example
     memory_controller = MemoryController(reset=False, client=client)
@@ -18,7 +18,7 @@ async def main():
     # Create an AssistantAgent, and attach teachability as its memory
     assistant_agent = AssistantAgent(
         name="teachable_agent",
-        system_message = "You are a helpful AI assistant, with the special ability to remember user teachings from prior conversations.",
+        system_message="You are a helpful AI assistant, with the special ability to remember user teachings from prior conversations.",
         model_client=client,
         memory=[teachability],
     )

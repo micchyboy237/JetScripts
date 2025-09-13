@@ -8,7 +8,7 @@ from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
 # from jet.llm.ollama.base import initialize_ollama_settings
 import matplotlib.pyplot as plt
-from jet.token.token_utils import get_ollama_tokenizer, split_texts, token_counter
+from jet._token.token_utils import get_ollama_tokenizer, split_texts, token_counter
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from llama_index.core.utils import set_global_tokenizer
 # import tiktoken

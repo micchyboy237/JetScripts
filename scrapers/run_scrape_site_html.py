@@ -36,7 +36,7 @@ from jet.actions.vector_semantic_search import VectorSemanticSearch
 from jet.logger import logger
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS, OLLAMA_MODEL_NAMES
 from jet.scrapers.utils import clean_text, extract_paragraphs, extract_text_elements, search_data
-from jet.token.token_utils import filter_texts, get_model_max_tokens, get_ollama_tokenizer, split_texts, token_counter
+from jet._token.token_utils import filter_texts, get_model_max_tokens, get_ollama_tokenizer, split_texts, token_counter
 from jet.transformers.formatters import format_json
 from jet.file.utils import load_file, save_data, save_file
 from jet.transformers.object import make_serializable

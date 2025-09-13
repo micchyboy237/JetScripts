@@ -10,7 +10,7 @@ from autogen_agentchat.messages import BaseChatMessage, TextMessage, HandoffMess
 from autogen_agentchat.teams import Swarm
 from autogen_core import AgentRuntime, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
 from autogen_core.tools import FunctionTool
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from pydantic import BaseModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)

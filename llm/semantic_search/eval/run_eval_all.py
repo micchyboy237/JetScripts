@@ -2,7 +2,7 @@ from jet.code.splitter_markdown_utils import extract_md_header_contents
 from jet.llm.ollama.base import Ollama, VectorStoreIndex
 from jet.llm.utils.llama_index_utils import display_jet_source_nodes
 from jet.logger import logger
-from jet.token.token_utils import get_model_max_tokens, get_ollama_tokenizer
+from jet._token.token_utils import get_model_max_tokens, get_ollama_tokenizer
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from llama_index.core.evaluation.faithfulness import FaithfulnessEvaluator

@@ -59,7 +59,7 @@ Here's an example of an agent team and how it is converted to a JSON file:
 ```python
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_agentchat.conditions import  TextMentionTermination
 
 agent = AssistantAgent(

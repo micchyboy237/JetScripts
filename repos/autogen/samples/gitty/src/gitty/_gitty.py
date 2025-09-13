@@ -5,7 +5,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import TextMessage, ToolCallExecutionEvent, ToolCallRequestEvent, ToolCallSummaryMessage
 from autogen_core import CancellationToken
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 from rich.console import Console
 from rich.panel import Panel
@@ -17,6 +17,7 @@ from ._config import custom_theme, get_gitty_dir
 
 console = Console(theme=custom_theme)
 
+
 async def _run(agent: AssistantAgent, task: str, log: bool = False) -> str:
     output_stream = agent.on_messages_stream(
         [TextMessage(content=task, source="user")],
@@ -26,7 +27,8 @@ async def _run(agent: AssistantAgent, task: str, log: bool = False) -> str:
     async for message in output_stream:
         if isinstance(message, ToolCallRequestEvent):
             for tool_call in message.content:
-                console.print(f"  [acting]! Calling {tool_call.name}... [/acting]")
+                console.print(
+                    f"  [acting]! Calling {tool_call.name}... [/acting]")
 
         if isinstance(message, ToolCallExecutionEvent):
             for result in message.content:
@@ -43,7 +45,8 @@ async def _run(agent: AssistantAgent, task: str, log: bool = False) -> str:
                 # console.print(Panel(content[:100] + "...", title="Tool(s) Result (showing only 100 chars)"))
                 last_txt_message += content
             else:
-                raise ValueError(f"Unexpected message type: {message.chat_message}")
+                raise ValueError(
+                    f"Unexpected message type: {message.chat_message}")
             if log:
                 print(last_txt_message)
     return last_txt_message
@@ -59,7 +62,8 @@ async def _get_user_input(prompt: str) -> str:
 
 async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
     console.print("[header]Gitty - GitHub Issue/PR Assistant[/header]")
-    console.print(f"[thinking]Assessing issue #{number} for repository {owner}/{repo}...[/thinking]")
+    console.print(
+        f"[thinking]Assessing issue #{number} for repository {owner}/{repo}...[/thinking]")
     console.print(f"https://github.com/{owner}/{repo}/issues/{number}")
 
     global_instructions = ""
@@ -108,17 +112,20 @@ async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
     console.print("\n[thinking]- Checking for mentioned issues...[/thinking]")
     mentioned_issues = get_mentioned_issues(number, text)
     if len(mentioned_issues) > 0:
-        console.print(f"  [observe]> Found mentioned issues: {mentioned_issues}[/observe]")
+        console.print(
+            f"  [observe]> Found mentioned issues: {mentioned_issues}[/observe]")
         task = f"Fetch mentioned issues and generate tldrs for each of them: {mentioned_issues}"
         text = await _run(agent, task)
     else:
         console.print("  [observe]> No mentioned issues found.[/observe]")
 
     related_issues = get_related_issues(number, text, get_gitty_dir())
-    console.print("\n[thinking]- Checking for other related issues...[/thinking]")
+    console.print(
+        "\n[thinking]- Checking for other related issues...[/thinking]")
 
     if len(related_issues) > 0:
-        console.print(f"  [observe]> Found related issues: {related_issues}.[/observe]")
+        console.print(
+            f"  [observe]> Found related issues: {related_issues}.[/observe]")
         task = f"Fetch related issues and generate tldrs for each of them: {related_issues}"
         text = await _run(agent, task)
     else:
@@ -158,7 +165,8 @@ async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
             break
         if user_feedback.lower().strip() == "y":
             console.print("[success]The Suggested Response:[/success]")
-            console.print(Panel(suggested_response, title="Suggested Response"))
+            console.print(Panel(suggested_response,
+                          title="Suggested Response"))
             break
         else:
             console.print("\n[thinking]Thinking...[/thinking]")

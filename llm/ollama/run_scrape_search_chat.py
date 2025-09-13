@@ -4,7 +4,7 @@ from jet.features.search_and_chat import run_scrape_search_chat
 from jet.file.utils import load_file, save_file
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
-from jet.token.token_utils import get_model_max_tokens, token_counter
+from jet._token.token_utils import get_model_max_tokens, token_counter
 
 
 if __name__ == "__main__":

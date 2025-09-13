@@ -1,5 +1,5 @@
 import json
-from jet.token.token_utils import token_counter, filter_texts
+from jet._token.token_utils import token_counter, filter_texts
 from jet.logger import logger
 from jet.transformers.object import make_serializable
 from llama_index.core.base.llms.types import ChatMessage, MessageRole

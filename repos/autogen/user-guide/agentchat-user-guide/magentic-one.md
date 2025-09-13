@@ -52,7 +52,7 @@ For example:
 
 ```python
 import asyncio
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui import Console
@@ -83,7 +83,7 @@ The example code may download files from the internet, execute code, and interac
 
 ```python
 import asyncio
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
@@ -118,7 +118,7 @@ with all the agents bundled together:
 
 ```python
 import asyncio
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_agentchat.ui import Console
 

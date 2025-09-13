@@ -10,7 +10,7 @@ from jet.logger import logger
 from jet.scrapers.preprocessor import html_to_markdown
 from jet.scrapers.utils import extract_internal_links, extract_title_and_metadata, safe_path_from_url, scrape_links, scrape_urls, search_data, validate_headers
 from jet.search.searxng import SearchResult
-from jet.token.token_utils import get_model_max_tokens, group_nodes
+from jet._token.token_utils import get_model_max_tokens, group_nodes
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from jet.utils.doc_utils import get_recursive_text

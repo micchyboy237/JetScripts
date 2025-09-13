@@ -7,7 +7,7 @@ from jet.llm.models import OLLAMA_EMBED_MODELS, OLLAMA_MODEL_NAMES
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
 from jet.scrapers.preprocessor import html_to_markdown
-from jet.token.token_utils import get_model_max_tokens, group_nodes
+from jet._token.token_utils import get_model_max_tokens, group_nodes
 from jet.transformers.formatters import format_json
 from pydantic import BaseModel, create_model
 from typing import Any, Dict, Optional, List, Type, Union

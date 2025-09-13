@@ -1,4 +1,4 @@
-from jet.token.token_utils import token_counter
+from jet._token.token_utils import token_counter
 
 
 async def main():

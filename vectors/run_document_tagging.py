@@ -1,7 +1,7 @@
 import os
 from jet.file.utils import load_file, save_file
 from jet.logger.config import colorize_log
-from jet.token.token_utils import split_headers
+from jet._token.token_utils import split_headers
 from jet.vectors.document_types import HeaderDocument
 from jet.vectors.document_tagging import integrated_document_tagging
 

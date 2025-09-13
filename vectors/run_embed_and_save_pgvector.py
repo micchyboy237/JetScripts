@@ -5,7 +5,7 @@ from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function
 from jet.logger import logger, time_it
-from jet.token.token_utils import get_token_counts_info, token_counter
+from jet._token.token_utils import get_token_counts_info, token_counter
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from jet.utils.object import extract_values_by_paths

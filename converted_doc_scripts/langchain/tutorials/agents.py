@@ -7,7 +7,7 @@ from jet.llm.query.retrievers import setup_index
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls, ascrape_multiple_urls
 from jet.scrapers.utils import safe_path_from_url, search_data, validate_headers
 from jet.search.searxng import search_searxng
-from jet.token.token_utils import filter_texts
+from jet._token.token_utils import filter_texts
 from jet.utils.url_utils import normalize_url
 from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
 from llama_index.core.schema import Document as LlamaDocument

@@ -5,7 +5,7 @@ import os
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_ext.tools.graphrag import (
     GlobalSearchTool,
     LocalSearchTool,
@@ -30,7 +30,6 @@ def download_sample_data(input_dir: str) -> None:
         print(f"❌ Error saving file: {e}")
 
 
-
 async def main() -> None:
     # Check if OPENAI_API_KEY is set
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -50,14 +49,16 @@ async def main() -> None:
     else:
         print(f"Sample data already exists: {sherlock_path}")
 
-    
     # Initialize the model client
-    model_client = OpenAIChatCompletionClient(model="gpt-4o-mini", api_key=api_key)
-    
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o-mini", api_key=api_key)
+
     # Set up global search tool
     from pathlib import Path
-    global_tool = GlobalSearchTool.from_settings(root_dir=Path("./"), config_filepath=Path("./settings.yaml"))
-    local_tool = LocalSearchTool.from_settings(root_dir=Path("./"), config_filepath=Path("./settings.yaml"))
+    global_tool = GlobalSearchTool.from_settings(
+        root_dir=Path("./"), config_filepath=Path("./settings.yaml"))
+    local_tool = LocalSearchTool.from_settings(
+        root_dir=Path("./"), config_filepath=Path("./settings.yaml"))
 
     # Create assistant agent with both search tools
     assistant_agent = AssistantAgent(
@@ -82,9 +83,11 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run a GraphRAG search with an agent.")
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
-     
+    parser = argparse.ArgumentParser(
+        description="Run a GraphRAG search with an agent.")
+    parser.add_argument("--verbose", action="store_true",
+                        help="Enable verbose logging.")
+
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
@@ -92,5 +95,4 @@ if __name__ == "__main__":
         handler = logging.FileHandler("graphrag_search.log")
         logging.getLogger("autogen_core").addHandler(handler)
 
-     
     asyncio.run(main())

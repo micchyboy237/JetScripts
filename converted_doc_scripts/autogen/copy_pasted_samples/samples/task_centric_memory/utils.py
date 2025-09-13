@@ -4,7 +4,7 @@ import yaml
 from autogen_core.models import (
     ChatCompletionClient,
 )
-from autogen_ext.models.openai import OpenAIChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 
 def create_oai_client(config: Dict[str, Any]) -> ChatCompletionClient:
@@ -29,4 +29,3 @@ def load_yaml_file(file_path: str) -> Any:
     """
     with open(file_path, "r") as file:
         return yaml.safe_load(file)
-

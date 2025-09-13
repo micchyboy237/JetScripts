@@ -9,7 +9,7 @@ from jet.llm.ollama.constants import OLLAMA_SMALL_EMBED_MODEL, OLLAMA_LARGE_EMBE
 from jet.llm.utils.embeddings import get_embedding_function
 from jet.llm.ollama.models import OLLAMA_MODEL_EMBEDDING_TOKENS
 from jet.logger import logger
-from jet.token.token_utils import get_ollama_tokenizer
+from jet._token.token_utils import get_ollama_tokenizer
 from jet.transformers.formatters import format_json
 from llama_index.core.node_parser.text.sentence import SentenceSplitter
 from llama_index.core.readers.file.base import SimpleDirectoryReader
