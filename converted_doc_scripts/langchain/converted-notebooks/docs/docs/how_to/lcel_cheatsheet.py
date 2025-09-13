@@ -1,14 +1,14 @@
 from jet.logger import logger
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import (
-ConfigurableField,
-RunnableConfig,
-RunnableSerializable,
+    ConfigurableField,
+    RunnableConfig,
+    RunnableSerializable,
 )
 from langchain_core.runnables import (
-RunnableLambda,
-RunnableParallel,
-RunnablePassthrough,
+    RunnableLambda,
+    RunnableParallel,
+    RunnablePassthrough,
 )
 from langchain_core.runnables import RunnableConfig, RunnableLambda, RunnableParallel
 from langchain_core.runnables import RunnableLambda
@@ -44,7 +44,7 @@ This is a quick reference for all the most important [LCEL](/docs/concepts/lcel/
 logger.info("# LangChain Expression Language Cheatsheet")
 
 
-runnable = RunnableLambda(lambda x: str(x))
+runnable = RunnableLhambda(lambda x: str(x))
 runnable.invoke(5)
 
 """
@@ -62,7 +62,6 @@ runnable.batch([7, 8, 9])
 #### [Runnable.stream()](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.stream) / [Runnable.astream()](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.astream)
 """
 logger.info("### Stream a runnable")
-
 
 
 def func(x):
@@ -110,7 +109,6 @@ chain.invoke(2)
 logger.info("### Turn any function into a runnable")
 
 
-
 def func(x):
     return x + 5
 
@@ -149,8 +147,6 @@ chain.invoke({"foo": 10})
 #### [Runnable.bind](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.bind)
 """
 logger.info("### Add default invocation args")
-
-
 
 
 def func(main_arg: dict, other_arg: Optional[str] = None) -> dict:
@@ -237,8 +233,6 @@ chain.invoke(7)
 logger.info("### Make runnable attributes configurable")
 
 
-
-
 class FooRunnable(RunnableSerializable[dict, dict]):
     output_key: str
 
@@ -267,8 +261,6 @@ configurable_runnable1.invoke({"foo": 10})
 #### [Runnable.with_configurable_alternatives](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.RunnableSerializable.html#langchain_core.runnables.base.RunnableSerializable.configurable_alternatives)
 """
 logger.info("### Make chain components configurable")
-
-
 
 
 class ListRunnable(RunnableSerializable[Any, list]):
@@ -341,7 +333,8 @@ runnable2 = RunnableLambda(func, name="second")
 chain = runnable1 | runnable2
 
 for event in chain.stream_events("bar", version="v2"):
-    logger.debug(f"event={event['event']} | name={event['name']} | data={event['data']}")
+    logger.debug(
+        f"event={event['event']} | name={event['name']} | data={event['data']}")
 
 """
 ### Yield batched outputs as they complete
@@ -350,8 +343,8 @@ for event in chain.stream_events("bar", version="v2"):
 logger.info("### Yield batched outputs as they complete")
 
 
-
-runnable1 = RunnableLambda(lambda x: time.sleep(x) or logger.debug(f"slept {x}"))
+runnable1 = RunnableLambda(lambda x: time.sleep(x)
+                           or logger.debug(f"slept {x}"))
 
 for idx, result in runnable1.batch_as_completed([5, 1]):
     logger.debug(idx, result)
@@ -428,8 +421,6 @@ for i, prompt in enumerate(chain.get_prompts()):
 #### [Runnable.with_listeners](https://python.langchain.com/api_reference/core/runnables/langchain_core.runnables.base.Runnable.html#langchain_core.runnables.base.Runnable.with_listeners)
 """
 logger.info("### Add lifecycle listeners")
-
-
 
 
 def on_start(run_obj: Run):
