@@ -100,27 +100,48 @@ logger.info("## Create graph")
 # pip install - qU langgraph
 
 
+# Initial summarization prompt
 summarize_prompt = ChatPromptTemplate(
     [
-        ("human", "Write a concise summary of the following: {context}"),
+        ("system",
+         "You are an expert summarizer. Your goal is to create a clear, factual, and concise "
+         "summary from a given text. Do not add interpretations or unrelated details. "
+         "If the text is already very short (1–2 sentences), simply return it as is. "
+         "Otherwise, summarize into 2–3 sentences."),
+        ("human",
+         "Summarize the following text:\n\n{context}")
     ]
 )
+
+# Build the initial summarization chain
 initial_summary_chain = summarize_prompt | llm | StrOutputParser()
 
+# Refinement summarization prompt
 refine_template = """
-Produce a final summary.
+You are refining an evolving summary.
 
-Existing summary up to this point:
+Existing summary so far:
 {existing_answer}
 
-New context:
+New text to integrate:
 ------------
 {context}
 ------------
 
-Given the new context, refine the original summary.
+If the new text is very short (1–2 sentences), incorporate it directly without unnecessary expansion.
+Otherwise, update the summary by integrating only essential new information. 
+Keep the summary concise (3–5 sentences max), remove redundancies, and ensure clarity.
 """
-refine_prompt = ChatPromptTemplate([("human", refine_template)])
+
+refine_prompt = ChatPromptTemplate(
+    [
+        ("system",
+         "You are an expert summarizer skilled at iterative refinement. "
+         "Always preserve accuracy, avoid duplication, and ensure the final result "
+         "reads smoothly as a single unified summary."),
+        ("human", refine_template)
+    ]
+)
 
 refine_summary_chain = refine_prompt | llm | StrOutputParser()
 
@@ -131,8 +152,8 @@ class State(TypedDict):
     summary: str
 
 
-async def generate_initial_summary(state: State, config: RunnableConfig):
-    summary = await initial_summary_chain.ainvoke(
+def generate_initial_summary(state: State, config: RunnableConfig):
+    summary = initial_summary_chain.invoke(
         state["contents"][0],
         config,
     )
@@ -140,9 +161,9 @@ async def generate_initial_summary(state: State, config: RunnableConfig):
     return {"summary": summary, "index": 1}
 
 
-async def refine_summary(state: State, config: RunnableConfig):
+def refine_summary(state: State, config: RunnableConfig):
     content = state["contents"][state["index"]]
-    summary = await refine_summary_chain.ainvoke(
+    summary = refine_summary_chain.invoke(
         {"existing_answer": state["summary"], "context": content},
         config,
     )
