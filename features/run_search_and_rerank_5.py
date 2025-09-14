@@ -17,8 +17,7 @@ from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.logger.config import colorize_log
 from jet.models.embeddings.base import generate_embeddings
-# from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
-from jet.llm.mlx.remote import generation as gen
+from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.utils import resolve_model_value
@@ -144,7 +143,7 @@ def group_results_by_source_for_llm_context(
 
     # Initialize tokenizer
     tokenizer = get_tokenizer_fn(
-        "llama-3.2-3b-instruct-4bit", add_special_tokens=False, remove_pad_tokens=True)
+        "qwen3-1.7b-4bit", add_special_tokens=False, remove_pad_tokens=True)
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
 
@@ -321,7 +320,7 @@ def create_url_dict_list(urls: List[str], search_results: List[HeaderSearchResul
 async def main(query):
     """Main function to demonstrate file search."""
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
-    llm_model: LLMModelType = "llama-3.2-3b-instruct-4bit"
+    llm_model: LLMModelType = "qwen3-1.7b-4bit"
     max_tokens = 2000
     use_cache = True
     urls_limit = 10
@@ -647,10 +646,10 @@ async def main(query):
 
     context = group_results_by_source_for_llm_context(filtered_results)
     save_file(context, f"{query_output_dir}/context.md")
-    # mlx = MLXModelRegistry.load_model(llm_model)
+    mlx = MLXModelRegistry.load_model(llm_model)
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     save_file(prompt, f"{query_output_dir}/prompt.md")
-    llm_response = gen.chat(prompt, llm_model, temperature=0.7, verbose=True)
+    llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
     save_file(llm_response["content"], f"{query_output_dir}/response.md")
 
     input_tokens = count_tokens(llm_model, prompt)
@@ -673,6 +672,6 @@ if __name__ == "__main__":
                    help="Search query using optional flag")
     args = p.parse_args()
 
-    query = args.query if args.query else args.query_pos or "Top 10 isekai anime 2025 with release date, synopsis, number of episode, airing status"
+    query = args.query if args.query else args.query_pos or "Top isekai anime 2025."
 
     asyncio.run(main(query))
