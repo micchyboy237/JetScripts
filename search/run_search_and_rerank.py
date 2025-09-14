@@ -144,7 +144,7 @@ def group_results_by_source_for_llm_context(
 
     # Initialize tokenizer
     tokenizer = get_tokenizer_fn(
-        "qwen3-1.7b-4bit", add_special_tokens=False, remove_pad_tokens=True)
+        "llama-3.2-3b-instruct-4bit", add_special_tokens=False, remove_pad_tokens=True)
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
 
@@ -321,7 +321,7 @@ def create_url_dict_list(urls: List[str], search_results: List[HeaderSearchResul
 async def main(query):
     """Main function to demonstrate file search."""
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
-    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+    llm_model: LLMModelType = "llama-3.2-3b-instruct-4bit"
     max_tokens = 2000
     use_cache = True
     urls_limit = 10
