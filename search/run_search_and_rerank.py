@@ -17,7 +17,8 @@ from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.logger.config import colorize_log
 from jet.models.embeddings.base import generate_embeddings
-from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+# from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+from jet.llm.mlx.remote import generation as gen
 from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.utils import resolve_model_value
@@ -646,10 +647,10 @@ async def main(query):
 
     context = group_results_by_source_for_llm_context(filtered_results)
     save_file(context, f"{query_output_dir}/context.md")
-    mlx = MLXModelRegistry.load_model(llm_model)
+    # mlx = MLXModelRegistry.load_model(llm_model)
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     save_file(prompt, f"{query_output_dir}/prompt.md")
-    llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
+    llm_response = gen.chat(prompt, llm_model, temperature=0.7, verbose=True)
     save_file(llm_response["content"], f"{query_output_dir}/response.md")
 
     input_tokens = count_tokens(llm_model, prompt)
