@@ -4,7 +4,7 @@ from autogen_agentchat.ui import Console
 from autogen_core.memory import ListMemory, MemoryContent, MemoryMimeType
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType
 from autogen_core.memory import MemoryContent, MemoryMimeType
-from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
+from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig, SentenceTransformerEmbeddingFunctionConfig
 from autogen_ext.memory.mem0 import Mem0Memory
 from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
 from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
@@ -185,6 +185,7 @@ async def main():
             redis_url="redis://localhost:6379",
             index_name="chat_history",
             prefix="memory",
+            model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
     )
 
@@ -312,8 +313,7 @@ async def main():
     rag_memory = ChromaDBVectorMemory(
         config=PersistentChromaDBVectorMemoryConfig(
             collection_name="autogen_docs",
-            persistence_path=os.path.join(
-                str(Path.home()), ".chromadb_autogen"),
+            persistence_path=PERSIST_DIR,
             k=3,  # Return top 3 results
             score_threshold=0.4,  # Minimum similarity score
         )
@@ -330,7 +330,7 @@ async def main():
             "https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/termination.html",
         ]
         chunks: int = await indexer.index_documents(sources)
-        logger.success(format_json(chunks: int))
+        logger.success(format_json(chunks))
         logger.debug(
             f"Indexed {chunks} chunks from {len(sources)} AutoGen documents")
 
