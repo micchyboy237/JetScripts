@@ -45,6 +45,7 @@ REPLACE_OLLAMA_MAP = {
     "gpt-4o-mini": "llama3.2",
     "claude-3-5-sonnet-latest": "llama3.2",
     "text-embedding-3-small": "mxbai-embed-large",
+    "autogen_ext.models.ollama": "jet.adapters.autogen.ollama_client",
 }
 
 REPLACE_ASYNC_MAP = {
@@ -727,7 +728,7 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
     ]
     include_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/selector-group-chat.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/custom-agents.ipynb",
     ]
     exclude_files = [
         "_*.py",
