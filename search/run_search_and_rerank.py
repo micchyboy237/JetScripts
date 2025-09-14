@@ -650,11 +650,21 @@ async def main(query):
     # mlx = MLXModelRegistry.load_model(llm_model)
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     save_file(prompt, f"{query_output_dir}/prompt.md")
-    llm_response = gen.chat(prompt, llm_model, temperature=0.7, verbose=True)
-    save_file(llm_response["content"], f"{query_output_dir}/response.md")
+    # llm_response = gen.chat(prompt, llm_model, temperature=0.7, verbose=True)
+    # response_text = llm_response["content"]
+    response_text = ""
+    for chunk in gen.stream_chat(
+        prompt,
+        llm_model,
+        temperature=0.7,
+        verbose=True
+    ):
+        content = chunk["choices"][0]["message"]["content"]
+        response_text += content
+    save_file(response_text, f"{query_output_dir}/response.md")
 
     input_tokens = count_tokens(llm_model, prompt)
-    output_tokens = count_tokens(llm_model, llm_response["content"])
+    output_tokens = count_tokens(llm_model, response_text)
 
     save_file({
         "input_tokens": input_tokens,
