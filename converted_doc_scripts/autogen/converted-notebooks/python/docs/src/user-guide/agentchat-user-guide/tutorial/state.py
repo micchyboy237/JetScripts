@@ -11,9 +11,9 @@ import json
 import os
 import shutil
 
+
 async def main():
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
@@ -21,10 +21,10 @@ async def main():
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger.basicConfig(filename=log_file)
     logger.info(f"Logs: {log_file}")
-    
+
     PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
     os.makedirs(PERSIST_DIR, exist_ok=True)
-    
+
     """
     # Managing State 
     
@@ -39,43 +39,44 @@ async def main():
     an {py:class}`~autogen_agentchat.agents.AssistantAgent`.
     """
     logger.info("# Managing State")
-    
-    
+
     model_client = OllamaChatCompletionClient(model="llama3.2")
-    
+
     assistant_agent = AssistantAgent(
         name="assistant_agent",
         system_message="You are a helpful assistant",
         model_client=model_client,
     )
-    
+
     response = await assistant_agent.on_messages(
-            [TextMessage(content="Write a 3 line poem on lake tangayika", source="user")], CancellationToken()
-        )
+        [TextMessage(content="Write a 3 line poem on lake tangayika",
+                     source="user")], CancellationToken()
+    )
     logger.success(format_json(response))
     logger.debug(response.chat_message)
     await model_client.close()
-    
+
     agent_state = await assistant_agent.save_state()
     logger.success(format_json(agent_state))
     logger.debug(agent_state)
-    
+
     model_client = OllamaChatCompletionClient(model="llama3.2")
-    
+
     new_assistant_agent = AssistantAgent(
         name="assistant_agent",
         system_message="You are a helpful assistant",
         model_client=model_client,
     )
     await new_assistant_agent.load_state(agent_state)
-    
+
     response = await new_assistant_agent.on_messages(
-            [TextMessage(content="What was the last line of the previous poem you wrote", source="user")], CancellationToken()
-        )
+        [TextMessage(content="What was the last line of the previous poem you wrote",
+                     source="user")], CancellationToken()
+    )
     logger.success(format_json(response))
     logger.debug(response.chat_message)
     await model_client.close()
-    
+
     """
     ```{note}
     For {py:class}`~autogen_agentchat.agents.AssistantAgent`, its state consists of the model_context.
@@ -91,64 +92,68 @@ async def main():
     We will begin by creating a simple {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` team with a single agent and ask it to write a poem.
     """
     logger.info("## Saving and Loading Teams")
-    
+
     model_client = OllamaChatCompletionClient(model="llama3.2")
-    
+
     assistant_agent = AssistantAgent(
         name="assistant_agent",
         system_message="You are a helpful assistant",
         model_client=model_client,
     )
-    agent_team = RoundRobinGroupChat([assistant_agent], termination_condition=MaxMessageTermination(max_messages=2))
-    
-    stream = agent_team.run_stream(task="Write a beautiful poem 3-line about lake tangayika")
-    
+    agent_team = RoundRobinGroupChat(
+        [assistant_agent], termination_condition=MaxMessageTermination(max_messages=2))
+
+    stream = agent_team.run_stream(
+        task="Write a beautiful poem 3-line about lake tangayika")
+
     await Console(stream)
-    
+
     team_state = await agent_team.save_state()
     logger.success(format_json(team_state))
-    
+
     """
     If we reset the team (simulating instantiation of the team),  and ask the question `What was the last line of the poem you wrote?`, we see that the team is unable to accomplish this as there is no reference to the previous run.
     """
     logger.info("If we reset the team (simulating instantiation of the team),  and ask the question `What was the last line of the poem you wrote?`, we see that the team is unable to accomplish this as there is no reference to the previous run.")
-    
+
     await agent_team.reset()
-    stream = agent_team.run_stream(task="What was the last line of the poem you wrote?")
+    stream = agent_team.run_stream(
+        task="What was the last line of the poem you wrote?")
     await Console(stream)
-    
+
     """
     Next, we load the state of the team and ask the same question. We see that the team is able to accurately return the last line of the poem it wrote.
     """
     logger.info("Next, we load the state of the team and ask the same question. We see that the team is able to accurately return the last line of the poem it wrote.")
-    
+
     logger.debug(team_state)
-    
+
     await agent_team.load_state(team_state)
-    stream = agent_team.run_stream(task="What was the last line of the poem you wrote?")
+    stream = agent_team.run_stream(
+        task="What was the last line of the poem you wrote?")
     await Console(stream)
-    
+
     """
     ## Persisting State (File or Database)
     
     In many cases, we may want to persist the state of the team to disk (or a database) and load it back later. State is a dictionary that can be serialized to a file or written to a database.
     """
     logger.info("## Persisting State (File or Database)")
-    
-    
-    
+
     with open("coding/team_state.json", "w") as f:
         json.dump(team_state, f)
-    
+
     with open("coding/team_state.json", "r") as f:
         team_state = json.load(f)
-    
-    new_agent_team = RoundRobinGroupChat([assistant_agent], termination_condition=MaxMessageTermination(max_messages=2))
+
+    new_agent_team = RoundRobinGroupChat(
+        [assistant_agent], termination_condition=MaxMessageTermination(max_messages=2))
     await new_agent_team.load_state(team_state)
-    stream = new_agent_team.run_stream(task="What was the last line of the poem you wrote?")
+    stream = new_agent_team.run_stream(
+        task="What was the last line of the poem you wrote?")
     await Console(stream)
     await model_client.close()
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':
