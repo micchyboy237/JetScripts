@@ -9,7 +9,7 @@ from langchain_core.messages import (
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.graph import MermaidDrawMethod
 from langgraph.graph import START, StateGraph, END
-from tavily import TavilyClient
+from jet.search.tavily import tavily_search
 from typing import TypedDict, Annotated, List
 import os
 import shutil
@@ -117,7 +117,6 @@ class ApproachState(TypedDict):
 logger.info("## LLM & Tavily Initialization")
 
 llm = ChatOllama(model="llama3.2")
-tavily_client = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
 
 """
 ## Component Functions
@@ -151,8 +150,6 @@ def approach_analysis(approach: ApproachState) -> ApproachState:
 
 def task_manifest(approach: ApproachState) -> ApproachState:
     """use Tavily to look up information on the task."""
-
-    from jet.search.tavily import tavily_search
 
     search_foundation = "What are the steps for the following task? {task}"
     search_query = search_foundation.format(task=approach["task"])
