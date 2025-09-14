@@ -13,9 +13,8 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    # search = DuckDuckGoSearch()
     with DuckDuckGoSearch() as search:
-        query = "Top isekai anime 2025"
+        query = "Top 10 isekai anime 2025 with release date, synopsis, number of episode, airing status"
 
         # Text search
         results = search.text(query, max_results=10)
