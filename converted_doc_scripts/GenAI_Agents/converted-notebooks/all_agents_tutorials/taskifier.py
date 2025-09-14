@@ -152,10 +152,13 @@ def approach_analysis(approach: ApproachState) -> ApproachState:
 def task_manifest(approach: ApproachState) -> ApproachState:
     """use Tavily to look up information on the task."""
 
+    from jet.search.tavily import tavily_search
+
     search_foundation = "What are the steps for the following task? {task}"
     search_query = search_foundation.format(task=approach["task"])
 
-    searches = tavily_client.search(search_query, max_results=10)
+    searches = tavily_search(
+        search_query, response_format="json", max_results=10)
 
     details = ""
 
