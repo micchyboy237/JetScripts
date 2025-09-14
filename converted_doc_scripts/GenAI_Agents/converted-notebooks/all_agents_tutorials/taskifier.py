@@ -63,13 +63,13 @@ The system follows a step-by-step approach to personalize approaching plan for q
 """
 logger.info("# **Taskifier - Intelligent Task Allocation & Management**")
 
-display(
-    Image(
-        app.get_graph().draw_mermaid_png(
-            draw_method=MermaidDrawMethod.API,
-        )
-    )
-)
+# display(
+#     Image(
+#         app.get_graph().draw_mermaid_png(
+#             draw_method=MermaidDrawMethod.API,
+#         )
+#     )
+# )
 
 """
 ## Conclusion
