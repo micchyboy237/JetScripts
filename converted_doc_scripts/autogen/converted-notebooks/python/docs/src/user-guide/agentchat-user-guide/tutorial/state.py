@@ -140,10 +140,13 @@ async def main():
     """
     logger.info("## Persisting State (File or Database)")
 
-    with open("coding/team_state.json", "w") as f:
+    team_state_dir = f"{OUTPUT_DIR}/coding"
+    os.makedirs(team_state_dir, exist_ok=True)
+
+    with open(f"{team_state_dir}/team_state.json", "w") as f:
         json.dump(team_state, f)
 
-    with open("coding/team_state.json", "r") as f:
+    with open(f"{team_state_dir}/team_state.json", "r") as f:
         team_state = json.load(f)
 
     new_agent_team = RoundRobinGroupChat(
