@@ -1,39 +1,36 @@
+from jet.transformers.formatters import format_json
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.ui import Console
+from autogen_core.memory import ListMemory, MemoryContent, MemoryMimeType
+from autogen_core.memory import Memory, MemoryContent, MemoryMimeType
+from autogen_core.memory import MemoryContent, MemoryMimeType
+from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
+from autogen_ext.memory.mem0 import Mem0Memory
+from autogen_ext.memory.redis import RedisMemory, RedisMemoryConfig
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
+from jet.logger import logger
+from pathlib import Path
+from typing import List
+import aiofiles
+import aiohttp
+import os
+import re
+import shutil
+import tempfile
+
+
 async def main():
-    from jet.models.config import MODELS_CACHE_DIR
-    from jet.transformers.formatters import format_json
-    from autogen_agentchat.agents import AssistantAgent
-    from autogen_agentchat.ui import Console
-    from autogen_core.memory import ListMemory, MemoryContent, MemoryMimeType
-    from autogen_core.memory import Memory, MemoryContent, MemoryMimeType
-    from autogen_core.memory import MemoryContent, MemoryMimeType
-    from autogen_ext.memory.chromadb import (
-        ChromaDBVectorMemory,
-        PersistentChromaDBVectorMemoryConfig,
-        SentenceTransformerEmbeddingFunctionConfig,
-    )
-    from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
-    from autogen_ext.memory.mem0 import Mem0Memory
-    from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
-    from jet.adapters.autogen.redis_memory import RedisMemory, RedisMemoryConfig
-    from jet.logger import CustomLogger
-    from logging import WARNING, getLogger
-    from pathlib import Path
-    from typing import List
-    import aiofiles
-    import aiohttp
-    import os
-    import re
-    import shutil
-    import tempfile
 
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    LOG_DIR = f"{OUTPUT_DIR}/logs"
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    log_file = os.path.join(OUTPUT_DIR, "main.log")
+    logger.basicConfig(filename=log_file)
+    logger.info(f"Logs: {log_file}")
 
-    log_file = os.path.join(LOG_DIR, "main.log")
-    logger = CustomLogger(log_file, overwrite=True)
-    logger.orange(f"Logs: {log_file}")
+    PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+    os.makedirs(PERSIST_DIR, exist_ok=True)
 
     """
     ## Memory and RAG
@@ -115,7 +112,7 @@ async def main():
     
     - `autogen_ext.memory.chromadb.ChromaDBVectorMemory`: A memory store that uses a vector database to store and retrieve information.
     
-    - `autogen_ext.memory.chromadb.SentenceTransformerEmbeddingFunctionConfig`: A configuration class for the SentenceTransformer embedding function used by the `ChromaDBVectorMemory` store. Note that other embedding functions such as `autogen_ext.memory.openai.HuggingFaceEmbeddingFunctionConfig` can also be used with the `ChromaDBVectorMemory` store.
+    - `autogen_ext.memory.chromadb.SentenceTransformerEmbeddingFunctionConfig`: A configuration class for the SentenceTransformer embedding function used by the `ChromaDBVectorMemory` store. Note that other embedding functions such as `autogen_ext.memory.ollama.OpenAIEmbeddingFunctionConfig` can also be used with the `ChromaDBVectorMemory` store.
     
     - `autogen_ext.memory.redis.RedisMemory`: A memory store that uses a Redis vector database to store and retrieve information.
     """
@@ -182,9 +179,6 @@ async def main():
     See {py:class}`~autogen_ext.memory.redis.RedisMemory` for instructions to run Redis locally or via Docker.
     """
     logger.info("### Redis Memory")
-
-    logger = getLogger()
-    logger.setLevel(WARNING)
 
     redis_memory = RedisMemory(
         config=RedisMemoryConfig(
@@ -336,7 +330,7 @@ async def main():
             "https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/termination.html",
         ]
         chunks: int = await indexer.index_documents(sources)
-        logger.success(format_json(chunks))
+        logger.success(format_json(chunks: int))
         logger.debug(
             f"Indexed {chunks} chunks from {len(sources)} AutoGen documents")
 

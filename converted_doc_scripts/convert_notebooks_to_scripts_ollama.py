@@ -738,7 +738,9 @@ if __name__ == "__main__":
     include_files = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/graph-flow.ipynb",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/tutorial/",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/examples/",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/serialize-components.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/tracing.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/swarm.ipynb",
     ]
     exclude_files = [
         "_*.py",
