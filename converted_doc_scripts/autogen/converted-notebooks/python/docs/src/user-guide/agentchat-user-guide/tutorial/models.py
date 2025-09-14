@@ -7,7 +7,7 @@ from autogen_core.models import UserMessage
 from autogen_ext.auth.azure import AzureTokenProvider
 from autogen_ext.models.anthropic import AnthropicChatCompletionClient
 from autogen_ext.models.azure import AzureAIChatCompletionClient
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from azure.core.credentials import AzureKeyCredential
 from azure.identity import DefaultAzureCredential

@@ -6,7 +6,7 @@ from autogen_agentchat.messages import HandoffMessage
 from autogen_agentchat.teams import Swarm
 from autogen_agentchat.ui import Console
 from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from jet.logger import CustomLogger
 from typing import Any, Dict, List
 import os

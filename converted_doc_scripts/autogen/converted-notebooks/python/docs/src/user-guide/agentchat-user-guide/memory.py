@@ -13,7 +13,7 @@ async def main():
     )
     from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
     from autogen_ext.memory.mem0 import Mem0Memory
-    from autogen_ext.models.ollama import OllamaChatCompletionClient
+    from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
     from jet.adapters.autogen.redis_memory import RedisMemory, RedisMemoryConfig
     from jet.logger import CustomLogger
     from logging import WARNING, getLogger

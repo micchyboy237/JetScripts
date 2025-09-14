@@ -6,7 +6,7 @@ async def main():
     from autogen_agentchat.ui import Console
     from autogen_core import CancellationToken
     from autogen_core.models import UserMessage
-    from autogen_ext.models.ollama import OllamaChatCompletionClient
+    from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
     from azure.core.credentials import AzureKeyCredential
     from dotenv import load_dotenv
     from jet.logger import CustomLogger

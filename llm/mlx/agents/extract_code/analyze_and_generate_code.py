@@ -5,7 +5,7 @@ import shutil
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_core.tools import FunctionTool
 from autogen_agentchat.agents import UserProxyAgent, AssistantAgent
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from dotenv import load_dotenv
 
 from jet.file.utils import save_file

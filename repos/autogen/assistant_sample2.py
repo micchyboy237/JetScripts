@@ -10,7 +10,7 @@ from PIL import Image as PILImage
 
 from autogen_core.tools import FunctionTool
 from autogen_agentchat.agents import AssistantAgent
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from jet.logger import logger
 from jet.transformers.formatters import format_json
 

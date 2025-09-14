@@ -7,7 +7,7 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
-from jet.llm.mlx.adapters.mlx_autogen_chat_llm_adapter import MLXAutogenChatLLMAdapter
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from jet.logger import CustomLogger
 from typing import List, Sequence
 import os
@@ -128,8 +128,7 @@ conversation_id = str(uuid.uuid4())
 planning_agent = AssistantAgent(
     "PlanningAgent",
     description="An agent for planning tasks, this agent should be the first to engage when given a new task.",
-    model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct-4bit", name="PlanningAgent", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/planning_chats"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     system_message="""
     You are a planning agent.
     Your job is to break down complex tasks into smaller, manageable subtasks.
@@ -150,8 +149,7 @@ web_search_agent = AssistantAgent(
     "WebSearchAgent",
     description="An agent for searching information on the web.",
     tools=[search_web_tool],
-    model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct-4bit", name="WebSearchAgent", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/web_search_chats"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     system_message="""
     You are a web search agent.
     Your only tool is search_tool - use it to find information.
@@ -163,8 +161,7 @@ web_search_agent = AssistantAgent(
 data_analyst_agent = AssistantAgent(
     "DataAnalystAgent",
     description="An agent for performing calculations.",
-    model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct-4bit", name="DataAnalystAgent", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/data_analyst_chats"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     tools=[percentage_change_tool],
     system_message="""
     You are a data analyst.
@@ -264,8 +261,7 @@ logger.info("### Running the Team")
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
     name="GroupChatManager",
-    model_client=MLXAutogenChatLLMAdapter(
-        model="llama-3.2-3b-instruct-4bit", name="GroupChatManager", conversation_id=conversation_id, log_dir=f"{OUTPUT_DIR}/group_chat_manager_chats"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     # Allow an agent to speak multiple turns in a row.
@@ -320,7 +316,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     allow_repeated_speaker=True,
@@ -388,7 +384,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     termination_condition=termination,
     candidate_func=candidate_func,
 )
@@ -438,7 +434,7 @@ async def run_async_code_a5b70700():
 asyncio.run(run_async_code_a5b70700())
 team = SelectorGroupChat(
     [planning_agent, web_search_agent, data_analyst_agent, user_proxy_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     termination_condition=termination,
     selector_prompt=selector_prompt,
     selector_func=selector_func_with_user_proxy,
@@ -480,14 +476,14 @@ web_search_agent = AssistantAgent(
     "WebSearchAgent",
     description="An agent for searching information on the web.",
     tools=[search_web_tool],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     system_message="""Use web search tool to find information.""",
 )
 
 data_analyst_agent = AssistantAgent(
     "DataAnalystAgent",
     description="An agent for performing calculations.",
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     tools=[percentage_change_tool],
     system_message="""Use tool to perform calculation. If you have not seen the data, ask for it.""",
 )
@@ -510,7 +506,7 @@ When the task is complete, let the user approve or disapprove the task.
 
 team = SelectorGroupChat(
     [web_search_agent, data_analyst_agent, user_proxy_agent],
-    model_client=MLXAutogenChatLLMAdapter(model="llama-3.2-3b-instruct-4bit"),
+    model_client=OllamaChatCompletionClient(model="llama3.2"),
     # Use the same termination condition as before.
     termination_condition=termination,
     selector_prompt=selector_prompt,

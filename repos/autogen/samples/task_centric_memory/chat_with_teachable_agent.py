@@ -1,6 +1,6 @@
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_ext.experimental.task_centric_memory import MemoryController
 from autogen_ext.experimental.task_centric_memory.utils import Teachability
 

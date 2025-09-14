@@ -6,7 +6,7 @@ from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core import AgentRuntime, SingleThreadedAgentRuntime
 # from autogen_ext.models.replay import ReplayChatCompletionClient
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 
 from jet.transformers.object import make_serializable
 from jet.transformers.formatters import format_json

@@ -723,9 +723,12 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
     ]
-    include_files = []
+    include_files = [
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen/python/docs/src/user-guide/agentchat-user-guide/selector-group-chat.ipynb",
+    ]
     exclude_files = [
         "_*.py",
     ]

@@ -3,7 +3,7 @@ from jet.transformers.formatters import format_json
 from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import AssistantMessage, ChatCompletionClient, SystemMessage, UserMessage
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from dataclasses import dataclass
 from jet.logger import CustomLogger
 import os

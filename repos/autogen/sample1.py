@@ -5,7 +5,7 @@ from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 
 

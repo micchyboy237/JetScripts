@@ -13,7 +13,7 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from dataclasses import dataclass
 from jet.logger import CustomLogger
 from typing import List

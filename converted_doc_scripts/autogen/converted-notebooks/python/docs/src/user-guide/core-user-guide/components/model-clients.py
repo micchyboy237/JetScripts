@@ -8,7 +8,7 @@ from autogen_core.models import CreateResult, UserMessage
 from autogen_core.models import UserMessage
 from autogen_ext.cache_store.diskcache import DiskCacheStore
 from autogen_ext.models.cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
-from autogen_ext.models.ollama import OllamaChatCompletionClient
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
 from dataclasses import dataclass
 from diskcache import Cache
 from jet.logger import CustomLogger

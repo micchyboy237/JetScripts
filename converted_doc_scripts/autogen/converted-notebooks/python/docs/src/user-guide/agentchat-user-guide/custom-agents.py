@@ -14,7 +14,7 @@ async def main():
     from autogen_core import CancellationToken, Component
     from autogen_core.model_context import UnboundedChatCompletionContext
     from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
-    from autogen_ext.models.ollama import OllamaChatCompletionClient
+    from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
     from google import genai
     from google.genai import types
     from jet.logger import CustomLogger
@@ -25,17 +25,16 @@ async def main():
     from typing_extensions import Self
     import os
     import shutil
-    
-    
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     LOG_DIR = f"{OUTPUT_DIR}/logs"
-    
+
     log_file = os.path.join(LOG_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.orange(f"Logs: {log_file}")
-    
+
     """
     # Custom Agents
     
@@ -62,19 +61,16 @@ async def main():
     and produces a stream of messages with the current count.
     """
     logger.info("# Custom Agents")
-    
-    
-    
-    
+
     class CountDownAgent(BaseChatAgent):
         def __init__(self, name: str, count: int = 3):
             super().__init__(name, "A simple agent that counts down.")
             self._count = count
-    
+
         @property
         def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
             return (TextMessage,)
-    
+
         async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
             response: Response | None = None
             async for message in self.on_messages_stream(messages, cancellation_token):
@@ -82,7 +78,7 @@ async def main():
                     response = message
             assert response is not None
             return response
-    
+
         async def on_messages_stream(
             self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
         ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
@@ -92,23 +88,21 @@ async def main():
                 inner_messages.append(msg)
                 yield msg
             yield Response(chat_message=TextMessage(content="Done!", source=self.name), inner_messages=inner_messages)
-    
+
         async def on_reset(self, cancellation_token: CancellationToken) -> None:
             pass
-    
-    
+
     async def run_countdown_agent() -> None:
         countdown_agent = CountDownAgent("countdown")
-    
+
         async for message in countdown_agent.on_messages_stream([], CancellationToken()):
             if isinstance(message, Response):
                 logger.debug(message.chat_message)
             else:
                 logger.debug(message)
-    
-    
+
     await run_countdown_agent()
-    
+
     """
     ## ArithmeticAgent
     
@@ -123,32 +117,30 @@ async def main():
     and returns a response with the result.
     """
     logger.info("## ArithmeticAgent")
-    
-    
-    
-    
+
     class ArithmeticAgent(BaseChatAgent):
         def __init__(self, name: str, description: str, operator_func: Callable[[int], int]) -> None:
             super().__init__(name, description=description)
             self._operator_func = operator_func
             self._message_history: List[BaseChatMessage] = []
-    
+
         @property
         def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
             return (TextMessage,)
-    
+
         async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
             self._message_history.extend(messages)
             assert isinstance(self._message_history[-1], TextMessage)
             number = int(self._message_history[-1].content)
             result = self._operator_func(number)
-            response_message = TextMessage(content=str(result), source=self.name)
+            response_message = TextMessage(
+                content=str(result), source=self.name)
             self._message_history.append(response_message)
             return Response(chat_message=response_message)
-    
+
         async def on_reset(self, cancellation_token: CancellationToken) -> None:
             pass
-    
+
     """
     ```{note}
     The `on_messages` method may be called with an empty list of messages, in which
@@ -172,39 +164,47 @@ async def main():
     - allow the same agent to be selected consecutively to allow for repeated operations, and
     - customize the selector prompt to tailor the model's response to the specific task.
     """
-    logger.info("The `on_messages` method may be called with an empty list of messages, in which")
-    
+    logger.info(
+        "The `on_messages` method may be called with an empty list of messages, in which")
+
     async def run_number_agents() -> None:
-        add_agent = ArithmeticAgent("add_agent", "Adds 1 to the number.", lambda x: x + 1)
-        multiply_agent = ArithmeticAgent("multiply_agent", "Multiplies the number by 2.", lambda x: x * 2)
-        subtract_agent = ArithmeticAgent("subtract_agent", "Subtracts 1 from the number.", lambda x: x - 1)
-        divide_agent = ArithmeticAgent("divide_agent", "Divides the number by 2 and rounds down.", lambda x: x // 2)
-        identity_agent = ArithmeticAgent("identity_agent", "Returns the number as is.", lambda x: x)
-    
+        add_agent = ArithmeticAgent(
+            "add_agent", "Adds 1 to the number.", lambda x: x + 1)
+        multiply_agent = ArithmeticAgent(
+            "multiply_agent", "Multiplies the number by 2.", lambda x: x * 2)
+        subtract_agent = ArithmeticAgent(
+            "subtract_agent", "Subtracts 1 from the number.", lambda x: x - 1)
+        divide_agent = ArithmeticAgent(
+            "divide_agent", "Divides the number by 2 and rounds down.", lambda x: x // 2)
+        identity_agent = ArithmeticAgent(
+            "identity_agent", "Returns the number as is.", lambda x: x)
+
         termination_condition = MaxMessageTermination(10)
-    
+
         selector_group_chat = SelectorGroupChat(
-            [add_agent, multiply_agent, subtract_agent, divide_agent, identity_agent],
+            [add_agent, multiply_agent, subtract_agent,
+                divide_agent, identity_agent],
             model_client=OllamaChatCompletionClient(model="llama3.2"),
             termination_condition=termination_condition,
-            allow_repeated_speaker=True,  # Allow the same agent to speak multiple times, necessary for this task.
+            # Allow the same agent to speak multiple times, necessary for this task.
+            allow_repeated_speaker=True,
             selector_prompt=(
                 "Available roles:\n{roles}\nTheir job descriptions:\n{participants}\n"
                 "Current conversation history:\n{history}\n"
                 "Please select the most appropriate role for the next message, and only return the role name."
             ),
         )
-    
+
         task: List[BaseChatMessage] = [
-            TextMessage(content="Apply the operations to turn the given number into 25.", source="user"),
+            TextMessage(
+                content="Apply the operations to turn the given number into 25.", source="user"),
             TextMessage(content="10", source="user"),
         ]
         stream = selector_group_chat.run_stream(task=task)
         await Console(stream)
-    
-    
+
     await run_number_agents()
-    
+
     """
     From the output, we can see that the agents have successfully transformed the input integer
     from 10 to 25 by choosing appropriate agents that apply the arithmetic operations in sequence.
@@ -224,10 +224,7 @@ async def main():
     ```
     """
     logger.info("## Using Custom Model Clients in Custom Agents")
-    
-    
-    
-    
+
     class GeminiAssistantAgent(BaseChatAgent):
         def __init__(
             self,
@@ -243,28 +240,29 @@ async def main():
             self._model_client = genai.Client(api_key=api_key)
             self._system_message = system_message
             self._model = model
-    
+
         @property
         def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
             return (TextMessage,)
-    
+
         async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
             final_response = None
             async for message in self.on_messages_stream(messages, cancellation_token):
                 if isinstance(message, Response):
                     final_response = message
-    
+
             if final_response is None:
-                raise AssertionError("The stream should have returned the final result.")
-    
+                raise AssertionError(
+                    "The stream should have returned the final result.")
+
             return final_response
-    
+
         async def on_messages_stream(
             self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
         ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
             for msg in messages:
                 await self._model_context.add_message(msg.to_model_message())
-    
+
             history = [
                 (msg.source if hasattr(msg, "source") else "system")
                 + ": "
@@ -280,55 +278,55 @@ async def main():
                     temperature=0.3,
                 ),
             )
-    
+
             usage = RequestUsage(
                 prompt_tokens=response.usage_metadata.prompt_token_count,
                 completion_tokens=response.usage_metadata.candidates_token_count,
             )
-    
+
             await self._model_context.add_message(AssistantMessage(content=response.text, source=self.name))
-    
+
             yield Response(
-                chat_message=TextMessage(content=response.text, source=self.name, models_usage=usage),
+                chat_message=TextMessage(
+                    content=response.text, source=self.name, models_usage=usage),
                 inner_messages=[],
             )
-    
+
         async def on_reset(self, cancellation_token: CancellationToken) -> None:
             """Reset the assistant by clearing the model context."""
             await self._model_context.clear()
-    
+
     gemini_assistant = GeminiAssistantAgent("gemini_assistant")
     await Console(gemini_assistant.run_stream(task="What is the capital of New York?"))
-    
+
     """
     In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design. 
     
     Now, let us explore how to use this custom agent as part of a team in AgentChat.
     """
     logger.info("In the example above, we have chosen to provide `model`, `api_key` and `system_message` as arguments - you can choose to provide any other arguments that are required by the model client you are using or fits with your application design.")
-    
-    
+
     model_client = OllamaChatCompletionClient(model="llama3.2")
-    
+
     primary_agent = AssistantAgent(
         "primary",
         model_client=model_client,
         system_message="You are a helpful AI assistant.",
     )
-    
+
     gemini_critic_agent = GeminiAssistantAgent(
         "gemini_critic",
         system_message="Provide constructive feedback. Respond with 'APPROVE' to when your feedbacks are addressed.",
     )
-    
-    
+
     termination = TextMentionTermination("APPROVE") | MaxMessageTermination(10)
-    
-    team = RoundRobinGroupChat([primary_agent, gemini_critic_agent], termination_condition=termination)
-    
+
+    team = RoundRobinGroupChat(
+        [primary_agent, gemini_critic_agent], termination_condition=termination)
+
     await Console(team.run_stream(task="Write a Haiku poem with 4 lines about the fall season."))
     await model_client.close()
-    
+
     """
     In section above, we show several very important concepts:
     - We have developed a custom agent that uses the Google Gemini SDK to respond to messages. 
@@ -342,20 +340,17 @@ async def main():
     The declarative class can be serialized to a JSON format using the `dump_component` method, and deserialized from a JSON format using the `load_component` method.
     """
     logger.info("## Making the Custom Agent Declarative")
-    
-    
-    
-    
+
     class GeminiAssistantAgentConfig(BaseModel):
         name: str
         description: str = "An agent that provides assistance with ability to use tools."
         model: str = "gemini-1.5-flash-002"
         system_message: str | None = None
-    
-    
-    class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig]):  # type: ignore[no-redef]
+
+    # type: ignore[no-redef]
+    class GeminiAssistantAgent(BaseChatAgent, Component[GeminiAssistantAgentConfig]):
         component_config_schema = GeminiAssistantAgentConfig
-    
+
         def __init__(
             self,
             name: str,
@@ -370,28 +365,29 @@ async def main():
             self._model_client = genai.Client(api_key=api_key)
             self._system_message = system_message
             self._model = model
-    
+
         @property
         def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
             return (TextMessage,)
-    
+
         async def on_messages(self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken) -> Response:
             final_response = None
             async for message in self.on_messages_stream(messages, cancellation_token):
                 if isinstance(message, Response):
                     final_response = message
-    
+
             if final_response is None:
-                raise AssertionError("The stream should have returned the final result.")
-    
+                raise AssertionError(
+                    "The stream should have returned the final result.")
+
             return final_response
-    
+
         async def on_messages_stream(
             self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
         ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
             for msg in messages:
                 await self._model_context.add_message(msg.to_model_message())
-    
+
             history = [
                 (msg.source if hasattr(msg, "source") else "system")
                 + ": "
@@ -399,7 +395,7 @@ async def main():
                 + "\n"
                 for msg in await self._model_context.get_messages()
             ]
-    
+
             response = self._model_client.models.generate_content(
                 model=self._model,
                 contents=f"History: {history}\nGiven the history, please provide a response",
@@ -408,29 +404,30 @@ async def main():
                     temperature=0.3,
                 ),
             )
-    
+
             usage = RequestUsage(
                 prompt_tokens=response.usage_metadata.prompt_token_count,
                 completion_tokens=response.usage_metadata.candidates_token_count,
             )
-    
+
             await self._model_context.add_message(AssistantMessage(content=response.text, source=self.name))
-    
+
             yield Response(
-                chat_message=TextMessage(content=response.text, source=self.name, models_usage=usage),
+                chat_message=TextMessage(
+                    content=response.text, source=self.name, models_usage=usage),
                 inner_messages=[],
             )
-    
+
         async def on_reset(self, cancellation_token: CancellationToken) -> None:
             """Reset the assistant by clearing the model context."""
             await self._model_context.clear()
-    
+
         @classmethod
         def _from_config(cls, config: GeminiAssistantAgentConfig) -> Self:
             return cls(
                 name=config.name, description=config.description, model=config.model, system_message=config.system_message
             )
-    
+
         def _to_config(self) -> GeminiAssistantAgentConfig:
             return GeminiAssistantAgentConfig(
                 name=self.name,
@@ -438,20 +435,20 @@ async def main():
                 model=self._model,
                 system_message=self._system_message,
             )
-    
+
     """
     Now that we have the required methods implemented, we can now load and dump the custom agent to and from a JSON format, and then load the agent from the JSON format.
      
      > Note: You should set the `component_provider_override` class variable to the full path of the module containing the custom agent class e.g., (`mypackage.agents.GeminiAssistantAgent`). This is used by   `load_component` method to determine how to instantiate the class.
     """
     logger.info("Now that we have the required methods implemented, we can now load and dump the custom agent to and from a JSON format, and then load the agent from the JSON format.")
-    
+
     gemini_assistant = GeminiAssistantAgent("gemini_assistant")
     config = gemini_assistant.dump_component()
     logger.debug(config.model_dump_json(indent=2))
     loaded_agent = GeminiAssistantAgent.load_component(config)
     logger.debug(loaded_agent)
-    
+
     """
     ## Next Steps 
     
@@ -461,7 +458,7 @@ async def main():
     - Implement a package with a custom agent and experiment with using its declarative format in a tool like [AutoGen Studio](https://microsoft.github.io/autogen/stable/user-guide/autogenstudio-user-guide/index.html).
     """
     logger.info("## Next Steps")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':
