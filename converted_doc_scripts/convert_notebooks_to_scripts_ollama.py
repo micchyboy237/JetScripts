@@ -46,6 +46,7 @@ REPLACE_OLLAMA_MAP = {
     "claude-3-5-sonnet-latest": "llama3.2",
     "text-embedding-3-small": "mxbai-embed-large",
     "autogen_ext.models.ollama": "jet.adapters.autogen.ollama_client",
+    "OpenAIChatCompletionClient": "OllamaChatCompletionClient",
 }
 
 REPLACE_ASYNC_MAP = {
@@ -80,8 +81,10 @@ def generate_unique_function_name(line):
 def replace_code_line(line: str):
     updated_line = line
     for old_line, new_line in {**REPLACE_OLLAMA_MAP, **REPLACE_PATHS_MAP}.items():
-        if old_line in line:
-            updated_line = updated_line.replace(old_line, new_line)
+        # Handle multi-part imports by replacing dots with escaped dots for regex
+        old_line_regex = old_line.replace(".", r"\.")
+        updated_line = re.sub(
+            rf'\b{old_line_regex}\b', new_line, updated_line)
     return updated_line
 
 
@@ -252,6 +255,11 @@ def update_code_with_ollama(code: str) -> str:
         r'f"{GENERATED_DIR}/',
         updated_code
     )
+    # Ensure import replacements are applied to the entire code after line-by-line processing
+    for old_line, new_line in REPLACE_OLLAMA_MAP.items():
+        old_line_regex = old_line.replace(".", r"\.")
+        updated_code = re.sub(
+            rf'\b{old_line_regex}\b', new_line, updated_code)
     return updated_code
 
 

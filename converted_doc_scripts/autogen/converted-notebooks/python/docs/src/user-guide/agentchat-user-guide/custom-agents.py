@@ -1,39 +1,43 @@
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.agents import BaseChatAgent
+from autogen_agentchat.base import Response
+from autogen_agentchat.conditions import MaxMessageTermination
+from autogen_agentchat.conditions import TextMentionTermination
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
+from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, TextMessage
+from autogen_agentchat.messages import BaseChatMessage
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_agentchat.teams import SelectorGroupChat
+from autogen_agentchat.ui import Console
+from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component
+from autogen_core.model_context import UnboundedChatCompletionContext
+from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
+from google import genai
+from google.genai import types
+from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
+from jet.logger import logger
+from pydantic import BaseModel
+from typing import AsyncGenerator, List, Sequence
+from typing import AsyncGenerator, Sequence
+from typing import Callable, Sequence
+from typing_extensions import Self
+import os
+import shutil
+
+
 async def main():
-    from autogen_agentchat.agents import AssistantAgent
-    from autogen_agentchat.agents import BaseChatAgent
-    from autogen_agentchat.base import Response
-    from autogen_agentchat.conditions import MaxMessageTermination
-    from autogen_agentchat.conditions import TextMentionTermination
-    from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage
-    from autogen_agentchat.messages import BaseAgentEvent, BaseChatMessage, TextMessage
-    from autogen_agentchat.messages import BaseChatMessage
-    from autogen_agentchat.teams import RoundRobinGroupChat
-    from autogen_agentchat.teams import SelectorGroupChat
-    from autogen_agentchat.ui import Console
-    from autogen_core import CancellationToken
-    from autogen_core import CancellationToken, Component
-    from autogen_core.model_context import UnboundedChatCompletionContext
-    from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
-    from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
-    from google import genai
-    from google.genai import types
-    from jet.logger import CustomLogger
-    from pydantic import BaseModel
-    from typing import AsyncGenerator, List, Sequence
-    from typing import AsyncGenerator, Sequence
-    from typing import Callable, Sequence
-    from typing_extensions import Self
-    import os
-    import shutil
 
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    LOG_DIR = f"{OUTPUT_DIR}/logs"
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    log_file = os.path.join(OUTPUT_DIR, "main.log")
+    logger.basicConfig(filename=log_file)
+    logger.info(f"Logs: {log_file}")
 
-    log_file = os.path.join(LOG_DIR, "main.log")
-    logger = CustomLogger(log_file, overwrite=True)
-    logger.orange(f"Logs: {log_file}")
+    PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+    os.makedirs(PERSIST_DIR, exist_ok=True)
 
     """
     # Custom Agents
@@ -206,8 +210,7 @@ async def main():
     await run_number_agents()
 
     """
-    From the output, we can see that the agents have successfully transformed the input integer
-    from 10 to 25 by choosing appropriate agents that apply the arithmetic operations in sequence.
+    From the output, we can see that the agents have successfully transformed the input integer from 10 to 25 by choosing appropriate agents that apply the arithmetic operations in sequence.
     
     ## Using Custom Model Clients in Custom Agents
     
