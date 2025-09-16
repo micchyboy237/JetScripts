@@ -1,3 +1,4 @@
+from requests.exceptions import HTTPError
 from IPython.display import Image, display, Markdown
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -930,15 +931,24 @@ logger.info("### E. Paper Writing Functions Explained")
 
 def _make_api_call(model, messages, temperature=0.1):
     @retry(
-        retry=retry_if_exception_type(ollama.RateLimitError),
+        retry=retry_if_exception_type(HTTPError),
         wait=wait_exponential(multiplier=1, min=4, max=60),
         stop=stop_after_attempt(5)
     )
     def _call():
         try:
-            return model.invoke(messages, temperature=temperature)
-        except ollama.RateLimitError as e:
-            logger.debug(f"Rate limit reached. Waiting before retry... ({e})")
+            response = model.invoke(messages, temperature=temperature)
+            return response
+        except HTTPError as e:
+            if e.response.status_code == 429:
+                logger.debug(
+                    f"Rate limit reached. Waiting before retry... ({e})")
+                raise
+            else:
+                logger.debug(f"Non-rate-limit HTTP error: {str(e)}")
+                raise
+        except Exception as e:
+            logger.debug(f"Unexpected error in API call: {str(e)}")
             raise
     return _call()
 
