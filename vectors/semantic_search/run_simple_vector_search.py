@@ -17,7 +17,7 @@ if __name__ == "__main__":
     # model_name: EmbedModelType = "mxbai-embed-large"
     # model_name: EmbedModelType = "nomic-embed-text"
     # model_name: EmbedModelType = "all-MiniLM-L6-v2"
-    model_name: EmbedModelType = "embeddinggemma-300m"
+    model_name: EmbedModelType = "embeddinggemma"
     # model_name: EmbedModelType = "static-retrieval-mrl-en-v1"
     # Same example queries
     queries = [

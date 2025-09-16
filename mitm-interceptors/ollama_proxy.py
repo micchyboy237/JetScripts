@@ -399,9 +399,14 @@ def request(flow: http.HTTPFlow):
 
     limit = 15
 
+    logger.log("\n")
+    url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
+
     logger.newline()
     logger.log("request client_conn.id:", flow.client_conn.id,
                colors=["WHITE", "PURPLE"])
+
+    logger.info(f"URL: {url}")
 
     # Store the start time for the request
     start_times[flow.id] = time.time()
@@ -427,9 +432,6 @@ def request(flow: http.HTTPFlow):
         logger.success("Embedding request received")
 
     elif any(path in flow.request.path for path in ["/chat"]):
-        logger.log("\n")
-        url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
-
         header_log_filename = next(
             (field[1] for field in request_dict["headers"]
              ["fields"] if field[0].lower() == "log-filename"),
@@ -458,7 +460,6 @@ def request(flow: http.HTTPFlow):
             remove_old_files_by_limit(os.path.join(LOGS_DIR, sub_dir), limit)
         log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
 
-        logger.info(f"URL: {url}")
         # Log the serialized data as a JSON string
         request_content: dict = request_dict["content"].copy()
         messages = request_content.pop("messages", None)
@@ -527,8 +528,6 @@ def request(flow: http.HTTPFlow):
 
     elif any(path in flow.request.path for path in ["/generate"]):
         request_dict = make_serializable(flow.request.data)
-        logger.log("\n")
-        url = f"{flow.request.scheme}//{flow.request.host}{flow.request.path}"
 
         header_log_filename = next(
             (field[1] for field in request_dict["headers"]
@@ -557,7 +556,6 @@ def request(flow: http.HTTPFlow):
             remove_old_files_by_limit(os.path.join(LOGS_DIR, sub_dir), limit)
         log_file_path = generate_log_file_path(LOGS_DIR, log_base_dir)
 
-        logger.info(f"URL: {url}")
         # Log the serialized data as a JSON string
         request_content: dict = request_dict["content"].copy()
         prompt = request_content.pop("prompt", None)

@@ -19,7 +19,10 @@ def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLA
     #     model="nomic-embed-text"
     # )
     # embed_results = embedding_function(texts)
+
+    # embed_func = get_ollama_embedding_function(model, url=url)
     embed_func = get_embedding_function(model, url=url)
+
     embed_results = embed_func(texts)
     return embed_results
 
