@@ -571,8 +571,12 @@ def get_relevant_messages(state: AgentState) -> List[AnyMessage]:
     for message in messages:
         if isinstance(message, HumanMessage) and message.content != "":
             filtered_history.append(message)
-        elif isinstance(message, AIMessage) and message.content != "" and message.response_metadata['finish_reason'] == "stop":
-            filtered_history.append(message)
+        elif isinstance(message, AIMessage) and message.content != "":
+            # Check if response_metadata exists and has finish_reason
+            metadata = getattr(message, 'response_metadata', {})
+            logger.debug(f"AIMessage metadata: {metadata}")
+            if not metadata or 'finish_reason' not in metadata or metadata['finish_reason'] == "stop":
+                filtered_history.append(message)
     last_human_index = state['last_human_index']
     return filtered_history[:-1] + messages[last_human_index:]
 
