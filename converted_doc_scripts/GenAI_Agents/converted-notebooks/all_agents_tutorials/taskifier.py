@@ -1,6 +1,7 @@
 from IPython.display import display, Image, Markdown
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import CustomLogger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
@@ -209,6 +210,8 @@ workflow.set_entry_point("approach_analysis")
 workflow.add_edge("customized_approach_generation", END)
 
 app = workflow.compile()
+
+render_mermaid_graph(app, output_filename=f"{OUTPUT_DIR}/graph_output.png")
 
 """
 ## Agent Calling Function
