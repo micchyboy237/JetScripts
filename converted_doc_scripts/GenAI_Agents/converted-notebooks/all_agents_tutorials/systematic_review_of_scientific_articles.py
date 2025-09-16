@@ -228,6 +228,7 @@ class AcademicPaperSearchTool(BaseTool):
         raise NotImplementedError("Async version not implemented")
 
     def query_academic_api(self, topic: str, max_results: int) -> List[Dict[str, Any]]:
+        logger.debug("Tool: Executing [query_academic_api]...")
         base_url = "https://api.semanticscholar.org/graph/v1/paper/search"
         params = {
             "query": topic,
@@ -572,10 +573,10 @@ def get_relevant_messages(state: AgentState) -> List[AnyMessage]:
         if isinstance(message, HumanMessage) and message.content != "":
             filtered_history.append(message)
         elif isinstance(message, AIMessage) and message.content != "":
-            # Check if response_metadata exists and has finish_reason
+            # Check if response_metadata exists and has done_reason
             metadata = getattr(message, 'response_metadata', {})
             logger.debug(f"AIMessage metadata: {metadata}")
-            if not metadata or 'finish_reason' not in metadata or metadata['finish_reason'] == "stop":
+            if not metadata or 'done_reason' not in metadata or metadata['done_reason'] == "stop":
                 filtered_history.append(message)
     last_human_index = state['last_human_index']
     return filtered_history[:-1] + messages[last_human_index:]
@@ -690,28 +691,36 @@ def take_action(state: AgentState):
     '''
     logger.debug("GET SEARCH RESULTS")
     last_message = state["messages"][-1]
-    tool_log_file = os.path.join(LOG_DIR, "tool_calls.log")
-    if not hasattr(last_message, 'tool_calls') or not last_message.tool_calls:
-        logger.debug("No tool calls found in last message",
-                     log_file=tool_log_file)
-        return {"messages": state['messages']}
+
+    # If tool_calls doesn't exist or is empty, search for another key in state with dict containing tool_calls
+    tool_calls = getattr(last_message, 'tool_calls', None)
+    if not tool_calls:
+        found = False
+        for k, v in state.items():
+            if isinstance(v, dict) and 'tool_calls' in v and v['tool_calls']:
+                last_message = v
+                tool_calls = v['tool_calls']
+                found = True
+                break
+        if not found:
+            return {"messages": state['messages']}
+    else:
+        tool_calls = last_message.tool_calls
+
     results = []
-    for t in last_message.tool_calls:
-        logger.pretty(
-            {"tool_call_request": {"name": t['name'], "args": t['args']}},
-            log_file=tool_log_file
-        )
-        if not t['name'] in tools:
-            logger.debug(f"Bad tool name: {t['name']}", log_file=tool_log_file)
-            result = "bad tool name, retry"
+    for t in tool_calls:
+        logger.debug(f'Calling: {t}')
+
+        if not t['name'] in tools:  # check for bad tool name
+            logger.debug("\n ....bad tool name....")
+            result = "bad tool name, retry"  # instruct llm to retry if bad
         else:
             result = tools[t['name']].invoke(t['args'])
-            logger.pretty(
-                {"tool_call_response": {"name": t['name'], "result": result}},
-                log_file=tool_log_file
-            )
+
         results.append(ToolMessage(
             tool_call_id=t['id'], name=t['name'], content=str(result)))
+
+    # langgraph adding to state in between iterations
     return {"messages": results}
 
 
@@ -800,7 +809,7 @@ def article_download(state: AgentState):
                 "messages": [
                     AIMessage(
                         content="No valid PDFs could be downloaded, even with fallbacks.",
-                        response_metadata={"finish_reason": "error"}
+                        response_metadata={"done_reason": "error"}
                     )
                 ]
             }
@@ -808,7 +817,7 @@ def article_download(state: AgentState):
             "papers": [
                 AIMessage(
                     content=filenames,
-                    response_metadata={"finish_reason": "stop"}
+                    response_metadata={"done_reason": "stop"}
                 )
             ]
         }
@@ -817,7 +826,7 @@ def article_download(state: AgentState):
             "messages": [
                 AIMessage(
                     content=f"Error processing downloads: {str(e)}",
-                    response_metadata={"finish_reason": "error"}
+                    response_metadata={"done_reason": "error"}
                 )
             ]
         }
