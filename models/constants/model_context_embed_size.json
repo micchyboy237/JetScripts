@@ -1,5 +1,5 @@
 {
-  "model_id": "mlx-community/Mistral-7B-Instruct-v0.3-4bit",
-  "max_context": 32768,
-  "max_embeddings": 4096
+  "model_id": "google/embeddinggemma-300m",
+  "max_context": 2048,
+  "max_embeddings": 768
 }
