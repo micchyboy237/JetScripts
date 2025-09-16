@@ -11,7 +11,6 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
-@time_it
 def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLAMA_BASE_URL) -> list[list[float]]:
     # embed_model = OllamaEmbedding(model_name="embeddinggemma")
     # embed_results = embed_model.embed(texts)
