@@ -800,7 +800,7 @@ def paper_analyzer(state: AgentState):
     analyses = ""
     for paper in state['papers'][-1].content:
         # Open PDF file and extract text using pypdf
-        with open(f"{OUTPUT_DIR}/{paper['paper']}", 'rb') as file:
+        with open(paper['paper'], 'rb') as file:  # Use paper['paper'] directly
             pdf_reader = pypdf.PdfReader(file)
             text = ""
             for page in pdf_reader.pages:
