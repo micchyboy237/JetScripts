@@ -251,6 +251,9 @@ logger.debug(f"{generated_plan['task']}\n")
 logger.debug(f"Style:\n")
 logger.debug(f"{generated_plan['style']}\n")
 logger.debug(f"Steps:\n")
-generated_plan['plan'].pretty_logger.debug()
+
+logger.gray("\nResult Plan:")
+logger.success(generated_plan['plan'])
+
 
 logger.info("\n\n[DONE]", bright=True)
