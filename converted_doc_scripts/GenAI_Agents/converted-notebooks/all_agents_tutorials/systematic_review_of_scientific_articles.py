@@ -690,24 +690,28 @@ def take_action(state: AgentState):
     '''
     logger.debug("GET SEARCH RESULTS")
     last_message = state["messages"][-1]
-
+    tool_log_file = os.path.join(LOG_DIR, "tool_calls.log")
     if not hasattr(last_message, 'tool_calls') or not last_message.tool_calls:
+        logger.debug("No tool calls found in last message",
+                     log_file=tool_log_file)
         return {"messages": state['messages']}
-
     results = []
     for t in last_message.tool_calls:
-        logger.debug(f'Calling: {t}')
-
-        if not t['name'] in tools:  # check for bad tool name
-            logger.debug("\n ....bad tool name....")
-            result = "bad tool name, retry"  # instruct llm to retry if bad
+        logger.pretty(
+            {"tool_call_request": {"name": t['name'], "args": t['args']}},
+            log_file=tool_log_file
+        )
+        if not t['name'] in tools:
+            logger.debug(f"Bad tool name: {t['name']}", log_file=tool_log_file)
+            result = "bad tool name, retry"
         else:
             result = tools[t['name']].invoke(t['args'])
-
+            logger.pretty(
+                {"tool_call_response": {"name": t['name'], "result": result}},
+                log_file=tool_log_file
+            )
         results.append(ToolMessage(
             tool_call_id=t['id'], name=t['name'], content=str(result)))
-
-    # langgraph adding to state in between iterations
     return {"messages": results}
 
 
