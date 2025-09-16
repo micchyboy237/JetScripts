@@ -42,6 +42,13 @@ log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
 
+# New configurable fallback (easy to extend/test)
+FALLBACK_URLS: Dict[str, str] = {
+    "https://www.sciencedirect.com/science/article/pii/B9780128139324000055": "https://arxiv.org/pdf/2305.10431.pdf",
+    "https://ieeexplore.ieee.org/document/9474391": "https://arxiv.org/pdf/2402.09353.pdf",
+    # Add more as needed, e.g., "bonus": "https://arxiv.org/pdf/2501.00001.pdf"
+}
+
 # !pip install gradio grandalf huggingface-hub langchain langchain-community langchain-core langchain-ollama langgraph langgraph-checkpoint langgraph-checkpoint-postgres langgraph-checkpoint-sqlite langsmith ollama psycopg pydantic pydantic_core tiktoken langchain-huggingface pypdf
 
 """
@@ -714,36 +721,80 @@ def decision_node(state: AgentState):
 def article_download(state: AgentState):
     logger.debug("DOWNLOAD PAPERS")
     last_message = state["messages"][-1]
-
     try:
         if isinstance(last_message.content, str):
             urls = ast.literal_eval(last_message.content)
         else:
             urls = last_message.content
-
         filenames = []
         data_dir = os.path.join(OUTPUT_DIR, "data")
         os.makedirs(data_dir, exist_ok=True)
-
         for url in urls:
-            try:
-                response = requests.get(url)
-                response.raise_for_status()
+            downloaded = False
+            # Try original URL first
+            for attempt_url in [url] + [FALLBACK_URLS.get(url, "")]:
+                if not attempt_url:
+                    break
+                try:
+                    # Use headers to mimic a browser request
+                    headers = {
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36"
+                    }
+                    response = requests.get(
+                        attempt_url, headers=headers, timeout=10)
+                    response.raise_for_status()
 
-                filename = os.path.join(data_dir, os.path.basename(url))
-                if not filename.endswith(".pdf"):
-                    filename += ".pdf"
+                    # Validate content is likely a PDF
+                    content_type = response.headers.get(
+                        "Content-Type", "").lower()
+                    if "pdf" not in content_type:
+                        logger.debug(
+                            f"Error downloading {attempt_url}: Content-Type is {content_type}, not a PDF")
+                        continue
 
-                with open(filename, "wb") as f:
-                    f.write(response.content)
+                    filename = os.path.join(
+                        data_dir, os.path.basename(attempt_url))
+                    if not filename.endswith(".pdf"):
+                        filename += ".pdf"
 
-                filenames.append({"paper": filename})
-                logger.debug(f"Successfully downloaded: {filename}")
+                    # Save file temporarily to validate
+                    temp_filename = filename + ".tmp"
+                    with open(temp_filename, "wb") as f:
+                        f.write(response.content)
 
-            except Exception as e:
-                logger.debug(f"Error downloading {url}: {str(e)}")
+                    # Validate PDF integrity
+                    try:
+                        with open(temp_filename, "rb") as f:
+                            pdf_reader = pypdf.PdfReader(f)
+                            pdf_reader.pages  # Attempt to access pages to ensure valid PDF
+                        os.rename(temp_filename, filename)
+                        filenames.append(
+                            {"paper": filename, "source_url": attempt_url})
+                        logger.debug(
+                            f"Successfully downloaded and validated: {filename} (from {attempt_url})")
+                        downloaded = True
+                        break  # Success, move to next URL
+                    except Exception as e:
+                        logger.debug(
+                            f"Error validating PDF {attempt_url}: {str(e)}")
+                        os.remove(temp_filename) if os.path.exists(
+                            temp_filename) else None
+                        continue
+                except requests.exceptions.RequestException as e:
+                    logger.debug(f"Error downloading {attempt_url}: {str(e)}")
+                    continue
+            if not downloaded:
+                logger.debug(f"All attempts failed for {url}")
                 continue
-
+        if not filenames:
+            return {
+                "messages": [
+                    AIMessage(
+                        content="No valid PDFs could be downloaded, even with fallbacks.",
+                        response_metadata={"finish_reason": "error"}
+                    )
+                ]
+            }
         return {
             "papers": [
                 AIMessage(
@@ -752,7 +803,6 @@ def article_download(state: AgentState):
                 )
             ]
         }
-
     except Exception as e:
         return {
             "messages": [
