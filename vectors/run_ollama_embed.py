@@ -1,3 +1,4 @@
+import numpy as np
 from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.ollama.config import OLLAMA_BASE_URL
 from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function
@@ -11,7 +12,7 @@ from jet.file.utils import load_file, save_file
 from shared.data_types.job import JobData, JobEntities
 
 
-def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLAMA_BASE_URL) -> list[list[float]]:
+def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLAMA_BASE_URL) -> np.ndarray:
     # embed_model = OllamaEmbedding(model_name="embeddinggemma")
     # embed_results = embed_model.embed(texts)
     # embedding_function = get_ollama_embedding_function(
@@ -20,7 +21,7 @@ def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLA
     # embed_results = embedding_function(texts)
 
     # embed_func = get_ollama_embedding_function(model, url=url)
-    embed_func = get_embedding_function(model, url=url)
+    embed_func = get_embedding_function(model, url=url, return_format="numpy")
 
     embed_results = embed_func(texts)
     return embed_results
