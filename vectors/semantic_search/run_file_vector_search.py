@@ -96,10 +96,9 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
         return results
 
 
-def main(query: str, directories: List[str]):
+def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
     """Main function to demonstrate file search with hybrid reranking."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
-    extensions = [".py"]
     embed_model_name: EmbedModelType = "embeddinggemma-300m"
     truncate_dim = None
     max_seq_len = None
@@ -137,7 +136,7 @@ def main(query: str, directories: List[str]):
             split_chunks=split_chunks,
             tokenizer=count_tokens,
             preprocess=preprocess_text,
-            includes=["**/examples/*"],
+            includes=["**/examples/*", "**/samples/*"],
             excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
             weights={
                 "dir": 0.325,
@@ -215,9 +214,9 @@ def main(query: str, directories: List[str]):
 
 
 def parse_arguments():
-    """Parse command line arguments for query and directories."""
+    """Parse command line arguments for query, directories, and file extensions (comma separated)."""
     parser = argparse.ArgumentParser(
-        description="File search with query and directories")
+        description="File search with query, directories, and file extensions (comma separated)")
     parser.add_argument("query", type=str, nargs="?",
                         default="AI Agents", help="Search query")
     parser.add_argument("directories", type=str, nargs="*",
@@ -226,12 +225,17 @@ def parse_arguments():
                         default=None, help="Alternative query input")
     parser.add_argument("--directories", type=str, nargs="+", dest="directories_flag",
                         default=None, help="Alternative directories input")
+    parser.add_argument("--extensions", type=str, dest="extensions",
+                        default=None, help="File extensions to include, comma separated (e.g. .py,.md)")
     args = parser.parse_args()
     query = args.query_flag if args.query_flag is not None else args.query
     directories = args.directories_flag if args.directories_flag is not None else args.directories
-    return argparse.Namespace(query=query, directories=directories)
+    # Split extensions by comma if provided, else None
+    extensions = [ext.strip() for ext in args.extensions.split(",")
+                  ] if args.extensions else None
+    return argparse.Namespace(query=query, directories=directories, extensions=extensions)
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-    main(args.query, args.directories)
+    main(args.query, args.directories, args.extensions)
