@@ -21,7 +21,8 @@ def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLA
     # embed_results = embedding_function(texts)
 
     # embed_func = get_ollama_embedding_function(model, url=url)
-    embed_func = get_embedding_function(model, url=url, return_format="numpy")
+    embed_func = get_embedding_function(
+        model, url=url, batch_size=32, return_format="numpy")
 
     embed_results = embed_func(texts)
     return embed_results
