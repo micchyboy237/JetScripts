@@ -722,19 +722,19 @@ def article_download(state: AgentState):
             urls = last_message.content
 
         filenames = []
+        data_dir = os.path.join(OUTPUT_DIR, "data")
+        os.makedirs(data_dir, exist_ok=True)
+
         for url in urls:
             try:
                 response = requests.get(url)
                 response.raise_for_status()
 
-                if not os.path.exists('data'):
-                    os.makedirs('data')
+                filename = os.path.join(data_dir, os.path.basename(url))
+                if not filename.endswith(".pdf"):
+                    filename += ".pdf"
 
-                filename = f"data/{url.split('/')[-1]}"
-                if not filename.endswith('.pdf'):
-                    filename += '.pdf'
-
-                with open(filename, 'wb') as f:
+                with open(filename, "wb") as f:
                     f.write(response.content)
 
                 filenames.append({"paper": filename})
@@ -748,7 +748,7 @@ def article_download(state: AgentState):
             "papers": [
                 AIMessage(
                     content=filenames,
-                    response_metadata={'finish_reason': 'stop'}
+                    response_metadata={"finish_reason": "stop"}
                 )
             ]
         }
@@ -758,7 +758,7 @@ def article_download(state: AgentState):
             "messages": [
                 AIMessage(
                     content=f"Error processing downloads: {str(e)}",
-                    response_metadata={'finish_reason': 'error'}
+                    response_metadata={"finish_reason": "error"}
                 )
             ]
         }
