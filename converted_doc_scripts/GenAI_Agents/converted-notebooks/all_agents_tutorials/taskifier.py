@@ -24,6 +24,9 @@ log_file = os.path.join(LOG_DIR, "main.log")
 logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
 
+HISTORY_DIR = f"{OUTPUT_DIR}/history"
+os.makedirs(HISTORY_DIR, exist_ok=True)
+
 """
 # **Taskifier - Intelligent Task Allocation & Management**
 
@@ -130,9 +133,9 @@ logger.info("## Component Functions")
 def approach_analysis(approach: ApproachState) -> ApproachState:
     """Retrieve history approach and let LLM do a qualitative analysis on user approach preference."""
     history = ""
-    for h in os.listdir(f"{os.getcwd()}/history"):
+    for h in os.listdir(HISTORY_DIR):
         if (h[-4:] == ".txt"):
-            with open(os.path.join(os.getcwd(), f"history/{h}")) as f:
+            with open(os.path.join(HISTORY_DIR, h)) as f:
                 content = f.readlines()
             history = f"{history}\n{content[0]}"
 
