@@ -138,9 +138,9 @@ def main():
         model=model,
     )
 
-    context_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/data/resume_summary.md"
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-    output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/job-cover-letters.json"
+    context_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/data/resume_summary.md"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
+    output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/job-cover-letters.json"
 
     # Load data
     reader = SimpleDirectoryReader(

@@ -21,7 +21,7 @@ def extract_entity(body: dict):
 
 def main():
     # Load job data
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file) or []
 
     labels = ["role", "application", "technology stack", "qualifications"]

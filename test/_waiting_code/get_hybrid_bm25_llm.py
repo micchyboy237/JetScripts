@@ -123,7 +123,7 @@ def hybrid_search(queries: str | List[str], documents: List[str], ids: List[str]
 
 @time_it
 def prepare_inputs(queries: list[str]):
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     cache_dir = "generated/get_bm25_similarities"
     data: list[JobData] = load_file(data_file)
 

@@ -416,7 +416,7 @@ def run_extract_jobs():
     from jet.logger import logger
     import json
 
-    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/job-scraper.py"
+    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/job-scraper.py"
     command = f"python {python_file}"
 
     for line in run_command(command):
@@ -435,7 +435,7 @@ def run_clean_jobs():
     from jet.logger import logger
     import json
 
-    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/run_clean_jobs.py"
+    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/run_clean_jobs.py"
     command = f"python {python_file}"
 
     for line in run_command(command):
@@ -469,7 +469,7 @@ def search_nodes(query: str) -> SearchNodesResponse:
 
     request_data = {
         "query": query,
-        "rag_dir": "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json",
+        "rag_dir": "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json",
         "extensions": [
             ".md",
             ".mdx",
@@ -554,8 +554,8 @@ def main():
     # docs = reader.load_data()
     # texts = [doc.text for doc in docs]
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-    output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/job-postings.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
+    output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/job-postings.json"
     data = load_file(data_file) or []
     results = load_file(output_file) or []
 

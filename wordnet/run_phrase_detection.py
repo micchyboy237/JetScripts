@@ -8,7 +8,7 @@ from shared.data_types.job import JobData
 
 
 if __name__ == '__main__':
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file)
 
     sentences = [

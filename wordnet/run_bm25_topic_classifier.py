@@ -315,7 +315,7 @@ if __name__ == '__main__':
     top_n = 5
     print("Loading word dictionary...")
     model_path = 'generated/gensim_jet_phrase_model.pkl'
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file)
 
     texts = [item["details"] for item in data]

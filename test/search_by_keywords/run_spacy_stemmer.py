@@ -15,7 +15,7 @@ if __name__ == "__main__":
     logger.debug(f"Results 1 ({len(results)})")
     logger.success(format_json(results))
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file)
 
     selected_ids = ["82778617"]

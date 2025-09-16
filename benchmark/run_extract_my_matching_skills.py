@@ -67,7 +67,7 @@ class Summarizer:
 
 def run_extract_jobs():
     from jet.executor.command import run_command
-    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/job-scraper.py"
+    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/job-scraper.py"
     command = f"python {python_file}"
 
     for line in run_command(command):
@@ -81,7 +81,7 @@ def run_extract_jobs():
 
 def run_clean_jobs():
     from jet.executor.command import run_command
-    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/run_clean_jobs.py"
+    python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/run_clean_jobs.py"
     command = f"python {python_file}"
 
     for line in run_command(command):
@@ -119,8 +119,8 @@ def main():
         model=model,
     )
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-    output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/job-matched-skills.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
+    output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/job-matched-skills.json"
     data = load_file(data_file) or []
     results = load_file(output_file) or []
 

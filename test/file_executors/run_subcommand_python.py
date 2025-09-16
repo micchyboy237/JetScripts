@@ -4,8 +4,8 @@ from jet.file.utils import save_file
 from jet.logger import logger
 import json
 
-data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
-output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/job-entities.json"
+data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
+output_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/job-entities.json"
 
 data = load_file(data_file)
 items = [

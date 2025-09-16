@@ -14,7 +14,7 @@ def format_sub_dir(text: str) -> str:
 
 
 def main(query: str):
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file)
     texts = [f"{d["title"]}\n{d["details"]}" for d in data]
 

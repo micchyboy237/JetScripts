@@ -54,7 +54,7 @@ if __name__ == "__main__":
     llm_model = "llama3.1"
     system = None
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file)
 
     texts = [

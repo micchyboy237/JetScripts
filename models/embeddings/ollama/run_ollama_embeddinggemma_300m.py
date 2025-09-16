@@ -20,7 +20,7 @@ def embed_texts(texts: list[str], model: str = "embeddinggemma-300m") -> list[li
 if __name__ == '__main__':
     model = "embeddinggemma-300m"
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     jobs: JobData = load_file(data_file)
     jobs = jobs[:10]
 

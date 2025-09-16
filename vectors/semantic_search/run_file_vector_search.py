@@ -99,7 +99,7 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
 def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
     """Main function to demonstrate file search with hybrid reranking."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
-    embed_model_name: EmbedModelType = "embeddinggemma-300m"
+    embed_model_name: EmbedModelType = "snowflake-arctic-embed-s"
     truncate_dim = None
     max_seq_len = None
     top_k = None

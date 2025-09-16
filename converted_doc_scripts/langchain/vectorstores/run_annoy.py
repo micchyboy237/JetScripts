@@ -65,7 +65,7 @@ def log_response(results: Union[list[Document], list[tuple[Document, float]]]):
 
 # %pip install --upgrade --quiet  annoy
 
-data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
 output_dir = "generated/my_annoy_index_and_docstore"
 data: list[JobData] = load_file(data_file)
 # items = [

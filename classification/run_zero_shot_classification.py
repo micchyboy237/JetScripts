@@ -13,7 +13,7 @@ from jet.file import load_file
 from jet.utils.object import extract_values_by_paths
 
 
-data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
 progress_file = "generated/classify_dataset/jobs_classifier_progress_info.json"
 output_file = "generated/classify_dataset/jobs_classified.json"
 pool_count = 7
@@ -75,7 +75,7 @@ if __name__ == '__main__':
         "entities.qualifications",
     ]
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: list[JobData] = load_file(data_file)
 
     filtered_data = [d for d in data if d['id'] in ["1316960-onlinejobs.ph"]]

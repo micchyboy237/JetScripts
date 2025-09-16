@@ -24,7 +24,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 if __name__ == "__main__":
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     data: List[JobData] = load_file(data_file)
     embed_model: EmbedModelType = "all-MiniLM-L12-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"

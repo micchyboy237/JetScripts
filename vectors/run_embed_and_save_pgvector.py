@@ -39,7 +39,7 @@ if __name__ == '__main__':
     model = "mxbai-embed-large"
     # model = "nomic-embed-text"
 
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-jobs/saved/jobs.json"
+    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     jobs: list[JobData] = load_file(data_file)
 
     texts = []
