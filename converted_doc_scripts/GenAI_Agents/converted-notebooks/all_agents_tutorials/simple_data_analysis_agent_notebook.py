@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.file.utils import save_file
 from jet.logger import CustomLogger
 from langchain.agents import AgentType
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
@@ -91,13 +92,14 @@ data = {
 df = pd.DataFrame(data).sort_values('Date')
 
 logger.debug("\nFirst few rows of the generated data:")
-logger.debug(df.head())
+save_file(df.head(), f"{OUTPUT_DIR}/df_head.json")
 
 logger.debug("\nDataFrame info:")
-df.info()
+save_file(df.info(), f"{OUTPUT_DIR}/df_info.json")
 
 logger.debug("\nSummary statistics:")
 logger.debug(df.describe())
+save_file(df.describe(), f"{OUTPUT_DIR}/df_describe.json")
 
 """
 ## Create Data Analysis Agent
