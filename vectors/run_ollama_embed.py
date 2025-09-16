@@ -34,6 +34,7 @@ if __name__ == '__main__':
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
     jobs: JobData = load_file(data_file)
+    jobs = jobs[:10]
 
     texts = []
 
