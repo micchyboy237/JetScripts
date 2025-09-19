@@ -186,15 +186,6 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
         "results": bm25_reranked_results
     }, f"{output_dir}/reranked_results_bm25_split.json")
 
-    # Cross-encoder reranking
-    cross_encoder_results = cross_encoder_rerank(
-        query, merged_results, top_n)
-    save_file({
-        "query": query,
-        "count": len(cross_encoder_results),
-        "results": cross_encoder_results
-    }, f"{output_dir}/reranked_results_cross_encoder_split.json")
-
     # BM25 reranking on merged results
     query_candidates, bm25_reranked_merged = rerank_results(
         query, merged_results[:top_n])
@@ -205,13 +196,22 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
         "results": bm25_reranked_merged
     }, f"{output_dir}/reranked_results_bm25_merged.json")
 
-    # Cross-encoder reranking on merged results
-    cross_encoder_merged = cross_encoder_rerank(query, merged_results, top_n)
-    save_file({
-        "query": query,
-        "count": len(cross_encoder_merged),
-        "results": cross_encoder_merged
-    }, f"{output_dir}/reranked_results_cross_encoder_merged.json")
+    # # Cross-encoder reranking
+    # cross_encoder_results = cross_encoder_rerank(
+    #     query, merged_results, top_n)
+    # save_file({
+    #     "query": query,
+    #     "count": len(cross_encoder_results),
+    #     "results": cross_encoder_results
+    # }, f"{output_dir}/reranked_results_cross_encoder_split.json")
+
+    # # Cross-encoder reranking on merged results
+    # cross_encoder_merged = cross_encoder_rerank(query, merged_results, top_n)
+    # save_file({
+    #     "query": query,
+    #     "count": len(cross_encoder_merged),
+    #     "results": cross_encoder_merged
+    # }, f"{output_dir}/reranked_results_cross_encoder_merged.json")
 
     # Print final cross-encoder reranked merged results
     print_results(query, merged_results, split_chunks)
