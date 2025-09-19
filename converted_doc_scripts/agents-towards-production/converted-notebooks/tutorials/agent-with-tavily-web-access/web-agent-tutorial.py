@@ -325,7 +325,7 @@ prompt_response_md2 = f"""\
 """
 
 # Markdown(message.content)
-save_file(prompt_response_md2, f"{OUTPUT_DIR}/agent_response_2.md")
+save_file(prompt_response_md2, f"{OUTPUT_DIR}/agent_chat_2.md")
 
 """
 Notice how the agent cleverly combines Tavily’s tools—search, crawl, and extract—to complete the task end-to-end.

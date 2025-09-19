@@ -1,8 +1,9 @@
 from IPython.display import Markdown
 from dotenv import load_dotenv
-from jet.llm.mlx.base_langchain import ChatMLX
-from jet.llm.mlx.base_langchain import MLXEmbeddings
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.file.utils import save_file
+from jet.logger import logger
 from langchain.schema import HumanMessage
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -19,9 +20,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-with-tavily-web-access--hybrid-agent-tutorial)
@@ -59,24 +64,24 @@ Follow these steps to set up:
    - [Screenshot: Tavily API Keys Dashboard](assets/api-key.png)
 
 
-2. **Sign up** for MLX to get your API key. By default, we’ll use MLX—but you can substitute any other LLM provider.
+2. **Sign up** for Ollama to get your API key. By default, we’ll use Ollama—but you can substitute any other LLM provider.
    
 
-2. **Copy your API keys** from your Tavily and MLX account dashboard.
+2. **Copy your API keys** from your Tavily and Ollama account dashboard.
 
 3. **Paste your API keys** into the cell below and execute the cell.
 """
 logger.info("## 3. Combine Internal Data with Web Data 🌐🤝📊")
 
 # !echo "TAVILY_API_KEY=<your-tavily-api-key>" >> .env
-# !echo "OPENAI_API_KEY=<your-openai-api-key>" >> .env
+# !echo "OPENAI_API_KEY=<your-ollama-api-key>" >> .env
 
 """
 Install dependencies in the cell below.
 """
 logger.info("Install dependencies in the cell below.")
 
-# %pip install -U tavily-python langchain-chroma langchain-openai langgraph langchain-tavily --quiet
+# %pip install -U tavily-python langchain-chroma langchain-ollama langgraph langchain-tavily --quiet
 
 """
 ### Setting Up Your Tavily API Client
@@ -89,11 +94,11 @@ logger.info("### Setting Up Your Tavily API Client")
 
 load_dotenv()
 
-if not os.environ.get("TAVILY_API_KEY"):
+# if not os.environ.get("TAVILY_API_KEY"):
 #     os.environ["TAVILY_API_KEY"] = getpass.getpass("TAVILY_API_KEY:\n")
 
 # if not os.environ.get("OPENAI_API_KEY"):
-#     os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for MLX: ")
+#     os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for Ollama: ")
 
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
@@ -102,14 +107,14 @@ tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
 In this tutorial, we’ll use a pre-built vector database to simulate an internal knowledge store. The data is based on synthetically generated mock CRM documents, designed to support a CRM and sales insights use case.
 
-To keep things simple, we've prepared a vector store using Chroma and MLX embeddings, built from the mock CRM data. Feel free to explore the underlying documents in the [supplemental/docs](supplemental/docs) directory.
+To keep things simple, we've prepared a vector store using Chroma and Ollama embeddings, built from the mock CRM data. Feel free to explore the underlying documents in the [supplemental/docs](supplemental/docs) directory.
 
 To get started, simply initialize the vector index by running the Python cell below.
 """
 logger.info("## Vector Database Set Up")
 
 
-embeddings = MLXEmbeddings()
+embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
 vector_store = Chroma(
     collection_name="crm",  # replace with "my_custom_index" for custom documents option
@@ -164,14 +169,15 @@ extract = TavilyExtract(extract_depth="advanced")
 crawl = TavilyCrawl()
 
 """
-We'll set up several MLX foundation models, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat model.
+We'll set up several Ollama foundation models, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat model.
 """
-logger.info("We'll set up several MLX foundation models, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat model.")
+logger.info("We'll set up several Ollama foundation models, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat model.")
 
 
-# o3_mini = ChatMLX(model="o3-mini-2025-01-31", api_key=os.getenv("OPENAI_API_KEY"))
+# o3_mini = ChatOllama(model="llama3.2")
 
-# gpt_4_1 = ChatMLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key=os.getenv("OPENAI_API_KEY"))
+# gpt_4_1 = ChatOllama(model="llama3.2")
+model_client = ChatOllama(model="qwen3:4b-q4_K_M")
 
 """
 ## Hybrid Agent
@@ -194,7 +200,7 @@ logger.info("## Hybrid Agent")
 today = datetime.datetime.today().strftime("%A, %B %d, %Y")
 
 hybrid_agent = create_react_agent(
-    model=gpt_4_1,
+    model=model_client,
     tools=[search, crawl, extract, vector_search_tool],
     prompt=ChatPromptTemplate.from_messages(
         [
@@ -220,7 +226,7 @@ hybrid_agent = create_react_agent(
         * **Usage:** Provide a search query to receive up to 10 semantically ranked results, each containing the title, URL, and a content snippet.
         * **Best Practices:**
             * Use specific queries to narrow down results.
-                * Example: "MLX's latest product release" and "MLX's headquarters location" rather than "MLX's latest product release and headquarters location"
+                * Example: "Ollama's latest product release" and "Ollama's headquarters location" rather than "Ollama's latest product release and headquarters location"
             * Optimize searches using parameters such as `search_depth`, `time_range`, `include_domains`, and `include_raw_content`.
             * Break down complex queries into specific, focused sub-queries.
 
@@ -308,7 +314,7 @@ for s in hybrid_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        message.pretty_logger.debug()
+        logger.success(message)
 
 """
 Check out the intermediary agent traces above to see how the agent combined the vector search and web search together.
@@ -317,8 +323,17 @@ Let's view the final output.
 """
 logger.info("Check out the intermediary agent traces above to see how the agent combined the vector search and web search together.")
 
+# Markdown(message.content)
+prompt_response_md1 = f"""\
+## Prompt
 
-Markdown(message.content)
+{inputs["messages"][-1].content}
+
+## Response
+
+{message.content}
+"""
+save_file(prompt_response_md1, f"{OUTPUT_DIR}/agent_chat_1.md")
 
 """
 As shown, the final report integrates relevant web insights with our existing CRM data on Google Cloud ML Ops.
@@ -340,14 +355,24 @@ for s in hybrid_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        message.pretty_logger.debug()
+        logger.success(message)
 
 """
 Let's view the final output.
 """
 logger.info("Let's view the final output.")
 
-Markdown(message.content)
+# Markdown(message.content)
+prompt_response_md1 = f"""\
+## Prompt
+
+{inputs["messages"][-1].content}
+
+## Response
+
+{message.content}
+"""
+save_file(prompt_response_md1, f"{OUTPUT_DIR}/agent_chat_2.md")
 
 """
 # Conclusion
