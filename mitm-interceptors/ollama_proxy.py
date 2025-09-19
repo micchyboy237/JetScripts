@@ -7,7 +7,7 @@ import traceback
 from collections.abc import Iterable
 from datetime import datetime
 from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
-from jet._token.token_utils import token_counter
+from jet._token.token_utils import get_model_max_tokens, token_counter
 from jet.transformers.formatters import format_json
 from jet.transformers.json_parsers import parse_json
 from mitmproxy import http
@@ -353,7 +353,7 @@ def interceptor_callback(data: bytes) -> bytes | Iterable[bytes]:
     try:
         chunk_dict = json.loads(decoded_data)
     except json.JSONDecodeError:
-        logger.warning("Failed to parse JSON from decoded data")
+        # logger.warning("Failed to parse JSON from decoded data")
         return data
 
     # Ensure chunk_dict is a dictionary
@@ -428,8 +428,10 @@ def request(flow: http.HTTPFlow):
             token_count = token_counter(
                 input_texts, request_content.get("model"))
 
-        logger.debug(f"EMBEDDING REQUEST: {token_count} tokens")
-        logger.success("Embedding request received")
+        logger.debug(f"EMBEDDING REQUEST: {flow.request.path}")
+        logger.log(f"  Model: ", request_content.get("model"), colors=["GRAY", "TEAL"])
+        logger.log(f"  Tokens: ", token_count, colors=["GRAY", "TEAL"])
+        logger.log(f"  Max Tokens: ", get_model_max_tokens(request_content.get("model")), colors=["GRAY", "TEAL"])
 
     elif any(path in flow.request.path for path in ["/chat"]):
         header_log_filename = next(

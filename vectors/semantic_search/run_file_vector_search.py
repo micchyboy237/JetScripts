@@ -5,10 +5,11 @@ from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
 from jet.logger.config import colorize_log
-from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
+# from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
+from jet.llm.utils.tokenizer import get_tokenizer
 from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
 from jet.models.model_types import EmbedModelType
-from jet.models.tokenizer.base import get_tokenizer_fn
+# from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.utils.language import detect_lang
 from jet.utils.text import format_sub_dir
 from jet.vectors.reranker.bm25 import rerank_bm25
@@ -99,17 +100,19 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
 def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
     """Main function to demonstrate file search with hybrid reranking."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
-    embed_model_name: EmbedModelType = "snowflake-arctic-embed-s"
+    embed_model_name: EmbedModelType = "all-MiniLM-L12-v2"
     truncate_dim = None
     max_seq_len = None
     top_k = None
     threshold = 0.0
-    chunk_size = 500
+    chunk_size = 1024
     chunk_overlap = 100
+    batch_size = 64
 
-    embed_model = SentenceTransformerRegistry.load_model(
-        embed_model_name, truncate_dim=truncate_dim, max_seq_length=max_seq_len)
-    tokenizer = SentenceTransformerRegistry.get_tokenizer(embed_model_name)
+    # embed_model = SentenceTransformerRegistry.load_model(
+    #     embed_model_name, truncate_dim=truncate_dim, max_seq_length=max_seq_len)
+    # tokenizer = SentenceTransformerRegistry.get_tokenizer(embed_model_name)
+    tokenizer = get_tokenizer(embed_model_name)
 
     def count_tokens(text):
         return len(tokenizer.encode(text))
@@ -130,19 +133,20 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
             extensions,
             top_k=top_k,
             threshold=threshold,
-            embed_model=embed_model,
+            embed_model=embed_model_name,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
             split_chunks=split_chunks,
             tokenizer=count_tokens,
             preprocess=preprocess_text,
-            includes=["**/examples/*", "**/samples/*"],
+            includes=[],
             excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
             weights={
                 "dir": 0.325,
                 "name": 0.325,
                 "content": 0.35,
-            }
+            },
+            batch_size=batch_size,
         )
     )
 
@@ -160,26 +164,6 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
         "results": with_split_chunks_results
     }, f"{output_dir}/search_results_split.json")
 
-    # BM25 reranking
-    top_n = 50
-    query_candidates, bm25_reranked_results = rerank_results(
-        query, with_split_chunks_results[:top_n])
-    save_file({
-        "query": query,
-        "candidates": query_candidates,
-        "count": len(bm25_reranked_results),
-        "results": bm25_reranked_results
-    }, f"{output_dir}/reranked_results_bm25_split.json")
-
-    # Cross-encoder reranking
-    cross_encoder_results = cross_encoder_rerank(
-        query, with_split_chunks_results, top_n)
-    save_file({
-        "query": query,
-        "count": len(cross_encoder_results),
-        "results": cross_encoder_results
-    }, f"{output_dir}/reranked_results_cross_encoder_split.json")
-
     # Merge chunks
     split_chunks = False
     merged_results = merge_results(
@@ -190,6 +174,26 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
         "merged": not split_chunks,
         "results": merged_results
     }, f"{output_dir}/search_results_merged.json")
+
+    # BM25 reranking
+    top_n = 50
+    query_candidates, bm25_reranked_results = rerank_results(
+        query, merged_results[:top_n])
+    save_file({
+        "query": query,
+        "candidates": query_candidates,
+        "count": len(bm25_reranked_results),
+        "results": bm25_reranked_results
+    }, f"{output_dir}/reranked_results_bm25_split.json")
+
+    # Cross-encoder reranking
+    cross_encoder_results = cross_encoder_rerank(
+        query, merged_results, top_n)
+    save_file({
+        "query": query,
+        "count": len(cross_encoder_results),
+        "results": cross_encoder_results
+    }, f"{output_dir}/reranked_results_cross_encoder_split.json")
 
     # BM25 reranking on merged results
     query_candidates, bm25_reranked_merged = rerank_results(

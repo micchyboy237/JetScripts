@@ -28,7 +28,7 @@ The Tree of Thought (ToT) is a chain that allows you to query a Large Language M
 logger.info("# Tree of Thought (ToT) example")
 
 
-llm = ChatOllama(temperature=1, max_tokens=512, model="llama3.2")
+llm = ChatOllama(temperature=1, model="llama3.2")
 
 sudoku_puzzle = "3,*,*,2|1,*,3,*|*,1,*,3|4,*,*,1"
 sudoku_solution = "3,4,1,2|1,2,3,4|2,1,4,3|4,3,2,1"
