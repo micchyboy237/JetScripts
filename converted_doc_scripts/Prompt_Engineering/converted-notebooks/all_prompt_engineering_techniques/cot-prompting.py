@@ -59,8 +59,6 @@ load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
-llm = ChatOllama(model="llama3.2")
-
 """
 ## Basic Chain of Thought Prompting
 
@@ -72,14 +70,16 @@ standard_prompt = PromptTemplate(
     input_variables=["question"],
     template="Answer the following question concisely: {question}."
 )
+standard_llm = ChatOllama(model="llama3.2", agent_name="standard")
 
 cot_prompt = PromptTemplate(
     input_variables=["question"],
     template="Answer the following question step by step concisely: {question}"
 )
+cot_llm = ChatOllama(model="llama3.2", agent_name="chain_of_thoughts")
 
-standard_chain = standard_prompt | llm
-cot_chain = cot_prompt | llm
+standard_chain = standard_prompt | standard_llm
+cot_chain = cot_prompt | cot_llm
 
 question = "If a train travels 120 km in 2 hours, what is its average speed in km/h?"
 
@@ -111,7 +111,8 @@ Question: {question}
 Solution:"""
 )
 
-advanced_cot_chain = advanced_cot_prompt | llm
+advanced_cot_llm = ChatOllama(model="llama3.2", agent_name="advanced_cot")
+advanced_cot_chain = advanced_cot_prompt | advanced_cot_llm
 
 complex_question = "A car travels 150 km at 60 km/h, then another 100 km at 50 km/h. What is the average speed for the entire journey?"
 
@@ -145,8 +146,6 @@ logger.debug(cot_response)
 Now, let's apply CoT prompting to a more complex logical reasoning task.
 """
 logger.info("## Problem-Solving Applications")
-
-llm = ChatOllama(model="llama3.2")
 
 logical_reasoning_prompt = PromptTemplate(
     input_variables=["scenario"],
@@ -190,7 +189,8 @@ Scenario:
 
 Analysis:""")
 
-logical_reasoning_chain = logical_reasoning_prompt | llm
+logical_reasoning_llm = ChatOllama(model="llama3.2", agent_name="logical_reasoning")
+logical_reasoning_chain = logical_reasoning_prompt | logical_reasoning_llm
 
 logical_puzzle = """In a room, there are three people: Amy, Bob, and Charlie.
 One of them always tells the truth, one always lies, and one alternates between truth and lies.
