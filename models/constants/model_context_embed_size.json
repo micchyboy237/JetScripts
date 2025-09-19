@@ -1,5 +1,5 @@
 {
-  "model_id": "google/embeddinggemma-300m",
-  "max_context": 2048,
+  "model_id": "nomic-ai/nomic-embed-text-v1.5",
+  "max_context": 8192,
   "max_embeddings": 768
 }

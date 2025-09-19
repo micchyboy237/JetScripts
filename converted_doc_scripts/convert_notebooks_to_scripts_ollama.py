@@ -44,7 +44,7 @@ REPLACE_OLLAMA_MAP = {
     "anthropic:": "ollama:",
     "gpt-4o-mini": "llama3.2",
     "claude-3-5-sonnet-latest": "llama3.2",
-    "text-embedding-3-small": "mxbai-embed-large",
+    "text-embedding-3-small": "nomic-embed-text",
     "autogen_ext.models.ollama": "jet.adapters.autogen.ollama_client",
     "OpenAIChatCompletionClient": "OllamaChatCompletionClient",
 }
@@ -226,7 +226,7 @@ def update_code_with_ollama(code: str) -> str:
 
     updated_code = re.sub(
         r'OllamaEmbedding\s*\((.*?)\)',
-        r'OllamaEmbedding(model="mxbai-embed-large")',
+        r'OllamaEmbedding(model="nomic-embed-text")',
         updated_code
     )
     updated_code = re.sub(
@@ -236,7 +236,7 @@ def update_code_with_ollama(code: str) -> str:
     )
     updated_code = re.sub(
         r'OllamaEmbeddings\s*\((.*?)\)',
-        r'OllamaEmbeddings(model="mxbai-embed-large")',
+        r'OllamaEmbeddings(model="nomic-embed-text")',
         updated_code
     )
     updated_code = re.sub(

@@ -114,12 +114,12 @@ To get started, simply initialize the vector index by running the Python cell be
 logger.info("## Vector Database Set Up")
 
 
-embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 vector_store = Chroma(
     collection_name="crm",  # replace with "my_custom_index" for custom documents option
     embedding_function=embeddings,
-    persist_directory="supplemental/db",
+    persist_directory=PERSIST_DIR,
 )
 
 """

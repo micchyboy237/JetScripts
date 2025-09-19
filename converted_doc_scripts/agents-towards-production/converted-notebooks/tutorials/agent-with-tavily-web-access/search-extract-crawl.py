@@ -68,7 +68,7 @@ logger.info("### Setting Up Your Tavily API Client")
 
 load_dotenv()
 
-if not os.environ.get("TAVILY_API_KEY"):
+# if not os.environ.get("TAVILY_API_KEY"):
 #     os.environ["TAVILY_API_KEY"] = getpass.getpass("TAVILY_API_KEY:\n")
 
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
