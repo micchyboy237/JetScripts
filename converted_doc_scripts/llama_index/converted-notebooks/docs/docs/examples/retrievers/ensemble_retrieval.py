@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from collections import defaultdict
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import (
         VectorStoreIndex,
@@ -116,7 +116,7 @@ async def main():
     logger.info(
         "Here we try out different chunk sizes: 128, 256, 512, and 1024.")
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2")
     chunk_sizes = [128, 256, 512, 1024]
     nodes_list = []
@@ -257,7 +257,7 @@ async def main():
 
     # nest_asyncio.apply()
 
-    eval_llm = OllamaFunctionCallingAdapter(
+    eval_llm = OllamaFunctionCalling(
         model="llama3.2")
     dataset_generator = DatasetGenerator(
         nodes_list[-1],

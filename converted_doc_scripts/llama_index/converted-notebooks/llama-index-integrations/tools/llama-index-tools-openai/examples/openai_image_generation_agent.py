@@ -16,9 +16,9 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# OllamaFunctionCallingAdapter Image Generation Agent (DALL-E-3)
+# OllamaFunctionCalling Image Generation Agent (DALL-E-3)
 """
-logger.info("# OllamaFunctionCallingAdapter Image Generation Agent (DALL-E-3)")
+logger.info("# OllamaFunctionCalling Image Generation Agent (DALL-E-3)")
 
 
 

@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from collections import defaultdict
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Document
     from llama_index.core import StorageContext
@@ -143,7 +143,7 @@ async def main():
 
     storage_context = StorageContext.from_defaults(docstore=docstore)
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2")
 
     base_index = VectorStoreIndex(
@@ -207,7 +207,7 @@ async def main():
 
     # nest_asyncio.apply()
 
-    eval_llm = OllamaFunctionCallingAdapter(
+    eval_llm = OllamaFunctionCalling(
         model="llama3.2")
     dataset_generator = DatasetGenerator(
         root_nodes[:20],

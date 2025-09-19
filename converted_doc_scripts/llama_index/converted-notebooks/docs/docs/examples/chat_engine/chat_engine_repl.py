@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.chat_engine import SimpleChatEngine
 import os
@@ -44,7 +44,7 @@ Use ChatGPT ("gpt-3.5-turbo")
 logger.info("### Customize LLM")
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2")
+llm = OllamaFunctionCalling(temperature=0.0, model="llama3.2")
 
 
 chat_engine = SimpleChatEngine.from_defaults(llm=llm)
@@ -56,7 +56,7 @@ chat_engine.chat_repl()
 logger.info("## Streaming Support")
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2")
+llm = OllamaFunctionCalling(temperature=0.0, model="llama3.2")
 
 
 chat_engine = SimpleChatEngine.from_defaults(llm=llm)

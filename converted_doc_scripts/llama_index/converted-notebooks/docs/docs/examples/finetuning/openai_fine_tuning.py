@@ -1,5 +1,5 @@
 from datasets import Dataset
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -82,7 +82,7 @@ documents = SimpleDirectoryReader(
 random.seed(42)
 random.shuffle(documents)
 
-gpt_35_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+gpt_35_llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 question_gen_query = (
     "You are a Teacher/ Professor. Your task is to setup "
@@ -186,7 +186,7 @@ logger.info("## GPT-4 to Collect Training Data")
 finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
 callback_manager = CallbackManager([finetuning_handler])
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 llm.callback_manager = callback_manager
 
 questions = []
@@ -298,7 +298,7 @@ logger.info("### Original")
 
 
 
-gpt_35_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+gpt_35_llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 query_engine = index.as_query_engine(llm=gpt_35_llm)
 

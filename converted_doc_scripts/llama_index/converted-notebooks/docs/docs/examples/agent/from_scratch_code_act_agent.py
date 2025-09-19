@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.llms import ChatMessage
     from llama_index.core.llms import ChatMessage, LLM
@@ -224,7 +224,7 @@ async def main():
             super().__init__(timeout=120.0, **workflow_kwargs)
             self.fns = fns or []
             self.code_execute_fn = code_execute_fn
-            self.llm = llm or OllamaFunctionCallingAdapter(model="llama3.2")
+            self.llm = llm or OllamaFunctionCalling(model="llama3.2")
             self.fn_str = "\n\n".join(
                 f'def {fn.__name__}{str(inspect.signature(fn))}:\n    """ {fn.__doc__} """\n    ...'
                 for fn in self.fns
@@ -298,7 +298,7 @@ async def main():
     agent = CodeActAgent(
         fns=[add, subtract, multiply, divide],
         code_execute_fn=code_executor.execute,
-        llm=OllamaFunctionCallingAdapter(
+        llm=OllamaFunctionCalling(
             model="llama3.2", log_dir=f"{LOG_DIR}/chats"),
     )
 

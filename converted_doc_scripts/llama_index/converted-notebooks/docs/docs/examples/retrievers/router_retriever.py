@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import (
         VectorStoreIndex,
@@ -76,7 +76,7 @@ async def main():
     documents = SimpleDirectoryReader(
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
     splitter = SentenceSplitter(chunk_size=1024)
     nodes = splitter.get_nodes_from_documents(documents)
 
@@ -121,7 +121,7 @@ async def main():
     
     The LLM selectors use the LLM to output a JSON that is parsed, and the corresponding indexes are queried.
     
-    The Pydantic selectors (currently only supported by `gpt-4-0613` and `gpt-3.5-turbo-0613` (the default)) use the OllamaFunctionCallingAdapter Function Call API to produce pydantic selection objects, rather than parsing raw JSON.
+    The Pydantic selectors (currently only supported by `gpt-4-0613` and `gpt-3.5-turbo-0613` (the default)) use the OllamaFunctionCalling Function Call API to produce pydantic selection objects, rather than parsing raw JSON.
     
     Here we use PydanticSingleSelector/PydanticMultiSelector but you can use the LLM-equivalents as well.
     """

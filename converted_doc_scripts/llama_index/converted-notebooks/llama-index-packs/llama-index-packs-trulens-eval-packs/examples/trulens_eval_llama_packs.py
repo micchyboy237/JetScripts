@@ -54,9 +54,9 @@ logger.info("## Install and Import Dependencies")
 
 
 """
-This pack requires an OllamaFunctionCallingAdapter key. Configure your OllamaFunctionCallingAdapter API key.
+This pack requires an OllamaFunctionCalling key. Configure your OllamaFunctionCalling API key.
 """
-logger.info("This pack requires an OllamaFunctionCallingAdapter key. Configure your OllamaFunctionCallingAdapter API key.")
+logger.info("This pack requires an OllamaFunctionCalling key. Configure your OllamaFunctionCalling API key.")
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
@@ -121,7 +121,7 @@ tru.get_leaderboard(app_ids=["Query Engine v1: RAG Triad Evals"])
 """
 ## Start the TruLens Harmless Pack.
 
-This pack requires both OllamaFunctionCallingAdapter and Huggingface keys. Configure your OllamaFunctionCallingAdapter and Huggingface API keys.
+This pack requires both OllamaFunctionCalling and Huggingface keys. Configure your OllamaFunctionCalling and Huggingface API keys.
 """
 logger.info("## Start the TruLens Harmless Pack.")
 
@@ -156,7 +156,7 @@ tru.get_leaderboard(app_ids=["Query Engine v1: Harmless Evals"])
 """
 ## Start the TruLens Helpful Pack.
 
-This pack requires both OllamaFunctionCallingAdapter and Huggingface keys. Configure your OllamaFunctionCallingAdapter and Huggingface API keys.
+This pack requires both OllamaFunctionCalling and Huggingface keys. Configure your OllamaFunctionCalling and Huggingface API keys.
 """
 logger.info("## Start the TruLens Helpful Pack.")
 

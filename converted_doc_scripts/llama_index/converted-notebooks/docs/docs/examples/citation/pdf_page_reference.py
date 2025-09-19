@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import (
     SimpleDirectoryReader,
@@ -35,7 +35,7 @@ logger.info("# Get References from PDFs")
 # !pip install llama-index
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     temperature=0, model="llama3.2")
 
 """

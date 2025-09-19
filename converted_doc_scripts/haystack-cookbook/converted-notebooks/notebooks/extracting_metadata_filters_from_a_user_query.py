@@ -53,14 +53,14 @@ logger.info("# Extract Metadata Filters from a Query")
 # !pip install sentence-transformers
 
 """
-# Enter your `OPENAI_API_KEY`. Get your OllamaFunctionCallingAdapter API key [here](https://platform.openai.com/api-keys):
+# Enter your `OPENAI_API_KEY`. Get your OllamaFunctionCalling API key [here](https://platform.openai.com/api-keys):
 """
-# logger.info("Enter your `OPENAI_API_KEY`. Get your OllamaFunctionCallingAdapter API key [here](https://platform.openai.com/api-keys):")
+# logger.info("Enter your `OPENAI_API_KEY`. Get your OllamaFunctionCalling API key [here](https://platform.openai.com/api-keys):")
 
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ## Implement `QueryMetadataExtractor`

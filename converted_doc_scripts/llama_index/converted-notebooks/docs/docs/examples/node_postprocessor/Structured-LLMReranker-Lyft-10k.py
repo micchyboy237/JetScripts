@@ -1,7 +1,7 @@
 from IPython.display import Markdown, display
 from IPython.display import display, HTML
 from copy import deepcopy
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import QueryBundle
 from llama_index.core import Settings
@@ -55,7 +55,7 @@ logger.info("## Download Data")
 logger.info("## Load Data, Build Index")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+Settings.llm = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 Settings.chunk_overlap = 0
 Settings.chunk_size = 128

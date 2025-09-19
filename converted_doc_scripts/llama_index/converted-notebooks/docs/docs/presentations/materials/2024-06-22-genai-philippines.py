@@ -1,6 +1,6 @@
 from jet.models.config import MODELS_CACHE_DIR
 from googleapiclient import discovery
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.agent.introspective import (
     ToolInteractiveReflectionAgentWorker,
@@ -121,7 +121,7 @@ logger.info("## Example: A Gang of LLMs Tell A Story")
 anthropic_llm = Anthropic(model="claude-3-opus-20240229")
 cohere_llm = Cohere(model="command")
 mistral_llm = MistralAI(model="mistral-large-latest")
-openai_llm = OllamaFunctionCallingAdapter(
+openai_llm = OllamaFunctionCalling(
     model="llama3.2")
 
 theme = "over-the-top pizza toppings"
@@ -432,7 +432,7 @@ response = agent_without_memory.chat(
 """
 logger.info("#### With memory")
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 agent_worker = FunctionCallingAgentWorker.from_tools(
     [multiply_tool, mystery_tool], llm=openai_llm, verbose=True
@@ -584,9 +584,9 @@ logger.info("### Build Agent To Reduce Toxicity of Harmful Text")
 
 verbose = True
 critique_agent_worker = FunctionCallingAgentWorker.from_tools(
-    tools=[pespective_tool], llm=OllamaFunctionCallingAdapter("gpt-3.5-turbo"), verbose=verbose
+    tools=[pespective_tool], llm=OllamaFunctionCalling("gpt-3.5-turbo"), verbose=verbose
 )
-correction_llm = OllamaFunctionCallingAdapter("gpt-4-turbo-preview")
+correction_llm = OllamaFunctionCalling("gpt-4-turbo-preview")
 
 
 def stopping_callable(critique_str: str) -> bool:

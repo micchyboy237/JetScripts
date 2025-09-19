@@ -155,7 +155,7 @@ Let's create a ReAct Agent with a single RAG tool using vectara-agentic (to crea
 
 Vectara does not yet have an LLM capable of acting as an agent for planning and tool use, so we will need to use another LLM as the driver of the agent resoning.
 
-# In this demo, we are using OllamaFunctionCallingAdapter's GPT4o. Please make sure you have `OPENAI_API_KEY` defined in your environment or specify another LLM with the corresponding key (for the full list of supported LLMs, check out our [documentation](https://vectara.github.io/vectara-agentic-docs/introduction.html#try-it-yourself) for setting up your environment).
+# In this demo, we are using OllamaFunctionCalling's GPT4o. Please make sure you have `OPENAI_API_KEY` defined in your environment or specify another LLM with the corresponding key (for the full list of supported LLMs, check out our [documentation](https://vectara.github.io/vectara-agentic-docs/introduction.html#try-it-yourself) for setting up your environment).
 """
 logger.info("### Agentic RAG")
 

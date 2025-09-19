@@ -5,7 +5,7 @@ from llama_index import (
 VectorStoreIndex,
 ServiceContext,
 )
-from llama_index.llms import OllamaFunctionCallingAdapter
+from llama_index.llms import OllamaFunctionCalling
 from llama_index.query_engine import CitationQueryEngine
 from llama_index.response.notebook_utils import display_response
 import os
@@ -26,7 +26,7 @@ query = "biases in large language models"
 
 works = openalex_reader.load_data(query, full_text=False)
 service_context = ServiceContext.from_defaults(
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 )
 index = VectorStoreIndex.from_documents(works, service_context=service_context)
 

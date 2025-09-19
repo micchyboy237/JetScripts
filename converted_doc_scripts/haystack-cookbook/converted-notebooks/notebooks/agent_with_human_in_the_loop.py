@@ -55,7 +55,7 @@ a `GITHUB_TOKEN` with appropriate permissions to access repository information, 
 # from getpass import getpass
 
 # if not os.environ.get("OPENAI_API_KEY"):
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCallingAdapter API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key:")
 
 if not os.environ.get("GITHUB_TOKEN"):
 #     os.environ["GITHUB_TOKEN"] = getpass("Enter your GitHub token:")

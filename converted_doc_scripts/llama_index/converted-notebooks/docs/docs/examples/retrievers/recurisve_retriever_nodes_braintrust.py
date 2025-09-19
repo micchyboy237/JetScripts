@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Document
     from llama_index.core import VectorStoreIndex
@@ -93,7 +93,7 @@ async def main():
         node.id_ = f"node-{idx}"
 
     embed_model = resolve_embed_model("local:BAAI/bge-small-en")
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     """
     ## Baseline Retriever
@@ -222,7 +222,7 @@ async def main():
 
     all_nodes_dict = {n.node_id: n for n in all_nodes}
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     vector_index_metadata = VectorStoreIndex(all_nodes)
 

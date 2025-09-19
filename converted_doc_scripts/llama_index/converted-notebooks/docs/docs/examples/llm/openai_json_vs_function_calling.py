@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import ChatPromptTemplate
 from llama_index.core.llms import ChatMessage
@@ -18,28 +18,28 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# OllamaFunctionCallingAdapter JSON Mode vs. Function Calling for Data Extraction
+# OllamaFunctionCalling JSON Mode vs. Function Calling for Data Extraction
 
-OllamaFunctionCallingAdapter just released [JSON Mode](https://platform.openai.com/docs/guides/text-generation/json-mode): This new config constrain the LLM to only generate strings that parse into valid JSON (but no guarantee on validation against any schema).
+OllamaFunctionCalling just released [JSON Mode](https://platform.openai.com/docs/guides/text-generation/json-mode): This new config constrain the LLM to only generate strings that parse into valid JSON (but no guarantee on validation against any schema).
 
 Before this, the best way to extract structured data from text is via [function calling](https://platform.openai.com/docs/guides/function-calling).  
 
 In this notebook, we explore the tradeoff between the latest [JSON Mode](https://platform.openai.com/docs/guides/text-generation/json-mode) and function calling feature for structured output & extraction.
 
-*Update*: OllamaFunctionCallingAdapter has clarified that JSON mode is always enabled for function calling, it's opt-in for regular messages (https://community.openai.com/t/json-mode-vs-function-calling/476994/4)
+*Update*: OllamaFunctionCalling has clarified that JSON mode is always enabled for function calling, it's opt-in for regular messages (https://community.openai.com/t/json-mode-vs-function-calling/476994/4)
 
 ### Generate synthetic data
 
 We'll start by generating some synthetic data for our data extraction task. Let's ask our LLM for a hypothetical sales transcript.
 """
 logger.info(
-    "# OllamaFunctionCallingAdapter JSON Mode vs. Function Calling for Data Extraction")
+    "# OllamaFunctionCalling JSON Mode vs. Function Calling for Data Extraction")
 
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-program-openai
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 response = llm.complete(
     "Generate a sales call transcript, use real names, talk about a product, discuss some action items"
 )

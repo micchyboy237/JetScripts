@@ -44,9 +44,9 @@ If running for the first, time, install the dependencies using:
 !pip install -U qdrant_client fastembed
 ```
 
-Set your OllamaFunctionCallingAdapter key for authenticating the LLM
+Set your OllamaFunctionCalling key for authenticating the LLM
 
-# Follow these set the OllamaFunctionCallingAdapter API key to the OPENAI_API_KEY environment variable -
+# Follow these set the OllamaFunctionCalling API key to the OPENAI_API_KEY environment variable -
 
 1. Using Terminal
 """

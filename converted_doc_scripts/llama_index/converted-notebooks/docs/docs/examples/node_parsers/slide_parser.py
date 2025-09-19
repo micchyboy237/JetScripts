@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Document
     from llama_index.core.utilities.token_counting import TokenCounter
@@ -10,15 +10,15 @@ async def main():
     import os
     import shutil
     import time
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # SlideNodeParser
     
@@ -37,23 +37,23 @@ async def main():
     ```
     """
     logger.info("# SlideNodeParser")
-    
+
     # %pip install llama-index-node-parser-slide
-    
+
     """
     ## Install ipy widgets for progress bars (Optional)
     """
     logger.info("## Install ipy widgets for progress bars (Optional)")
-    
+
     # %pip install ipywidgets
-    
+
     """
     ## Setup Data
     
     Here we consider a sample text.
     """
     logger.info("## Setup Data")
-    
+
     text = """Constructing accurate knowledge graphs from long texts and low-resource languages is challenging, as large language models (LLMs) experience degraded performance with longer input chunks.
     This problem is amplified in low-resource settings where data scarcity hinders accurate entity and relationship extraction.
     Contextual retrieval methods, while improving retrieval accuracy, struggle with long documents.
@@ -83,81 +83,81 @@ async def main():
     Contextual retrieval (Anthropic, 2024) improves accuracy but struggles with longer documents, as embedding each chunk with full document context is computationally expensive and truncates critical information with documents exceeding maximum context length of the model (Jiang et al., 2024; Li et al., 2024).
     Our overlapping window-based approach addresses these inefficiencies, improving performance in both retrieval and knowledge graph construction.
     """
-    
-    
+
+
     document = Document(text=text)
-    
+
     """
     ## Setup LLM
     """
     logger.info("## Setup LLM")
-    
-    
-    # os.environ["OPENAI_API_KEY"] = "sk-..."  # Replace with your OllamaFunctionCallingAdapter API key
-    
-    
+
+
+    # os.environ["OPENAI_API_KEY"] = "sk-..."  # Replace with your OllamaFunctionCalling API key
+
+
     embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
-    
-    
+    llm = OllamaFunctionCalling(model="llama3.2")
+
+
     token_counter = TokenCounter()
     token_count = token_counter.get_string_tokens(text)
     logger.debug(f"Token count: {token_count}")
-    
+
     """
     ## Setup SlideNodeParser
     """
     logger.info("## Setup SlideNodeParser")
-    
-    
+
+
     parser = SlideNodeParser.from_defaults(
         chunk_size=200,
         window_size=5,
     )
-    
+
     """
     ### Run the synchronous blocking function
     """
     logger.info("### Run the synchronous blocking function")
-    
-    
+
+
     start_time = time.time()
     nodes = parser.get_nodes_from_documents([document], show_progress=True)
     end_time = time.time()
     logger.debug(f"Time taken to parse: {end_time - start_time} seconds")
-    
+
     """
     ## Lets inspect chunks
     """
     logger.info("## Lets inspect chunks")
-    
+
     for i, node in enumerate(nodes):
         logger.debug(f"\n--- Chunk {i+1} ---")
         logger.debug("Text:", node.text)
         logger.debug("Local Context:", node.metadata.get("local_context"))
-    
+
     """
     ### Lets run the asynchronous version with parallel LLM calls
     """
     logger.info("### Lets run the asynchronous version with parallel LLM calls")
-    
+
     parser.llm_workers = 4
     start_time = time.time()
     nodes = await parser.aget_nodes_from_documents([document], show_progress=True)
     logger.success(format_json(nodes))
     end_time = time.time()
     logger.debug(f"Time taken to parse: {end_time - start_time} seconds")
-    
+
     """
     ## Lets inspect the chunks
     """
     logger.info("## Lets inspect the chunks")
-    
+
     for i, node in enumerate(nodes):
         logger.debug(f"\n--- Chunk {i+1} ---")
         logger.debug("Text:", node.text)
         logger.debug("Local Context:", node.metadata.get("local_context"))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

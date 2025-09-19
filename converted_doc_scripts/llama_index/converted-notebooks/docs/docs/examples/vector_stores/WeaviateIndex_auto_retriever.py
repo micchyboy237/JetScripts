@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, StorageContext
 from llama_index.core.retrievers import VectorIndexAutoRetriever
@@ -58,11 +58,11 @@ logger.info("We will be using GPT-4 for its reasoning capabilities to infer the 
 
 # import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCalling API Key:")
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCalling(model="llama3.2")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 

@@ -37,7 +37,7 @@ logger.info("## (If Needed) Set Your API Token for desired the Model Provider")
 
 # from getpass import getpass
 
-# api_key = getpass("Enter OllamaFunctionCallingAdapter API key:")
+# api_key = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ## The Indexing Pipelne

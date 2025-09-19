@@ -1,6 +1,6 @@
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import StorageContext
@@ -116,7 +116,7 @@ for wiki_title in wiki_titles:
 
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 callback_manager = CallbackManager([LlamaDebugHandler()])
 splitter = SentenceSplitter(chunk_size=256)
 

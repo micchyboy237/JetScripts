@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from box_sdk_gen import DeveloperTokenConfig, BoxDeveloperTokenAuth, BoxClient
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.box import (
@@ -43,7 +43,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=box_tool.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     answer = await agent.run(

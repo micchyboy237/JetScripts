@@ -25,7 +25,7 @@ logger.info(f"Logs: {log_file}")
 pip install -r notebook-requirements.txt
 ```
 
-## Configure OllamaFunctionCallingAdapter with your API key
+## Configure OllamaFunctionCalling with your API key
 
 Make sure you have a file named `.env` in the same directory as this notebook, with the following contents:
 

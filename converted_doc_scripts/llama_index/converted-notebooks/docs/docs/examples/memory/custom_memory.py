@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.llms import LLM, ChatMessage, TextBlock, ImageBlock
     from llama_index.core.memory import Memory
@@ -39,7 +39,7 @@ async def main():
     
     ## Setup
     
-    For our workflow, we will use OllamaFunctionCallingAdapter as our LLM.
+    For our workflow, we will use OllamaFunctionCalling as our LLM.
     """
     logger.info("# Manipulating Memory at Runtime")
 
@@ -149,7 +149,7 @@ async def main():
     # !wget https://mediaproxy.tvtropes.org/width/1200/https://static.tvtropes.org/pmwiki/pub/images/shrek_cover.png -O ./image.png
     # !wget https://raw.githubusercontent.com/run-llama/llama_index/refs/heads/main/llama-index-core/llama_index/core/memory/memory.py -O ./memory.py
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     memory = Memory.from_defaults(
         session_id="my_session",

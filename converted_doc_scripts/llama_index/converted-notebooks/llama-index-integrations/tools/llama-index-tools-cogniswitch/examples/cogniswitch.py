@@ -50,9 +50,9 @@ warnings.filterwarnings("ignore")
 
 
 """
-### Cogniswitch Credentials and OllamaFunctionCallingAdapter token
+### Cogniswitch Credentials and OllamaFunctionCalling token
 """
-logger.info("### Cogniswitch Credentials and OllamaFunctionCallingAdapter token")
+logger.info("### Cogniswitch Credentials and OllamaFunctionCalling token")
 
 
 

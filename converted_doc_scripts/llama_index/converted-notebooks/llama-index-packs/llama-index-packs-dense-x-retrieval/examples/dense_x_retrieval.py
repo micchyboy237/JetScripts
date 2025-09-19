@@ -1,5 +1,5 @@
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llama_pack import download_llama_pack
@@ -29,7 +29,7 @@ From the paper, a proposition is described as:
 Propositions are defined as atomic expressions within text, each encapsulating a distinct factoid and presented in a concise, self-contained natural language format.
 ```
 
-We use the provided OllamaFunctionCallingAdapter prompt from their paper to generate propositions, which are then embedded and used to retrieve their parent node chunks.
+We use the provided OllamaFunctionCalling prompt from their paper to generate propositions, which are then embedded and used to retrieve their parent node chunks.
 
 ## Setup
 """
@@ -64,8 +64,8 @@ DenseXRetrievalPack = download_llama_pack("DenseXRetrievalPack", "./dense_pack")
 
 dense_pack = DenseXRetrievalPack(
     documents,
-    proposition_llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=750),
-    query_llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=256),
+    proposition_llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=750),
+    query_llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=256),
     text_splitter=SentenceSplitter(chunk_size=1024),
 )
 dense_query_engine = dense_pack.query_engine

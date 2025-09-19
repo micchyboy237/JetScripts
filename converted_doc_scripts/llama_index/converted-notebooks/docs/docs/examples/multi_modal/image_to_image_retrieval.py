@@ -32,7 +32,7 @@ In this notebook, we show how to build a Image to Image retrieval using LlamaInd
 
 LlamaIndex Image to Image Retrieval 
 
-- Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from OllamaFunctionCallingAdapter for images
+- Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from OllamaFunctionCalling for images
 
 
 Framework: [LlamaIndex](https://github.com/run-llama/llama_index)

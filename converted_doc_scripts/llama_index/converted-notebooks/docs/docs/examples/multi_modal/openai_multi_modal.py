@@ -1,7 +1,7 @@
 from jet.transformers.formatters import format_json
 from PIL import Image
 from io import BytesIO
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.llms import (
 ChatMessage,
@@ -26,17 +26,17 @@ logger.info(f"Logs: {log_file}")
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/openai_multi_modal.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Using OllamaFunctionCallingAdapter GPT-4V model for image reasoning
+# Using OllamaFunctionCalling GPT-4V model for image reasoning
 
-In this notebook, we show how to use the `OllamaFunctionCallingAdapter` LLM abstraction with GPT4V for image understanding/reasoning.
+In this notebook, we show how to use the `OllamaFunctionCalling` LLM abstraction with GPT4V for image understanding/reasoning.
 
-We also show several functions that are currently supported in the `OllamaFunctionCallingAdapter` LLM class when working with GPT4V:
+We also show several functions that are currently supported in the `OllamaFunctionCalling` LLM class when working with GPT4V:
 * `complete` (both sync and async): for a single prompt and list of images
 * `chat` (both sync and async): for multiple chat messages
 * `stream complete` (both sync and async): for steaming output of complete
 * `stream chat` (both sync and async): for steaming output of chat
 """
-logger.info("# Using OllamaFunctionCallingAdapter GPT-4V model for image reasoning")
+logger.info("# Using OllamaFunctionCalling GPT-4V model for image reasoning")
 
 # %pip install llama-index-llms-ollama matplotlib
 
@@ -46,7 +46,7 @@ logger.info("# Using OllamaFunctionCallingAdapter GPT-4V model for image reasoni
 logger.info("##  Use GPT4V to understand Images from URLs")
 
 
-# OPENAI_API_KEY = "sk-..."  # Your OllamaFunctionCallingAdapter API token here
+# OPENAI_API_KEY = "sk-..."  # Your OllamaFunctionCalling API token here
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 """
@@ -63,7 +63,7 @@ image_urls = [
     "https://i2-prod.mirror.co.uk/incoming/article7160664.ece/ALTERNATES/s1200d/FIFA-Ballon-dOr-Gala-2015.jpg",
 ]
 
-openai_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=300)
+openai_llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, max_new_tokens=300)
 
 
 img_response = requests.get(image_urls[0])

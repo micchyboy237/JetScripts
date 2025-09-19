@@ -1,6 +1,6 @@
 from IPython.display import Markdown, display
 from IPython.display import display, HTML
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import QueryBundle
 from llama_index.core import Settings
@@ -41,7 +41,7 @@ the idea of `RankGPT`:
 
 In this example, we use Van Gogh's wikipedia as an example to compare the Retrieval results with/without RankGPT reranking.
 we showcase two models for RankGPT:
-* OllamaFunctionCallingAdapter `GPT3.5`
+* OllamaFunctionCalling `GPT3.5`
 * `Mistral` model.
 """
 logger.info("# RankGPT Reranker Demonstration (Van Gogh Wiki)")
@@ -70,7 +70,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 logger.info("## Load Data, Build Index")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(
+Settings.llm = OllamaFunctionCalling(
     temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
@@ -142,7 +142,7 @@ def get_retrieved_nodes(
 
     if with_reranker:
         reranker = RankGPTRerank(
-            llm=OllamaFunctionCallingAdapter(
+            llm=OllamaFunctionCalling(
                 model="llama3.2", request_timeout=300.0, context_window=4096,
                 temperature=0.0,
                 #                 api_key=OPENAI_API_KEY,

@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Settings
     from llama_index.core import SimpleDirectoryReader
@@ -19,15 +19,15 @@ async def main():
     import os
     import pandas as pd
     import shutil
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Evaluating RAG w/ Alpha Tuning
     Evaluation is a crucial piece of development when building a RAG pipeline. Likewise, alpha tuning can be a time consuming exercise to build out, so what does the performance benefit look like for all of this extra effort? Let's dig into that.
@@ -55,26 +55,26 @@ async def main():
     - Koda Retriever vs Vanilla Hybrid Retriever
     """
     logger.info("# Evaluating RAG w/ Alpha Tuning")
-    
-    
+
+
     """
     ## Fixture Setup
     """
     logger.info("## Fixture Setup")
-    
+
     pc = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
     index = pc.Index("llama2-paper")  # this was previously created in my pinecone account
-    
-    Settings.llm = OllamaFunctionCallingAdapter()
+
+    Settings.llm = OllamaFunctionCalling()
     Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
-    
+
     vector_store = PineconeVectorStore(pinecone_index=index)
     vector_index = VectorStoreIndex.from_vector_store(
         vector_store=vector_store, embed_model=Settings.embed_model
     )
-    
+
     reranker = LLMRerank(llm=Settings.llm)  # optional
-    
+
     koda_retriever = KodaRetriever(
         index=vector_index,
         llm=Settings.llm,
@@ -82,13 +82,13 @@ async def main():
         verbose=True,
         similarity_top_k=10,
     )
-    
+
     vanilla_retriever = vector_index.as_retriever()
-    
+
     pipeline = IngestionPipeline(
         transformations=[Settings.embed_model], vector_store=vector_store
     )
-    
+
     """
     ## Data Ingestion
     
@@ -97,7 +97,7 @@ async def main():
     Our chunking strategy will solely be [semantic](https://docs.llamaindex.ai/en/stable/examples/node_parsers/semantic_chunking.html) - although this is not recommended for production. For production use cases it is recommended more analysis and other chunking strategies are considered for production use cases.
     """
     logger.info("## Data Ingestion")
-    
+
     def load_documents(file_path, num_pages=None):
         if num_pages:
             documents = SimpleDirectoryReader(input_files=[file_path]).load_data()[
@@ -106,8 +106,8 @@ async def main():
         else:
             documents = SimpleDirectoryReader(input_files=[file_path]).load_data()
         return documents
-    
-    
+
+
     doc1 = load_documents(
         "/workspaces/llama_index/llama-index-packs/llama-index-packs-koda-retriever/examples/data/dense_x_retrieval.pdf",
         num_pages=9,
@@ -122,7 +122,7 @@ async def main():
     )
     docs = [doc1, doc2, doc3]
     nodes = list()
-    
+
     node_parser = SemanticSplitterNodeParser(
         embed_model=Settings.embed_model, breakpoint_percentile_threshold=95
     )
@@ -131,16 +131,16 @@ async def main():
             documents=doc,
         )
         nodes.extend(_nodes)
-    
+
         pipeline.run(nodes=_nodes)
-    
+
     """
     ## Synthetic Query Generation
     """
     logger.info("## Synthetic Query Generation")
-    
+
     qa_dataset = generate_qa_embedding_pairs(nodes=nodes, llm=Settings.llm)
-    
+
     """
     ## Alpha Mining & Evaluation
     
@@ -148,20 +148,20 @@ async def main():
     We'll be evaluating alpha values in increments of .1; 0 to 1 where 0 is basic text search and 1 is a pure vector search.
     """
     logger.info("## Alpha Mining & Evaluation")
-    
+
     def calculate_metrics(eval_results):
         metric_dicts = []
         for eval_result in eval_results:
             metric_dict = eval_result.metric_vals_dict
             metric_dicts.append(metric_dict)
-    
+
         full_df = pd.DataFrame(metric_dicts)
-    
+
         hit_rate = full_df["hit_rate"].mean()
         mrr = full_df["mrr"].mean()
         return hit_rate, mrr
-    
-    
+
+
     async def alpha_mine(
         qa_dataset,
         vector_store_index,
@@ -173,9 +173,9 @@ async def main():
             alpha=0.0,  # this will change
             similarity_top_k=10,
         )
-    
+
         results = dict()
-    
+
         for alpha in alpha_values:
             retriever._alpha = alpha
             retriever_evaluator = RetrieverEvaluator.from_metric_names(
@@ -183,18 +183,18 @@ async def main():
             )
             eval_results = retriever_evaluator.evaluate_dataset(dataset=qa_dataset)
             logger.success(format_json(eval_results))
-    
+
             hit_rate, mrr = calculate_metrics(eval_results)
-    
+
             results[alpha] = {"hit_rate": hit_rate, "mrr": mrr}
-    
+
         return results
-    
-    
+
+
     results = await alpha_mine(qa_dataset=qa_dataset, vector_store_index=vector_index)
     logger.success(format_json(results))
     results
-    
+
     """
     ### Conclusions
     
@@ -206,31 +206,31 @@ async def main():
     This koda retriever will use default alpha values and categories provided in the alpha pack.
     """
     logger.info("### Conclusions")
-    
+
     async def compare_retrievers(retrievers, qa_dataset):
         results = dict()
-    
+
         for name, retriever in retrievers.items():
             retriever_evaluator = RetrieverEvaluator.from_metric_names(
                 metric_names=["mrr", "hit_rate"], retriever=retriever
             )
-    
+
             eval_results = retriever_evaluator.evaluate_dataset(dataset=qa_dataset)
             logger.success(format_json(eval_results))
-    
+
             hit_rate, mrr = calculate_metrics(eval_results)
-    
+
             results[name] = {"hit_rate": hit_rate, "mrr": mrr}
-    
+
         return results
-    
-    
+
+
     retrievers = {"vanilla": vanilla_retriever, "koda": koda_retriever}
-    
+
     results = await compare_retrievers(retrievers=retrievers, qa_dataset=qa_dataset)
     logger.success(format_json(results))
     results
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

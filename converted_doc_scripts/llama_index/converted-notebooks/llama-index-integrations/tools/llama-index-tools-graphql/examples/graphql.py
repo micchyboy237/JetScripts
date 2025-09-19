@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.graphql.base import GraphQLToolSpec
@@ -16,7 +16,7 @@ async def main():
     """
     ## GraphQL Agent Tool
     
-    This example walks through two examples of connecting an Agent to a GraphQL server, one unauthenticated endpoint and one authenticated. To start, we initialize the OllamaFunctionCallingAdapter package with our api key.
+    This example walks through two examples of connecting an Agent to a GraphQL server, one unauthenticated endpoint and one authenticated. To start, we initialize the OllamaFunctionCalling package with our api key.
     """
     logger.info("## GraphQL Agent Tool")
 
@@ -39,7 +39,7 @@ async def main():
     graphql_spec = GraphQLToolSpec(url=url, headers=headers)
     agent = FunctionAgent(
         tools=graphql_spec.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(await agent.run("get the id, name and type of the Ships from the graphql endpoint"))
@@ -63,7 +63,7 @@ async def main():
     graphql_spec = GraphQLToolSpec(url=url, headers=headers)
     agent = FunctionAgent(
         tools=graphql_spec.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

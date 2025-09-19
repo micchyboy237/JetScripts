@@ -41,9 +41,9 @@ logger.info("# Multi-Tenancy RAG with LlamaIndex")
 # !pip install llama-index pypdf
 
 """
-### Set OllamaFunctionCallingAdapter Key
+### Set OllamaFunctionCalling Key
 """
-logger.info("### Set OllamaFunctionCallingAdapter Key")
+logger.info("### Set OllamaFunctionCalling Key")
 
 
 # os.environ["OPENAI_API_KEY"] = "YOUR OPENAI API KEY"

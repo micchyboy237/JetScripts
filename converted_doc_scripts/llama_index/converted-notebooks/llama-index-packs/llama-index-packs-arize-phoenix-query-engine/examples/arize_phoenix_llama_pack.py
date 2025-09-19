@@ -41,9 +41,9 @@ logger.info("## Install and Import Dependencies")
 
 
 """
-Configure your OllamaFunctionCallingAdapter API key.
+Configure your OllamaFunctionCalling API key.
 """
-logger.info("Configure your OllamaFunctionCallingAdapter API key.")
+logger.info("Configure your OllamaFunctionCalling API key.")
 
 # os.environ["OPENAI_API_KEY"] = "copy-your-openai-api-key-here"
 

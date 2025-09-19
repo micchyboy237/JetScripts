@@ -33,15 +33,15 @@ async def main():
     import shutil
     import urllib.parse
     import wordlift_client
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # **WordLift** Vector Store
     
@@ -91,31 +91,31 @@ async def main():
     # Setup
     """
     logger.info("# **WordLift** Vector Store")
-    
+
     # !pip install advertools -q
     # !pip install -U wordlift-client # 🎉 first time on stage 🎉
     # !pip install rdflib -q
-    
-    
+
+
     # import nest_asyncio
-    
-    
-    
-    
-    
+
+
+
+
+
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
-    
+
     # nest_asyncio.apply()
-    
+
     WORDLIFT_KEY = os.getenv("WORDLIFT_KEY")
     OPENAI_KEY = os.getenv("OPENAI_KEY")
-    
+
     """
     # Crawl the Website w/ Advertools
     """
     logger.info("# Crawl the Website w/ Advertools")
-    
+
     def crawl_website(url, output_file, num_pages=10):
         logger.info(f"Starting crawl of {url}")
         adv.crawl(
@@ -136,10 +136,10 @@ async def main():
             },
         )
         logger.info(f"Crawl completed. Results saved to {output_file}")
-    
-    
-    
-    
+
+
+
+
     def analyze_url_patterns(df):
         df["page_type"] = df["url"].apply(
             lambda x: "PLP"
@@ -150,10 +150,10 @@ async def main():
             f"Found {(df['page_type'] == 'PLP').sum()} PLPs and {(df['page_type'] == 'PDP').sum()} PDPs"
         )
         return df
-    
-    
-    
-    
+
+
+
+
     def extract_page_data(df):
         extracted_data = []
         for _, row in df.iterrows():
@@ -171,7 +171,7 @@ async def main():
                 if isinstance(row.get("h2"), list)
                 else row.get("h2", ""),
             }
-    
+
             if row["page_type"] == "PDP":
                 page.update(
                     {
@@ -202,24 +202,24 @@ async def main():
                     else h1_content.replace("Category: ", "").strip()
                 )
                 page["category_name"] = category
-    
+
             extracted_data.append(page)
-    
+
         return pd.DataFrame(extracted_data)
-    
+
     """
     # Build the KG w/ WordLift 🕸
     """
     logger.info("# Build the KG w/ WordLift 🕸")
-    
+
     configuration = Configuration(host="https://api.wordlift.io")
     configuration.api_key["ApiKey"] = WORDLIFT_KEY
     configuration.api_key_prefix["ApiKey"] = "Key"
-    
+
     EXAMPLE_PRIVATE_NS = Namespace("https://ns.example.org/private/")
-    
+
     BASE_URI = "http://data.wordlift.io/[dataset_id]/"
-    
+
     async def cleanup_knowledge_graph(api_client):
         dataset_api = wordlift_client.DatasetApi(api_client)
         try:
@@ -228,32 +228,32 @@ async def main():
             logger.debug(
                 "Exception when calling DatasetApi->delete_all_entities: %s\n" % e
             )
-    
-    
+
+
     async def create_entity(entities_api, entity_data):
         g = Graph().parse(data=json.dumps(entity_data), format="json-ld")
         body = g.serialize(format="application/rdf+xml")
         await entities_api.create_or_update_entities(
             body=body, _content_type="application/rdf+xml"
         )
-    
-    
+
+
     def replace_url(original_url: str) -> str:
         old_domain = "https://product-finder.wordlift.io/"
         new_domain = "https://data-science-with-python-for-seo.wordlift.dev/"
-    
+
         if original_url.startswith(old_domain):
             return original_url.replace(old_domain, new_domain, 1)
         else:
             return original_url
-    
-    
+
+
     def create_entity_uri(url):
         parsed_url = urllib.parse.urlparse(url)
         path = parsed_url.path.strip("/")
         path_parts = path.split("/")
         fragment = parsed_url.fragment
-    
+
         if "product" in path_parts:
             product_id = path_parts[-1]  # Get the last part of the path
             if fragment == "offer":
@@ -269,8 +269,8 @@ async def main():
                 return f"{BASE_URI}offer_{safe_path}"
             else:
                 return f"{BASE_URI}page_{safe_path}"
-    
-    
+
+
     def clean_price(price_str):
         if not price_str or price_str == "N/A":
             return None
@@ -284,12 +284,12 @@ async def main():
         except ValueError:
             logger.warning(f"Could not convert price: {price_str}")
             return None
-    
-    
+
+
     def create_product_entity(row, dataset_uri):
         url = replace_url(row["url"])
         product_entity_uri = create_entity_uri(url)
-    
+
         entity_data = {
             "@context": "http://schema.org",
             "@type": "Product",
@@ -303,10 +303,10 @@ async def main():
                 "http://schema.org/description",
             ],
         }
-    
+
         if not pd.isna(row.get("product_description")):
             entity_data["description"] = row["product_description"]
-    
+
         if not pd.isna(row.get("product_price")):
             price = clean_price(row["product_price"])
             if price is not None:
@@ -319,10 +319,10 @@ async def main():
                     "availability": "http://schema.org/InStock",
                     "url": url,
                 }
-    
+
         if not pd.isna(row.get("product_category")):
             entity_data["category"] = row["product_category"]
-    
+
         custom_attributes = {
             key: row[key]
             for key in [
@@ -338,14 +338,14 @@ async def main():
             entity_data[str(EXAMPLE_PRIVATE_NS.attributes)] = json.dumps(
                 custom_attributes
             )
-    
+
         return entity_data
-    
-    
+
+
     def create_collection_entity(row, dataset_uri):
         url = replace_url(row["url"])
         entity_uri = create_entity_uri(url)
-    
+
         entity_data = {
             "@context": "http://schema.org",
             "@type": "CollectionPage",
@@ -353,7 +353,7 @@ async def main():
             "url": url,
             "name": row["category_name"] or row["title"],
         }
-    
+
         custom_attributes = {
             key: row[key]
             for key in [
@@ -369,13 +369,13 @@ async def main():
             entity_data[str(EXAMPLE_PRIVATE_NS.attributes)] = json.dumps(
                 custom_attributes
             )
-    
+
         return entity_data
-    
-    
+
+
     async def build_knowledge_graph(df, dataset_uri, api_client):
         entities_api = EntitiesApi(api_client)
-    
+
         for _, row in df.iterrows():
             try:
                 if row["page_type"] == "PDP":
@@ -387,13 +387,13 @@ async def main():
                         f"Skipping unknown page type for URL: {row['url']}"
                     )
                     continue
-    
+
                 if entity_data is None:
                     logger.warning(
                         f"Skipping page due to missing critical data: {row['url']}"
                     )
                     continue
-    
+
                 await create_entity(entities_api, entity_data)
                 logger.info(
                     f"Created entity for {row['page_type']}: {row['title']}"
@@ -403,25 +403,25 @@ async def main():
                     f"Error creating entity for {row['page_type']}: {row['title']}"
                 )
                 logger.error(f"Error: {str(e)}")
-    
+
     """
     # Run the show
     """
     logger.info("# Run the show")
-    
+
     CRAWL_URL = "https://product-finder.wordlift.io/"
     OUTPUT_FILE = "crawl_results.jl"
-    
-    
+
+
     async def main():
         crawl_website(CRAWL_URL, OUTPUT_FILE)
-    
+
         df = pd.read_json(OUTPUT_FILE, lines=True)
-    
+
         df = analyze_url_patterns(df)
-    
+
         pages_df = extract_page_data(df)
-    
+
         async with ApiClient(configuration) as api_client:
                 try:
                     await cleanup_knowledge_graph(api_client)
@@ -431,21 +431,21 @@ async def main():
                         f"Failed to clean up the existing Knowledge Graph: {str(e)}"
                     )
                     return  # Exit if cleanup fails
-            
+
                 await build_knowledge_graph(pages_df, CRAWL_URL, api_client)
-            
+
         logger.success(format_json(result))
         logger.info("Knowledge graph building completed.")
-    
-    
+
+
     if __name__ == "__main__":
         asyncio.run(main())
-    
+
     """
     ## Let's query products in the KG now using GraphQL
     """
     logger.info("## Let's query products in the KG now using GraphQL")
-    
+
     async def perform_graphql_query(api_client):
         graphql_api = GraphQLApi(api_client)
         query = """
@@ -460,7 +460,7 @@ async def main():
         }
         """
         request = GraphqlRequest(query=query)
-    
+
         try:
             response = await graphql_api.graphql_using_post(body=request)
             logger.success(format_json(response))
@@ -468,13 +468,13 @@ async def main():
             logger.debug(json.dumps(response, indent=2))
         except Exception as e:
             logger.error(f"An error occurred during GraphQL query: {e}")
-    
-    
+
+
     async with ApiClient(configuration) as api_client:
             await perform_graphql_query(api_client)
             logger.info("Knowledge graph building and GraphQL query completed.")
     logger.success(format_json(result))
-    
+
     """
     # Leveraging the Knowledge Graph
     
@@ -491,29 +491,29 @@ async def main():
     The `get_json_ld_from_url()` function below demonstrates this process. It takes a URL as input and returns the structured data in JSON-LD format, ready to be injected into your webpage.
     """
     logger.info("# Leveraging the Knowledge Graph")
-    
+
     def get_json_ld_from_url(url):
         api_url = "https://api.wordlift.io/data/https/" + url.replace(
             "https://", ""
         )
-    
+
         response = requests.get(api_url)
-    
+
         if response.status_code == 200:
             json_ld = response.json()
             return json_ld
         else:
             logger.debug(f"Failed to retrieve data: {response.status_code}")
             return None
-    
-    
+
+
     def pretty_print_json(json_obj):
         logger.debug(json.dumps(json_obj, indent=4))
-    
+
     url = "https://data-science-with-python-for-seo.wordlift.dev/product/100-pure-deluxe-travel-pack-duo-2/"
     json_ld = get_json_ld_from_url(url)
     json_ld
-    
+
     """
     ## Generating Links of Similar Products using WordLift Neural Search
     
@@ -528,13 +528,13 @@ async def main():
     By implementing this Neural Search feature, we're able to create a more personalized and efficient shopping experience, potentially leading to increased user satisfaction and higher conversion rates.
     """
     logger.info("## Generating Links of Similar Products using WordLift Neural Search")
-    
+
     async def get_top_k_similar_urls(configuration, query_url: str, top_k: int):
         request = VectorSearchQueryRequest(
             query_url=query_url,
             similarity_top_k=top_k,
         )
-    
+
         async with wordlift_client.ApiClient(configuration) as api_client:
                 api_instance = VectorSearchQueriesApi(api_client)
                 try:
@@ -553,7 +553,7 @@ async def main():
                 except Exception as e:
                     logger.error(f"Error querying for entities: {e}", exc_info=True)
                     return None
-            
+
         logger.success(format_json(result))
     top_k = 10
     url = "https://data-science-with-python-for-seo.wordlift.dev/product/100-mineral-sunscreen-spf-30/"
@@ -562,7 +562,7 @@ async def main():
         )
     logger.success(format_json(similar_urls))
     logger.debug(json.dumps(similar_urls, indent=2))
-    
+
     """
     ## Building a Chatbot for the E-commerce Website using LlamaIndex 🦙
     
@@ -581,13 +581,13 @@ async def main():
     ### Installing `LlamaIndex` and `WordLiftVectorStore` 💪
     """
     logger.info("## Building a Chatbot for the E-commerce Website using LlamaIndex 🦙")
-    
+
     # %%capture
     # !pip install llama-index
     # !pip install -U 'git+https://github.com/wordlift/llama_index.git#egg=llama-index-vector-stores-wordlift&subdirectory=llama-index-integrations/vector_stores/llama-index-vector-stores-wordlift'
     # !pip install llama-index-embeddings-nomic
-    
-    
+
+
     """
     ### Setting NomicEmbeddings for our Query Engine
     
@@ -606,54 +606,54 @@ async def main():
     Go here to [get your free key](https://atlas.nomic.ai/).
     """
     logger.info("### Setting NomicEmbeddings for our Query Engine")
-    
-    
+
+
     nomic_api_key = os.getenv("NOMIC_KEY")
-    
+
     embed_model = NomicEmbedding(
         api_key=nomic_api_key,
         dimensionality=128,
         model_name="nomic-embed-text-v1.5",
     )
-    
+
     embedding = embed_model.get_text_embedding("Hey Ho SEO!")
     len(embedding)
-    
+
     """
-    We will use OllamaFunctionCallingAdapter as default LLM for generating response. We could of course use any other available LLM.
+    We will use OllamaFunctionCalling as default LLM for generating response. We could of course use any other available LLM.
     """
-    logger.info("We will use OllamaFunctionCallingAdapter as default LLM for generating response. We could of course use any other available LLM.")
-    
+    logger.info("We will use OllamaFunctionCalling as default LLM for generating response. We could of course use any other available LLM.")
+
     # os.environ["OPENAI_API_KEY"] = OPENAI_KEY
-    
+
     """
     Let's setup now WordliftVectorStore using data from our Knowledge Graph.
     """
     logger.info("Let's setup now WordliftVectorStore using data from our Knowledge Graph.")
-    
+
     vector_store = WordliftVectorStore(key=API_KEY)
-    
+
     index = VectorStoreIndex.from_vector_store(
         vector_store, embed_model=embed_model
     )
-    
+
     query_engine = index.as_query_engine()
-    
+
     query1 = "Can you give me a product similar to the facial puff? Please add the URL also"
     result1 = query_engine.query(query1)
-    
+
     logger.debug(result1)
-    
+
     def query_engine(query):
         index = VectorStoreIndex.from_vector_store(
             vector_store, embed_model=embed_model
         )
-    
+
         query_engine = index.as_query_engine()
         response = query_engine.query(query)
         return response
-    
-    
+
+
     while True:
         user_query = input("Enter your query (or 'quit' to exit): ")
         if user_query.lower() == "quit":
@@ -661,7 +661,7 @@ async def main():
         result = query_engine(user_query)
         logger.debug(result)
         logger.debug("\n---\n")
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

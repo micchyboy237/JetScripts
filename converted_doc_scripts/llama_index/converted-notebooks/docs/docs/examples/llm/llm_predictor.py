@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from langchain.chat_models import ChatAnyscale, ChatOllamaFunctionCallingAdapter
 from llama_index.core import PromptTemplate
@@ -52,12 +52,12 @@ for token in stream:
     logger.debug(token, end="")
 
 """
-## OllamaFunctionCallingAdapter LLM
+## OllamaFunctionCalling LLM
 """
-logger.info("## OllamaFunctionCallingAdapter LLM")
+logger.info("## OllamaFunctionCalling LLM")
 
 
-llm = OllamaFunctionCallingAdapter()
+llm = OllamaFunctionCalling()
 
 stream = llm.stream("Hi, write a short story")
 logger.success(format_json(stream))

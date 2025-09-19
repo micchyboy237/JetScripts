@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex
 from llama_index.core.callbacks import CallbackManager
@@ -98,7 +98,7 @@ QUESTION_GEN_PROMPT = (
 )
 
 
-gpt_35_llm = OllamaFunctionCallingAdapter(
+gpt_35_llm = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 dataset_generator = DatasetGenerator.from_documents(
@@ -173,7 +173,7 @@ logger.info("### Get GPT-4 Evaluations On The Mistral and LLama-2 Answers")
 
 finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
 callback_manager = CallbackManager([finetuning_handler])
-gpt_4_llm = OllamaFunctionCallingAdapter(
+gpt_4_llm = OllamaFunctionCalling(
     temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096, callback_manager=callback_manager
 )
 
@@ -272,7 +272,7 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["text"] = eval_result.response
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+gpt_3p5_llm = OllamaFunctionCalling(model="llama3.2")
 
 gpt_3p5_judge = CorrectnessEvaluator(llm=gpt_3p5_llm)
 

@@ -14,7 +14,7 @@ logger.info(f"Logs: {log_file}")
 """
 # Grok 4
 
-Grok from xAI uses an OllamaFunctionCallingAdapter-compatible API, so you can use it with the OllamaFunctionCallingAdapterLike integration class.
+Grok from xAI uses an OllamaFunctionCalling-compatible API, so you can use it with the OllamaFunctionCallingAdapterLike integration class.
 """
 logger.info("# Grok 4")
 

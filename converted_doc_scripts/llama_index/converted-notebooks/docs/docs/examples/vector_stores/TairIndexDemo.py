@@ -46,10 +46,10 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
 """
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 Lets first begin by adding the openai api key. This will allow us to access openai for embeddings and to use chatgpt.
 """
-logger.info("### Setup OllamaFunctionCallingAdapter")
+logger.info("### Setup OllamaFunctionCalling")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-<your key here>"

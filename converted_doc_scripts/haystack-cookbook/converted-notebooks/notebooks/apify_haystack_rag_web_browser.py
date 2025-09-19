@@ -43,7 +43,7 @@ logger.info("# Search and browse the web with Apify and Haystack")
 
 You need to have an Apify account and obtain [APIFY_API_TOKEN](https://docs.apify.com/platform/integrations/api).
 
-# You also need an OllamaFunctionCallingAdapter account and [OPENAI_API_KEY](https://platform.openai.com/docs/quickstart)
+# You also need an OllamaFunctionCalling account and [OPENAI_API_KEY](https://platform.openai.com/docs/quickstart)
 """
 logger.info("## Set up the API keys")
 

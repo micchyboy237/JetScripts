@@ -20,7 +20,7 @@ logger.info(f"Logs: {log_file}")
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/customization/llms/AzureOllamaFunctionCallingAdapter.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Azure OllamaFunctionCallingAdapter
+# Azure OllamaFunctionCalling
 
 Azure openAI resources unfortunately differ from standard openAI resources as you can't generate embeddings unless you use an embedding model. The regions where these models are available can be found here: https://learn.microsoft.com/en-us/azure/cognitive-services/openai/concepts/models#embeddings-models
 
@@ -28,7 +28,7 @@ Furthermore the regions that support embedding models unfortunately don't suppor
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# Azure OllamaFunctionCallingAdapter")
+logger.info("# Azure OllamaFunctionCalling")
 
 # %pip install llama-index-embeddings-azure-openai
 # %pip install llama-index-llms-azure-openai

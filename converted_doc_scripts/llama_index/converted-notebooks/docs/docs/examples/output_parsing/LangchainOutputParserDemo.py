@@ -1,5 +1,5 @@
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
@@ -89,7 +89,7 @@ logger.debug(fmt_qa_tmpl)
 logger.info("#### Query Index")
 
 
-llm = OllamaFunctionCallingAdapter(output_parser=output_parser)
+llm = OllamaFunctionCalling(output_parser=output_parser)
 
 query_engine = index.as_query_engine(
     llm=llm,

@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.chatgpt_plugin.base import ChatGPTPluginToolSpec

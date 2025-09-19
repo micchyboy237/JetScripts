@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -89,7 +89,7 @@ for wiki_title in wiki_titles:
 logger.info("### Parse Data")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+Settings.llm = OllamaFunctionCalling(temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
 city_nodes = {}
@@ -137,7 +137,7 @@ In this example, we use this program to parse gold medal counts.
 """
 logger.info("## Use `MultiValueEvaporateProgram`")
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+Settings.llm = OllamaFunctionCalling(temperature=0, model="llama3.2")
 Settings.chunk_size = 1024
 Settings.chunk_overlap = 0
 

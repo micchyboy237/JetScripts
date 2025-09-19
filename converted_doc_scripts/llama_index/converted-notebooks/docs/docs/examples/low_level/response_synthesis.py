@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from dataclasses import dataclass
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import PromptTemplate
     from llama_index.core import StorageContext
@@ -38,7 +38,7 @@ async def main():
     
     We're essentially unpacking our "Response Synthesis" module and exposing that for the user.
     
-    We use OllamaFunctionCallingAdapter as a default LLM but you're free to plug in any LLM you wish.
+    We use OllamaFunctionCalling as a default LLM but you're free to plug in any LLM you wish.
     
     ## Setup
     
@@ -124,7 +124,7 @@ async def main():
     """
     logger.info("## Building Response Synthesis with LLMs")
 
-    llm = OllamaFunctionCallingAdapter(model="text-davinci-003")
+    llm = OllamaFunctionCalling(model="text-davinci-003")
 
     qa_prompt = PromptTemplate(
         """\

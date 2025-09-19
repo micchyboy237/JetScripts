@@ -16,22 +16,22 @@ logger.info(f"Logs: {log_file}")
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/openai_sub_question.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# OllamaFunctionCallingAdapter function calling for Sub-Question Query Engine
+# OllamaFunctionCalling function calling for Sub-Question Query Engine
 
-In this notebook, we showcase how to use OllamaFunctionCallingAdapter function calling to improve the robustness of our sub-question query engine.
+In this notebook, we showcase how to use OllamaFunctionCalling function calling to improve the robustness of our sub-question query engine.
 
 The sub-question query engine is designed to accept swappable question generators that implement the `BaseQuestionGenerator` interface.  
 To leverage the power of openai function calling API, we implemented a new `OllamaFunctionCallingAdapterQuestionGenerator` (powered by our `OllamaFunctionCallingAdapterPydanticProgram`)
 
-## OllamaFunctionCallingAdapter Question Generator
+## OllamaFunctionCalling Question Generator
 
-Unlike the default `LLMQuestionGenerator` that supports generic LLMs via the completion API, `OllamaFunctionCallingAdapterQuestionGenerator` only works with the latest OllamaFunctionCallingAdapter models that supports the function calling API. 
+Unlike the default `LLMQuestionGenerator` that supports generic LLMs via the completion API, `OllamaFunctionCallingAdapterQuestionGenerator` only works with the latest OllamaFunctionCalling models that supports the function calling API. 
 
 The benefit is that these models are fine-tuned to output JSON objects, so we can worry less about output parsing issues.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# OllamaFunctionCallingAdapter function calling for Sub-Question Query Engine")
+logger.info("# OllamaFunctionCalling function calling for Sub-Question Query Engine")
 
 # %pip install llama-index-question-gen-openai
 

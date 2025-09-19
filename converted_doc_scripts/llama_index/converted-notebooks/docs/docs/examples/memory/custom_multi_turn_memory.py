@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.llms import ChatMessage, TextBlock
@@ -178,7 +178,7 @@ async def main():
         """Subtract two numbers."""
         return a - b
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     agent = FunctionAgent(
         tools=[multiply, divide, add, subtract],

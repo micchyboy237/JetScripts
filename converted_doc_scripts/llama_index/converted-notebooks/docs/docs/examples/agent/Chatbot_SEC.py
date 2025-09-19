@@ -1,6 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.llm.ollama.adapters.ollama_llama_index_llm_question_generator_adapter import LLMQuestionGenerator
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from jet.logger import CustomLogger
@@ -33,7 +33,7 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.orange(f"Logs: {log_file}")
 
 model_name = "sentence-transformers/all-MiniLM-L6-v2"
-Settings.llm = OllamaFunctionCallingAdapter(
+Settings.llm = OllamaFunctionCalling(
     model="llama3.2", log_dir=f"{LOG_DIR}/chats")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name=model_name,
@@ -219,7 +219,7 @@ logger.info(
 
 
 agent = FunctionAgent(
-    tools=tools, llm=OllamaFunctionCallingAdapter(model="llama3.2", log_dir=f"{LOG_DIR}/agent_functions"))
+    tools=tools, llm=OllamaFunctionCalling(model="llama3.2", log_dir=f"{LOG_DIR}/agent_functions"))
 
 """
 ### Testing the Agent

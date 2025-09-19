@@ -1,6 +1,6 @@
 async def main():
     from graphql import parse
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.file.sdl.base import SDLReader
@@ -139,7 +139,7 @@ async def main():
         If the GraphQL you execute returns an error, either directly fix the query, or directly ask the graphql_writer questions about the schema instead of writing graphql queries.
         Then use that information to write the correct graphql query
         """,
-        llm=OllamaFunctionCallingAdapter(
+        llm=OllamaFunctionCalling(
             model="llama3.2"),
     )
 

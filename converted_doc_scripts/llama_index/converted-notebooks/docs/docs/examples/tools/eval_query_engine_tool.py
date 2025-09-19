@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import (
         StorageContext,
@@ -53,7 +53,7 @@ async def main():
     Settings.embed_model = HuggingFaceEmbedding(
         model_name="BAAI/bge-small-en-v1.5"
     )
-    Settings.llm = OllamaFunctionCallingAdapter()
+    Settings.llm = OllamaFunctionCalling()
 
     """
     ## Download and Index Data
@@ -154,11 +154,11 @@ async def main():
     ]
 
     """
-    ## Setup OllamaFunctionCallingAdapter Agent
+    ## Setup OllamaFunctionCalling Agent
     """
-    logger.info("## Setup OllamaFunctionCallingAdapter Agent")
+    logger.info("## Setup OllamaFunctionCalling Agent")
 
-    agent = FunctionAgent(tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(
+    agent = FunctionAgent(tools=query_engine_tools, llm=OllamaFunctionCalling(
         model="llama3.2"))
 
     """

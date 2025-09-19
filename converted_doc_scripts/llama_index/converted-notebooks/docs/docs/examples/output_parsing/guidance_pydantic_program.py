@@ -1,4 +1,4 @@
-from guidance.llms import OllamaFunctionCallingAdapter
+from guidance.llms import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.program.guidance import GuidancePydanticProgram
 from pydantic import BaseModel
@@ -61,7 +61,7 @@ program = GuidancePydanticProgram(
         "Generate an example album, with an artist and a list of songs. Using"
         " the movie {{movie_name}} as inspiration"
     ),
-    guidance_llm=OllamaFunctionCallingAdapter("text-davinci-003"),
+    guidance_llm=OllamaFunctionCalling("text-davinci-003"),
     verbose=True,
 )
 

@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
@@ -44,7 +44,7 @@ logger.info("## Configure LLM service")
 # os.environ["OPENAI_API_KEY"] = "OPENAI_API_KEY"
 
 
-Settings.llm = OllamaFunctionCallingAdapter(
+Settings.llm = OllamaFunctionCalling(
     temperature=0.2, model="llama3.2")
 
 """

@@ -49,7 +49,7 @@ With the vector store created, you can:
 
 In this basic example, we take the Paul Graham essay, split it into chunks, embed it using an open-source embedding model, load it into `DuckDBVectorStore`, and then query it.
 
-For the embedding model we will use OllamaFunctionCallingAdapter.
+For the embedding model we will use OllamaFunctionCalling.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """

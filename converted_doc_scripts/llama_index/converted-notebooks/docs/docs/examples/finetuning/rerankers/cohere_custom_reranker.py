@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import QueryBundle
     from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
@@ -52,7 +52,7 @@ async def main():
     """
     ### Initialize the api keys.
     
-    OllamaFunctionCallingAdapter - For creating synthetic dataset.
+    OllamaFunctionCalling - For creating synthetic dataset.
     
     CohereAI - For training custom reranker and evaluating with base reranker.
     """
@@ -112,7 +112,7 @@ async def main():
     """
     logger.info("We will use gpt-4 to create questions from chunks.")
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         temperature=0, model="llama3.2")
 
     """

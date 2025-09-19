@@ -26,33 +26,33 @@ logger.orange(f"Logs: {log_file}")
 
 > As of Haystack 2.9.0, experimental dataclasses (refactored ChatMessage and ChatRole, ToolCall and Tool) and components (refactored OllamaFunctionCallingAdapterChatGenerator, ToolInvoker) are removed from the `haystack-experimental` and merged into Haystack core.
 
-OllamaFunctionCallingAdapter recently released Swarm: an educational framework that proposes lightweight techniques for creating and orchestrating multi-agent systems.
+OllamaFunctionCalling recently released Swarm: an educational framework that proposes lightweight techniques for creating and orchestrating multi-agent systems.
 
 
 In this notebook, we'll explore the core concepts of Swarm ([Routines and Handoffs](https://cookbook.openai.com/examples/orchestrating_agents)) and implement them using Haystack and its tool support.
 
-This exploration is not only educational: we will unlock features missing in the original implementation, like the ability of using models from various providers. In fact, our final example will include 3 agents: one powered by llama3.2 (OllamaFunctionCallingAdapter), one using Claude 3.5 Sonnet (OllamaFunctionCallingAdapter) and a third running Llama-3.2-3B locally via Ollama.
+This exploration is not only educational: we will unlock features missing in the original implementation, like the ability of using models from various providers. In fact, our final example will include 3 agents: one powered by llama3.2 (OllamaFunctionCalling), one using Claude 3.5 Sonnet (OllamaFunctionCalling) and a third running Llama-3.2-3B locally via Ollama.
 
 ## Setup
 
-We install the required dependencies. In addition to Haystack, we also need integrations with OllamaFunctionCallingAdapter and Ollama.
+We install the required dependencies. In addition to Haystack, we also need integrations with OllamaFunctionCalling and Ollama.
 """
 logger.info("# 🐝🐝🐝 Create a Swarm of Agents")
 
 # ! pip install haystack-ai jsonschema anthropic-haystack ollama-haystack
 
 """
-Next, we configure our API keys for OllamaFunctionCallingAdapter and OllamaFunctionCallingAdapter.
+Next, we configure our API keys for OllamaFunctionCalling and OllamaFunctionCalling.
 """
-logger.info("Next, we configure our API keys for OllamaFunctionCallingAdapter and OllamaFunctionCallingAdapter.")
+logger.info("Next, we configure our API keys for OllamaFunctionCalling and OllamaFunctionCalling.")
 
 # from getpass import getpass
 
 
 # if not os.environ.get("OPENAI_API_KEY"):
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCallingAdapter API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key:")
 # if not os.environ.get("ANTHROPIC_API_KEY"):
-#     os.environ["ANTHROPIC_API_KEY"] = getpass("Enter your OllamaFunctionCallingAdapter API key:")
+#     os.environ["ANTHROPIC_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key:")
 
 
 
@@ -320,7 +320,7 @@ Nice ✨
 # A more complex multi-agent system
 
 Now, we move on to a more intricate multi-agent system that simulates a customer service setup for ACME Corporation, a fictional entity from the Road Runner/Wile E. Coyote cartoons, which sells quirky products meant to catch roadrunners.
-(We are reimplementing the example from the original article by OllamaFunctionCallingAdapter.)
+(We are reimplementing the example from the original article by OllamaFunctionCalling.)
 
 
 This system involves several different agents (each with specific tools):
@@ -328,7 +328,7 @@ This system involves several different agents (each with specific tools):
 - Sales Agent: proposes and sells products to the user, it can execute the order or redirect the user back to the Triage Agent. Tools: `execute_order` and `transfer_back_to_triage`.
 - Issues and Repairs Agent: supports customers with their problems, it can look up item IDs, execute refund or redirect the user back to triage. Tools: `look_up_item`,  `execute_refund`, and `transfer_back_to_triage`.
 
-A nice bonus feature of our implementation is that **we can use different model providers** supported by Haystack. In this case, the Triage Agent is powered by (OllamaFunctionCallingAdapter) llama3.2, while we use (OllamaFunctionCallingAdapter) Claude 3.5 Sonnet for the other two agents.
+A nice bonus feature of our implementation is that **we can use different model providers** supported by Haystack. In this case, the Triage Agent is powered by (OllamaFunctionCalling) llama3.2, while we use (OllamaFunctionCalling) Claude 3.5 Sonnet for the other two agents.
 """
 logger.info("# A more complex multi-agent system")
 

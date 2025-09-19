@@ -142,9 +142,9 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
             includes=[],
             excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
             weights={
-                "dir": 0.325,
-                "name": 0.325,
-                "content": 0.35,
+                "dir": 0.0,
+                "name": 0.25,
+                "content": 0.75,
             },
             batch_size=batch_size,
         )
@@ -217,26 +217,79 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
     print_results(query, merged_results, split_chunks)
 
 
+def validate_directories(directories: List[str]) -> List[str]:
+    """Validate that provided directories exist and are accessible."""
+    valid_dirs = []
+    for directory in directories:
+        directory = directory.strip()  # Remove any whitespace from individual directories
+        if not directory:  # Skip empty directory strings
+            continue
+        if not os.path.isdir(directory):
+            print(f"Warning: '{directory}' is not a valid or accessible directory. Skipping.")
+            continue
+        valid_dirs.append(os.path.abspath(directory))  # Normalize to absolute paths
+    if not valid_dirs:
+        raise ValueError("No valid directories provided.")
+    return valid_dirs
+
+
 def parse_arguments():
     """Parse command line arguments for query, directories, and file extensions (comma separated)."""
     parser = argparse.ArgumentParser(
-        description="File search with query, directories, and file extensions (comma separated)")
-    parser.add_argument("query", type=str, nargs="?",
-                        default="AI Agents", help="Search query")
-    parser.add_argument("directories", type=str, nargs="*",
-                        default=["/Users/jethroestrada/Desktop/External_Projects/AI"], help="Search directories")
-    parser.add_argument("--query", type=str, dest="query_flag",
-                        default=None, help="Alternative query input")
-    parser.add_argument("--directories", type=str, nargs="+", dest="directories_flag",
-                        default=None, help="Alternative directories input")
-    parser.add_argument("--extensions", type=str, dest="extensions",
-                        default=None, help="File extensions to include, comma separated (e.g. .py,.md)")
+        description="File search with query, directories, and file extensions (comma separated)"
+    )
+    parser.add_argument(
+        "query",
+        type=str,
+        nargs="?",
+        default="AI Agents",
+        help="Search query"
+    )
+    parser.add_argument(
+        "directories",
+        type=str,
+        nargs="?",
+        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts",
+        help="Search directories (comma-separated, e.g., /path/to/dir1,/path/to/dir2)"
+    )
+    parser.add_argument(
+        "--query",
+        type=str,
+        dest="query_flag",
+        default=None,
+        help="Alternative query input"
+    )
+    parser.add_argument(
+        "--directories",
+        type=str,
+        dest="directories_flag",
+        default=None,
+        help="Alternative directories input (comma-separated, e.g., /path/to/dir1,/path/to/dir2)"
+    )
+    parser.add_argument(
+        "--extensions",
+        type=str,
+        dest="extensions",
+        default=".py",
+        help="File extensions to include, comma separated (e.g., .py,.md)"
+    )
     args = parser.parse_args()
+
+    # Use query_flag if provided, else fallback to query
     query = args.query_flag if args.query_flag is not None else args.query
-    directories = args.directories_flag if args.directories_flag is not None else args.directories
-    # Split extensions by comma if provided, else None
-    extensions = [ext.strip() for ext in args.extensions.split(",")
-                  ] if args.extensions else None
+
+    # Use directories_flag if provided, else fallback to directories
+    directories_input = args.directories_flag if args.directories_flag is not None else args.directories
+
+    # Convert comma-separated directories string to list
+    directories = [d.strip() for d in directories_input.split(",")] if directories_input else []
+
+    # Validate directories
+    directories = validate_directories(directories)
+
+    # Split extensions by comma if provided, else use default
+    extensions = [ext.strip() for ext in args.extensions.split(",")] if args.extensions else [".py"]
+
     return argparse.Namespace(query=query, directories=directories, extensions=extensions)
 
 

@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from google.colab import userdata
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import (
         SimpleDirectoryReader,
@@ -39,7 +39,7 @@ async def main():
     
     First we install our dependencies:
     * LlamaIndex core for most things
-    * OllamaFunctionCallingAdapter LLM and embeddings for LLM actions
+    * OllamaFunctionCalling LLM and embeddings for LLM actions
     * `llama-index-readers-file` to power the PDF reader in `SimpleDirectoryReader`
     """
     logger.info("# Sub Question Query Engine as a workflow")
@@ -238,7 +238,7 @@ async def main():
         )
 
     engine = SubQuestionQueryEngine(timeout=120, verbose=True)
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2")
     result = await engine.run(
         llm=llm,

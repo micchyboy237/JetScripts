@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.workflow import Context
@@ -15,11 +15,11 @@ async def main():
     logger.info(f"Logs: {log_file}")
 
     """
-    ## OllamaFunctionCallingAdapter 
+    ## OllamaFunctionCalling 
     
-    For this notebook we will use the OllamaFunctionCallingAdapter ChatGPT models. We import the OllamaFunctionCallingAdapter agent and set the api_key, you will have to provide your own API key.
+    For this notebook we will use the OllamaFunctionCalling ChatGPT models. We import the OllamaFunctionCalling agent and set the api_key, you will have to provide your own API key.
     """
-    logger.info("## OllamaFunctionCallingAdapter")
+    logger.info("## OllamaFunctionCalling")
 
     # os.environ["OPENAI_API_KEY"] = "sk-your-key"
 
@@ -53,15 +53,15 @@ async def main():
         logger.debug(tool.metadata.fn_schema)
 
     """
-    We can see that the database tool spec provides 3 functions for the OllamaFunctionCallingAdapter agent. One to execute a SQL query, one to describe a list of tables in the database, and one to list all of the tables available in the database. 
+    We can see that the database tool spec provides 3 functions for the OllamaFunctionCalling agent. One to execute a SQL query, one to describe a list of tables in the database, and one to list all of the tables available in the database. 
     
-    We can pass the tool list to our OllamaFunctionCallingAdapter agent and test it out:
+    We can pass the tool list to our OllamaFunctionCalling agent and test it out:
     """
-    logger.info("We can see that the database tool spec provides 3 functions for the OllamaFunctionCallingAdapter agent. One to execute a SQL query, one to describe a list of tables in the database, and one to list all of the tables available in the database.")
+    logger.info("We can see that the database tool spec provides 3 functions for the OllamaFunctionCalling agent. One to execute a SQL query, one to describe a list of tables in the database, and one to list all of the tables available in the database.")
 
     agent = FunctionAgent(
         tools=db_tools.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     ctx = Context(agent)

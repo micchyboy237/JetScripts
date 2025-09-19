@@ -124,7 +124,7 @@ async def main():
     """
     ## Google Gemini Agent over RAG Pipeline
     
-    Build a Anthropic agent over a simple 10K document. We use OllamaFunctionCallingAdapter embeddings and Gemini 2.0 Flash to construct the RAG pipeline, and pass it to the Gemini 2.5 Flash agent as a tool.
+    Build a Anthropic agent over a simple 10K document. We use OllamaFunctionCalling embeddings and Gemini 2.0 Flash to construct the RAG pipeline, and pass it to the Gemini 2.5 Flash agent as a tool.
     """
     logger.info("## Google Gemini Agent over RAG Pipeline")
 

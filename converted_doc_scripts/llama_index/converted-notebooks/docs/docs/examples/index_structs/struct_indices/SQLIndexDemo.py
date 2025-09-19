@@ -1,6 +1,6 @@
 from jet.models.config import MODELS_CACHE_DIR
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SQLDatabase
 from llama_index.core import VectorStoreIndex
@@ -96,7 +96,7 @@ We first define our `SQLDatabase` abstraction (a light wrapper around SQLAlchemy
 logger.info("### Define SQL Database")
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2")
+llm = OllamaFunctionCalling(temperature=0.1, model="llama3.2")
 
 sql_database = SQLDatabase(engine, include_tables=["city_stats"])
 

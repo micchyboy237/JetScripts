@@ -35,13 +35,13 @@ logger.info("# TiDB Vector Store")
 
 
 """
-Configuring your OllamaFunctionCallingAdapter Key
+Configuring your OllamaFunctionCalling Key
 """
-logger.info("Configuring your OllamaFunctionCallingAdapter Key")
+logger.info("Configuring your OllamaFunctionCalling Key")
 
 # import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("Input your OllamaFunctionCallingAdapter API key:")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("Input your OllamaFunctionCalling API key:")
 
 """
 Configure TiDB connection setting that you will need. To connect to your TiDB Cloud Cluster, follow these steps:

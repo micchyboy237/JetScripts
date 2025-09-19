@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.tools.tool_spec.load_and_search import (
@@ -23,7 +23,7 @@ async def main():
     
     This tutorial walks through using the LLM tools provided by the [Exa API](https://exa.ai) to allow LLMs to use semantic queries to search for and retrieve rich web content from the internet.
     
-    To get started, you will need an [OllamaFunctionCallingAdapter api key](https://platform.openai.com/account/api-keys) and an [Exa API key](https://dashboard.exa.ai/api-keys)
+    To get started, you will need an [OllamaFunctionCalling api key](https://platform.openai.com/account/api-keys) and an [Exa API key](https://dashboard.exa.ai/api-keys)
     
     We will import the relevant agents and tools and pass them our keys here:
     """
@@ -42,7 +42,7 @@ async def main():
     """
     ## Testing the Exa tools
     
-    We've imported our OllamaFunctionCallingAdapter agent, set up the API keys, and initialized our tool, checking the methods that it has available. Let's test out the tool before setting up our Agent.
+    We've imported our OllamaFunctionCalling agent, set up the API keys, and initialized our tool, checking the methods that it has available. Let's test out the tool before setting up our Agent.
     
     All of the Exa search tools make use of the `AutoPrompt` option where Exa will pass the query through an LLM to refine it in line with Exa query best-practice.
     """
@@ -137,7 +137,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=exa_tool_list,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(await agent.run("What are the best resturants in toronto?"))
@@ -165,7 +165,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=tools,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     response = await agent.run("Tell me more about the recent news on semiconductors")
@@ -206,7 +206,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=[*wrapped_retrieve.to_tool_list(), date_tool],
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

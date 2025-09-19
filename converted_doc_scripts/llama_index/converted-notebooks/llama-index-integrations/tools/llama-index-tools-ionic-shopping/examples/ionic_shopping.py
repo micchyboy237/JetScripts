@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_hub.tools.ionic_shopping.base import IonicShoppingToolSpec
     from llama_index.core.agent.workflow import FunctionAgent
@@ -32,9 +32,9 @@ async def main():
     # !pip install llama-index llama-hub ionic-api-sdk
 
     """
-    ### Configure OllamaFunctionCallingAdapter
+    ### Configure OllamaFunctionCalling
     """
-    logger.info("### Configure OllamaFunctionCallingAdapter")
+    logger.info("### Configure OllamaFunctionCalling")
 
     # os.environ["OPENAI_API_KEY"] = "sk-api-key"
 
@@ -55,7 +55,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=ionic_tool,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from json import JSONDecodeError
     from llama_index.core import Document
@@ -39,7 +39,7 @@ async def main():
     In this notebook, we walk through how to fine-tune gpt-3.5-turbo with function calls. The primary use case here is structured data extraction. Our main focus is distilling GPT-4 outputs to help improve gpt-3.5-turbo function calling capabilities.
     
     We will walk through some examples, from simple to advanced:
-    1. Fine-tuning on some toy messages/structured outputs logged through our OllamaFunctionCallingAdapter Pydantic Program object.
+    1. Fine-tuning on some toy messages/structured outputs logged through our OllamaFunctionCalling Pydantic Program object.
     2. Fine-tuning on context-augmented queries/structured outputs over an entire document corpus. Use this in a RAG system.
     """
     logger.info("# Fine Tuning with Function Calling")
@@ -84,7 +84,7 @@ async def main():
     finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
     callback_manager = CallbackManager([finetuning_handler])
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2", request_timeout=300.0, context_window=4096, callback_manager=callback_manager)
 
     prompt_template_str = """\
@@ -233,17 +233,17 @@ async def main():
 
     Settings.chunk_size = chunk_size
 
-    gpt_4_llm = OllamaFunctionCallingAdapter(
+    gpt_4_llm = OllamaFunctionCalling(
         model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3, callback_manager=callback_manager
     )
 
-    gpt_35_llm = OllamaFunctionCallingAdapter(
+    gpt_35_llm = OllamaFunctionCalling(
         model="llama3.2", request_timeout=300.0, context_window=4096,
         temperature=0.3,
         callback_manager=callback_manager,
     )
 
-    eval_llm = OllamaFunctionCallingAdapter(
+    eval_llm = OllamaFunctionCalling(
         model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 
     """

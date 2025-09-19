@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.llms.anthropic import Anthropic
@@ -18,7 +18,7 @@ logger.info(f"Logs: {log_file}")
 
 # Chat Engine - Best Mode
 
-The default chat engine mode is "best", which uses the "openai" mode if you are using an OllamaFunctionCallingAdapter model that supports the latest function calling API, otherwise uses the "react" mode
+The default chat engine mode is "best", which uses the "openai" mode if you are using an OllamaFunctionCalling model that supports the latest function calling API, otherwise uses the "react" mode
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
@@ -45,7 +45,7 @@ Load data and build index
 logger.info("### Get started in 5 lines of code")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 data = SimpleDirectoryReader(
     input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 index = VectorStoreIndex.from_documents(data)

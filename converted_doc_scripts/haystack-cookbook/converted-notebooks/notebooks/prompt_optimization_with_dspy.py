@@ -55,7 +55,7 @@ logger.info("# Prompt Optimization with DSPy")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ## Load data
@@ -154,7 +154,7 @@ logger.info("## DSPy")
 
 
 
-lm = dspy.OllamaFunctionCallingAdapter(model='llama3.2')
+lm = dspy.OllamaFunctionCalling(model='llama3.2')
 dspy.settings.configure(lm=lm)
 
 """

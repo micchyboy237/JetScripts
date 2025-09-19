@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
@@ -71,7 +71,7 @@ Here we define metadata extractors. We define two variants:
 logger.info("## Define Metadata Extractors")
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=512)
+llm = OllamaFunctionCalling(temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=512)
 
 """
 We also show how to instantiate the `SummaryExtractor` and `QuestionsAnsweredExtractor`.

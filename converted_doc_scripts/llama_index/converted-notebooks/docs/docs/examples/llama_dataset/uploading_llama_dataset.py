@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index import VectorStoreIndex
     from llama_index.core import SimpleDirectoryReader
@@ -52,7 +52,7 @@ async def main():
         input_files=["data/paul_graham/paul_graham_essay.txt"]
     ).load_data()
 
-    llm_gpt35 = OllamaFunctionCallingAdapter(
+    llm_gpt35 = OllamaFunctionCalling(
         model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
     dataset_generator = RagDatasetGenerator.from_documents(

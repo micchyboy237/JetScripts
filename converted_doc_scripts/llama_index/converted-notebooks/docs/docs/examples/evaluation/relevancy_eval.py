@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import (
     TreeIndex,
@@ -41,9 +41,9 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 pd.set_option("display.max_colwidth", 0)
 
-gpt3 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt3 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 evaluator = RelevancyEvaluator(llm=gpt3)
 evaluator_gpt4 = RelevancyEvaluator(llm=gpt4)

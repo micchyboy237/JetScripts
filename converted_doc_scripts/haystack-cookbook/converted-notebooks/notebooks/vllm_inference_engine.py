@@ -36,11 +36,11 @@ logger.info("# Use the ⚡ vLLM inference engine with Haystack")
 # ! pip install vllm haystack-ai
 
 """
-## Run a vLLM OllamaFunctionCallingAdapter-compatible server in Colab
+## Run a vLLM OllamaFunctionCalling-compatible server in Colab
 
-vLLM can be deployed as a server that implements the OllamaFunctionCallingAdapter API protocol. This allows vLLM to be used as a drop-in replacement for applications using OllamaFunctionCallingAdapter API. Read more [in the docs](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).
+vLLM can be deployed as a server that implements the OllamaFunctionCalling API protocol. This allows vLLM to be used as a drop-in replacement for applications using OllamaFunctionCalling API. Read more [in the docs](https://docs.vllm.ai/en/latest/getting_started/quickstart.html#openai-compatible-server).
 
-In Colab, we start the OllamaFunctionCallingAdapter-compatible server using Python.
+In Colab, we start the OllamaFunctionCalling-compatible server using Python.
 For environments that support Docker, we can run the server using Docker ([docs](https://docs.vllm.ai/en/latest/serving/deploying_with_docker.html)).
 
 *Significant parameters:*
@@ -49,7 +49,7 @@ For environments that support Docker, we can run the server using Docker ([docs]
 - **quantization**: awq. AWQ is a quantization method that allows LLMs to run (fast) when GPU resources are limited. [Simple blogpost on quantization techniques](https://www.maartengrootendorst.com/blog/quantization/#awq-activation-aware-weight-quantization)
 - **max_model_len**: we specify a [maximum context length](https://docs.vllm.ai/en/latest/models/engine_args.html), which consists of the maximum number of tokens (prompt + response). Otherwise, the model does not fit in Colab and we get an OOM error.
 """
-logger.info("## Run a vLLM OllamaFunctionCallingAdapter-compatible server in Colab")
+logger.info("## Run a vLLM OllamaFunctionCalling-compatible server in Colab")
 
 # ! nohup python -m vllm.entrypoints.openai.api_server \
                   --model TheBloke/notus-7B-v1-AWQ \
@@ -62,14 +62,14 @@ logger.info("## Run a vLLM OllamaFunctionCallingAdapter-compatible server in Col
 """
 ## Chat with the model using OllamaFunctionCallingAdapterChatGenerator
 
-Once we have launched the vLLM-compatible OllamaFunctionCallingAdapter server,
+Once we have launched the vLLM-compatible OllamaFunctionCalling server,
 we can simply initialize an `OllamaFunctionCallingAdapterChatGenerator` pointing to the vLLM server URL and start chatting!
 """
 logger.info("## Chat with the model using OllamaFunctionCallingAdapterChatGenerator")
 
 
 generator = OllamaFunctionCallingAdapterChatGenerator(
-    api_key=Secret.from_token("VLLM-PLACEHOLDER-API-KEY"),  # for compatibility with the OllamaFunctionCallingAdapter API, a placeholder api_key is needed
+    api_key=Secret.from_token("VLLM-PLACEHOLDER-API-KEY"),  # for compatibility with the OllamaFunctionCalling API, a placeholder api_key is needed
     model="TheBloke/notus-7B-v1-AWQ",
     api_base_url="http://localhost:8000/v1",
     generation_kwargs = {"max_tokens": 512}

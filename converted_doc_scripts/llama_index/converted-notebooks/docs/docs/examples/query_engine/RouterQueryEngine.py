@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -56,7 +56,7 @@ logger.info("## Global Models")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
+Settings.llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
 Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
@@ -122,13 +122,13 @@ There are several selectors available, each with some distinct attributes.
 
 The LLM selectors use the LLM to output a JSON that is parsed, and the corresponding indexes are queried.
 
-The Pydantic selectors (currently only supported by `gpt-4-0613` and `gpt-3.5-turbo-0613` (the default)) use the OllamaFunctionCallingAdapter Function Call API to produce pydantic selection objects, rather than parsing raw JSON.
+The Pydantic selectors (currently only supported by `gpt-4-0613` and `gpt-3.5-turbo-0613` (the default)) use the OllamaFunctionCalling Function Call API to produce pydantic selection objects, rather than parsing raw JSON.
 
 For each type of selector, there is also the option to select 1 index to route to, or multiple.
 
 #### PydanticSingleSelector
 
-Use the OllamaFunctionCallingAdapter Function API to generate/parse pydantic objects under the hood for the router selector.
+Use the OllamaFunctionCalling Function API to generate/parse pydantic objects under the hood for the router selector.
 """
 logger.info("### Define Router Query Engine")
 
@@ -151,7 +151,7 @@ logger.debug(str(response))
 """
 #### LLMSingleSelector
 
-Use OllamaFunctionCallingAdapter (or any other LLM) to parse generated JSON under the hood to select a sub-index for routing.
+Use OllamaFunctionCalling (or any other LLM) to parse generated JSON under the hood to select a sub-index for routing.
 """
 logger.info("#### LLMSingleSelector")
 

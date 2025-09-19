@@ -61,7 +61,7 @@ For the demonstration, here are the steps:
 
 ### Installation
 
-We will use Cohere MultiModal embeddings for retrieval, ColPali as reranker for image nodes, Cohere reranker for text nodes, Qdrant vector-store and OllamaFunctionCallingAdapter MultiModal LLM for response generation.
+We will use Cohere MultiModal embeddings for retrieval, ColPali as reranker for image nodes, Cohere reranker for text nodes, Qdrant vector-store and OllamaFunctionCalling MultiModal LLM for response generation.
 """
 logger.info("# Reranking using ColPali, Cohere Reranker and Multi-Modal Embeddings")
 
@@ -76,7 +76,7 @@ logger.info("# Reranking using ColPali, Cohere Reranker and Multi-Modal Embeddin
 
 Cohere - MultiModal Retrieval
 
-OllamaFunctionCallingAdapter - MultiModal LLM.
+OllamaFunctionCalling - MultiModal LLM.
 """
 logger.info("### Setup API Keys")
 
@@ -238,7 +238,7 @@ delete_large_images(data_path)
 """
 ### Set Embedding Model and LLM.
 
-Cohere MultiModal Embedding model for retrieval and OllamaFunctionCallingAdapter MultiModal LLM for response generation.
+Cohere MultiModal Embedding model for retrieval and OllamaFunctionCalling MultiModal LLM for response generation.
 """
 logger.info("### Set Embedding Model and LLM.")
 

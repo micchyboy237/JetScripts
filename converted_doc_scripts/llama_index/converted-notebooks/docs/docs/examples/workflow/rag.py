@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
     from llama_index.core.postprocessor.llm_rerank import LLMRerank
@@ -171,7 +171,7 @@ async def main():
         @step
         async def rerank(self, ctx: Context, ev: RetrieverEvent) -> RerankEvent:
             ranker = LLMRerank(
-                choice_batch_size=5, top_n=3, llm=OllamaFunctionCallingAdapter(model="llama3.2")
+                choice_batch_size=5, top_n=3, llm=OllamaFunctionCalling(model="llama3.2")
             )
             logger.debug(await ctx.store.get("query", default=None), flush=True)
             new_nodes = ranker.postprocess_nodes(
@@ -184,7 +184,7 @@ async def main():
         @step
         async def synthesize(self, ctx: Context, ev: RerankEvent) -> StopEvent:
             """Return a streaming response using reranked nodes."""
-            llm = OllamaFunctionCallingAdapter(model="llama3.2")
+            llm = OllamaFunctionCalling(model="llama3.2")
             summarizer = CompactAndRefine(llm=llm, streaming=True, verbose=True)
             query = await ctx.store.get("query", default=None)
             logger.success(format_json(query))

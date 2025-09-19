@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.composability import QASummaryQueryEngineBuilder
@@ -55,9 +55,9 @@ reader = SimpleDirectoryReader(
 documents = reader.load_data()
 
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
-chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+chatgpt = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 
 query_engine_builder = QASummaryQueryEngineBuilder(

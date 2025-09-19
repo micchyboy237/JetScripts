@@ -1,6 +1,6 @@
 from jet.models.config import MODELS_CACHE_DIR
 from cleanlab_tlm import TrustworthyRAG, Eval, get_default_evals
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings, VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.instrumentation import get_dispatcher
@@ -37,7 +37,7 @@ Powered by [state-of-the-art uncertainty estimation](https://cleanlab.ai/blog/tr
 
 This tutorial requires a:
 - Cleanlab API Key: Sign up at [tlm.cleanlab.ai/](https://tlm.cleanlab.ai/) to get a free key
-- OllamaFunctionCallingAdapter API Key: To make completion requests to an LLM
+- OllamaFunctionCalling API Key: To make completion requests to an LLM
 
 Start by installing the required dependencies.
 """
@@ -49,13 +49,13 @@ logger.info("# Trustworthy RAG with LlamaIndex and Cleanlab")
 
 
 """
-Initialize the OllamaFunctionCallingAdapter client using its API key.
+Initialize the OllamaFunctionCalling client using its API key.
 """
-logger.info("Initialize the OllamaFunctionCallingAdapter client using its API key.")
+logger.info("Initialize the OllamaFunctionCalling client using its API key.")
 
 # os.environ["OPENAI_API_KEY"] = "<your-openai-api-key>"
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 """
@@ -90,7 +90,7 @@ logger.debug(data[:200])
 """
 ## Build a RAG pipeline
 
-Now let's build a simple RAG pipeline with LlamaIndex. We have already initialized the OllamaFunctionCallingAdapter API for both as LLM and Embedding model.
+Now let's build a simple RAG pipeline with LlamaIndex. We have already initialized the OllamaFunctionCalling API for both as LLM and Embedding model.
 """
 logger.info("## Build a RAG pipeline")
 
@@ -308,7 +308,7 @@ Beyond evaluating responses already generated from your LLM, Cleanlab can also g
 You can do this by calling `trustworthy_rag.generate(query=query, context=context, prompt=full_prompt)` <br />
 This replaces your own LLM within your RAG system and can be more convenient/accurate/faster.
 
-Let's replace our OllamaFunctionCallingAdapter LLM to call Cleanlab's endpoint instead:
+Let's replace our OllamaFunctionCalling LLM to call Cleanlab's endpoint instead:
 """
 logger.info("### Replace your LLM with Cleanlab's")
 

@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from collections import Counter
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
     from llama_index.core.callbacks import CallbackManager, TokenCountingHandler
@@ -200,15 +200,15 @@ async def main():
                 Score NO: If the existing answer is NO and If the response for the query is in line with the context information provided.
     
     """
-    Set OllamaFunctionCallingAdapter Key for indexing
+    Set OllamaFunctionCalling Key for indexing
     """
-    logger.info("Set OllamaFunctionCallingAdapter Key for indexing")
+    logger.info("Set OllamaFunctionCalling Key for indexing")
     
     
     # os.environ["OPENAI_API_KEY"] = "YOUR OPENAI API KEY"
     
     
-    gpt4_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    gpt4_llm = OllamaFunctionCalling(model="llama3.2")
     
     """
     ## Define parser function 

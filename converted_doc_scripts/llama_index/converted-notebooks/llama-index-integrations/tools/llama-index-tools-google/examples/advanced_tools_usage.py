@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.gmail.base import GmailToolSpec
@@ -22,7 +22,7 @@ async def main():
     This notebook features a more advanced usage of Agent Tools, using the Google Calendar, Mail and Search integrations as well as the Load and Search Meta Tool to fufill a more complicated set of tasks for the user.
     
     ## Setup the Tools
-    First we will import OllamaFunctionCallingAdapter and setup the Agent:
+    First we will import OllamaFunctionCalling and setup the Agent:
     """
     logger.info("# Google combined tools example")
 
@@ -88,7 +88,7 @@ async def main():
     logger.info("Now the tools are ready to pass to the agent:")
 
     agent = FunctionAgent(
-        tools=all_tools, llm=OllamaFunctionCallingAdapter(model="llama3.2"))
+        tools=all_tools, llm=OllamaFunctionCalling(model="llama3.2"))
 
     """
     ## Interacting with the Agent

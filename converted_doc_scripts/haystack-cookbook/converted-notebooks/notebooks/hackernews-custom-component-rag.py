@@ -75,7 +75,7 @@ logger.info("## Create a Haystack 2.0 RAG Pipeline")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCallingAdapter Key: ")
+# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling Key: ")
 
 
 prompt_template = """

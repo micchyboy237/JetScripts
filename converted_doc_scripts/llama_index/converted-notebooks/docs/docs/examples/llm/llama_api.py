@@ -115,9 +115,9 @@ class Album(BaseModel):
     songs: List[Song]
 
 """
-Define pydantic program (llama API is OllamaFunctionCallingAdapter-compatible)
+Define pydantic program (llama API is OllamaFunctionCalling-compatible)
 """
-logger.info("Define pydantic program (llama API is OllamaFunctionCallingAdapter-compatible)")
+logger.info("Define pydantic program (llama API is OllamaFunctionCalling-compatible)")
 
 
 prompt_template_str = """\

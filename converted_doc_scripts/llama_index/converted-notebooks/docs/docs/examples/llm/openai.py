@@ -1,7 +1,7 @@
 from jet.transformers.formatters import format_json
 from IPython.display import Audio
 from IPython.display import clear_output
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_cloud.client import LlamaCloud
 from llama_index.core.llms import ChatMessage
@@ -29,15 +29,15 @@ logger.info(f"Logs: {log_file}")
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/openai.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# OllamaFunctionCallingAdapter
+# OllamaFunctionCalling
 
-This notebook shows how to use the OllamaFunctionCallingAdapter LLM.
+This notebook shows how to use the OllamaFunctionCalling LLM.
 
-If you are looking to integrate with an OllamaFunctionCallingAdapter-Compatible API that is not the official OllamaFunctionCallingAdapter API, please see the [OllamaFunctionCallingAdapter-Compatible LLMs](https://docs.llamaindex.ai/en/stable/api_reference/llms/openai_like/#jet.llm.ollama.adapters.ollama_llama_index_llm_adapter_like.OllamaFunctionCallingAdapterLike) integration.
+If you are looking to integrate with an OllamaFunctionCalling-Compatible API that is not the official OllamaFunctionCalling API, please see the [OllamaFunctionCalling-Compatible LLMs](https://docs.llamaindex.ai/en/stable/api_reference/llms/openai_like/#jet.llm.ollama.adapters.ollama_llama_index_llm_adapter_like.OllamaFunctionCallingAdapterLike) integration.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# OllamaFunctionCallingAdapter")
+logger.info("# OllamaFunctionCalling")
 
 # %pip install llama-index llama-index-llms-ollama
 
@@ -50,7 +50,7 @@ logger.info("## Basic Usage")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2",
 )
 
@@ -115,7 +115,7 @@ for r in resp:
 logger.info("## Configure Model")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 resp = llm.complete("Paul Graham is ")
 
@@ -134,7 +134,7 @@ logger.debug(resp)
 """
 ## Image Support
 
-OllamaFunctionCallingAdapter has support for images in the input of chat messages for many models.
+OllamaFunctionCalling has support for images in the input of chat messages for many models.
 
 Using the content blocks feature of chat messages, you can easily combone text and images in a single LLM prompt.
 """
@@ -143,7 +143,7 @@ logger.info("## Image Support")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 messages = [
     ChatMessage(
@@ -161,14 +161,14 @@ logger.debug(resp.message.content)
 """
 ## Audio Support
 
-OllamaFunctionCallingAdapter has beta support for audio inputs and outputs, using their audio-preview models.
+OllamaFunctionCalling has beta support for audio inputs and outputs, using their audio-preview models.
 
-When using these models, you can configure the output modality (text or audio) using the `modalities` parameter. The output audio configuration can also be set using the `audio_config` parameter. See the [OllamaFunctionCallingAdapter docs](https://platform.openai.com/docs/guides/audio) for more information.
+When using these models, you can configure the output modality (text or audio) using the `modalities` parameter. The output audio configuration can also be set using the `audio_config` parameter. See the [OllamaFunctionCalling docs](https://platform.openai.com/docs/guides/audio) for more information.
 """
 logger.info("## Audio Support")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096,
     modalities=["text", "audio"],
     audio_config={"voice": "alloy", "format": "wav"},
@@ -210,7 +210,7 @@ messages = [
     )
 ]
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096,
     modalities=["text"],
 )
@@ -221,7 +221,7 @@ logger.debug(resp)
 """
 ## Using Function/Tool Calling
 
-OllamaFunctionCallingAdapter models have native support for function calling. This conveniently integrates with LlamaIndex tool abstractions, letting you plug in any arbitrary Python function to the LLM.
+OllamaFunctionCalling models have native support for function calling. This conveniently integrates with LlamaIndex tool abstractions, letting you plug in any arbitrary Python function to the LLM.
 
 In the example below, we define a function to generate a Song object.
 """
@@ -243,14 +243,14 @@ def generate_song(name: str, artist: str) -> Song:
 tool = FunctionTool.from_defaults(fn=generate_song)
 
 """
-The `strict` parameter tells OllamaFunctionCallingAdapter whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.
+The `strict` parameter tells OllamaFunctionCalling whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.
 
 Since this seems to increase latency, it defaults to false.
 """
-logger.info("The `strict` parameter tells OllamaFunctionCallingAdapter whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
+logger.info("The `strict` parameter tells OllamaFunctionCalling whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", strict=True)
+llm = OllamaFunctionCalling(model="llama3.2", strict=True)
 response = llm.predict_and_call(
     [tool],
     "Pick a random song for me",
@@ -262,7 +262,7 @@ We can also do multiple function calling.
 """
 logger.info("We can also do multiple function calling.")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 response = llm.predict_and_call(
     [tool],
     "Generate five songs from the Beatles",
@@ -351,7 +351,7 @@ class Restaurant(BaseModel):
     menu_items: List[MenuItem]
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 prompt_tmpl = PromptTemplate(
     "Generate a restaurant in a given city {city_name}"
 )
@@ -388,7 +388,7 @@ restaurant_obj
 logger.info("## Async")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 resp = llm.complete("Paul Graham is ")
 logger.success(format_json(resp))
@@ -406,7 +406,7 @@ Async function calling is also supported.
 """
 logger.info("Async function calling is also supported.")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 response = llm.predict_and_call([tool], "Generate a song")
 logger.success(format_json(response))
 logger.debug(str(response))
@@ -418,7 +418,7 @@ If desired, you can have separate LLM instances use separate API keys.
 logger.info("## Set API Key at a per-instance level")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096, api_key="BAD_KEY")
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
@@ -430,13 +430,13 @@ Rather than adding same parameters to each chat or completion call, you can set 
 logger.info("## Additional kwargs")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0,
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0,
                                    context_window=4096, additional_kwargs={"user": "your_user_id"})
 resp = llm.complete("Paul Graham is ")
 logger.debug(resp)
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0,
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0,
                                    context_window=4096, additional_kwargs={"user": "your_user_id"})
 messages = [
     ChatMessage(
@@ -459,9 +459,9 @@ logger.info("## RAG with LlamaCloud")
 # %pip install llama-index-indices-managed-llama-cloud
 
 """
-### Setup OllamaFunctionCallingAdapter and LlamaCloud API Keys
+### Setup OllamaFunctionCalling and LlamaCloud API Keys
 """
-logger.info("### Setup OllamaFunctionCallingAdapter and LlamaCloud API Keys")
+logger.info("### Setup OllamaFunctionCalling and LlamaCloud API Keys")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -485,7 +485,7 @@ embedding_config = {
     "type": "OPENAI_EMBEDDING",
     "component": {
         #         "api_key": os.environ["OPENAI_API_KEY"],
-        # You can choose any OllamaFunctionCallingAdapter Embedding model
+        # You can choose any OllamaFunctionCalling Embedding model
         "model_name": "text-embedding-ada-002",
     },
 }

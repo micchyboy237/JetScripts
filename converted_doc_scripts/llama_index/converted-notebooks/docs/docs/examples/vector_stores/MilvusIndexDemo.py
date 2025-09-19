@@ -52,11 +52,11 @@ logger.info(
 """
 > If you are using Google Colab, to enable dependencies just installed, you may need to **restart the runtime** (click on the "Runtime" menu at the top of the screen, and select "Restart session" from the dropdown menu).
 
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 
 Lets first begin by adding the openai api key. This will allow us to access chatgpt.
 """
-logger.info("### Setup OllamaFunctionCallingAdapter")
+logger.info("### Setup OllamaFunctionCalling")
 
 
 openai.api_key = "sk-***********"

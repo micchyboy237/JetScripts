@@ -29,9 +29,9 @@ logger.info("# AIMon Rerank")
 
 
 """
-An OllamaFunctionCallingAdapter and AIMon API key is required for this notebook. Import the AIMon and OllamaFunctionCallingAdapter API keys from Colab Secrets
+An OllamaFunctionCalling and AIMon API key is required for this notebook. Import the AIMon and OllamaFunctionCalling API keys from Colab Secrets
 """
-logger.info("An OllamaFunctionCallingAdapter and AIMon API key is required for this notebook. Import the AIMon and OllamaFunctionCallingAdapter API keys from Colab Secrets")
+logger.info("An OllamaFunctionCalling and AIMon API key is required for this notebook. Import the AIMon and OllamaFunctionCalling API keys from Colab Secrets")
 
 
 

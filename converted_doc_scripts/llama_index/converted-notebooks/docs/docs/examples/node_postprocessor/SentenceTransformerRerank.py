@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
@@ -44,7 +44,7 @@ documents = SimpleDirectoryReader(
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCalling(model="llama3.2")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="BAAI/bge-small-en-v1.5"
 )

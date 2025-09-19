@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import get_response_synthesizer
 from llama_index.retrievers.videodb import VideoDBRetriever
@@ -46,7 +46,7 @@ In this notebook, we introduce `VideoDBRetriever`, a tool specifically designed 
 
 To connect to VideoDB, simply get the API key and create a connection. This can be done by setting the `VIDEO_DB_API_KEY` environment variable. You can get it from 👉🏼 [VideoDB Console](https://console.videodb.io). ( Free for first 50 uploads, **No credit card required!** )
 
-# Get your `OPENAI_API_KEY` from OllamaFunctionCallingAdapter platform for `llama_index` response synthesizer.
+# Get your `OPENAI_API_KEY` from OllamaFunctionCalling platform for `llama_index` response synthesizer.
 
 # <!-- > Set the `OPENAI_API_KEY` & `VIDEO_DB_API_KEY` environment variable with your API keys. -->
 """
@@ -265,7 +265,7 @@ def split_spoken_visual_query(query):
     Divide the following query into two distinct parts: one for spoken content and one for visual content. The spoken content should refer to any narration, dialogue, or verbal explanations and The visual content should refer to any images, videos, or graphical representations. Format the response strictly as:\nSpoken: <spoken_query>\nVisual: <visual_query>\n\nQuery: {query}
     """
     prompt = transformation_prompt.format(query=query)
-    response = OllamaFunctionCallingAdapter(model="llama3.2").complete(prompt)
+    response = OllamaFunctionCalling(model="llama3.2").complete(prompt)
     divided_query = response.text.strip().split("\n")
     spoken_query = divided_query[0].replace("Spoken:", "").strip()
     scene_query = divided_query[1].replace("Visual:", "").strip()
@@ -520,7 +520,7 @@ For more detailed guidance, refer to this [guide](https://colab.research.google.
 ## 🏃‍♂️ Next Steps
 ---
 
-In this guide, we built a Simple Multimodal RAG for Videos Using VideoDB, Llamaindex, and OllamaFunctionCallingAdapter
+In this guide, we built a Simple Multimodal RAG for Videos Using VideoDB, Llamaindex, and OllamaFunctionCalling
 
 You can optimize the pipeline by incorporating more advanced techniques like
 - Optimize Query Transformation

@@ -9,7 +9,7 @@ async def main():
         step,
     )
     from llama_index.core.workflow import Event
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from pydantic import BaseModel
     import asyncio
     import json
@@ -145,7 +145,7 @@ async def main():
                     wrong_answer=ev.wrong_output, error=ev.error
                 )
 
-            llm = OllamaFunctionCallingAdapter(model="llama3.2")
+            llm = OllamaFunctionCalling(model="llama3.2")
             prompt = EXTRACTION_PROMPT.format(
                 passage=passage, schema=CarCollection.schema_json()
             )

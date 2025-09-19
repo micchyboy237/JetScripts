@@ -30,9 +30,9 @@ logger.info(f"Logs: {log_file}")
 
 In this notebook, we show how to build a Multi-Modal retrieval system using LlamaIndex.
 
-Wikipedia Text embedding index: Generate GPT text embeddings from OllamaFunctionCallingAdapter for texts
+Wikipedia Text embedding index: Generate GPT text embeddings from OllamaFunctionCalling for texts
 
-Wikipedia Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from OllamaFunctionCallingAdapter for images
+Wikipedia Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from OllamaFunctionCalling for images
 
 
 Query encoder:

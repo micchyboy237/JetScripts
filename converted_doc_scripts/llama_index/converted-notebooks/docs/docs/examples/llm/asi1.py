@@ -44,7 +44,7 @@ logger.info("# ASI LLM")
 """
 ## Setting API Keys
 
-You'll need to set your API keys for ASI and optionally for OllamaFunctionCallingAdapter if you want to compare the two:
+You'll need to set your API keys for ASI and optionally for OllamaFunctionCalling if you want to compare the two:
 """
 logger.info("## Setting API Keys")
 
@@ -383,7 +383,7 @@ documents = SimpleDirectoryReader("temp_data").load_data()
 llm = ASI(model="asi1-mini")
 index = VectorStoreIndex.from_documents(
     documents,
-    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),  # Using OllamaFunctionCallingAdapter for embeddings
+    embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),  # Using OllamaFunctionCalling for embeddings
     llm=llm,  # Using ASI for generation
 )
 

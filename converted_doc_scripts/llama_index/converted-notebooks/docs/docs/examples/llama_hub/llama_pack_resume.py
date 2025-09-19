@@ -34,14 +34,14 @@ logger.info("# Llama Pack - Resume Screener 📄")
 """
 ### Setup Data
 
-We'll load some sample Wikipedia data for OllamaFunctionCallingAdapter, Sam, Mira, and Emmett. Why? No reason in particular :)
+We'll load some sample Wikipedia data for OllamaFunctionCalling, Sam, Mira, and Emmett. Why? No reason in particular :)
 """
 logger.info("### Setup Data")
 
 
 loader = WikipediaReader()
 documents = loader.load_data(
-    pages=["OllamaFunctionCallingAdapter", "Sam Altman", "Mira Murati", "Emmett Shear"],
+    pages=["OllamaFunctionCalling", "Sam Altman", "Mira Murati", "Emmett Shear"],
     auto_suggest=False,
 )
 
@@ -67,7 +67,7 @@ Here we download the resume screener pack class from LlamaHub.
 
 We'll use it for two use cases:
 - whether the candidate is a good fit for a front-end / full-stack engineering role.
-- whether the candidate is a good fit for the CEO of OllamaFunctionCallingAdapter.
+- whether the candidate is a good fit for the CEO of OllamaFunctionCalling.
 """
 logger.info("## Download Resume Screener Pack from LlamaHub")
 
@@ -126,20 +126,20 @@ logger.debug(str(response.overall_reasoning))
 logger.debug(str(response.overall_decision))
 
 """
-### Screen Candidate for CEO of OllamaFunctionCallingAdapter
+### Screen Candidate for CEO of OllamaFunctionCalling
 
-Jerry can't write Typescript, but can he be CEO of OllamaFunctionCallingAdapter?
+Jerry can't write Typescript, but can he be CEO of OllamaFunctionCalling?
 """
-logger.info("### Screen Candidate for CEO of OllamaFunctionCallingAdapter")
+logger.info("### Screen Candidate for CEO of OllamaFunctionCalling")
 
 job_description = f"""\
-We're looking to hire a CEO for OllamaFunctionCallingAdapter.
+We're looking to hire a CEO for OllamaFunctionCalling.
 
 Instead of listing a set of specific criteria, each "criteria" is instead a short biography of a previous CEO.\
 
 For each criteria/bio, outline if the candidate's experience matches or surpasses that of the candidate.
 
-Also, here's a description of OllamaFunctionCallingAdapter from Wikipedia:
+Also, here's a description of OllamaFunctionCalling from Wikipedia:
 {openai_node.get_content()}
 """
 

@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.evaluation import (
@@ -106,7 +106,7 @@ for idx, node in enumerate(nodes):
 """
 logger.info("## Create retrievers for different embedding types")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 
 def cohere_embedding(

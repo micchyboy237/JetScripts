@@ -37,7 +37,7 @@ logger.info("# Elasticsearch Vector Store")
 # import getpass
 
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCalling API Key:")
 
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
@@ -183,7 +183,7 @@ def search(
 """
 ### Dense retrieval
 
-Here we use embeddings from OllamaFunctionCallingAdapter to search.
+Here we use embeddings from OllamaFunctionCalling to search.
 """
 logger.info("### Dense retrieval")
 

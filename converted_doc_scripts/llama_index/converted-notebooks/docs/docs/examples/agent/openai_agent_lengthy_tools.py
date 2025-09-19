@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
     from llama_index.core import get_response_synthesizer
@@ -21,16 +21,16 @@ async def main():
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/openai_agent_query_plan.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
-    # OllamaFunctionCallingAdapter Agent Workarounds for Lengthy Tool Descriptions
-    In this demo, we illustrate a workaround for defining an OllamaFunctionCallingAdapter tool
-    whose description exceeds OllamaFunctionCallingAdapter's current limit of 1024 characters.
+    # OllamaFunctionCalling Agent Workarounds for Lengthy Tool Descriptions
+    In this demo, we illustrate a workaround for defining an OllamaFunctionCalling tool
+    whose description exceeds OllamaFunctionCalling's current limit of 1024 characters.
     For simplicity, we will build upon the `QueryPlanTool` notebook
     example.
     
     If you're opening this Notebook on Colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info(
-        "# OllamaFunctionCallingAdapter Agent Workarounds for Lengthy Tool Descriptions")
+        "# OllamaFunctionCalling Agent Workarounds for Lengthy Tool Descriptions")
 
     # %pip install llama-index-agent-openai
     # %pip install llama-index-llms-ollama
@@ -42,7 +42,7 @@ async def main():
 
     # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         temperature=0, model="llama3.2")
 
     """
@@ -92,15 +92,15 @@ async def main():
     ## Defining an Excessively Lengthy Query Plan
     
     Although a `QueryPlanTool` may be composed from many `QueryEngineTools`,
-    a single OllamaFunctionCallingAdapter tool is ultimately created from the `QueryPlanTool`
-    when the OllamaFunctionCallingAdapter API call is made. The description of this tool begins with
+    a single OllamaFunctionCalling tool is ultimately created from the `QueryPlanTool`
+    when the OllamaFunctionCalling API call is made. The description of this tool begins with
     general instructions about the query plan approach, followed by the
     descriptions of each constituent `QueryEngineTool`.
     
-    Currently, each OllamaFunctionCallingAdapter tool description has a maximum length of 1024 characters.
+    Currently, each OllamaFunctionCalling tool description has a maximum length of 1024 characters.
     As you add more `QueryEngineTools` to your `QueryPlanTool`, you may exceed
     this limit. If the limit is exceeded, LlamaIndex will raise an error when it
-    attempts to construct the OllamaFunctionCallingAdapter tool.
+    attempts to construct the OllamaFunctionCalling tool.
     
     Let's demonstrate this scenario with an exaggerated example, where we will
     give each query engine tool a very lengthy and redundant description.
@@ -208,7 +208,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=[query_plan_tool],
-        llm=OllamaFunctionCallingAdapter(
+        llm=OllamaFunctionCalling(
             temperature=0, model="llama3.2"),
     )
 

@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import VectorStoreIndex
     from llama_index.core.evaluation import (
@@ -100,7 +100,7 @@ async def main():
     )
     eval_nodes = pipeline.run(documents=docs)
 
-    eval_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    eval_llm = OllamaFunctionCalling(model="llama3.2")
 
     dataset_generator = DatasetGenerator(
         eval_nodes[:100],

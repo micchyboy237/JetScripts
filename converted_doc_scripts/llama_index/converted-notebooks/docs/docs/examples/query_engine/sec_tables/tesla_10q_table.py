@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex
 from llama_index.core.node_parser import UnstructuredElementNodeParser
@@ -191,7 +191,7 @@ logger.info("### Create Sub Question Query Engine")
 # nest_asyncio.apply()
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 query_engine_2021, nodes_2021 = create_recursive_retriever_over_doc(
     docs_2021, nodes_save_path="2021_nodes.pkl"

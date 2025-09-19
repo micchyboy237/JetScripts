@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import Settings
@@ -50,9 +50,9 @@ logger.info("## Environment Setup")
 # os.environ["OPENAI_API_KEY"] = "your-api-key-here"
 
 """
-We will be using OllamaFunctionCallingAdapter models for this example, so we'll specify the OllamaFunctionCallingAdapter API key.
+We will be using OllamaFunctionCalling models for this example, so we'll specify the OllamaFunctionCalling API key.
 """
-logger.info("We will be using OllamaFunctionCallingAdapter models for this example, so we'll specify the OllamaFunctionCallingAdapter API key.")
+logger.info("We will be using OllamaFunctionCalling models for this example, so we'll specify the OllamaFunctionCalling API key.")
 
 # !mkdir -p 'data/paul_graham/'
 # !wget 'https://raw.githubusercontent.com/run-llama/llama_index/main/docs/docs/examples/data/paul_graham/paul_graham_essay.txt' -O 'data/paul_graham/paul_graham_essay.txt'
@@ -84,8 +84,8 @@ logger.info("### Define LLMs")
 
 
 embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
-extract_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
-generate_llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+extract_llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
+generate_llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 """
 ## Create property graph index with structure

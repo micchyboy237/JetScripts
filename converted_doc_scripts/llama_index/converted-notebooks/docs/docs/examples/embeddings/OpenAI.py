@@ -14,13 +14,13 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/embeddings/OllamaFunctionCallingAdapter.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+<a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/embeddings/OllamaFunctionCalling.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# OllamaFunctionCallingAdapter Embeddings
+# OllamaFunctionCalling Embeddings
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# OllamaFunctionCallingAdapter Embeddings")
+logger.info("# OllamaFunctionCalling Embeddings")
 
 # %pip install llama-index-embeddings-huggingface
 
@@ -34,11 +34,11 @@ embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-
 Settings.embed_model = embed_model
 
 """
-## Using OllamaFunctionCallingAdapter `text-embedding-3-large` and `mxbai-embed-large`
+## Using OllamaFunctionCalling `text-embedding-3-large` and `mxbai-embed-large`
 
 Note, you may have to update your openai client: `pip install -U openai`
 """
-logger.info("## Using OllamaFunctionCallingAdapter `text-embedding-3-large` and `mxbai-embed-large`")
+logger.info("## Using OllamaFunctionCalling `text-embedding-3-large` and `mxbai-embed-large`")
 
 
 embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
@@ -64,7 +64,7 @@ logger.debug(len(embeddings))
 
 """
 ## Change the dimension of output embeddings
-Note: Make sure you have the latest OllamaFunctionCallingAdapter client
+Note: Make sure you have the latest OllamaFunctionCalling client
 """
 logger.info("## Change the dimension of output embeddings")
 

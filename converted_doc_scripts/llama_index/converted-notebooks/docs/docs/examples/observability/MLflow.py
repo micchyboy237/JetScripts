@@ -64,13 +64,13 @@ mlflow.set_tracking_uri(
 )  # Or your remote tracking server URI
 
 """
-4. Set OllamaFunctionCallingAdapter API key to the environment variable. If you are using different LLM provider, set the corresponding environment variable.
+4. Set OllamaFunctionCalling API key to the environment variable. If you are using different LLM provider, set the corresponding environment variable.
 """
-logger.info("4. Set OllamaFunctionCallingAdapter API key to the environment variable. If you are using different LLM provider, set the corresponding environment variable.")
+logger.info("4. Set OllamaFunctionCalling API key to the environment variable. If you are using different LLM provider, set the corresponding environment variable.")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCallingAdapter API key: ")
+# os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key: ")
 
 """
 ## Enable MLflow Tracing

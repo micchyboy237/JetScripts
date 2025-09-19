@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import PromptTemplate
     from llama_index.core import QueryBundle
@@ -80,7 +80,7 @@ async def main():
 
     # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
     embed_model = HuggingFaceEmbedding(
         model="mxbai-embed-large", embed_batch_size=256

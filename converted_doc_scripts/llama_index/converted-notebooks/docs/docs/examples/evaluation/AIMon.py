@@ -9,7 +9,7 @@ from aimon_llamaindex.evaluators import GuidelineEvaluator
 from aimon_llamaindex.evaluators import HallucinationEvaluator
 from datasets import load_dataset
 from google.colab import userdata
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
@@ -53,11 +53,11 @@ logger.info("## AIMon's LlamaIndex Extension for LLM Response Evaluation")
 # !pip install requests datasets aimon-llamaindex llama-index-embeddings-huggingface llama-index-llms-ollama
 
 """
-# Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use OllamaFunctionCallingAdapter for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.
+# Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use OllamaFunctionCalling for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.
 
 AIMon API key can be obtained [here](https://docs.aimon.ai/quickstart#1-api-key).
 """
-# logger.info("Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use OllamaFunctionCallingAdapter for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.")
+# logger.info("Configure your `OPENAI_API_KEY` and `AIMON_API_KEY` in Google Collab secrets and provide them notebook access. We will use OllamaFunctionCalling for the LLM and embedding generation models. We will use AIMon for continuous monitoring of quality issues.")
 
 
 
@@ -137,12 +137,12 @@ retriever = build_retriever(index, similarity_top_k=5)
 """
 ## Building the LLM Application
 
-Configure the Large Language Model. Here we choose OllamaFunctionCallingAdapter's `llama3.2` model with temperature setting of 0.1.
+Configure the Large Language Model. Here we choose OllamaFunctionCalling's `llama3.2` model with temperature setting of 0.1.
 """
 logger.info("## Building the LLM Application")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2",
     temperature=0.4,
     system_prompt="""

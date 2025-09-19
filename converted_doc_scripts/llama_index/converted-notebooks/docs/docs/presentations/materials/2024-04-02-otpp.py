@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
@@ -57,7 +57,7 @@ logger.info("#### Notebook Setup & Dependency Installation")
 logger.info("## Motivation")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 response = llm.complete("What is Ontario Teacher's Pension Plan all about?")
 
@@ -229,7 +229,7 @@ with open("./mds/parsed.md", "w") as f:
     f.write(md_documents[0].text)
 
 md_node_parser = MarkdownElementNodeParser(
-    llm=OllamaFunctionCallingAdapter(
+    llm=OllamaFunctionCalling(
         model="llama3.2"),
     num_workers=3,
     include_metadata=True,
@@ -303,7 +303,7 @@ Provide the names of the Leadership Team.
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=LeadershipTeam,
     prompt_template_str=prompt_template_str,
-    llm=OllamaFunctionCallingAdapter("gpt-4-turbo-preview"),
+    llm=OllamaFunctionCalling("gpt-4-turbo-preview"),
     verbose=True,
 )
 

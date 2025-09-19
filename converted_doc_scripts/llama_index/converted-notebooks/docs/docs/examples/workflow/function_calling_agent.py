@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.llms import ChatMessage
     from llama_index.core.llms.function_calling import FunctionCallingLLM
@@ -21,31 +21,31 @@ async def main():
     import asyncio
     import os
     import shutil
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Workflow for a Function Calling Agent
     
     This notebook walks through setting up a `Workflow` to construct a function calling agent from scratch.
     
-    Function calling agents work by using an LLM that supports tools/functions in its API (OllamaFunctionCallingAdapter, Ollama, Anthropic, etc.) to call functions an use tools.
+    Function calling agents work by using an LLM that supports tools/functions in its API (OllamaFunctionCalling, Ollama, Anthropic, etc.) to call functions an use tools.
     
     Our workflow will be stateful with memory, and will be able to call the LLM to select tools and process incoming user messages.
     """
     logger.info("# Workflow for a Function Calling Agent")
-    
+
     # !pip install -U llama-index
-    
-    
+
+
     # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
-    
+
     """
     ### [Optional] Set up observability with Llamatrace
     
@@ -81,24 +81,24 @@ async def main():
     The other steps will use the built-in `StartEvent` and `StopEvent` events.
     """
     logger.info("### [Optional] Set up observability with Llamatrace")
-    
-    
-    
+
+
+
     class InputEvent(Event):
         input: list[ChatMessage]
-    
-    
+
+
     class StreamEvent(Event):
         delta: str
-    
-    
+
+
     class ToolCallEvent(Event):
         tool_calls: list[ToolSelection]
-    
-    
+
+
     class FunctionOutputEvent(Event):
         output: ToolOutput
-    
+
     """
     ### The Workflow Itself
     
@@ -107,10 +107,10 @@ async def main():
     Note that the workflow automatically validates itself using type annotations, so the type annotations on our steps are very helpful!
     """
     logger.info("### The Workflow Itself")
-    
-    
-    
-    
+
+
+
+
     class FuncationCallingAgent(Workflow):
         def __init__(
             self,
@@ -121,53 +121,53 @@ async def main():
         ) -> None:
             super().__init__(*args, **kwargs)
             self.tools = tools or []
-    
-            self.llm = llm or OllamaFunctionCallingAdapter()
+
+            self.llm = llm or OllamaFunctionCalling()
             assert self.llm.metadata.is_function_calling_model
-    
+
         @step
         async def prepare_chat_history(
             self, ctx: Context, ev: StartEvent
         ) -> InputEvent:
             await ctx.store.set("sources", [])
-    
+
             memory = await ctx.store.get("memory", default=None)
             logger.success(format_json(memory))
             if not memory:
                 memory = ChatMemoryBuffer.from_defaults(llm=self.llm)
-    
+
             user_input = ev.input
             user_msg = ChatMessage(role="user", content=user_input)
             memory.put(user_msg)
-    
+
             chat_history = memory.get()
-    
+
             await ctx.store.set("memory", memory)
-    
+
             return InputEvent(input=chat_history)
-    
+
         @step
         async def handle_llm_input(
             self, ctx: Context, ev: InputEvent
         ) -> ToolCallEvent | StopEvent:
             chat_history = ev.input
-    
+
             response_stream = self.llm.stream_chat_with_tools(
                     self.tools, chat_history=chat_history
                 )
             logger.success(format_json(response_stream))
             async for response in response_stream:
                 ctx.write_event_to_stream(StreamEvent(delta=response.delta or ""))
-    
+
             memory = await ctx.store.get("memory")
             logger.success(format_json(memory))
             memory.put(response.message)
             await ctx.store.set("memory", memory)
-    
+
             tool_calls = self.llm.get_tool_calls_from_response(
                 response, error_on_no_tool_call=False
             )
-    
+
             if not tool_calls:
                 sources = await ctx.store.get("sources", default=[])
                 logger.success(format_json(sources))
@@ -176,18 +176,18 @@ async def main():
                 )
             else:
                 return ToolCallEvent(tool_calls=tool_calls)
-    
+
         @step
         async def handle_tool_calls(
             self, ctx: Context, ev: ToolCallEvent
         ) -> InputEvent:
             tool_calls = ev.tool_calls
             tools_by_name = {tool.metadata.get_name(): tool for tool in self.tools}
-    
+
             tool_msgs = []
             sources = await ctx.store.get("sources", default=[])
             logger.success(format_json(sources))
-    
+
             for tool_call in tool_calls:
                 tool = tools_by_name.get(tool_call.tool_name)
                 additional_kwargs = {
@@ -203,7 +203,7 @@ async def main():
                         )
                     )
                     continue
-    
+
                 try:
                     tool_output = tool(**tool_call.tool_kwargs)
                     sources.append(tool_output)
@@ -222,18 +222,18 @@ async def main():
                             additional_kwargs=additional_kwargs,
                         )
                     )
-    
+
             memory = await ctx.store.get("memory")
             logger.success(format_json(memory))
             for msg in tool_msgs:
                 memory.put(msg)
-    
+
             await ctx.store.set("sources", sources)
             await ctx.store.set("memory", memory)
-    
+
             chat_history = memory.get()
             return InputEvent(input=chat_history)
-    
+
     """
     And thats it! Let's explore the workflow we wrote a bit.
     
@@ -251,74 +251,74 @@ async def main():
     **NOTE:** With loops, we need to be mindful of runtime. Here, we set a timeout of 120s.
     """
     logger.info("## Run the Workflow!")
-    
-    
-    
+
+
+
     def add(x: int, y: int) -> int:
         """Useful function to add two numbers."""
         return x + y
-    
-    
+
+
     def multiply(x: int, y: int) -> int:
         """Useful function to multiply two numbers."""
         return x * y
-    
-    
+
+
     tools = [
         FunctionTool.from_defaults(add),
         FunctionTool.from_defaults(multiply),
     ]
-    
+
     agent = FuncationCallingAgent(
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"), tools=tools, timeout=120, verbose=True
+        llm=OllamaFunctionCalling(model="llama3.2"), tools=tools, timeout=120, verbose=True
     )
-    
+
     ret = await agent.run(input="Hello!")
     logger.success(format_json(ret))
-    
+
     logger.debug(ret["response"])
-    
+
     ret = await agent.run(input="What is (2123 + 2321) * 312?")
     logger.success(format_json(ret))
-    
+
     """
     ## Chat History
     
     By default, the workflow is creating a fresh `Context` for each run. This means that the chat history is not preserved between runs. However, we can pass our own `Context` to the workflow to preserve chat history.
     """
     logger.info("## Chat History")
-    
-    
+
+
     ctx = Context(agent)
-    
+
     ret = await agent.run(input="Hello! My name is Logan.", ctx=ctx)
     logger.success(format_json(ret))
     logger.debug(ret["response"])
-    
+
     ret = await agent.run(input="What is my name?", ctx=ctx)
     logger.success(format_json(ret))
     logger.debug(ret["response"])
-    
+
     """
     ## Streaming
     
     Using the `handler` returned from the `.run()` method, we can also access the streaming events.
     """
     logger.info("## Streaming")
-    
+
     agent = FuncationCallingAgent(
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"), tools=tools, timeout=120, verbose=False
+        llm=OllamaFunctionCalling(model="llama3.2"), tools=tools, timeout=120, verbose=False
     )
-    
+
     handler = agent.run(input="Hello! Write me a short story about a cat.")
-    
+
     async for event in handler.stream_events():
         if isinstance(event, StreamEvent):
             logger.debug(event.delta, end="", flush=True)
-    
+
     response = await handler
     logger.success(format_json(response))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

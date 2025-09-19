@@ -61,12 +61,12 @@ docker run --name redis-vecdb -d -p 6379:6379 -p 8001:8001 redis/redis-stack:lat
 
 This will also launch the RedisInsight UI on port 8001 which you can view at http://localhost:8001.
 
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 Lets first begin by adding the openai api key. This will allow us to access openai for embeddings and to use chatgpt.
 """
 logger.info("### Start Redis")
 
-# oai_api_key = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# oai_api_key = getpass.getpass("OllamaFunctionCalling API Key:")
 # os.environ["OPENAI_API_KEY"] = oai_api_key
 
 """
@@ -114,7 +114,7 @@ index = VectorStoreIndex.from_documents(
 
 Now that we have our data stored in the index, we can ask questions against the index.
 
-The index will use the data as the knowledge base for an LLM. The default setting for as_query_engine() utilizes OllamaFunctionCallingAdapter embeddings and GPT as the language model. Therefore, an OllamaFunctionCallingAdapter key is required unless you opt for a customized or local language model.
+The index will use the data as the knowledge base for an LLM. The default setting for as_query_engine() utilizes OllamaFunctionCalling embeddings and GPT as the language model. Therefore, an OllamaFunctionCalling key is required unless you opt for a customized or local language model.
 
 Below we will test searches against out index and then full RAG with an LLM.
 """
@@ -309,7 +309,7 @@ Unlike other vector stores, Redis expects users to explicitly define the schema 
 1. Redis is used for many use cases, including real-time vector search, but also for standard document storage/retrieval, caching, messaging, pub/sub, session mangement, and more. Not all attributes on records need to be indexed for search. This is partially an efficiency thing, and partially an attempt to minimize user foot guns.
 2. All index schemas, when using Redis & LlamaIndex, must include the following fields `id`, `doc_id`, `text`, and `vector`, at a minimum.
 
-Instantiate your `RedisVectorStore` with the default schema (assumes OllamaFunctionCallingAdapter embeddings), or with a custom schema (see above).
+Instantiate your `RedisVectorStore` with the default schema (assumes OllamaFunctionCalling embeddings), or with a custom schema (see above).
 
 #### Prefix issues
 

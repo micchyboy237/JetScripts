@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.program import (
     DFFullProgram,
@@ -28,13 +28,13 @@ This demo shows how you can extract tabular DataFrames from raw text.
 
 This was directly inspired by jxnl's dataframe example here: https://github.com/jxnl/openai_function_call/blob/main/auto_dataframe.py.
 
-We show this with different levels of complexity, all backed by the OllamaFunctionCallingAdapter Function API:
+We show this with different levels of complexity, all backed by the OllamaFunctionCalling Function API:
 - (more code) How to build an extractor yourself using our OllamaFunctionCallingAdapterPydanticProgram
 - (less code) Using our out-of-the-box `DFFullProgram` and `DFRowsProgram` objects
 
 ## Build a DF Extractor Yourself (Using OllamaFunctionCallingAdapterPydanticProgram)
 
-Our OllamaFunctionCallingAdapterPydanticProgram is a wrapper around an OllamaFunctionCallingAdapter LLM that supports function calling - it will return structured
+Our OllamaFunctionCallingAdapterPydanticProgram is a wrapper around an OllamaFunctionCalling LLM that supports function calling - it will return structured
 outputs in the form of a Pydantic object.
 
 We import our `DataFrame` and `DataFrameRowsOnly` objects.
@@ -53,7 +53,7 @@ logger.info("# DataFrame Structured Data Extraction")
 
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=DataFrame,
-    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
+    llm=OllamaFunctionCalling(temperature=0, model="llama3.2"),
     prompt_template_str=(
         "Please extract the following query into a structured data according"
         " to: {input_str}.Please extract both the set of column names and a"
@@ -75,7 +75,7 @@ response_obj
 
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=DataFrameRowsOnly,
-    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
+    llm=OllamaFunctionCalling(temperature=0, model="llama3.2"),
     prompt_template_str=(
         "Please extract the following text into a structured data:"
         " {input_str}. The column names are the following: ['Name', 'Age',"

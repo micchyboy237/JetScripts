@@ -16,7 +16,7 @@ logger.info(f"Logs: {log_file}")
 # LocalAI
 
 [LocalAI](https://github.com/mudler/LocalAI) is a method of serving models
-through an OllamaFunctionCallingAdapter API spec-compatible REST API.
+through an OllamaFunctionCalling API spec-compatible REST API.
 LlamaIndex can use its `OllamaFunctionCallingAdapterLike` LLM to directly interact with a LocalAI server.
 
 ## Setting Up LocalAI

@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import AgentStream, ToolCallResult
     from llama_index.core.agent.workflow import FunctionAgent
@@ -103,7 +103,7 @@ async def main():
     """
     logger.info("## A user has walked in! Let's help them make a booking")
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", temperature=0.1)
+    llm = OllamaFunctionCalling(model="llama3.2", temperature=0.1)
 
     user = "user123"
     system_prompt = f"""You are now connected to the booking system and helping {user} with making a booking.

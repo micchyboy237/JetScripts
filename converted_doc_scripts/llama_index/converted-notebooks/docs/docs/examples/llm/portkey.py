@@ -65,11 +65,11 @@ logger.info("# Portkey")
 """
 You do not need to install **any** other SDKs or import them in your Llamaindex app.
 
-#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for OllamaFunctionCallingAdapter, Anthropic, and more**
+#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for OllamaFunctionCalling, Anthropic, and more**
 
 **[Portkey API Key](https://app.portkey.ai/)**: Log into [Portkey here](https://app.portkey.ai/), then click on the profile icon on top left and "Copy API Key".
 """
-logger.info("#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for OllamaFunctionCallingAdapter, Anthropic, and more**")
+logger.info("#### **Step 1️⃣: Get your Portkey API Key and your Virtual Keys for OllamaFunctionCalling, Anthropic, and more**")
 
 
 os.environ["PORTKEY_API_KEY"] = "PORTKEY_API_KEY"
@@ -77,7 +77,7 @@ os.environ["PORTKEY_API_KEY"] = "PORTKEY_API_KEY"
 """
 **[Virtual Keys](https://docs.portkey.ai/key-features/ai-provider-keys)**
 1. Navigate to the "Virtual Keys" page on [Portkey dashboard](https://app.portkey.ai/) and hit the "Add Key" button located at the top right corner.
-2. Choose your AI provider (OllamaFunctionCallingAdapter, Anthropic, Cohere, HuggingFace, etc.), assign a unique name to your key, and, if needed, jot down any relevant usage notes. Your virtual key is ready!
+2. Choose your AI provider (OllamaFunctionCalling, Anthropic, Cohere, HuggingFace, etc.), assign a unique name to your key, and, if needed, jot down any relevant usage notes. Your virtual key is ready!
 
 <img src="https://3798672042-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2FeWEp2XRBGxs7C1jgAdk7%2Fuploads%2F66S1ik16Gle8jS1u6smr%2Fvirtual_keys.png?alt=media&token=2fec1c39-df4e-4c93-9549-7445a833321c" alt="header" width=600 />
 3. Now copy and paste the keys below - you can use them anywhere within the Portkey ecosystem and keep your original key secure and untouched.
@@ -136,7 +136,7 @@ portkey_client = Portkey(
 """
 #### **Step 3️⃣: Constructing the LLM**
 
-With the Portkey integration, constructing an LLM is simplified. Use the `LLMOptions` function for all providers, with the exact same keys you're accustomed to in your OllamaFunctionCallingAdapter or Anthropic constructors. The only new key is `weight`, essential for the load balancing feature.
+With the Portkey integration, constructing an LLM is simplified. Use the `LLMOptions` function for all providers, with the exact same keys you're accustomed to in your OllamaFunctionCalling or Anthropic constructors. The only new key is `weight`, essential for the load balancing feature.
 """
 logger.info("#### **Step 3️⃣: Constructing the LLM**")
 
@@ -147,7 +147,7 @@ openai_llm = pk.LLMOptions(
 )
 
 """
-The above code illustrates how to utilize the `LLMOptions` function to set up an LLM with the OllamaFunctionCallingAdapter provider and the GPT-4 model. This same function can be used for other providers as well, making the integration process streamlined and consistent across various providers.
+The above code illustrates how to utilize the `LLMOptions` function to set up an LLM with the OllamaFunctionCalling provider and the GPT-4 model. This same function can be used for other providers as well, making the integration process streamlined and consistent across various providers.
 
 #### **Step 4️⃣: Activate the Portkey Client**
 

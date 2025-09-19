@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import QueryBundle
     from llama_index.core import SummaryIndex
@@ -146,7 +146,7 @@ async def main():
         summary_index = SummaryIndex.from_documents([doc])
         query_str = "Give a one-sentence concise summary of this issue."
         query_engine = summary_index.as_query_engine(
-            llm=OllamaFunctionCallingAdapter(model="llama3.2")
+            llm=OllamaFunctionCalling(model="llama3.2")
         )
         summary_txt = query_engine.query(query_str)
         logger.success(format_json(summary_txt))
@@ -324,7 +324,7 @@ async def main():
     """
     logger.info("### Plug into `RetrieverQueryEngine`")
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     query_engine = RetrieverQueryEngine.from_args(retriever, llm=llm)
 

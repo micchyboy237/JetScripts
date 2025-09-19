@@ -416,11 +416,11 @@ logger.debug(router.run(messages))
 
 Now that we've covered various models and customization options, let's integrate content moderation into a RAG Pipeline, simulating a real-world application.
 
-For this example, you will need an OllamaFunctionCallingAdapter API key.
+For this example, you will need an OllamaFunctionCalling API key.
 """
 logger.info("## RAG Pipeline with user input moderation")
 
-# os.environ["OPENAI_API_KEY"] = getpass("🔑 Enter your OllamaFunctionCallingAdapter API key: ")
+# os.environ["OPENAI_API_KEY"] = getpass("🔑 Enter your OllamaFunctionCalling API key: ")
 
 """
 First, we'll write some documents about the Seven Wonders of the Ancient World into an [InMemoryDocumentStore](https://docs.haystack.deepset.ai/docs/inmemorydocumentstore) instance.

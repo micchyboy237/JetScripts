@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.prompts import RichPromptTemplate
 import os
@@ -82,7 +82,7 @@ logger.info("## Prompts with Images and Audio")
 # !wget https://cdn.pixabay.com/photo/2016/07/07/16/46/dice-1502706_640.jpg -O image.png
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", api_key="sk-...")
+llm = OllamaFunctionCalling(model="llama3.2", api_key="sk-...")
 
 prompt = RichPromptTemplate(
     """
@@ -110,7 +110,7 @@ Describe the following audio:
 )
 messages = prompt.format_messages(audio_path="./audio.wav")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="sk-...")
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="sk-...")
 response = llm.chat(messages)
 logger.debug(response.message.content)
 

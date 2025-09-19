@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from IPython.display import display, Markdown
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.llms import LLM
     from llama_index.core.prompts import PromptTemplate
@@ -48,7 +48,7 @@ async def main():
 
     # %pip install -U llama-index
 
-    # os.environ["OPENAI_API_KEY"] = "<Your OllamaFunctionCallingAdapter API Key>"
+    # os.environ["OPENAI_API_KEY"] = "<Your OllamaFunctionCalling API Key>"
 
     """
     Since workflows are async first, this all runs fine in a notebook. If you were running in your own code, you would want to use `asyncio.run()` to start an async event loop if one isn't already running.
@@ -249,7 +249,7 @@ async def main():
     logger.info("## Running the workflow")
 
     workflow = SelfDiscoverWorkflow()
-    llm = OllamaFunctionCallingAdapter("llama3.2")
+    llm = OllamaFunctionCalling("llama3.2")
 
     task = "Michael has 15 oranges. He gives 4 oranges to his brother and trades 3 oranges for 6 apples with his neighbor. Later in the day, he realizes some of his oranges are spoiled, so he discards 2 of them. Then, Michael goes to the market and buys 12 more oranges and 5 more apples. If Michael decides to give 2 apples to his friend, how many oranges and apples does Michael have now?"
     result = await workflow.run(task=task, llm=llm)

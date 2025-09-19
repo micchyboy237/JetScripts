@@ -42,7 +42,7 @@ In this notebook, we will explore and tune different retrieval options in MongoD
 <p>
 - **llama-index**: Python package for the LlamaIndex LLM framework
 <p>
-- **llama-index-llms-ollama**: Python package to use OllamaFunctionCallingAdapter models via their LlamaIndex integration 
+- **llama-index-llms-ollama**: Python package to use OllamaFunctionCalling models via their LlamaIndex integration 
 <p>
 - **llama-index-vector-stores-mongodb**: Python package for MongoDB’s LlamaIndex integration
 """
@@ -55,13 +55,13 @@ logger.info("# Optimizing for relevance using MongoDB and LlamaIndex")
 
 - **Set the MongoDB connection string**: Follow the steps [here](https://www.mongodb.com/docs/manual/reference/connection-string/) to get the connection string from the Atlas UI.
 
-- **Set the OllamaFunctionCallingAdapter API key**: Steps to obtain an API key as [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key)
+- **Set the OllamaFunctionCalling API key**: Steps to obtain an API key as [here](https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key)
 """
 logger.info("## Step 2: Setup prerequisites")
 
 # import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your OllamaFunctionCallingAdapter API key: ")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your OllamaFunctionCalling API key: ")
 
 # MONGODB_URI = getpass.getpass("Enter your MongoDB URI: ")
 mongodb_client = MongoClient(

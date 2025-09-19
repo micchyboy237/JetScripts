@@ -1,4 +1,4 @@
-from guidance.llms import OllamaFunctionCallingAdapter as GuidanceOllamaFunctionCallingAdapter
+from guidance.llms import OllamaFunctionCalling as GuidanceOllamaFunctionCallingAdapter
 from jet.logger import CustomLogger
 from llama_index.core import QueryBundle
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex

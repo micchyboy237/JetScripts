@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.async_utils import batch_gather
     from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
@@ -132,7 +132,7 @@ async def main():
     """
     logger.info("Summarize with GPT-4")
 
-    response = OllamaFunctionCallingAdapter(
+    response = OllamaFunctionCalling(
         model="llama3.2").stream_complete(prompt)
 
     for r in response:

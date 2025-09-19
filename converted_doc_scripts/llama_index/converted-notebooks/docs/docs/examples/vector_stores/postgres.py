@@ -56,10 +56,10 @@ logger.info("Running the following cell will install Postgres with PGVector in C
 
 
 """
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 The first step is to configure the openai key. It will be used to created embeddings for the documents loaded into the index
 """
-logger.info("### Setup OllamaFunctionCallingAdapter")
+logger.info("### Setup OllamaFunctionCalling")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."

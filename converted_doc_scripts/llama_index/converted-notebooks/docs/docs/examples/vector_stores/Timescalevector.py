@@ -69,10 +69,10 @@ logger.info("# Timescale Vector Store (PostgreSQL)")
 
 
 """
-### Setup OllamaFunctionCallingAdapter API Key
-To create embeddings for documents loaded into the index, let's configure your OllamaFunctionCallingAdapter API key:
+### Setup OllamaFunctionCalling API Key
+To create embeddings for documents loaded into the index, let's configure your OllamaFunctionCalling API key:
 """
-logger.info("### Setup OllamaFunctionCallingAdapter API Key")
+logger.info("### Setup OllamaFunctionCalling API Key")
 
 
 _ = load_dotenv(find_dotenv())

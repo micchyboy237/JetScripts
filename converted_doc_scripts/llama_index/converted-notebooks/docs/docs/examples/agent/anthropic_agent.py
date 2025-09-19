@@ -117,7 +117,7 @@ async def main():
     """
     ## Anthropic Agent over RAG Pipeline
     
-    Build a Anthropic agent over a simple 10K document. We use OllamaFunctionCallingAdapter embeddings and claude-3-haiku-20240307 to construct the RAG pipeline, and pass it to the Anthropic Opus agent as a tool.
+    Build a Anthropic agent over a simple 10K document. We use OllamaFunctionCalling embeddings and claude-3-haiku-20240307 to construct the RAG pipeline, and pass it to the Anthropic Opus agent as a tool.
     """
     logger.info("## Anthropic Agent over RAG Pipeline")
 

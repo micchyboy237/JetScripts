@@ -1,6 +1,6 @@
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.prompts import RichPromptTemplate
 from pydantic import BaseModel
@@ -100,7 +100,7 @@ logger.info("### 3. Chat With an LLM")
 # os.environ["OPENAI_API_KEY"] = getpass()
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 response = llm.chat(prompt.format_messages(data=user))
 logger.success(format_json(response))

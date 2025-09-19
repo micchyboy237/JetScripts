@@ -78,9 +78,9 @@ logger.info("### llamafile: download and run the model")
 
 """
 **Running the model - relevant parameters**:
-- `--server`: start an OllamaFunctionCallingAdapter-compatible server
+- `--server`: start an OllamaFunctionCalling-compatible server
 - `--nobrowser`: do not open the interactive interface in the browser
-- `--port`: port of the OllamaFunctionCallingAdapter-compatible server (in Colab, 8080 is already taken)
+- `--port`: port of the OllamaFunctionCalling-compatible server (in Colab, 8080 is already taken)
 - `--n-gpu-layers`: offload some layers to GPU for increased performance
 - `--ctx-size`: size of the prompt context
 """
@@ -98,13 +98,13 @@ logger.info("### llamafile: download and run the model")
 """
 Let's try to interact with the model.
 
-Since the server is OllamaFunctionCallingAdapter-compatible, we can use an [OllamaFunctionCallingAdapterChatGenerator](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
+Since the server is OllamaFunctionCalling-compatible, we can use an [OllamaFunctionCallingAdapterChatGenerator](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
 """
 logger.info("Let's try to interact with the model.")
 
 
 generator = OllamaFunctionCallingAdapterChatGenerator(
-    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCallingAdapter API, a placeholder api_key is needed
+    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCalling API, a placeholder api_key is needed
     model="LLaMA_CPP",
     api_base_url="http://localhost:8081/v1",
     generation_kwargs = {"max_tokens": 50}
@@ -144,7 +144,7 @@ template_messages = [
 chat_prompt_builder = ChatPromptBuilder(template=template_messages, required_variables=["character"])
 
 generator = OllamaFunctionCallingAdapterChatGenerator(
-    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCallingAdapter API, a placeholder api_key is needed
+    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCalling API, a placeholder api_key is needed
     model="LLaMA_CPP",
     api_base_url="http://localhost:8081/v1",
     generation_kwargs = {"max_tokens": 100}
@@ -218,7 +218,7 @@ logger.info("## 💬 🤠 Chat Adventures")
 character_pipeline = Pipeline()
 character_pipeline.add_component("chat_prompt_builder", ChatPromptBuilder(required_variables=["character_data"]))
 character_pipeline.add_component("generator", OllamaFunctionCallingAdapterChatGenerator(
-    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCallingAdapter API, a placeholder api_key is needed
+    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCalling API, a placeholder api_key is needed
     model="LLaMA_CPP",
     api_base_url="http://localhost:8081/v1",
     generation_kwargs = {"temperature": 1.5}

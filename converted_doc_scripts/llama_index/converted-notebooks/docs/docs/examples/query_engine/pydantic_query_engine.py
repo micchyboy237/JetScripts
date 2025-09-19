@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
@@ -77,14 +77,14 @@ class Biography(BaseModel):
     extra_info: str
 
 """
-## Create the Index + Query Engine (OllamaFunctionCallingAdapter)
+## Create the Index + Query Engine (OllamaFunctionCalling)
 
-When using OllamaFunctionCallingAdapter, the function calling API will be leveraged for reliable structured outputs.
+When using OllamaFunctionCalling, the function calling API will be leveraged for reliable structured outputs.
 """
-logger.info("## Create the Index + Query Engine (OllamaFunctionCallingAdapter)")
+logger.info("## Create the Index + Query Engine (OllamaFunctionCalling)")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
 
 index = VectorStoreIndex.from_documents(
     documents,
@@ -103,11 +103,11 @@ logger.debug(response.extra_info)
 logger.debug(type(response.response))
 
 """
-## Create the Index + Query Engine (Non-OllamaFunctionCallingAdapter, Beta)
+## Create the Index + Query Engine (Non-OllamaFunctionCalling, Beta)
 
 When using an LLM that does not support function calling, we rely on the LLM to write the JSON itself, and we parse the JSON into the proper pydantic object.
 """
-logger.info("## Create the Index + Query Engine (Non-OllamaFunctionCallingAdapter, Beta)")
+logger.info("## Create the Index + Query Engine (Non-OllamaFunctionCalling, Beta)")
 
 
 # os.environ["ANTHROPIC_API_KEY"] = "sk-..."
@@ -147,7 +147,7 @@ class Company(BaseModel):
     context_info: str
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
 
 index = VectorStoreIndex.from_documents(
     documents,

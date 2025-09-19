@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.prompts.default_prompts import (
@@ -105,7 +105,7 @@ guard = gd.Guard.from_pydantic(output_class=Explanation, prompt=prompt)
 
 output_parser = GuardrailsOutputParser(guard)
 
-llm = OllamaFunctionCallingAdapter(output_parser=output_parser)
+llm = OllamaFunctionCalling(output_parser=output_parser)
 
 
 fmt_qa_tmpl = output_parser.format(DEFAULT_TEXT_QA_PROMPT_TMPL)

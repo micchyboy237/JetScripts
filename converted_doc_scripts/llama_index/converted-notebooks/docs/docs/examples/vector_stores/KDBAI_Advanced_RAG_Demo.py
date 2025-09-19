@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import (
 Settings,
@@ -71,14 +71,14 @@ OUTDIR = "pdf"
 RESET = True
 
 """
-#### Set OllamaFunctionCallingAdapter API key and choose the LLM and Embedding model to use:
+#### Set OllamaFunctionCalling API key and choose the LLM and Embedding model to use:
 """
-logger.info("#### Set OllamaFunctionCallingAdapter API key and choose the LLM and Embedding model to use:")
+logger.info("#### Set OllamaFunctionCalling API key and choose the LLM and Embedding model to use:")
 
 # os.environ["OPENAI_API_KEY"] = (
 #     os.environ["OPENAI_API_KEY"]
 #     if "OPENAI_API_KEY" in os.environ
-#     else getpass("OllamaFunctionCallingAdapter API Key: ")
+#     else getpass("OllamaFunctionCalling API Key: ")
 )
 
 # from getpass import getpass
@@ -92,7 +92,7 @@ else:
 EMBEDDING_MODEL = "mxbai-embed-large"
 GENERATION_MODEL = "llama3.2"
 
-llm = OllamaFunctionCallingAdapter(model=GENERATION_MODEL)
+llm = OllamaFunctionCalling(model=GENERATION_MODEL)
 embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 Settings.llm = llm
@@ -152,7 +152,7 @@ logger.info("##### Option 2. KDB.AI Server")
 ***!!! Note:*** The 'dims' parameter in the embedding column must reflect the output dimensions of the embedding model you choose.
 
 
-- OllamaFunctionCallingAdapter 'mxbai-embed-large' outputs 1536 dimensions.
+- OllamaFunctionCalling 'mxbai-embed-large' outputs 1536 dimensions.
 """
 logger.info("### Create the schema for your KDB.AI table")
 

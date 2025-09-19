@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex
@@ -140,7 +140,7 @@ With all that out of the way, let's spring into action. First, we will download 
 logger.info("With all that out of the way, let's spring into action. First, we will download the reference pdf document and create the set of questions against it.")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 
@@ -271,7 +271,7 @@ There is a bit of added nuance here since with pairwise evaluations, we have to 
 
 Finally, we also use the `OllamaFunctionCallingAdapterFineTuningHandler` which will collect all the chat histories that we will eventually need to fine-tune GPT-3.5.
 
-NOTE: this will take some time to generate the judgements. Again, you have the option to load the `train_qa.jsonl` as `train_dataset`. Moreover, we also stored the JSONL files that we passed to OllamaFunctionCallingAdapter to fine-tune GPT-3.5.
+NOTE: this will take some time to generate the judgements. Again, you have the option to load the `train_qa.jsonl` as `train_dataset`. Moreover, we also stored the JSONL files that we passed to OllamaFunctionCalling to fine-tune GPT-3.5.
 """
 logger.info("### Get GPT-4 Evaluations On The Mistral and LLama-2 Answers")
 
@@ -280,7 +280,7 @@ main_finetuning_handler = OllamaFunctionCallingAdapterFineTuningHandler()
 callback_manager = CallbackManager([main_finetuning_handler])
 Settings.callback_manager = callback_manager
 
-llm_4 = OllamaFunctionCallingAdapter(
+llm_4 = OllamaFunctionCalling(
     temperature=0, model="llama3.2", request_timeout=300.0, context_window=4096, callback_manager=callback_manager)
 
 gpt4_judge = PairwiseComparisonEvaluator(llm=llm_4)
@@ -317,7 +317,7 @@ display_eval_df(
 """
 #### Special Care To The Fine-Tuning JSONL
 
-Since there are two evaluations (one for original order of presentation of the LLM answers and another for a flipped ordering), we need to be careful to choose the correct one to keep in our fine-tuning dataset. What this means is that we need to pick off the correct events that were collected by our `OllamaFunctionCallingAdapterFineTuningHandler` and then only use those to prepare the JSONL which we will pass to OllamaFunctionCallingAdapter's fine-tuning API.
+Since there are two evaluations (one for original order of presentation of the LLM answers and another for a flipped ordering), we need to be careful to choose the correct one to keep in our fine-tuning dataset. What this means is that we need to pick off the correct events that were collected by our `OllamaFunctionCallingAdapterFineTuningHandler` and then only use those to prepare the JSONL which we will pass to OllamaFunctionCalling's fine-tuning API.
 """
 logger.info("#### Special Care To The Fine-Tuning JSONL")
 
@@ -455,7 +455,7 @@ for data_entry in tqdm.tqdm(test_dataset):
     judgement["source"] = final_eval_result.pairwise_source
     data_entry["evaluations"] += [judgement]
 
-gpt_3p5_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+gpt_3p5_llm = OllamaFunctionCalling(model="llama3.2")
 
 gpt_3p5_judge = PairwiseComparisonEvaluator(llm=gpt_3p5_llm)
 

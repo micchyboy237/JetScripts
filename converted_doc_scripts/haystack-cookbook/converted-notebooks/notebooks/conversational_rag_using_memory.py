@@ -49,14 +49,14 @@ logger.info("# 🗣️ Conversational RAG using Memory")
 # !pip install -U haystack-ai datasets
 
 """
-## Enter OllamaFunctionCallingAdapter API key
+## Enter OllamaFunctionCalling API key
 """
-logger.info("## Enter OllamaFunctionCallingAdapter API key")
+logger.info("## Enter OllamaFunctionCalling API key")
 
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ## Create DocumentStore and Index Documents

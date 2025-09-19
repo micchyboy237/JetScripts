@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import ChatPromptTemplate
 from llama_index.core import download_loader
@@ -26,7 +26,7 @@ logger.info(f"Logs: {log_file}")
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/usecases/email_data_extraction.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Email Data Extraction
-OllamaFunctionCallingAdapter functions can be used to extract data from Email. This is another example of getting structured data from unstructured conent using LLamaIndex. 
+OllamaFunctionCalling functions can be used to extract data from Email. This is another example of getting structured data from unstructured conent using LLamaIndex. 
 
 The primary objective of this example is to transform raw email content into an easily interpretable JSON format, exemplifying a practical application of language models in data extraction. Extracted structued JSON data can then be used in any downstream application. 
 
@@ -51,11 +51,11 @@ logger.info("# Email Data Extraction")
 # !pip install "unstructured[msg]"
 
 """
-### Enable Logging and Set up OllamaFunctionCallingAdapter API Key
+### Enable Logging and Set up OllamaFunctionCalling API Key
 
-In this step, we set up logging to monitor the program's execution and debug if needed. We also configure the OllamaFunctionCallingAdapter API key, essential for utilizing OllamaFunctionCallingAdapter services. Replace "YOUR_KEY_HERE" with your actual OllamaFunctionCallingAdapter API key.
+In this step, we set up logging to monitor the program's execution and debug if needed. We also configure the OllamaFunctionCalling API key, essential for utilizing OllamaFunctionCalling services. Replace "YOUR_KEY_HERE" with your actual OllamaFunctionCalling API key.
 """
-logger.info("### Enable Logging and Set up OllamaFunctionCallingAdapter API Key")
+logger.info("### Enable Logging and Set up OllamaFunctionCalling API Key")
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -134,7 +134,7 @@ logger.debug(msg_content)
 """
 ### Use LLM function to extract content in JSON format
 
-In the final step, we utilize the `llama_index` package to create a prompt template for extracting insights from the loaded email. An instance of the `OllamaFunctionCallingAdapter` model is used to interpret the email content and extract the relevant information based on our predefined `EmailData` schema. The output is then converted to a dictionary format for easy viewing and processing.
+In the final step, we utilize the `llama_index` package to create a prompt template for extracting insights from the loaded email. An instance of the `OllamaFunctionCalling` model is used to interpret the email content and extract the relevant information based on our predefined `EmailData` schema. The output is then converted to a dictionary format for easy viewing and processing.
 """
 logger.info("### Use LLM function to extract content in JSON format")
 
@@ -158,7 +158,7 @@ prompt = ChatPromptTemplate(
     ]
 )
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=EmailData,

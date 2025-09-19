@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapterResponses
     from jet.logger import CustomLogger
     from llama_index.core.llms import ChatMessage
@@ -24,13 +24,13 @@ async def main():
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/openai_responses.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-    # OllamaFunctionCallingAdapter Responses API
+    # OllamaFunctionCalling Responses API
 
-    This notebook shows how to use the OllamaFunctionCallingAdapter Responses LLM.
+    This notebook shows how to use the OllamaFunctionCalling Responses LLM.
 
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
-    logger.info("# OllamaFunctionCallingAdapter Responses API")
+    logger.info("# OllamaFunctionCalling Responses API")
 
     # %pip install llama-index llama-index-llms-ollama
 
@@ -149,7 +149,7 @@ async def main():
 
     For O-series models, you can set the reasoning effort to control the amount of time the model will spend reasoning.
 
-    See the [OllamaFunctionCallingAdapter API docs](https://platform.openai.com/docs/guides/reasoning?api-mode=responses) for more information.
+    See the [OllamaFunctionCalling API docs](https://platform.openai.com/docs/guides/reasoning?api-mode=responses) for more information.
     """
     logger.info("## Reasoning Effort")
 
@@ -168,7 +168,7 @@ async def main():
     """
     ## Image Support
 
-    OllamaFunctionCallingAdapter has support for images in the input of chat messages for many models.
+    OllamaFunctionCalling has support for images in the input of chat messages for many models.
 
     Using the content blocks feature of chat messages, you can easily combone text and images in a single LLM prompt.
     """
@@ -194,7 +194,7 @@ async def main():
     """
     ## Using Function/Tool Calling
 
-    OllamaFunctionCallingAdapter models have native support for function calling. This conveniently integrates with LlamaIndex tool abstractions, letting you plug in any arbitrary Python function to the LLM.
+    OllamaFunctionCalling models have native support for function calling. This conveniently integrates with LlamaIndex tool abstractions, letting you plug in any arbitrary Python function to the LLM.
 
     In the example below, we define a function to generate a Song object.
     """
@@ -213,11 +213,11 @@ async def main():
     tool = FunctionTool.from_defaults(fn=generate_song)
 
     """
-    The `strict` parameter tells OllamaFunctionCallingAdapter whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.
+    The `strict` parameter tells OllamaFunctionCalling whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.
 
     Since this seems to increase latency, it defaults to false.
     """
-    logger.info("The `strict` parameter tells OllamaFunctionCallingAdapter whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
+    logger.info("The `strict` parameter tells OllamaFunctionCalling whether or not to use constrained sampling when generating tool calls/structured outputs. This means that the generated tool call schema will always contain the expected fields.")
 
     llm = OllamaFunctionCallingAdapterResponses(model="llama3.2", strict=True)
     response = llm.predict_and_call(
@@ -420,7 +420,7 @@ async def main():
     """
     ## MCP Remote calls
 
-    You can call any [remote MCP](https://platform.openai.com/docs/guides/tools-remote-mcp) through the OllamaFunctionCallingAdapter Responses API just by passing the MCP specifics as a built-in tool to the LLM
+    You can call any [remote MCP](https://platform.openai.com/docs/guides/tools-remote-mcp) through the OllamaFunctionCalling Responses API just by passing the MCP specifics as a built-in tool to the LLM
     """
     logger.info("## MCP Remote calls")
 

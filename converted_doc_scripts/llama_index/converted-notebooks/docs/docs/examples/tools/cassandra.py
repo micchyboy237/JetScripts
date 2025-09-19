@@ -1,6 +1,6 @@
 async def main():
     from dotenv import load_dotenv
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.cassandra.base import CassandraDatabaseToolSpec
@@ -93,7 +93,7 @@ async def main():
     ```
     
     ### .env file
-    Connection is via `cassio` using `auto=True` parameter, and the notebook uses OllamaFunctionCallingAdapter. You should create a `.env` file accordingly.
+    Connection is via `cassio` using `auto=True` parameter, and the notebook uses OllamaFunctionCalling. You should create a `.env` file accordingly.
     
     For Cassandra, set:
     ```bash
@@ -219,7 +219,7 @@ async def main():
         logger.debug(tool.metadata.description)
         logger.debug(tool.metadata.fn_schema)
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     agent = FunctionAgent(tools=tools, llm=llm)
 

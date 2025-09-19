@@ -65,7 +65,7 @@ You can change the indexing pipeline and query pipelines here for embedding sear
 
 
 In this example we are using:
-- The [`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) with `llama3.2`. (You will need a OllamaFunctionCallingAdapter API key to use this model). You can replace this with any of the other [`Generators`](https://docs.haystack.deepset.ai/docs/generators)
+- The [`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) with `llama3.2`. (You will need a OllamaFunctionCalling API key to use this model). You can replace this with any of the other [`Generators`](https://docs.haystack.deepset.ai/docs/generators)
 - The [`ChatPromptBuilder`](https://docs.haystack.deepset.ai/docs/chatpromptbuilder) which holds the prompt template. You can adjust this to a prompt of your choice
 - The [`ChromaQueryTextRetriver`](https://docs.haystack.deepset.ai/docs/chromaqueryretriever) which expects a list of queries and retieves the `top_k` most relevant documents from your Chroma collection.
 """
@@ -73,7 +73,7 @@ logger.info("## Query Pipeline: build retrieval-augmented generation (RAG) pipel
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 
 prompt = """

@@ -28,9 +28,9 @@ logger.info(f"Logs: {log_file}")
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/multi_modal_video_RAG.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Multimodal RAG for processing videos using OllamaFunctionCallingAdapter GPT4V and LanceDB vectorstore
+# Multimodal RAG for processing videos using OllamaFunctionCalling GPT4V and LanceDB vectorstore
 
-In this notebook, we showcase a Multimodal RAG architecture designed for video processing. We utilize OllamaFunctionCallingAdapter GPT4V MultiModal LLM class that employs [CLIP](https://github.com/openai/CLIP) to generate multimodal embeddings. Furthermore, we use [LanceDBVectorStore](https://docs.llamaindex.ai/en/latest/examples/vector_stores/LanceDBIndexDemo.html#) for efficient vector storage.
+In this notebook, we showcase a Multimodal RAG architecture designed for video processing. We utilize OllamaFunctionCalling GPT4V MultiModal LLM class that employs [CLIP](https://github.com/openai/CLIP) to generate multimodal embeddings. Furthermore, we use [LanceDBVectorStore](https://docs.llamaindex.ai/en/latest/examples/vector_stores/LanceDBIndexDemo.html#) for efficient vector storage.
 
 
 
@@ -43,7 +43,7 @@ Steps:
 
 4. Using GPT4V for reasoning the correlations between the input query and augmented data and generating final response.
 """
-logger.info("# Multimodal RAG for processing videos using OllamaFunctionCallingAdapter GPT4V and LanceDB vectorstore")
+logger.info("# Multimodal RAG for processing videos using OllamaFunctionCalling GPT4V and LanceDB vectorstore")
 
 # %pip install llama-index-vector-stores-lancedb
 # %pip install llama-index-multi-modal-llms-openai

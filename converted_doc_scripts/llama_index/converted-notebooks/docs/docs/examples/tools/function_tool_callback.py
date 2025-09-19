@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.tools import FunctionTool
@@ -62,7 +62,7 @@ async def main():
 
     hello_tool = FunctionTool.from_defaults(fn=send_hello, callback=callback)
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
     agent = FunctionAgent(tools=[hello_tool])
 
     response = await agent.run("Send hello to Karen")

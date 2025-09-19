@@ -27,7 +27,7 @@ logger.info(f"Logs: {log_file}")
 
 # Multi-Modal GPT4V Pydantic Program
 
-In this notebook, we show you how to generate `structured data` with new OllamaFunctionCallingAdapter GPT4V API via LlamaIndex. The user just needs to specify a Pydantic object.
+In this notebook, we show you how to generate `structured data` with new OllamaFunctionCalling GPT4V API via LlamaIndex. The user just needs to specify a Pydantic object.
 
 We also compared several Large Vision models for this task:
 * GPT4-V
@@ -75,9 +75,9 @@ class Restaurant(BaseModel):
     review: str
 
 """
-## Load OllamaFunctionCallingAdapter GPT4V Multi-Modal LLM Model
+## Load OllamaFunctionCalling GPT4V Multi-Modal LLM Model
 """
-logger.info("## Load OllamaFunctionCallingAdapter GPT4V Multi-Modal LLM Model")
+logger.info("## Load OllamaFunctionCalling GPT4V Multi-Modal LLM Model")
 
 
 image_documents = SimpleDirectoryReader("./restaurant_images").load_data()

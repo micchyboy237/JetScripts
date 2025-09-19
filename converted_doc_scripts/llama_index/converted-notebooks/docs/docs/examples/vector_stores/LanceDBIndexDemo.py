@@ -47,10 +47,10 @@ logger.info("# LanceDB Vector Store")
 
 
 """
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 The first step is to configure the openai key. It will be used to created embeddings for the documents loaded into the index
 """
-logger.info("### Setup OllamaFunctionCallingAdapter")
+logger.info("### Setup OllamaFunctionCalling")
 
 
 openai.api_key = "sk-"

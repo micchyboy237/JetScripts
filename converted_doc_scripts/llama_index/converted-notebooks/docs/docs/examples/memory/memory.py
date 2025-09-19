@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.llms import ChatMessage
@@ -37,7 +37,7 @@ async def main():
     
     ## Setup
     
-    This notebook will use `OllamaFunctionCallingAdapter` as an LLM/embedding model for various parts of the example.
+    This notebook will use `OllamaFunctionCalling` as an LLM/embedding model for various parts of the example.
     
     For vector retrieval, we will rely on `Chroma` as a vector store.
     """
@@ -135,7 +135,7 @@ async def main():
     """
     logger.info("## Long-term Memory")
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
     embed_model = HuggingFaceEmbedding(
         model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 

@@ -152,7 +152,7 @@ logger.info("## Basic Query Engine")
 
 query_engine = vector_index.as_query_engine(response_mode="compact")
 
-response = query_engine.query("How do OllamaFunctionCallingAdapter and Meta differ on AI tools?")
+response = query_engine.query("How do OllamaFunctionCalling and Meta differ on AI tools?")
 
 display_response(response)
 
@@ -163,7 +163,7 @@ logger.info("### Refine")
 
 query_engine = vector_index.as_query_engine(response_mode="refine")
 
-response = query_engine.query("How do OllamaFunctionCallingAdapter and Meta differ on AI tools?")
+response = query_engine.query("How do OllamaFunctionCalling and Meta differ on AI tools?")
 
 display_response(response)
 
@@ -174,7 +174,7 @@ logger.info("### Tree Summarize")
 
 query_engine = vector_index.as_query_engine(response_mode="tree_summarize")
 
-response = query_engine.query("How do OllamaFunctionCallingAdapter and Meta differ on AI tools?")
+response = query_engine.query("How do OllamaFunctionCalling and Meta differ on AI tools?")
 
 display_response(response)
 
@@ -264,7 +264,7 @@ query_engine = SubQuestionQueryEngine.from_defaults(
 )
 
 response = query_engine.query(
-    "What was mentioned about Meta? How Does it differ from how OllamaFunctionCallingAdapter is talked about?"
+    "What was mentioned about Meta? How Does it differ from how OllamaFunctionCalling is talked about?"
 )
 
 display_response(response)
@@ -363,7 +363,7 @@ logger.debug(output)
 """
 ## Data Agent
 
-Similar to programs, OllamaFunctionCallingAdapter LLMs will use `FunctionAgent`, while other LLMs will use `ReActAgent`.
+Similar to programs, OllamaFunctionCalling LLMs will use `FunctionAgent`, while other LLMs will use `ReActAgent`.
 """
 logger.info("## Data Agent")
 
@@ -381,7 +381,7 @@ logger.debug(response)
 logger.info("#### It does not use the tools to answer the query.")
 
 response = agent.chat(
-    "What was mentioned about Meta? How Does it differ from how OllamaFunctionCallingAdapter is talked about?"
+    "What was mentioned about Meta? How Does it differ from how OllamaFunctionCalling is talked about?"
 )
 logger.debug(response)
 

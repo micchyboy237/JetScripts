@@ -22,7 +22,7 @@ from llama_index.core.tools import FunctionTool, QueryEngineTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.file import UnstructuredReader
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.models.config import MODELS_CACHE_DIR
 from jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter import CrossEncoderRerank
 from jet.utils.inspect_utils import get_entry_file_path
@@ -44,7 +44,7 @@ Settings.embed_model = HuggingFaceEmbedding(
     model_name=model_name,
     cache_folder=MODELS_CACHE_DIR,
 )
-Settings.llm = OllamaFunctionCallingAdapter(
+Settings.llm = OllamaFunctionCalling(
     model="llama3.2", log_dir=f"{LOG_DIR}/chats")
 logger.info("Initialized embedding model and LLM")
 
@@ -145,7 +145,7 @@ async def build_agent_per_doc(nodes: List, file_base: str) -> Tuple[FunctionAgen
             description="Useful for summarization questions",
         ),
     ]
-    function_llm = OllamaFunctionCallingAdapter(
+    function_llm = OllamaFunctionCalling(
         model="llama3.2", log_dir=f"{LOG_DIR}/agent_functions")
     agent = FunctionAgent(
         tools=query_engine_tools,
@@ -196,7 +196,7 @@ class CustomObjectRetriever(ObjectRetriever):
     def __init__(self, retriever, object_node_mapping, node_postprocessors=None, llm=None):
         self._retriever = retriever
         self._object_node_mapping = object_node_mapping
-        self._llm = llm or OllamaFunctionCallingAdapter(
+        self._llm = llm or OllamaFunctionCalling(
             model="llama3.2", log_dir=f"{LOG_DIR}/object_retriever")
         self._node_postprocessors = node_postprocessors or []
 
@@ -258,14 +258,14 @@ async def main():
         vector_node_retriever,
         obj_index.object_node_mapping,
         node_postprocessors=[CrossEncoderRerank(
-            top_n=5, model="ms-marco-MiniLM-L12-v2")], llm=OllamaFunctionCallingAdapter(
+            top_n=5, model="ms-marco-MiniLM-L12-v2")], llm=OllamaFunctionCalling(
             model="llama3.2", log_dir=f"{LOG_DIR}/object_retriever"),
     )
     top_agent = FunctionAgent(
         tool_retriever=custom_obj_retriever,
         system_prompt="""You are an agent designed to answer queries about the resume data.
 Please always use the tools provided to answer a question. Do not rely on prior knowledge.""",
-        llm=OllamaFunctionCallingAdapter(
+        llm=OllamaFunctionCalling(
             model="llama3.2", log_dir=f"{LOG_DIR}/top_agent"),
     )
     logger.info("Top agent initialized")

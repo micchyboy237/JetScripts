@@ -1,6 +1,6 @@
 from jet.transformers.formatters import format_json
 from PIL import Image
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import SimpleDirectoryReader, Document
@@ -120,7 +120,7 @@ asl_index = MultiModalVectorStoreIndex(image_nodes + text_nodes)
 """
 ### Another RAG System For Consideration (GPT-4V Image Descriptions For Retrieval)
 
-With the previous `MultiModalVectorStoreIndex`, the default embedding model for images is OllamaFunctionCallingAdapter [CLIP](https://github.com/openai/CLIP). In order to draw comparisons with another RAG system (as is often a reason for performing RAG evaluation), we will standup another RAG system that uses a different embedding for images from the default one.
+With the previous `MultiModalVectorStoreIndex`, the default embedding model for images is OllamaFunctionCalling [CLIP](https://github.com/openai/CLIP). In order to draw comparisons with another RAG system (as is often a reason for performing RAG evaluation), we will standup another RAG system that uses a different embedding for images from the default one.
 
 In particular, we will prompt GPT-4V to write text-descriptions of every image, and then apply the usual text-embeddings to these descriptions and associate these embeddings to the images. That is, these text-description embeddings will be what's ultimately used in this RAG system to perform retrieval.
 """
@@ -485,7 +485,7 @@ logger.info("### Correctness, Faithfulness, Relevancy")
 judges = {}
 
 judges["correctness"] = CorrectnessEvaluator(
-    llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
+    llm=OllamaFunctionCalling(temperature=0, model="llama3.2"),
 )
 
 judges["relevancy"] = MultiModalRelevancyEvaluator(

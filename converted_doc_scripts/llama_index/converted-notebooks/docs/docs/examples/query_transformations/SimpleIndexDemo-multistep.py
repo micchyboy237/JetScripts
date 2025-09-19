@@ -1,5 +1,5 @@
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.indices.query.query_transform.base import (
@@ -50,9 +50,9 @@ logger.info("#### Load documents, build the VectorStoreIndex")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt35 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 documents = SimpleDirectoryReader(
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()

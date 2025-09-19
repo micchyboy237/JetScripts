@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.agentql import AgentQLBrowserToolSpec
@@ -198,7 +198,7 @@ async def main():
 
     """
     ## Using the AgentQL tools with agent
-    To get started, you will need an [OllamaFunctionCallingAdapter api key](https://platform.openai.com/account/api-keys)
+    To get started, you will need an [OllamaFunctionCalling api key](https://platform.openai.com/account/api-keys)
     """
     logger.info("## Using the AgentQL tools with agent")
 
@@ -214,7 +214,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=playwright_agent_tool_list + agentql_browser_tool.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

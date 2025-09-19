@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.llama_pack import download_llama_pack
@@ -48,7 +48,7 @@ logger.info("## Create Pack")
 
 index_name = "my_index"
 ragatouille_pack = RAGatouilleRetrieverPack(
-    docs, llm=OllamaFunctionCallingAdapter(model="llama3.2"), index_name=index_name, top_k=5
+    docs, llm=OllamaFunctionCalling(model="llama3.2"), index_name=index_name, top_k=5
 )
 
 """

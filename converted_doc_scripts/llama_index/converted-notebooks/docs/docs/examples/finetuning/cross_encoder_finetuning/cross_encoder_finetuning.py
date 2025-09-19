@@ -1,7 +1,7 @@
 from jet.transformers.formatters import format_json
 from datasets import load_dataset
 from huggingface_hub import notebook_login
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import Settings
@@ -72,9 +72,9 @@ logger.info("# How to Finetune a cross-encoder using LLamaIndex")
 - We finetuned the cross-encoder using helper utilities written in llamaindex and push it to HuggingFace Hub using the huggingface cli tokens login which can be found here:- https://huggingface.co/settings/tokens
 
 - We evaluate on both datasets using two metrics and three cases
-     1. Just OllamaFunctionCallingAdapter embeddings without any reranker
-     2. OllamaFunctionCallingAdapter embeddings combined with cross-encoder/ms-marco-MiniLM-L-12-v2 as reranker
-     3. OllamaFunctionCallingAdapter embeddings combined with our fine-tuned cross encoder model as reranker
+     1. Just OllamaFunctionCalling embeddings without any reranker
+     2. OllamaFunctionCalling embeddings combined with cross-encoder/ms-marco-MiniLM-L-12-v2 as reranker
+     3. OllamaFunctionCalling embeddings combined with our fine-tuned cross encoder model as reranker
 
 * Evaluation Criteria for each Eval Dataset
   - Hits metric:- For evaluating the Reranking Eval Dataset we just simply use the retriever+ post-processor functionalities of LLamaIndex to see in the different cases how many times does the relevant context gets retrieved and call it the hits metric.
@@ -470,7 +470,7 @@ df_test.head(1)
 """
 ### Baseline Evaluation
 
-Just using OllamaFunctionCallingAdapter Embeddings for retrieval without any re-ranker
+Just using OllamaFunctionCalling Embeddings for retrieval without any re-ranker
 
 #### Eval Method:-
 1. Iterate over each row of the test dataset:-
@@ -486,7 +486,7 @@ logger.info("### Baseline Evaluation")
 # os.environ["OPENAI_API_KEY"] = "sk-"
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -559,7 +559,7 @@ display(results_df)
 """
 ### Evaluate with base reranker
 
-OllamaFunctionCallingAdapter Embeddings +  `cross-encoder/ms-marco-MiniLM-L-12-v2` as reranker
+OllamaFunctionCalling Embeddings +  `cross-encoder/ms-marco-MiniLM-L-12-v2` as reranker
 
 #### Eval Method:-
 1. Iterate over each row of the test dataset:-
@@ -580,7 +580,7 @@ rerank = SentenceTransformerRerank(
     model="cross-encoder/ms-marco-MiniLM-L-12-v2", top_n=3
 )
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 
@@ -655,7 +655,7 @@ display(results_df)
 """
 ### Evaluate with Fine-Tuned re-ranker
 
-OllamaFunctionCallingAdapter Embeddings + `bpHigh/Cross-Encoder-LLamaIndex-Demo-v2` as reranker
+OllamaFunctionCalling Embeddings + `bpHigh/Cross-Encoder-LLamaIndex-Demo-v2` as reranker
 
 #### Eval Method:-
 1. Iterate over each row of the test dataset:-
@@ -677,7 +677,7 @@ rerank = SentenceTransformerRerank(
 )
 
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 evaluator_gpt4_pairwise = PairwiseComparisonEvaluator(llm=gpt4)
 

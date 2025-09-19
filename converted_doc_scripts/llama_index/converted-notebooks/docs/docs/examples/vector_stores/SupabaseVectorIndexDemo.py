@@ -37,10 +37,10 @@ logger.info("# Supabase Vector Store")
 
 
 """
-### Setup OllamaFunctionCallingAdapter
-The first step is to configure the OllamaFunctionCallingAdapter key. It will be used to created embeddings for the documents loaded into the index
+### Setup OllamaFunctionCalling
+The first step is to configure the OllamaFunctionCalling key. It will be used to created embeddings for the documents loaded into the index
 """
-logger.info("### Setup OllamaFunctionCallingAdapter")
+logger.info("### Setup OllamaFunctionCalling")
 
 
 # os.environ["OPENAI_API_KEY"] = "[your_openai_api_key]"
@@ -72,7 +72,7 @@ logger.debug(
 This will work with all Postgres providers that support pgvector.
 If the collection does not exist, we will attempt to create a new collection 
 
-> Note: you need to pass in the embedding dimension if not using OllamaFunctionCallingAdapter's text-embedding-ada-002, e.g. `vector_store = SupabaseVectorStore(..., dimension=...)`
+> Note: you need to pass in the embedding dimension if not using OllamaFunctionCalling's text-embedding-ada-002, e.g. `vector_store = SupabaseVectorStore(..., dimension=...)`
 """
 logger.info("### Create an index backed by Supabase's vector store.")
 

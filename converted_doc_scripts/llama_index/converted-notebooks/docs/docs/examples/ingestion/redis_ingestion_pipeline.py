@@ -31,7 +31,7 @@ This walkthrough shows how to use Redis for both the vector store, cache, and do
 
 ## Dependencies
 
-Install and start redis, setup OllamaFunctionCallingAdapter API key
+Install and start redis, setup OllamaFunctionCalling API key
 """
 logger.info("# Redis Ingestion Pipeline")
 

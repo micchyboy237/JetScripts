@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document, PropertyGraphIndex
 from llama_index.core import Settings
@@ -47,7 +47,7 @@ logger.info("## Set up LLM Backend")
 
 # os.environ["OPENAI_API_KEY"] = "sk-proj-..."
 
-llm = OllamaFunctionCallingAdapter(temperature=0.0, model="llama3.2")
+llm = OllamaFunctionCalling(temperature=0.0, model="llama3.2")
 
 Settings.llm = llm
 Settings.chunk_size = 2048

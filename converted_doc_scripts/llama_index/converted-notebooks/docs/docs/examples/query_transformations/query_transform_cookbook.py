@@ -1,5 +1,5 @@
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import QueryBundle
@@ -126,7 +126,7 @@ Queries:
 """
 query_gen_prompt = PromptTemplate(query_gen_str)
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 
 def generate_queries(query: str, llm, num_queries: int = 4):
@@ -156,7 +156,7 @@ logger.info("### Query Rewriting (using QueryTransform)")
 
 
 hyde = HyDEQueryTransform(include_original=True)
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 query_bundle = hyde.run("What is Bel?")
 
@@ -177,7 +177,7 @@ We run through an example using the `OllamaFunctionCallingAdapterQuestionGenerat
 logger.info("## Sub-Questions")
 
 
-llm = OllamaFunctionCallingAdapter()
+llm = OllamaFunctionCalling()
 question_gen = OllamaFunctionCallingAdapterQuestionGenerator.from_defaults(
     llm=llm)
 
@@ -260,7 +260,7 @@ Next we get the output from the model.
 """
 logger.info("Next we get the output from the model.")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 response = llm.chat(input_msgs)
 

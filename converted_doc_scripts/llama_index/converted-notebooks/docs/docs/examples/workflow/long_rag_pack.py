@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from IPython.display import display, Markdown
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SimpleDirectoryReader
     from llama_index.core import VectorStoreIndex
@@ -386,7 +386,7 @@ async def main():
     logger.info("## Running the Workflow")
 
     wf = LongRAGWorkflow(timeout=300.0)
-    llm = OllamaFunctionCallingAdapter("llama3.2")
+    llm = OllamaFunctionCalling("llama3.2")
     data_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/paul_graham"
 
     result = await wf.run(

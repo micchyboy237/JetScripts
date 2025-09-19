@@ -11,21 +11,21 @@ async def main():
     from llama_index.llms.ollama import Ollama
     import os
     import shutil
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/ollama.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
     # Ollama + `gpt-oss` Cookbook
     
-    OllamaFunctionCallingAdapter's latest open-source models, `gpt-oss`, [have been released](https://openai.com/open-models/).
+    OllamaFunctionCalling's latest open-source models, `gpt-oss`, [have been released](https://openai.com/open-models/).
     
     They come in two sizes:
     - 20 billion parameter model
@@ -46,17 +46,17 @@ async def main():
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info("# Ollama + `gpt-oss` Cookbook")
-    
+
     # %pip install llama-index-llms-ollama
-    
+
     """
     ## Chain-of-thought / Thinking with `gpt-oss`
     
     Ollama supports configuration for thinking when using `gpt-oss` models. Let's test this out with a few examples.
     """
     logger.info("## Chain-of-thought / Thinking with `gpt-oss`")
-    
-    
+
+
     llm = Ollama(
         model="gpt-oss:20b",
         request_timeout=360,
@@ -64,10 +64,10 @@ async def main():
         temperature=1.0,
         context_window=8000,
     )
-    
+
     resp_gen = llm.stream_complete("What is 1234 * 5678?")
     logger.success(format_json(resp_gen))
-    
+
     still_thinking = True
     logger.debug("====== THINKING ======")
     async for chunk in resp_gen:
@@ -76,24 +76,24 @@ async def main():
         elif still_thinking:
             still_thinking = False
             logger.debug("\n====== ANSWER ======")
-    
+
         if not still_thinking:
             logger.debug(chunk.delta, end="", flush=True)
-    
+
     """
     ## Creating agents with `gpt-oss`
     
     While giving a response from a prompt is fine, we can also incorporate tools to get more precise results, and build an agent.
     """
     logger.info("## Creating agents with `gpt-oss`")
-    
-    
-    
+
+
+
     def multiply(a: int, b: int) -> int:
         """Multiply two numbers"""
         return a * b
-    
-    
+
+
     llm = Ollama(
         model="gpt-oss:20b",
         request_timeout=360,
@@ -101,14 +101,14 @@ async def main():
         temperature=1.0,
         context_window=8000,
     )
-    
+
     agent = FunctionAgent(
         tools=[multiply],
         llm=llm,
         system_prompt="You are a helpful assistant that can multiply and add numbers. Always rely on tools for math operations.",
     )
-    
-    
+
+
     handler = agent.run("What is 1234 * 5678?")
     async for ev in handler.stream_events():
         if isinstance(ev, ToolCall):
@@ -119,27 +119,27 @@ async def main():
             )
         elif isinstance(ev, AgentStream):
             logger.debug(ev.delta, end="", flush=True)
-    
+
     resp = await handler
     logger.success(format_json(resp))
-    
+
     """
     ### Remembering past events with Agents
     
     By default, agent runs do not remember past events. However, using the `Context`, we can maintain state between calls.
     """
     logger.info("### Remembering past events with Agents")
-    
-    
+
+
     ctx = Context(agent)
-    
+
     resp = await agent.run("What is 1234 * 5678?", ctx=ctx)
     logger.success(format_json(resp))
     resp = await agent.run("What was the last question/answer pair?", ctx=ctx)
     logger.success(format_json(resp))
-    
+
     logger.debug(resp.response.content)
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

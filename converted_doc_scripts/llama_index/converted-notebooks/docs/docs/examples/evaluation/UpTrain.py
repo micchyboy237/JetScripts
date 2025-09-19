@@ -81,10 +81,10 @@ data = [
 ]
 
 """
-**This notebook uses the OllamaFunctionCallingAdapter API to generate text for prompts as well as to create the Vector Store Index. So, set openai.api_key to your OllamaFunctionCallingAdapter API key.**
+**This notebook uses the OllamaFunctionCalling API to generate text for prompts as well as to create the Vector Store Index. So, set openai.api_key to your OllamaFunctionCalling API key.**
 """
 
-openai.api_key = "sk-************************"  # your OllamaFunctionCallingAdapter API key
+openai.api_key = "sk-************************"  # your OllamaFunctionCalling API key
 
 """
 ## Create a query engine using LlamaIndex
@@ -116,7 +116,7 @@ You can choose between the following two alternatives for evaluating using UpTra
 
 # Alternative 1: Evaluate using UpTrain's Open-Source Software (OSS)
 
-You can use the open-source evaluation service to evaluate your model. In this case, you will need to provide an OllamaFunctionCallingAdapter API key. You can get yours [here](https://platform.openai.com/account/api-keys).
+You can use the open-source evaluation service to evaluate your model. In this case, you will need to provide an OllamaFunctionCalling API key. You can get yours [here](https://platform.openai.com/account/api-keys).
 
 In order to view your evaluations in the UpTrain dashboard, you will need to set it up by running the following commands in your terminal:
 

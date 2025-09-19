@@ -2,7 +2,7 @@ async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
     from dotenv import load_dotenv
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import StorageContext
     from llama_index.core import VectorStoreIndex
@@ -65,15 +65,15 @@ async def main():
     # !pip install llama-index
 
     """
-    ## OllamaFunctionCallingAdapter
+    ## OllamaFunctionCalling
     
-    You will need an [OllamaFunctionCallingAdapter](https://openai.com/) api key for this tutorial. Login to your [platform.openai.com](https://platform.openai.com/) account, click on your profile picture in the upper right corner, and choose 'API Keys' from the menu. Create an API key for this tutorial and save it. You will need it below.
+    You will need an [OllamaFunctionCalling](https://openai.com/) api key for this tutorial. Login to your [platform.openai.com](https://platform.openai.com/) account, click on your profile picture in the upper right corner, and choose 'API Keys' from the menu. Create an API key for this tutorial and save it. You will need it below.
     
     ## Environment
     
     First we add our dependencies.
     """
-    logger.info("## OllamaFunctionCallingAdapter")
+    logger.info("## OllamaFunctionCalling")
 
     # !pip -q install python-dotenv pinecone-client llama-index pymupdf
 
@@ -94,10 +94,10 @@ async def main():
     #     f.write('OPENAI_API_KEY="<your api key>"\n')
 
     """
-    Set your OllamaFunctionCallingAdapter api key, and Pinecone api key and environment in the file we created.
+    Set your OllamaFunctionCalling api key, and Pinecone api key and environment in the file we created.
     """
     logger.info(
-        "Set your OllamaFunctionCallingAdapter api key, and Pinecone api key and environment in the file we created.")
+        "Set your OllamaFunctionCalling api key, and Pinecone api key and environment in the file we created.")
 
     load_dotenv(dotenv_path=dotenv_path)
 
@@ -208,7 +208,7 @@ async def main():
     """
     logger.info("### [Optional] 4. Extract Metadata from each Node")
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2")
 
     extractors = [
@@ -227,7 +227,7 @@ async def main():
     """
     ### 5. Generate Embeddings for each Node
     
-    Generate document embeddings for each Node using our OllamaFunctionCallingAdapter embedding model (`text-embedding-ada-002`).
+    Generate document embeddings for each Node using our OllamaFunctionCalling embedding model (`text-embedding-ada-002`).
     
     Store these on the `embedding` property on each Node.
     """

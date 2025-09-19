@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import ChatPromptTemplate
     from llama_index.core import Settings
@@ -32,7 +32,7 @@ async def main():
     
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/agent_builder.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
-    Inspired by GPTs interface, presented at OllamaFunctionCallingAdapter Dev Day 2023. Construct an agent with natural language.
+    Inspired by GPTs interface, presented at OllamaFunctionCalling Dev Day 2023. Construct an agent with natural language.
     
     Here you can build your own agent...with another agent!
     """
@@ -44,7 +44,7 @@ async def main():
 
     # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
     Settings.llm = llm
     Settings.embed_model = HuggingFaceEmbedding(
         model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
@@ -130,7 +130,7 @@ async def main():
     GEN_SYS_PROMPT_STR = """\
     Task information is given below.
     
-    Given the task, please generate a system prompt for an OllamaFunctionCallingAdapter-powered bot to solve this task:
+    Given the task, please generate a system prompt for an OllamaFunctionCalling-powered bot to solve this task:
     {task} \
     """
 
@@ -148,7 +148,7 @@ async def main():
 
     async def create_system_prompt(task: str):
         """Create system prompt for another agent given an input task."""
-        llm = OllamaFunctionCallingAdapter(llm="gpt-4")
+        llm = OllamaFunctionCalling(llm="gpt-4")
         fmt_messages = GEN_SYS_PROMPT_TMPL.format_messages(task=task)
         response = llm.chat(fmt_messages)
         logger.success(format_json(response))
@@ -162,7 +162,7 @@ async def main():
 
     def create_agent(system_prompt: str, tool_names: List[str]):
         """Create an agent given a system prompt and an input set of tools."""
-        llm = OllamaFunctionCallingAdapter(model="llama3.2")
+        llm = OllamaFunctionCalling(model="llama3.2")
         try:
             input_tools = [tool_dict[tn] for tn in tool_names]
 
@@ -192,7 +192,7 @@ async def main():
     builder_agent = FunctionAgent(
         tools=[system_prompt_tool, get_tools_tool, create_agent_tool],
         prefix_messages=prefix_msgs,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
         verbose=True,
     )
 

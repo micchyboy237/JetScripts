@@ -1,6 +1,6 @@
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import LlamaIndexTool
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
 from llama_index.tools.wolfram_alpha import WolframAlphaToolSpec
@@ -117,7 +117,7 @@ docs = reader.load_data()
 
 docs[1].get_content()
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 index = VectorStoreIndex.from_documents(docs)
 query_engine = index.as_query_engine(similarity_top_k=5, llm=llm)
 

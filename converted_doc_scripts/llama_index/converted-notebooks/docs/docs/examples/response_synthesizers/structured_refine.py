@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import get_response_synthesizer
 import os
@@ -18,7 +18,7 @@ logger.info(f"Logs: {log_file}")
 # Refine with Structured Answer Filtering
 When using our Refine response synthesizer for response synthesis, it's crucial to filter out non-answers. An issue often encountered is the propagation of a single unhelpful response like "I don't have the answer", which can persist throughout the synthesis process and lead to a final answer of the same nature. This can occur even when there are actual answers present in other, more relevant sections.
 
-These unhelpful responses can be filtered out by setting `structured_answer_filtering` to `True`. It is set to `False` by default since this currently only works best if you are using an OllamaFunctionCallingAdapter model that supports function calling.
+These unhelpful responses can be filtered out by setting `structured_answer_filtering` to `True`. It is set to `False` by default since this currently only works best if you are using an OllamaFunctionCalling model that supports function calling.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
@@ -48,7 +48,7 @@ logger.info("## Summarize")
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 
 summarizer = get_response_synthesizer(
@@ -96,7 +96,7 @@ In that case, the `Refine` module will automatically switch to using a structure
 """
 logger.info("## Non Function-calling LLMs")
 
-instruct_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+instruct_llm = OllamaFunctionCalling(model="llama3.2")
 
 
 summarizer = get_response_synthesizer(

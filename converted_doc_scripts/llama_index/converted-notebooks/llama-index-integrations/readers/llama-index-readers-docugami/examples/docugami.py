@@ -87,7 +87,7 @@ for node in response.source_nodes:
 
 One issue with large documents is that the correct answer to your question may depend on chunks that are far apart in the document. Typical chunking techniques, even with overlap, will struggle with providing the LLM sufficientcontext to answer such questions. With upcoming very large context LLMs, it may be possible to stuff a lot of tokens, perhaps even entire documents, inside the context but this will still hit limits at some point with very long documents, or a lot of documents.
 
-For example, if we ask a more complex question that requires the LLM to draw on chunks from different parts of the document, even OllamaFunctionCallingAdapter's powerful LLM is unable to answer correctly.
+For example, if we ask a more complex question that requires the LLM to draw on chunks from different parts of the document, even OllamaFunctionCalling's powerful LLM is unable to answer correctly.
 """
 logger.info("## Using Docugami to Add Metadata to Chunks for High Accuracy Document QA")
 

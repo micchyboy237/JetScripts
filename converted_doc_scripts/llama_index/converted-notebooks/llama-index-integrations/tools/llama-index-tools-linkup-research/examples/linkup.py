@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent import FunctionAgent
     from llama_index.tools.linkup_research.base import LinkupToolSpec
@@ -18,7 +18,7 @@ async def main():
     
     This tutorial walks through using the LLM tools provided by the [Linkup API](https://app.linkup.so/) to allow LLMs to easily search and retrieve relevant content from the Internet.
     
-    To get started, you will need an [OllamaFunctionCallingAdapter api key](https://platform.openai.com/account/api-keys) and a [Linkup API key](https://app.linkup.so)
+    To get started, you will need an [OllamaFunctionCalling api key](https://platform.openai.com/account/api-keys) and a [Linkup API key](https://app.linkup.so)
     
     We will import the relevant agents and tools and pass them our keys here:
     """
@@ -38,7 +38,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=linkup_tool.to_tool_list(),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(await agent.run("Can you tell me which women were awarded the Physics Nobel Prize"))

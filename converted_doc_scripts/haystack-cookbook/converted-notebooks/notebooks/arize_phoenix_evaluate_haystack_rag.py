@@ -39,7 +39,7 @@ logger.orange(f"Logs: {log_file}")
 2. Q&A Correctness: Whether the answer to the question is correct.
 3. Hallucination: Whether the answer contains hallucinations.
 
-ℹ️ This notebook requires an OllamaFunctionCallingAdapter API key.
+ℹ️ This notebook requires an OllamaFunctionCalling API key.
 """
 logger.info("# Tracing and Evaluating a Haystack RAG Application with Phoenix")
 
@@ -53,7 +53,7 @@ logger.info("## Set API Keys")
 # from getpass import getpass
 
 # if not (openai_api_key := os.getenv("OPENAI_API_KEY")):
-#     openai_api_key = getpass("🔑 Enter your OllamaFunctionCallingAdapter API key: ")
+#     openai_api_key = getpass("🔑 Enter your OllamaFunctionCalling API key: ")
 
 # os.environ["OPENAI_API_KEY"] = openai_api_key
 

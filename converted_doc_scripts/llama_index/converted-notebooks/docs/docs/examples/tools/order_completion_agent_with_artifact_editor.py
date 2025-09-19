@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import (
         FunctionAgent,
@@ -40,7 +40,7 @@ async def main():
     # from getpass import getpass
 
     # if "OPENAI_API_KEY" not in os.environ:
-    #     os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCallingAdapter API Key: ")
+    #     os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key: ")
 
     class Pizza(BaseModel):
         name: str = Field(description="The name of the pizza")
@@ -79,7 +79,7 @@ async def main():
         chat_history_token_ratio=0.7,
     )
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     agent = AgentWorkflow(
         agents=[

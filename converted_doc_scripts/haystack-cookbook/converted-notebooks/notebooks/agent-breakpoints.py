@@ -43,14 +43,14 @@ pip install "transformers[torch,sentencepiece]"
 pip install "sentence-transformers>=3.0.0"
 
 """
-Setup OllamaFunctionCallingAdapter API key for the `chat_generator`
+Setup OllamaFunctionCalling API key for the `chat_generator`
 """
-logger.info("Setup OllamaFunctionCallingAdapter API key for the `chat_generator`")
+logger.info("Setup OllamaFunctionCalling API key for the `chat_generator`")
 
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ## Initializations

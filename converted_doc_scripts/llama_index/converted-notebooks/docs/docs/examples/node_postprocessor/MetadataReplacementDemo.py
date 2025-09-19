@@ -2,7 +2,7 @@ async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
     from collections import defaultdict
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Settings
     from llama_index.core import SimpleDirectoryReader
@@ -82,7 +82,7 @@ async def main():
 
     text_splitter = SentenceSplitter()
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
     embed_model = HuggingFaceEmbedding(
         model_name="sentence-transformers/all-mpnet-base-v2", max_length=512
@@ -242,7 +242,7 @@ async def main():
     sample_eval_nodes = random.sample(base_nodes[:200], num_nodes_eval)
     dataset_generator = DatasetGenerator(
         sample_eval_nodes,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
         show_progress=True,
         num_questions_per_chunk=2,
     )
@@ -265,12 +265,12 @@ async def main():
     # nest_asyncio.apply()
 
     evaluator_c = CorrectnessEvaluator(
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"))
+        llm=OllamaFunctionCalling(model="llama3.2"))
     evaluator_s = SemanticSimilarityEvaluator()
     evaluator_r = RelevancyEvaluator(
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"))
+        llm=OllamaFunctionCalling(model="llama3.2"))
     evaluator_f = FaithfulnessEvaluator(
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"))
+        llm=OllamaFunctionCalling(model="llama3.2"))
 
     max_samples = 30
 

@@ -54,7 +54,7 @@ answer_with_references_prompt = PromptTemplate(prompt = "You will be provided so
 
 # from getpass import getpass
 
-# api_key = getpass("Enter OllamaFunctionCallingAdapter API key:")
+# api_key = getpass("Enter OllamaFunctionCalling API key:")
 
 prompt_node = PromptNode(model_name_or_path="gpt-4", api_key=api_key, default_prompt_template=answer_with_references_prompt, max_length=500)
 

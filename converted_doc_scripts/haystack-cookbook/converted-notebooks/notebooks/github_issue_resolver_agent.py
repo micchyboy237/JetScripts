@@ -27,7 +27,7 @@ logger.orange(f"Logs: {log_file}")
 """
 # Build a GitHub Issue Resolver Agent
 
-In this recipe, we'll create a **GitHub Issue Resolver Agent with OllamaFunctionCallingAdapter Claude 4 Sonnet**. Given an issue URL, the agent will:  
+In this recipe, we'll create a **GitHub Issue Resolver Agent with OllamaFunctionCalling Claude 4 Sonnet**. Given an issue URL, the agent will:  
 
 - Fetch and parse the issue description and comments  
 - Identify the relevant repository, directories, and files  
@@ -103,7 +103,7 @@ We'll start by creating the `ChatGenerator`. In this example, we'll use the [Oll
 """
 logger.info("## Create the "Issue Resolver Agent" with Tools")
 
-# os.environ["ANTHROPIC_API_KEY"] = getpass("OllamaFunctionCallingAdapter Key: ")
+# os.environ["ANTHROPIC_API_KEY"] = getpass("OllamaFunctionCalling Key: ")
 
 chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="claude-sonnet-4-20250514", generation_kwargs={"max_tokens": 8000})
 

@@ -173,13 +173,13 @@ SEARCH_INDEX_NAME = "vector-index"
 
 
 """
-For this tutorial, we will use OllamaFunctionCallingAdapter embeddings
+For this tutorial, we will use OllamaFunctionCalling embeddings
 """
-logger.info("For this tutorial, we will use OllamaFunctionCallingAdapter embeddings")
+logger.info("For this tutorial, we will use OllamaFunctionCalling embeddings")
 
 # import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCalling API Key:")
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

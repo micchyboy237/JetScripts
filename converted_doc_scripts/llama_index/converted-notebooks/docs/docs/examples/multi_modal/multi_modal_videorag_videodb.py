@@ -44,7 +44,7 @@ In this notebook, we will develop a multimodal RAG for video using VideoDB and L
 
 To connect to VideoDB, simply get the API key and create a connection. This can be done by setting the `VIDEO_DB_API_KEY` environment variable. You can get it from 👉🏼 [VideoDB Console](https://console.videodb.io). ( Free for first 50 uploads, **No credit card required!** )
 
-# Get your `OPENAI_API_KEY` from OllamaFunctionCallingAdapter platform for `llama_index` response synthesizer.
+# Get your `OPENAI_API_KEY` from OllamaFunctionCalling platform for `llama_index` response synthesizer.
 
 # <!-- > Set the `OPENAI_API_KEY` & `VIDEO_DB_API_KEY` environment variable with your API keys. -->
 """
@@ -224,7 +224,7 @@ play_stream(stream_url)
 ## 🏃‍♂️ Next Steps
 ---
 
-In this guide, we built a Simple Multimodal RAG for Videos Using VideoDB, Llamaindex, and OllamaFunctionCallingAdapter
+In this guide, we built a Simple Multimodal RAG for Videos Using VideoDB, Llamaindex, and OllamaFunctionCalling
 
 You can optimize the pipeline by incorporating more advanced techniques like
 - Build a Search on Video Collection

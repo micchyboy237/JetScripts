@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from datetime import date
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_cloud.client import AsyncLlamaCloud
     from llama_cloud.types import ClassifierRule
@@ -29,15 +29,15 @@ async def main():
     import re
     import shutil
     import uuid
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     # Building a Knowledge Graph with LlamaCloud & Neo4J
     
@@ -55,35 +55,35 @@ async def main():
     ## Setting Up Requirements
     """
     logger.info("# Building a Knowledge Graph with LlamaCloud & Neo4J")
-    
+
     # !pip install llama-index-workflows llama-cloud-services jsonschema openai neo4j llama-index-llms-ollama
-    
-    
+
+
     # from getpass import getpass
-    
-    
-    
-    
+
+
+
+
     """
     # Download Sample Contract
     
     Here, we download a sample PDF from the Cuad dataset
     """
     logger.info("# Download Sample Contract")
-    
+
     # !wget https://raw.githubusercontent.com/tomasonjo/blog-datasets/5e3939d10216b7663687217c1646c30eb921d92f/CybergyHoldingsInc_Affliate%20Agreement.pdf
-    
+
     """
     ## Set Up Neo4J
     
     For Neo4j, the simplest approach is to create a free [Aura database instance](https://neo4j.com/product/auradb/), and copy your credentials here.
     """
     logger.info("## Set Up Neo4J")
-    
+
     db_url = "your-db-url"
     username = "neo4j"
     password = "your-password"
-    
+
     neo4j_driver = AsyncGraphDatabase.driver(
         db_url,
         auth=(
@@ -91,27 +91,27 @@ async def main():
             password,
         ),
     )
-    
+
     """
     ## Parse the Contract with LlamaParse
     
     Next, we set up LlamaParse and parse the PDF. In this case, we're using `parse_page_without_llm` mode.
     """
     logger.info("## Parse the Contract with LlamaParse")
-    
-    
+
+
     # os.environ["LLAMA_CLOUD_API_KEY"] = getpass("Enter your Llama API key: ")
-    # os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCallingAdapter API key: ")
-    
+    # os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key: ")
+
     parser = LlamaParse(parse_mode="parse_page_without_llm")
-    
+
     pdf_path = "CybergyHoldingsInc_Affliate Agreement.pdf"
-    
+
     results = await parser.aparse(pdf_path)
     logger.success(format_json(results))
-    
+
     logger.debug(results.pages[0].text)
-    
+
     """
     ## Contract classification with LlamaClassify (beta)
     
@@ -120,7 +120,7 @@ async def main():
     ### Define classification rules
     """
     logger.info("## Contract classification with LlamaClassify (beta)")
-    
+
     rules = [
         ClassifierRule(
             type="Affiliate Agreements",
@@ -131,29 +131,29 @@ async def main():
             description="This is a contract that outlines a co-branding deal/agreement",
         ),
     ]
-    
+
     """
     ## Initialize the ClassifyClient and Run a Classification Job
     """
     logger.info("## Initialize the ClassifyClient and Run a Classification Job")
-    
+
     classifier = ClassifyClient(
         client=AsyncLlamaCloud(
             base_url="https://api.cloud.llamaindex.ai",
             token=os.environ["LLAMA_CLOUD_API_KEY"],
         )
     )
-    
+
     result = await classifier.aclassify_file_path(
             rules=rules,
             file_input_path="/content/CybergyHoldingsInc_Affliate Agreement.pdf",
         )
     logger.success(format_json(result))
-    
+
     classification = result.items[0].result
     logger.debug("Classification Result: " + classification.type)
     logger.debug("Classification Reasion: " + classification.reasoning)
-    
+
     """
     ## Setting Up LlamaExtract
     
@@ -162,31 +162,31 @@ async def main():
     Here we define two Pydantic models: `Location` captures structured address information with optional fields for country, state, and address, while `Party` represents contract parties with a required name and optional location details. The Field descriptions help guide the extraction process by telling the LLM exactly what information to look for in each field.
     """
     logger.info("## Setting Up LlamaExtract")
-    
+
     class Location(BaseModel):
         """Location information with structured address components."""
-    
+
         country: Optional[str] = Field(None, description="Country")
         state: Optional[str] = Field(None, description="State or province")
         address: Optional[str] = Field(None, description="Street address or city")
-    
-    
+
+
     class Party(BaseModel):
         """Party information with name and location."""
-    
+
         name: str = Field(description="Party name")
         location: Optional[Location] = Field(
             None, description="Party location details"
         )
-    
+
     """
     Remember we have multiple contract types, so we need to define specific extraction schemas for each type and create a mapping system to dynamically select the appropriate schema based on our classification result.
     """
     logger.info("Remember we have multiple contract types, so we need to define specific extraction schemas for each type and create a mapping system to dynamically select the appropriate schema based on our classification result.")
-    
+
     class BaseContract(BaseModel):
         """Base contract class with common fields."""
-    
+
         parties: Optional[List[Party]] = Field(
             None, description="All contracting parties"
         )
@@ -211,11 +211,11 @@ async def main():
         cap_on_liability: Optional[str] = Field(
             None, description="Liability limit amount"
         )
-    
-    
+
+
     class AffiliateAgreement(BaseContract):
         """Affiliate Agreement extraction."""
-    
+
         exclusivity: Optional[str] = Field(
             None, description="Exclusive territory or market rights"
         )
@@ -228,11 +228,11 @@ async def main():
         minimum_commitment: Optional[str] = Field(
             None, description="Minimum sales targets"
         )
-    
-    
+
+
     class CoBrandingAgreement(BaseContract):
         """Co-Branding Agreement extraction."""
-    
+
         exclusivity: Optional[str] = Field(
             None, description="Exclusive co-branding rights"
         )
@@ -245,15 +245,15 @@ async def main():
         revenue_profit_sharing: Optional[str] = Field(
             None, description="Revenue sharing terms"
         )
-    
-    
+
+
     mapping = {
         "affiliate_agreements": AffiliateAgreement,
         "co_branding": CoBrandingAgreement,
     }
-    
+
     extractor = LlamaExtract()
-    
+
     agent = extractor.create_agent(
         name=f"extraction_workflow_import_{uuid.uuid4()}",
         data_schema=mapping[classification.type],
@@ -261,7 +261,7 @@ async def main():
             extraction_mode=ExtractMode.BALANCED,
         ),
     )
-    
+
     result = await agent.aextract(
             files=SourceText(
                 text_content=" ".join([el.text for el in results.pages]),
@@ -269,9 +269,9 @@ async def main():
             ),
         )
     logger.success(format_json(result))
-    
+
     result.data
-    
+
     """
     ## Import into Neo4j
     
@@ -287,7 +287,7 @@ async def main():
     Now we'll import our extracted contract data into Neo4j according to our defined graph model.
     """
     logger.info("## Import into Neo4j")
-    
+
     import_query = """
     WITH $contract AS contract
     MERGE (c:Contract {path: $path})
@@ -309,20 +309,20 @@ async def main():
     MERGE (p)-[:HAS_LOCATION]->(l:Location)
     SET l += party.location
     """
-    
+
     response = await neo4j_driver.execute_query(
             import_query, contract=result.data, path=pdf_path
         )
     logger.success(format_json(response))
     response.summary.counters
-    
+
     """
     ## Bringing it All Together in a Workflow
     
     Finally, we can combine all of this logic into one single executable agentic workflow. Let's make it so that the workflow can run by accepting a single PDF, adding new entries to our Neo4j graph each time.
     """
     logger.info("## Bringing it All Together in a Workflow")
-    
+
     affiliage_extraction_agent = extractor.create_agent(
         name="Affiliate_Extraction",
         data_schema=AffiliateAgreement,
@@ -337,27 +337,27 @@ async def main():
             extraction_mode=ExtractMode.BALANCED,
         ),
     )
-    
-    
-    
+
+
+
     class ClassifyDocEvent(Event):
         parsed_doc: str
         pdf_path: str
-    
-    
+
+
     class ExtactAffiliate(Event):
         file_path: str
-    
-    
+
+
     class ExtractCoBranding(Event):
         file_path: str
-    
-    
+
+
     class BuildGraph(Event):
         file_path: str
         data: dict
-    
-    
+
+
     class KnowledgeGraphBuilder(Workflow):
         def __init__(
             self,
@@ -372,7 +372,7 @@ async def main():
             self.rules = rules
             self.affiliate_extract_agent = affiliate_extract_agent
             self.branding_extract_agent = branding_extract_agent
-    
+
         @step
         async def classify_contract(
             self, ctx: Context, ev: StartEvent
@@ -389,7 +389,7 @@ async def main():
                 return ExtractCoBranding(file_path=ev.pdf_path)
             else:
                 return StopEvent()
-    
+
         @step
         async def extract_affiliate(
             self, ctx: Context, ev: ExtactAffiliate
@@ -397,7 +397,7 @@ async def main():
             result = await self.affiliate_extract_agent.aextract(ev.file_path)
             logger.success(format_json(result))
             return BuildGraph(data=result.data, file_path=ev.file_path)
-    
+
         @step
         async def extract_co_branding(
             self, ctx: Context, ev: ExtractCoBranding
@@ -405,7 +405,7 @@ async def main():
             result = await self.branding_extract_agent.aextract(ev.file_path)
             logger.success(format_json(result))
             return BuildGraph(data=result.data, file_path=ev.file_path)
-    
+
         @step
         async def build_graph(self, ctx: Context, ev: BuildGraph) -> StopEvent:
             import_query = """
@@ -434,7 +434,7 @@ async def main():
                 )
             logger.success(format_json(response))
             return StopEvent(response.summary.counters)
-    
+
     knowledge_graph_builder = KnowledgeGraphBuilder(
         classifier=classifier,
         rules=rules,
@@ -443,12 +443,12 @@ async def main():
         timeout=None,
         verbose=True,
     )
-    
+
     response = await knowledge_graph_builder.run(
             pdf_path="CybergyHoldingsInc_Affliate Agreement.pdf"
         )
     logger.success(format_json(response))
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

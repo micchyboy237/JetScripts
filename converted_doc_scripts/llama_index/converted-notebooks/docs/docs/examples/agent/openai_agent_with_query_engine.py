@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Settings
     from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
@@ -36,7 +36,7 @@ async def main():
 
     # os.environ["OPENAI_API_KEY"] = "sk-..."
 
-    Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    Settings.llm = OllamaFunctionCalling(model="llama3.2")
     Settings.embed_model = HuggingFaceEmbedding(
         model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
@@ -105,13 +105,13 @@ async def main():
     """
     ## Setup Agent
     
-    For LLMs like OllamaFunctionCallingAdapter that have a function calling API, we should use the `FunctionAgent`.
+    For LLMs like OllamaFunctionCalling that have a function calling API, we should use the `FunctionAgent`.
     
     For other LLMs, we can use the `ReActAgent`.
     """
     logger.info("## Setup Agent")
 
-    agent = FunctionAgent(tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(
+    agent = FunctionAgent(tools=query_engine_tools, llm=OllamaFunctionCalling(
         model="llama3.2"))
 
     ctx = Context(agent)

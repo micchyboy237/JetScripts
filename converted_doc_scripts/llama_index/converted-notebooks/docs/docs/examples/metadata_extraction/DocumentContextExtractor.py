@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -52,7 +52,7 @@ logger.info("# Setup an LLM")
 
 
 # OPENAI_API_KEY = "sk-..."
-# llm = OllamaFunctionCallingAdapter(model="llama3.2", api_key=OPENAI_API_KEY)
+# llm = OllamaFunctionCalling(model="llama3.2", api_key=OPENAI_API_KEY)
 Settings.llm = llm
 
 """

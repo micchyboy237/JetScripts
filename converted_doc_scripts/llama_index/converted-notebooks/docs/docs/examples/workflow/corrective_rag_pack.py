@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from IPython.display import Markdown, display
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import (
         VectorStoreIndex,
@@ -180,7 +180,7 @@ async def main():
             tavily_ai_apikey: str | None = ev.get("tavily_ai_apikey")
             index = ev.get("index")
 
-            llm = OllamaFunctionCallingAdapter(
+            llm = OllamaFunctionCalling(
                 model="llama3.2")
 
             await ctx.store.set("llm", llm)

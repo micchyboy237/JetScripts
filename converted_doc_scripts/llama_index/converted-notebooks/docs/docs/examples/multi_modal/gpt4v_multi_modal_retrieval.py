@@ -36,7 +36,7 @@ In this notebook, we show how to build a Multi-Modal retrieval system using Llam
 LlamaIndex Multi-Modal Retrieval 
 
 - Text embedding index: Generate GPT text embeddings
-- Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from OllamaFunctionCallingAdapter for images
+- Images embedding index: [CLIP](https://github.com/openai/CLIP) embeddings from OllamaFunctionCalling for images
 
 
 Encoding queries:

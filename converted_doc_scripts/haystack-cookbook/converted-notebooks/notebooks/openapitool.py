@@ -153,7 +153,7 @@ Here are some examples:
 
 ```json
 {
-  "query": "Why did Elon Musk recently sue OllamaFunctionCallingAdapter?",
+  "query": "Why did Elon Musk recently sue OllamaFunctionCalling?",
   "response": "search_web"
 }
 {

@@ -24,7 +24,7 @@ TextEmbed is a high-throughput, low-latency REST API designed for serving vector
 - **Flexible Model Support**: Works with various sentence-transformer models.
 - **Scalable**: Easily integrates into larger systems and scales with demand.
 - **Batch Processing**: Supports batch processing for better and faster inference.
-- **OllamaFunctionCallingAdapter Compatible REST API Endpoint**: Provides an OllamaFunctionCallingAdapter compatible REST API endpoint.
+- **OllamaFunctionCalling Compatible REST API Endpoint**: Provides an OllamaFunctionCalling compatible REST API endpoint.
 - **Single Line Command Deployment**: Deploy multiple models via a single command for efficient deployment.
 - **Support for Embedding Formats**: Supports binary, float16, and float32 embeddings formats for faster retrieval.
 

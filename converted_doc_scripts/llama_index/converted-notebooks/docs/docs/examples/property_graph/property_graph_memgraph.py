@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import SimpleDirectoryReader
@@ -49,7 +49,7 @@ logger.info("## Environment setup")
 
 os.environ[
 #     "OPENAI_API_KEY"
-] = "sk-proj-..."  # Replace with your OllamaFunctionCallingAdapter API key
+] = "sk-proj-..."  # Replace with your OllamaFunctionCalling API key
 
 """
 Create the data directory and download the Paul Graham essay we'll be using as the input data for this example.
@@ -110,7 +110,7 @@ index = PropertyGraphIndex.from_documents(
     embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     kg_extractors=[
         SchemaLLMPathExtractor(
-            llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
+            llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
         )
     ],
     property_graph_store=graph_store,
@@ -163,7 +163,7 @@ If you have an existing graph (either created with LlamaIndex or otherwise), we 
 """
 logger.info("## Loading from an existing graph")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
 kg_extractors = [SchemaLLMPathExtractor(llm=llm)]
 
 index = PropertyGraphIndex.from_existing(

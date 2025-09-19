@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from klavis import Klavis
     from klavis.types import McpServerName, ConnectionType
@@ -39,7 +39,7 @@ async def main():
     
     Before we begin, you'll need:
     
-    - **OllamaFunctionCallingAdapter API key** - Get at [openai.com](https://openai.com/)
+    - **OllamaFunctionCalling API key** - Get at [openai.com](https://openai.com/)
     - **Klavis API key** - Get at [klavis.ai](https://klavis.ai/)
     """
     logger.info("# LlamaIndex + Klavis AI Integration")
@@ -49,7 +49,7 @@ async def main():
     
     os.environ[
     #     "OPENAI_API_KEY"
-    # ] = "YOUR_OPENAI_API_KEY"  # Replace with your actual OllamaFunctionCallingAdapter API key
+    # ] = "YOUR_OPENAI_API_KEY"  # Replace with your actual OllamaFunctionCalling API key
     os.environ[
         "KLAVIS_API_KEY"
     ] = "YOUR_KLAVIS_API_KEY"  # Replace with your actual Klavis API key
@@ -80,7 +80,7 @@ async def main():
     logger.info("#### Step 2 - using Llamaindex to create AI Agent with the MCP Server")
     
     
-    # llm = OllamaFunctionCallingAdapter(model="llama3.2", api_key=os.getenv("OPENAI_API_KEY"))
+    # llm = OllamaFunctionCalling(model="llama3.2", api_key=os.getenv("OPENAI_API_KEY"))
     
     youtube_tools = await aget_tools_from_mcp_url(
             youtube_mcp_server_url, client=BasicMCPClient(youtube_mcp_server_url)
@@ -149,7 +149,7 @@ async def main():
     logger.info("#### Step 2 - using LlamaIndex to create Multi-Agent Workflow with the MCP Servers")
     
     
-    # llm = OllamaFunctionCallingAdapter(model="llama3.2", api_key=os.getenv("OPENAI_API_KEY"))
+    # llm = OllamaFunctionCalling(model="llama3.2", api_key=os.getenv("OPENAI_API_KEY"))
     
     youtube_mcp_server_url = youtube_mcp_instance.server_url
     gmail_mcp_server_url = gmail_mcp_instance.server_url

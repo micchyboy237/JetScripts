@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.callbacks.wandb import WandbCallbackHandler
 from llama_index.core import (
@@ -42,13 +42,13 @@ logger.info("# Wandb Callback Handler")
 
 # if os.getenv("OPENAI_API_KEY") is None:
 #     os.environ["OPENAI_API_KEY"] = getpass(
-        "Paste your OllamaFunctionCallingAdapter key from:"
+        "Paste your OllamaFunctionCalling key from:"
         " https://platform.openai.com/account/api-keys\n"
     )
 # assert os.getenv("OPENAI_API_KEY", "").startswith(
     "sk-"
-), "This doesn't look like a valid OllamaFunctionCallingAdapter API key"
-logger.debug("OllamaFunctionCallingAdapter API key configured")
+), "This doesn't look like a valid OllamaFunctionCalling API key"
+logger.debug("OllamaFunctionCalling API key configured")
 
 
 """
@@ -57,7 +57,7 @@ logger.debug("OllamaFunctionCallingAdapter API key configured")
 logger.info("## Setup LLM")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
+Settings.llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 
 """
 ## W&B Callback Manager Setup

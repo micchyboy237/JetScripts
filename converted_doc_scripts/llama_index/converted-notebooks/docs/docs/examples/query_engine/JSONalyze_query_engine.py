@@ -1,5 +1,5 @@
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.query_engine import JSONalyzeQueryEngine
 import logging
@@ -254,7 +254,7 @@ logger.info(
     "Then, we can create a JSONalyze Query Engine instance, with the JSON List as input.")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 json_stats_query_engine = JSONalyzeQueryEngine(
     list_of_dict=json_list,

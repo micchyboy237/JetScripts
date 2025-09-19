@@ -1,6 +1,6 @@
 from jet.models.config import MODELS_CACHE_DIR
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import Settings
@@ -43,7 +43,7 @@ logger.info("# Accessing/Customizing Prompts within Higher-Level Modules")
 
 
 Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCalling(model="llama3.2")
 
 """
 ## Setup: Load Data, Build Index, and Get Query Engine

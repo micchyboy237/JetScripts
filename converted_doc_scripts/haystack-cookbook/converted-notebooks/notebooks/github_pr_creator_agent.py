@@ -58,7 +58,7 @@ logger.info("## GitHub Issue Resolver")
 
 
 
-# os.environ["ANTHROPIC_API_KEY"] = getpass("OllamaFunctionCallingAdapter Key: ")
+# os.environ["ANTHROPIC_API_KEY"] = getpass("OllamaFunctionCalling Key: ")
 
 repo_viewer_tool = GitHubRepoViewerTool()
 

@@ -48,14 +48,14 @@ logger.info("# Baidu VectorDB")
 
 
 """
-### Please provide OllamaFunctionCallingAdapter access key
+### Please provide OllamaFunctionCalling access key
 
-In order use embeddings by OllamaFunctionCallingAdapter you need to supply an OllamaFunctionCallingAdapter API Key:
+In order use embeddings by OllamaFunctionCalling you need to supply an OllamaFunctionCalling API Key:
 """
-logger.info("### Please provide OllamaFunctionCallingAdapter access key")
+logger.info("### Please provide OllamaFunctionCalling access key")
 
 
-# OPENAI_API_KEY = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# OPENAI_API_KEY = getpass.getpass("OllamaFunctionCalling API Key:")
 # openai.api_key = OPENAI_API_KEY
 
 """

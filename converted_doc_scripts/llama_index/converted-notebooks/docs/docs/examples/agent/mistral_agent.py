@@ -29,7 +29,7 @@ async def main():
     Let's start by importing some simple building blocks.  
     
     The main thing we need is:
-    1. the OllamaFunctionCallingAdapter API (using our own `llama_index` LLM class)
+    1. the OllamaFunctionCalling API (using our own `llama_index` LLM class)
     2. a place to keep conversation history 
     3. a definition for tools that our agent can use.
     

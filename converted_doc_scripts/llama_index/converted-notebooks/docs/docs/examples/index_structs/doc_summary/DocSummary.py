@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import DocumentSummaryIndex
 from llama_index.core import SimpleDirectoryReader, get_response_synthesizer
@@ -108,7 +108,7 @@ We show two ways of building the index:
 """
 logger.info("### Build Document Summary Index")
 
-chatgpt = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+chatgpt = OllamaFunctionCalling(temperature=0, model="llama3.2")
 splitter = SentenceSplitter(chunk_size=1024)
 
 response_synthesizer = get_response_synthesizer(

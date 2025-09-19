@@ -1,6 +1,6 @@
 from jet.transformers.formatters import format_json
 from bs4 import BeautifulSoup
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from langchain.document_loaders import AsyncHtmlLoader
 from langchain.document_transformers import Html2TextTransformer
@@ -39,7 +39,7 @@ logger.info(f"Logs: {log_file}")
 
 **How do we get +15% RAG hit_rate improvement for question answering on documentation?**
 
-Retrieval-Augmented Generators (RAGs) have recently gained significant attention. As advanced RAG techniques and agents emerge, they expand the potential of what RAGs can accomplish. However, several challenges may limit the integration of RAGs into production. The primary factors to consider when implementing RAGs in production settings are accuracy (recall), cost, and latency. For basic use cases, OllamaFunctionCallingAdapter's Ada model paired with a naive similarity search can produce satisfactory results. Yet, for higher accuracy or recall during searches, one might need to employ advanced retrieval techniques. These methods might involve varying data chunk sizes, rewriting queries multiple times, and more, potentially increasing latency and costs.  [Activeloop's](https://activeloop.ai/) [Deep Memory](https://www.activeloop.ai/resources/use-deep-memory-to-boost-rag-apps-accuracy-by-up-to-22/) a feature available to Activeloop Deep Lake users, addresses these issuea by introducing a tiny neural network layer trained to match user queries with relevant data from a corpus. While this addition incurs minimal latency during search, it can boost retrieval accuracy by up to 27
+Retrieval-Augmented Generators (RAGs) have recently gained significant attention. As advanced RAG techniques and agents emerge, they expand the potential of what RAGs can accomplish. However, several challenges may limit the integration of RAGs into production. The primary factors to consider when implementing RAGs in production settings are accuracy (recall), cost, and latency. For basic use cases, OllamaFunctionCalling's Ada model paired with a naive similarity search can produce satisfactory results. Yet, for higher accuracy or recall during searches, one might need to employ advanced retrieval techniques. These methods might involve varying data chunk sizes, rewriting queries multiple times, and more, potentially increasing latency and costs.  [Activeloop's](https://activeloop.ai/) [Deep Memory](https://www.activeloop.ai/resources/use-deep-memory-to-boost-rag-apps-accuracy-by-up-to-22/) a feature available to Activeloop Deep Lake users, addresses these issuea by introducing a tiny neural network layer trained to match user queries with relevant data from a corpus. While this addition incurs minimal latency during search, it can boost retrieval accuracy by up to 27
 % and remains cost-effective and simple to use, without requiring any additional advanced rag techniques.
 """
 logger.info("# Activeloop Deep Memory")
@@ -104,7 +104,7 @@ docs = load_documents("https://docs.deeplake.ai/en/latest/")
 len(docs)
 
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your OllamaFunctionCallingAdapter API token: ")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter your OllamaFunctionCalling API token: ")
 # os.environ["ACTIVELOOP_TOKEN"] = getpass.getpass(
    "Enter your ActiveLoop API token: "
 )  # Get your API token from https://app.activeloop.ai, click on your profile picture in the top right corner, and select "API Tokens"
@@ -128,7 +128,7 @@ len(docs)
     for idx, node in enumerate(nodes):
         node.id_ = f"node_{idx}"
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return storage_context, nodes, llm
 

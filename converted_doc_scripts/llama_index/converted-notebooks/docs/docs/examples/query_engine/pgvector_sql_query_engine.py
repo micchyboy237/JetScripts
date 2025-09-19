@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import SQLDatabase
@@ -209,7 +209,7 @@ logger.info("### Setup LLM, Embedding Model, and Misc.")
 
 sql_database = SQLDatabase(engine, include_tables=["sec_text_chunk"])
 
-Settings.llm = OllamaFunctionCallingAdapter(
+Settings.llm = OllamaFunctionCalling(
     model="llama3.2")
 Settings.embed_model = embed_model
 

@@ -44,9 +44,9 @@ logger.info("# Milvus Vector Store - Metadata Filter")
 
 **Set up accounts**
 
-This tutorial uses OllamaFunctionCallingAdapter for text embeddings and answer generation. You need to prepare the [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys).
+This tutorial uses OllamaFunctionCalling for text embeddings and answer generation. You need to prepare the [OllamaFunctionCalling API key](https://platform.openai.com/api-keys).
 """
-logger.info("This tutorial uses OllamaFunctionCallingAdapter for text embeddings and answer generation. You need to prepare the [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys).")
+logger.info("This tutorial uses OllamaFunctionCalling for text embeddings and answer generation. You need to prepare the [OllamaFunctionCalling API key](https://platform.openai.com/api-keys).")
 
 
 openai.api_key = "sk-"
@@ -104,7 +104,7 @@ nodes = [
 """
 ## Build Index
 
-In this section, we will store sample data in Milvus using the default embedding model (OllamaFunctionCallingAdapter's `text-embedding-ada-002`). Titles will be converted into text embeddings and stored in a dense embedding field, while all metadata will be stored in scalar fields.
+In this section, we will store sample data in Milvus using the default embedding model (OllamaFunctionCalling's `text-embedding-ada-002`). Titles will be converted into text embeddings and stored in a dense embedding field, while all metadata will be stored in scalar fields.
 """
 logger.info("## Build Index")
 

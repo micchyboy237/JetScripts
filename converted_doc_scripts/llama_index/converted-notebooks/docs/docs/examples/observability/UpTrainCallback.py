@@ -84,7 +84,7 @@ UpTrain provides you with:
 
 You can choose between the following options for evaluating using UpTrain:
 ### 1. **UpTrain's Open-Source Software (OSS)**: 
-You can use the open-source evaluation service to evaluate your model. In this case, you will need to provide an OllamaFunctionCallingAdapter API key. You can get yours [here](https://platform.openai.com/account/api-keys).
+You can use the open-source evaluation service to evaluate your model. In this case, you will need to provide an OllamaFunctionCalling API key. You can get yours [here](https://platform.openai.com/account/api-keys).
 
 In order to view your evaluations in the UpTrain dashboard, you will need to set it up by running the following commands in your terminal:
 

@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.evaluation import PairwiseComparisonEvaluator
     from llama_index.core.llama_dataset import download_llama_dataset
@@ -25,8 +25,8 @@ async def main():
     
     In this notebook guide, we benchmark Gemini and GPT models as LLM evaluators using a slightly adapted version of the MT-Bench Human Judgements dataset. For this dataset, human evaluators compare two llm model responses to a given query and rank them according to their own preference. In the original version, there can be more than one human evaluator for a given example (query, two model responses). In the adapted version that we consider however, we aggregate these 'repeated' entries and convert the 'winner' column of the original schema to instead represent the proportion of times 'model_a' wins across all of the human evaluators. To adapt this to a llama-dataset, and to better consider ties (albeit with small samples) we set an uncertainty threshold for this proportion in that if it is between [0.4, 0.6] then we consider there to be no winner between the two models. We download this dataset from [llama-hub](https://llamahub.ai). Finally, the LLMs that we benchmark are listed below:
     
-    1. GPT-3.5 (OllamaFunctionCallingAdapter)
-    2. GPT-4 (OllamaFunctionCallingAdapter)
+    1. GPT-3.5 (OllamaFunctionCalling)
+    2. GPT-4 (OllamaFunctionCalling)
     3. Gemini-Pro (Google)
     """
     logger.info(
@@ -60,8 +60,8 @@ async def main():
     """
     logger.info("### Define Our Evaluators")
 
-    llm_gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
-    llm_gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+    llm_gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
+    llm_gpt35 = OllamaFunctionCalling(temperature=0, model="llama3.2")
     llm_gemini = Gemini(model="models/gemini-pro", temperature=0)
 
     evaluators = {

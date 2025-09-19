@@ -65,14 +65,14 @@ async def main():
     pip install nest_asyncio -q
     
     """
-    Provide an [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys) to ensure that LLM generator can query the OllamaFunctionCallingAdapter API.
+    Provide an [OllamaFunctionCalling API key](https://platform.openai.com/api-keys) to ensure that LLM generator can query the OllamaFunctionCalling API.
     """
-    logger.info("Provide an [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys) to ensure that LLM generator can query the OllamaFunctionCallingAdapter API.")
+    logger.info("Provide an [OllamaFunctionCalling API key](https://platform.openai.com/api-keys) to ensure that LLM generator can query the OllamaFunctionCalling API.")
     
     # from getpass import getpass
     
     # if "OPENAI_API_KEY" not in os.environ:
-    #     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+    #     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
     
     # import nest_asyncio
     # nest_asyncio.apply()

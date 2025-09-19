@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import Settings
@@ -80,7 +80,7 @@ documents = SimpleDirectoryReader(
 logger.info("## Define Query Engines")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCalling(model="llama3.2")
 Settings.chunk_size = 1024
 
 nodes = Settings.node_parser.get_nodes_from_documents(documents)

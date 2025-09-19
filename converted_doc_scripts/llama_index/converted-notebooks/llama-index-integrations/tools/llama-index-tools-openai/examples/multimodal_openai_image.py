@@ -16,9 +16,9 @@ logger = CustomLogger(log_file, overwrite=True)
 logger.info(f"Logs: {log_file}")
 
 """
-# Multi-Modal OllamaFunctionCallingAdapter Image Generation + GPT-4V
+# Multi-Modal OllamaFunctionCalling Image Generation + GPT-4V
 """
-logger.info("# Multi-Modal OllamaFunctionCallingAdapter Image Generation + GPT-4V")
+logger.info("# Multi-Modal OllamaFunctionCalling Image Generation + GPT-4V")
 
 
 

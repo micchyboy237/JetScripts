@@ -43,13 +43,13 @@ Notebook by [*Anushree Bannadabhavi*](https://github.com/AnushreeBannadabhavi), 
 
 ## Prerequisites:
 
-- **Ragas** uses [OllamaFunctionCallingAdapter](https://openai.com/) key for computing some metrics, so we need an OllamaFunctionCallingAdapter API key.
+- **Ragas** uses [OllamaFunctionCalling](https://openai.com/) key for computing some metrics, so we need an OllamaFunctionCalling API key.
 """
 logger.info("# RAG pipeline evaluation using Ragas")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ## Install dependencies
@@ -72,16 +72,16 @@ In this section we create a sample dataset containing information about AI compa
 logger.info("#### Creating a Sample Dataset")
 
 dataset = [
-    "OllamaFunctionCallingAdapter is one of the most recognized names in the large language model space, known for its GPT series of models. These models excel at generating human-like text and performing tasks like creative writing, answering questions, and summarizing content. GPT-4, their latest release, has set benchmarks in understanding context and delivering detailed responses.",
-    "OllamaFunctionCallingAdapter is well-known for its Claude series of language models, designed with a strong focus on safety and ethical AI behavior. Claude is particularly praised for its ability to follow complex instructions and generate text that aligns closely with user intent.",
+    "OllamaFunctionCalling is one of the most recognized names in the large language model space, known for its GPT series of models. These models excel at generating human-like text and performing tasks like creative writing, answering questions, and summarizing content. GPT-4, their latest release, has set benchmarks in understanding context and delivering detailed responses.",
+    "OllamaFunctionCalling is well-known for its Claude series of language models, designed with a strong focus on safety and ethical AI behavior. Claude is particularly praised for its ability to follow complex instructions and generate text that aligns closely with user intent.",
     "DeepMind, a division of Google, is recognized for its cutting-edge Gemini models, which are integrated into various Google products like Bard and Workspace tools. These models are renowned for their conversational abilities and their capacity to handle complex, multi-turn dialogues.",
     "Meta AI is best known for its LLaMA (Large Language Model Meta AI) series, which has been made open-source for researchers and developers. LLaMA models are praised for their ability to support innovation and experimentation due to their accessibility and strong performance.",
     "Meta AI with it's LLaMA models aims to democratize AI development by making high-quality models available for free, fostering collaboration across industries. Their open-source approach has been a game-changer for researchers without access to expensive resources.",
-    "Microsoft’s Azure AI platform is famous for integrating OllamaFunctionCallingAdapter’s GPT models, enabling businesses to use these advanced models in a scalable and secure cloud environment. Azure AI powers applications like Copilot in Office 365, helping users draft emails, generate summaries, and more.",
-    "Amazon’s Bedrock platform is recognized for providing access to various language models, including its own models and third-party ones like OllamaFunctionCallingAdapter’s Claude and AI21’s Jurassic. Bedrock is especially valued for its flexibility, allowing users to choose models based on their specific needs.",
+    "Microsoft’s Azure AI platform is famous for integrating OllamaFunctionCalling’s GPT models, enabling businesses to use these advanced models in a scalable and secure cloud environment. Azure AI powers applications like Copilot in Office 365, helping users draft emails, generate summaries, and more.",
+    "Amazon’s Bedrock platform is recognized for providing access to various language models, including its own models and third-party ones like OllamaFunctionCalling’s Claude and AI21’s Jurassic. Bedrock is especially valued for its flexibility, allowing users to choose models based on their specific needs.",
     "Cohere is well-known for its language models tailored for business use, excelling in tasks like search, summarization, and customer support. Their models are recognized for being efficient, cost-effective, and easy to integrate into workflows.",
     "AI21 Labs is famous for its Jurassic series of language models, which are highly versatile and capable of handling tasks like content creation and code generation. The Jurassic models stand out for their natural language understanding and ability to generate detailed and coherent responses.",
-    "In the rapidly advancing field of artificial intelligence, several companies have made significant contributions with their large language models. Notable players include OllamaFunctionCallingAdapter, known for its GPT Series (including GPT-4); OllamaFunctionCallingAdapter, which offers the Claude Series; Google DeepMind with its Gemini Models; Meta AI, recognized for its LLaMA Series; Microsoft Azure AI, which integrates OllamaFunctionCallingAdapter’s GPT Models; Amazon AWS (Bedrock), providing access to various models including Claude (OllamaFunctionCallingAdapter) and Jurassic (AI21 Labs); Cohere, which offers its own models tailored for business use; and AI21 Labs, known for its Jurassic Series. These companies are shaping the landscape of AI by providing powerful models with diverse capabilities.",
+    "In the rapidly advancing field of artificial intelligence, several companies have made significant contributions with their large language models. Notable players include OllamaFunctionCalling, known for its GPT Series (including GPT-4); OllamaFunctionCalling, which offers the Claude Series; Google DeepMind with its Gemini Models; Meta AI, recognized for its LLaMA Series; Microsoft Azure AI, which integrates OllamaFunctionCalling’s GPT Models; Amazon AWS (Bedrock), providing access to various models including Claude (OllamaFunctionCalling) and Jurassic (AI21 Labs); Cohere, which offers its own models tailored for business use; and AI21 Labs, known for its Jurassic Series. These companies are shaping the landscape of AI by providing powerful models with diverse capabilities.",
 ]
 
 """
@@ -254,8 +254,8 @@ questions = [
 ]
 
 references = [
-    "The major players include OllamaFunctionCallingAdapter (GPT Series), OllamaFunctionCallingAdapter (Claude Series), Google DeepMind (Gemini Models), Meta AI (LLaMA Series), Microsoft Azure AI (integrating GPT Models), Amazon AWS (Bedrock with Claude and Jurassic), Cohere (business-focused models), and AI21 Labs (Jurassic Series).",
-    "Microsoft’s Azure AI platform is known for integrating OllamaFunctionCallingAdapter’s GPT models, enabling businesses to use these models in a scalable and secure cloud environment.",
+    "The major players include OllamaFunctionCalling (GPT Series), OllamaFunctionCalling (Claude Series), Google DeepMind (Gemini Models), Meta AI (LLaMA Series), Microsoft Azure AI (integrating GPT Models), Amazon AWS (Bedrock with Claude and Jurassic), Cohere (business-focused models), and AI21 Labs (Jurassic Series).",
+    "Microsoft’s Azure AI platform is known for integrating OllamaFunctionCalling’s GPT models, enabling businesses to use these models in a scalable and secure cloud environment.",
     "Cohere provides language models tailored for business use, excelling in tasks like search, summarization, and customer support.",
 ]
 

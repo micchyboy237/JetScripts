@@ -1,6 +1,6 @@
 from IPython.display import Markdown, display
 from PIL import Image
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.response.notebook_utils import display_source_node
@@ -109,7 +109,7 @@ documents = SimpleDirectoryReader(
 """
 logger.info("### With `int8` embedding_type")
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="command-nightly",
     #     api_key="<YOUR_OPENAI_API_KEY>",
 )

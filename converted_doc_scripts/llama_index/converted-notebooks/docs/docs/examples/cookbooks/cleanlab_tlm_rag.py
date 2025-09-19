@@ -63,7 +63,7 @@ Note: If you encounter `ValidationError` during the above import, please upgrade
 
 You can achieve better results by playing with the TLM configurations outlined in this [advanced TLM tutorial](https://help.cleanlab.ai/tlm/tutorials/tlm_advanced/).
 
-For example, if your application requires OllamaFunctionCallingAdapter's GPT-4 model and restrict the output tokens to 256, you can configure it using the `options` argument:
+For example, if your application requires OllamaFunctionCalling's GPT-4 model and restrict the output tokens to 256, you can configure it using the `options` argument:
 
 ```python
 options = {

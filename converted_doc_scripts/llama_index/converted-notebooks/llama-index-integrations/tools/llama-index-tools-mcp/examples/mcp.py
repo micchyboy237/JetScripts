@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent, ToolCallResult, ToolCall
     from llama_index.core.workflow import Context
@@ -29,7 +29,7 @@ async def main():
     
     This idea is migrated from [Integrate MCP tools into LlamaIndex](https://psiace.me/posts/integrate-mcp-tools-into-llamaindex/).
     
-    To run this example, you need to edit the .env file to set the correct values for the [IPInfo API Token](https://ipinfo.io/signup) and a [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys).
+    To run this example, you need to edit the .env file to set the correct values for the [IPInfo API Token](https://ipinfo.io/signup) and a [OllamaFunctionCalling API key](https://platform.openai.com/api-keys).
     
     ```bash
     # get the code
@@ -54,7 +54,7 @@ async def main():
 
     dotenv.load_dotenv()
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     SYSTEM_PROMPT = """\
     You are an AI assistant.

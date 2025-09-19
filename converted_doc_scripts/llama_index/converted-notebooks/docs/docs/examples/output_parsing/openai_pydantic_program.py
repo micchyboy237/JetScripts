@@ -1,5 +1,5 @@
 from directory import DirectoryTree, Node
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.program.openai import OllamaFunctionCallingAdapterPydanticProgram
 from pydantic import BaseModel
@@ -19,9 +19,9 @@ logger.info(f"Logs: {log_file}")
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/openai_pydantic_program.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# OllamaFunctionCallingAdapter Pydantic Program
+# OllamaFunctionCalling Pydantic Program
 
-This guide shows you how to generate structured data with [new OllamaFunctionCallingAdapter API](https://openai.com/blog/function-calling-and-other-api-updates) via LlamaIndex. The user just needs to specify a Pydantic object.
+This guide shows you how to generate structured data with [new OllamaFunctionCalling API](https://openai.com/blog/function-calling-and-other-api-updates) via LlamaIndex. The user just needs to specify a Pydantic object.
 
 We demonstrate two settings:
 - Extraction into an `Album` object (which can contain a list of Song objects)
@@ -33,7 +33,7 @@ This is a simple example of parsing an output into an `Album` schema, which can 
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
-logger.info("# OllamaFunctionCallingAdapter Pydantic Program")
+logger.info("# OllamaFunctionCalling Pydantic Program")
 
 # %pip install llama-index-llms-ollama
 # %pip install llama-index-program-openai
@@ -174,7 +174,7 @@ for partial_object in program.stream_partial_objects(movie="Harry Potter"):
 """
 ## Extracting List of `Album` (with Parallel Function Calling)
 
-With the latest [parallel function calling](https://platform.openai.com/docs/guides/function-calling/parallel-function-calling) feature from OllamaFunctionCallingAdapter, we can simultaneously extract multiple structured data from a single prompt!
+With the latest [parallel function calling](https://platform.openai.com/docs/guides/function-calling/parallel-function-calling) feature from OllamaFunctionCalling, we can simultaneously extract multiple structured data from a single prompt!
 
 To do this, we need to:
 1. pick one of the latest models (e.g. `gpt-3.5-turbo-1106`), and 
@@ -188,7 +188,7 @@ Generate 4 albums about spring, summer, fall, and winter.
 """
 program = OllamaFunctionCallingAdapterPydanticProgram.from_defaults(
     output_cls=Album,
-    llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+    llm=OllamaFunctionCalling(model="llama3.2"),
     prompt_template_str=prompt_template_str,
     allow_multiple=True,
     verbose=True,
@@ -230,7 +230,7 @@ for obj in output:
 
 This is directly inspired by jxnl's awesome repo here: https://github.com/jxnl/openai_function_call.
 
-That repository shows how you can use OllamaFunctionCallingAdapter's function API to parse recursive Pydantic objects. The main requirement is that you want to "wrap" a recursive Pydantic object with a non-recursive one.
+That repository shows how you can use OllamaFunctionCalling's function API to parse recursive Pydantic objects. The main requirement is that you want to "wrap" a recursive Pydantic object with a non-recursive one.
 
 Here we show an example in a "directory" setting, where a `DirectoryTree` object wraps recursive `Node` objects, to parse a file structure.
 """

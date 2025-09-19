@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.react import ReActChatFormatter, ReActOutputParser
     from llama_index.core.agent.react.types import (
@@ -146,7 +146,7 @@ async def main():
         ) -> None:
             super().__init__(*args, **kwargs)
             self.tools = tools or []
-            self.llm = llm or OllamaFunctionCallingAdapter()
+            self.llm = llm or OllamaFunctionCalling()
             self.formatter = ReActChatFormatter.from_defaults(
                 context=extra_context or ""
             )
@@ -330,7 +330,7 @@ async def main():
     ]
 
     agent = ReActAgent(
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"), tools=tools, timeout=120, verbose=True
+        llm=OllamaFunctionCalling(model="llama3.2"), tools=tools, timeout=120, verbose=True
     )
 
     ret = await agent.run(input="Hello!")
@@ -368,7 +368,7 @@ async def main():
     logger.info("## Streaming")
 
     agent = ReActAgent(
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"), tools=tools, timeout=120, verbose=False
+        llm=OllamaFunctionCalling(model="llama3.2"), tools=tools, timeout=120, verbose=False
     )
 
     handler = agent.run(input="Hello! Tell me a joke.")

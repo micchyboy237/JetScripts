@@ -1,7 +1,7 @@
 from jet.models.config import MODELS_CACHE_DIR
 from jet.transformers.formatters import format_json
 from IPython.display import display, Markdown
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import StorageContext
@@ -61,9 +61,9 @@ logger.info("# Knowledge Graph RAG Query Engine")
 # !pip install llama-index
 
 """
-### OllamaFunctionCallingAdapter
+### OllamaFunctionCalling
 """
-logger.info("### OllamaFunctionCallingAdapter")
+logger.info("### OllamaFunctionCalling")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -74,7 +74,7 @@ logging.basicConfig(
 )  # logging.DEBUG for more verbose output
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+Settings.llm = OllamaFunctionCalling(temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
 """

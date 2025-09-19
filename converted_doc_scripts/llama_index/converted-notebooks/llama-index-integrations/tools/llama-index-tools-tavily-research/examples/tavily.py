@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.tavily_research.base import TavilyToolSpec
@@ -20,7 +20,7 @@ async def main():
     
     This tutorial walks through using the LLM tools provided by the [Tavily API](https://app.tavily.com/) to allow LLMs to easily search and retrieve relevant content from the Internet.
     
-    To get started, you will need an [OllamaFunctionCallingAdapter api key](https://platform.openai.com/account/api-keys) and a [Tavily API key](https://app.tavily.com)
+    To get started, you will need an [OllamaFunctionCalling api key](https://platform.openai.com/account/api-keys) and a [Tavily API key](https://app.tavily.com)
     
     We will import the relevant agents and tools and pass them our keys here:
     """
@@ -42,7 +42,7 @@ async def main():
     """
     ## Testing the Tavily search tool
     
-    We've imported our OllamaFunctionCallingAdapter agent, set up the api key, and initialized our tool. Let's test out the tool before setting up our Agent.
+    We've imported our OllamaFunctionCalling agent, set up the api key, and initialized our tool. Let's test out the tool before setting up our Agent.
     """
     logger.info("## Testing the Tavily search tool")
 
@@ -58,7 +58,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=tavily_tool_list,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

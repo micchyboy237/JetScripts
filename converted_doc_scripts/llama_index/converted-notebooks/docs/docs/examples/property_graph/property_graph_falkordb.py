@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import PropertyGraphIndex
@@ -87,7 +87,7 @@ index = PropertyGraphIndex.from_documents(
     embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     kg_extractors=[
         SchemaLLMPathExtractor(
-            llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
+            llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.0)
         )
     ],
     property_graph_store=graph_store,
@@ -136,7 +136,7 @@ graph_store = FalkorDBPropertyGraphStore(
 
 index = PropertyGraphIndex.from_existing(
     property_graph_store=graph_store,
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
     embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
 )
 

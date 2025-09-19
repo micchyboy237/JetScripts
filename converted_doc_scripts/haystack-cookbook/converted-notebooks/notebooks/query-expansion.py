@@ -55,7 +55,7 @@ logger.info("# Advanced RAG: Query Expansion")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ['OPENAI_API_KEY'] = getpass("Your OllamaFunctionCallingAdapter API Key: ")
+#   os.environ['OPENAI_API_KEY'] = getpass("Your OllamaFunctionCalling API Key: ")
 
 """
 ## The Process of Query Expansion

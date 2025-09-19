@@ -1,5 +1,5 @@
 from IPython.display import HTML
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import KnowledgeGraphIndex
@@ -193,7 +193,7 @@ documents = loader.load_data(
 documents = [Document(text="".join([x.text for x in documents]))]
 
 
-llm = OllamaFunctionCallingAdapter(temperature=0.1, model="llama3.2")
+llm = OllamaFunctionCalling(temperature=0.1, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 256
 

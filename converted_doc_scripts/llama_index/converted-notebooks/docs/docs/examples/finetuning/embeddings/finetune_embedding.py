@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
@@ -113,13 +113,13 @@ logger.info("### Generate synthetic queries")
 
 
 train_dataset = generate_qa_embedding_pairs(
-    llm=OllamaFunctionCallingAdapter(
+    llm=OllamaFunctionCalling(
         model="llama3.2"),
     nodes=train_nodes,
     output_path="train_dataset.json",
 )
 val_dataset = generate_qa_embedding_pairs(
-    llm=OllamaFunctionCallingAdapter(
+    llm=OllamaFunctionCalling(
         model="llama3.2"),
     nodes=val_nodes,
     output_path="val_dataset.json",
@@ -151,7 +151,7 @@ embed_model
 ## Evaluate Finetuned Model
 
 In this section, we evaluate 3 different embedding models: 
-1. proprietary OllamaFunctionCallingAdapter embedding,
+1. proprietary OllamaFunctionCalling embedding,
 2. open source `BAAI/bge-small-en`, and
 3. our finetuned embedding model.
 
@@ -172,7 +172,7 @@ logger.info("## Evaluate Finetuned Model")
 * we retrieve top-k documents with the query,  and 
 * it's a **hit** if the results contain the relevant_doc.
 
-This approach is very simple and intuitive, and we can apply it to both the proprietary OllamaFunctionCallingAdapter embedding as well as our open source and fine-tuned embedding models.
+This approach is very simple and intuitive, and we can apply it to both the proprietary OllamaFunctionCalling embedding as well as our open source and fine-tuned embedding models.
 """
 logger.info("### Define eval function")
 
@@ -213,9 +213,9 @@ def evaluate(
 """
 **Option 2**: We use the `InformationRetrievalEvaluator` from sentence_transformers.
 
-This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCallingAdapter embedding model).
+This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCalling embedding model).
 """
-logger.info("This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCallingAdapter embedding model).")
+logger.info("This provides a more comprehensive suite of metrics, but we can only run it against the sentencetransformers compatible models (open source and our finetuned model, *not* the OllamaFunctionCalling embedding model).")
 
 
 def evaluate_st(
@@ -239,7 +239,7 @@ def evaluate_st(
 """
 ### Run Evals
 
-#### OllamaFunctionCallingAdapter
+#### OllamaFunctionCalling
 
 Note: this might take a few minutes to run since we have to embed the corpus and queries
 """
@@ -296,9 +296,9 @@ df_bge["model"] = "bge"
 df_finetuned["model"] = "fine_tuned"
 
 """
-We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary OllamaFunctionCallingAdapter embedding)!
+We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary OllamaFunctionCalling embedding)!
 """
-logger.info("We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary OllamaFunctionCallingAdapter embedding)!")
+logger.info("We can see that fine-tuning our small open-source embedding model drastically improve its retrieval quality (even approaching the quality of the proprietary OllamaFunctionCalling embedding)!")
 
 df_all = pd.concat([df_ada, df_bge, df_finetuned])
 df_all.groupby("model").mean("is_hit")

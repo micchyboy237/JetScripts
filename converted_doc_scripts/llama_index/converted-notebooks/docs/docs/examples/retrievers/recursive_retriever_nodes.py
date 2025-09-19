@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import VectorStoreIndex
@@ -96,7 +96,7 @@ for idx, node in enumerate(base_nodes):
 
 
 embed_model = resolve_embed_model("local:BAAI/bge-small-en")
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 """
 ## Baseline Retriever
@@ -231,7 +231,7 @@ for node_id, metadata in node_to_metadata.items():
 all_nodes_dict = {n.node_id: n for n in all_nodes}
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 vector_index_metadata = VectorStoreIndex(all_nodes)
 
@@ -282,7 +282,7 @@ logger.info("## Evaluation")
 # nest_asyncio.apply()
 
 eval_dataset = generate_question_context_pairs(
-    base_nodes, OllamaFunctionCallingAdapter(model="llama3.2")
+    base_nodes, OllamaFunctionCalling(model="llama3.2")
 )
 
 eval_dataset.save_json("data/llama2_eval_dataset.json")

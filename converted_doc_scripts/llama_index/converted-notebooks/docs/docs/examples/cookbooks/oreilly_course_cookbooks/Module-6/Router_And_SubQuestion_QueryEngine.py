@@ -152,7 +152,7 @@ vector_tool = QueryEngineTool.from_defaults(
 
 Various selectors are at your disposal, each offering unique characteristics.
 
-Pydantic selectors, supported exclusively by gpt-4 and the default gpt-3.5-turbo, utilize the OllamaFunctionCallingAdapter Function Call API. Instead of interpreting raw JSON, they yield pydantic selection objects.
+Pydantic selectors, supported exclusively by gpt-4 and the default gpt-3.5-turbo, utilize the OllamaFunctionCalling Function Call API. Instead of interpreting raw JSON, they yield pydantic selection objects.
 
 On the other hand, LLM selectors employ the LLM to generate a JSON output, which is then parsed to query the relevant indexes.
 
@@ -160,7 +160,7 @@ For both selector types, you can opt to route to either a single index or multip
 
 ### PydanticSingleSelector
 
-Use the OllamaFunctionCallingAdapter Function API to generate/parse pydantic objects under the hood for the router selector.
+Use the OllamaFunctionCalling Function API to generate/parse pydantic objects under the hood for the router selector.
 """
 logger.info("### Define Router Query Engine")
 
@@ -180,7 +180,7 @@ display(HTML(f'<p style="font-size:20px">{response.response}</p>'))
 """
 ### LLMSingleSelector
 
-Utilize OllamaFunctionCallingAdapter (or another LLM) to internally interpret the generated JSON and determine a sub-index for routing.
+Utilize OllamaFunctionCalling (or another LLM) to internally interpret the generated JSON and determine a sub-index for routing.
 """
 logger.info("### LLMSingleSelector")
 

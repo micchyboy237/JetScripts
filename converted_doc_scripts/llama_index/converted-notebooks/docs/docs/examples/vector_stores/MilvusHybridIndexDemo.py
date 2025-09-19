@@ -46,9 +46,9 @@ logger.info("# Milvus Vector Store With Hybrid Search")
 
 **Set up accounts**
 
-This tutorial uses OllamaFunctionCallingAdapter for text embeddings and answer generation. You need to prepare the [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys).
+This tutorial uses OllamaFunctionCalling for text embeddings and answer generation. You need to prepare the [OllamaFunctionCalling API key](https://platform.openai.com/api-keys).
 """
-logger.info("This tutorial uses OllamaFunctionCallingAdapter for text embeddings and answer generation. You need to prepare the [OllamaFunctionCallingAdapter API key](https://platform.openai.com/api-keys).")
+logger.info("This tutorial uses OllamaFunctionCalling for text embeddings and answer generation. You need to prepare the [OllamaFunctionCalling API key](https://platform.openai.com/api-keys).")
 
 
 openai.api_key = "sk-"
@@ -87,7 +87,7 @@ logger.debug("Example document:\n", documents[0])
 
 This section shows how to perform a hybrid search using BM25. To get started, we will initialize the `MilvusVectorStore` and create an index for the example documents. The default configuration uses:
 
-- Dense embeddings from the default embedding model (OllamaFunctionCallingAdapter's `text-embedding-ada-002`)
+- Dense embeddings from the default embedding model (OllamaFunctionCalling's `text-embedding-ada-002`)
 - BM25 for full-text search if enable_sparse is True
 - RRFRanker with k=60 for combining results if hybrid search is enabled
 """
@@ -178,9 +178,9 @@ logger.info("## Hybrid Search with Other Sparse Embedding")
 # ! pip install -q FlagEmbedding
 
 """
-Then let's build the vector store and index using the default OllamaFunctionCallingAdapter model for densen embedding and the built-in BGE-M3 for sparse embedding:
+Then let's build the vector store and index using the default OllamaFunctionCalling model for densen embedding and the built-in BGE-M3 for sparse embedding:
 """
-logger.info("Then let's build the vector store and index using the default OllamaFunctionCallingAdapter model for densen embedding and the built-in BGE-M3 for sparse embedding:")
+logger.info("Then let's build the vector store and index using the default OllamaFunctionCalling model for densen embedding and the built-in BGE-M3 for sparse embedding:")
 
 
 vector_store = MilvusVectorStore(

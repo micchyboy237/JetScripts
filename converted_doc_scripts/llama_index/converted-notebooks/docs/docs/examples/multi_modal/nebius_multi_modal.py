@@ -28,7 +28,7 @@ logger.info(f"Logs: {log_file}")
 
 This notebook demonstrates how to use multimodal models from [Nebius AI Studio](https://studio.nebius.ai/) with LlamaIndex. Nebius AI Studio implements all state-of-the-art multimodal models available for commercial use.
 
-First, let's install LlamaIndex and dependencies of Nebius AI Studio. Since AI Studio uses OllamaFunctionCallingAdapter-compatible OllamaFunctionCallingAdapter, installation of the OllamaFunctionCallingAdapter Multimodal package inside Llama-index is also required.
+First, let's install LlamaIndex and dependencies of Nebius AI Studio. Since AI Studio uses OllamaFunctionCalling-compatible OllamaFunctionCalling, installation of the OllamaFunctionCalling Multimodal package inside Llama-index is also required.
 """
 logger.info("# Multimodal models with Nebius")
 

@@ -2,7 +2,7 @@ async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
     from googleapiclient import discovery
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.agent.introspective import (
         ToolInteractiveReflectionAgentWorker,
@@ -62,7 +62,7 @@ async def main():
     anthropic_llm = Anthropic(model="claude-3-opus-20240229")
     cohere_llm = Cohere(model="command")
     mistral_llm = MistralAI(model="mistral-large-latest")
-    openai_llm = OllamaFunctionCallingAdapter(
+    openai_llm = OllamaFunctionCalling(
         model="llama3.2")
 
     start = anthropic_llm.complete(
@@ -520,9 +520,9 @@ async def main():
 
     verbose = True
     critique_agent_worker = FunctionAgent(
-        tools=[pespective_tool], llm=OllamaFunctionCallingAdapter("gpt-4.1")
+        tools=[pespective_tool], llm=OllamaFunctionCalling("gpt-4.1")
     )
-    correction_llm = OllamaFunctionCallingAdapter("gpt-4.1-mini")
+    correction_llm = OllamaFunctionCalling("gpt-4.1-mini")
 
     def stopping_callable(critique_str: str) -> bool:
         """

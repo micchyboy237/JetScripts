@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import (
         VectorStoreIndex,
@@ -40,7 +40,7 @@ async def main():
     
     ## Setup
     
-    We will use OllamaFunctionCallingAdapter models, as well as llama-parse to load and parse documents.
+    We will use OllamaFunctionCalling models, as well as llama-parse to load and parse documents.
     """
     logger.info("# Query Planning Workflow")
 
@@ -61,7 +61,7 @@ async def main():
     
     ### Workflow Events
     
-    Since `Event` objects in workflows are just Pydantic models, we can use the function calling capabilities of OllamaFunctionCallingAdapter to dynamically define the execution of our workflow at runtime.
+    Since `Event` objects in workflows are just Pydantic models, we can use the function calling capabilities of OllamaFunctionCalling to dynamically define the execution of our workflow at runtime.
     
     By predicting events, we are predicting the next step(s) in our workflow to run.
     """
@@ -107,7 +107,7 @@ async def main():
     logger.info("### Workflow Definition")
 
     class QueryPlanningWorkflow(Workflow):
-        llm = OllamaFunctionCallingAdapter(
+        llm = OllamaFunctionCalling(
             model="llama3.2")
         planning_prompt = PromptTemplate(
             "Think step by step. Given an initial query, as well as information about the indexes you can query, return a plan for a RAG system.\n"

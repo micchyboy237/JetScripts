@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.evaluation import CorrectnessEvaluator
 import os
@@ -28,7 +28,7 @@ logger.info("# Correctness Evaluator")
 # !pip install llama-index
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 evaluator = CorrectnessEvaluator(llm=llm)
 
 query = (

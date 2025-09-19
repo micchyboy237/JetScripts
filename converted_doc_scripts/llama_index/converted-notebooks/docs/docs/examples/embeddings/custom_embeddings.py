@@ -21,7 +21,7 @@ logger.info(f"Logs: {log_file}")
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/embeddings/custom_embeddings.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # Custom Embeddings
-LlamaIndex supports embeddings from OllamaFunctionCallingAdapter, Azure, and Langchain. But if this isn't enough, you can also implement any embeddings model!
+LlamaIndex supports embeddings from OllamaFunctionCalling, Azure, and Langchain. But if this isn't enough, you can also implement any embeddings model!
 
 The example below uses Instructor Embeddings ([install/setup details here](https://huggingface.co/hkunlp/instructor-large)), and implements a custom embeddings class. Instructor embeddings work by providing text, as well as "instructions" on the domain of the text to embed. This is helpful when embedding text from a very specific and specialized topic.
 

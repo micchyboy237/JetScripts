@@ -1,6 +1,6 @@
 from IPython.display import Markdown, display
 from IPython.display import display, HTML
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import QueryBundle
 from llama_index.core import Settings
@@ -30,7 +30,7 @@ logger.info(f"Logs: {log_file}")
 
 This demo showcases how to use [RankLLM](https://github.com/castorini/rank_llm) to rerank passages. 
 
-RankLLM offers a suite of listwise, pairwise, and pointwise rerankers, albeit with focus on open source LLMs finetuned for the task - RankVicuna and RankZephyr being two of them. It also features ranking with OllamaFunctionCallingAdapter and GenAI.
+RankLLM offers a suite of listwise, pairwise, and pointwise rerankers, albeit with focus on open source LLMs finetuned for the task - RankVicuna and RankZephyr being two of them. It also features ranking with OllamaFunctionCalling and GenAI.
 
 It compares query search results from Van Gogh’s wikipedia with just retrieval (using VectorIndexRetriever from llama-index) and retrieval+reranking with RankLLM. We show an example of reranking 50 candidates using the RankZephyr reranker, which uses a listwise sliding window algorithm.
 
@@ -66,7 +66,7 @@ logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 # os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-Settings.llm = OllamaFunctionCallingAdapter(
+Settings.llm = OllamaFunctionCalling(
     temperature=0, model="llama3.2")
 Settings.chunk_size = 512
 
@@ -168,7 +168,7 @@ stride: int = Field(
   default=10
 )
 use_azure_ollama: bool = Field(
-  description="Whether to use Azure OllamaFunctionCallingAdapter instead of the standard OllamaFunctionCallingAdapter API.",
+  description="Whether to use Azure OllamaFunctionCalling instead of the standard OllamaFunctionCalling API.",
   default=False
 )
 ```

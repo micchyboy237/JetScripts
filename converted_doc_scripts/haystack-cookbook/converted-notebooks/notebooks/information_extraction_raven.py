@@ -35,9 +35,9 @@ In this experiment, we will use Large Language Models to perform Information Ext
 
 🎯 Goal: create an application that, given a URL and a specific structure provided by the user, extracts information from the source.
 
-The "**function calling**" capabilities of OllamaFunctionCallingAdapter models unlock this task: the user can describe a structure, by defining a mock up function with all its typed and specific parameters. The LLM will prepare the data in this specific form and send it back to the user.
+The "**function calling**" capabilities of OllamaFunctionCalling models unlock this task: the user can describe a structure, by defining a mock up function with all its typed and specific parameters. The LLM will prepare the data in this specific form and send it back to the user.
 
-A nice example of using OllamaFunctionCallingAdapter Function Calling for information extraction is this [gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c).
+A nice example of using OllamaFunctionCalling Function Calling for information extraction is this [gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c).
 
 **What is changing now is that open models such as NexusRaven are emerging, with function calling capabilities...**
 
@@ -317,7 +317,7 @@ extract(function=function, url="https://lite.cnn.com/2023/11/05/tech/nvidia-amd-
 ## 📚 References
 *Related to the experiment*
 - [Haystack LLM framework](https://haystack.deepset.ai/)
-- [Using OllamaFunctionCallingAdapter Function Calling for Information Extraction: gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c)
+- [Using OllamaFunctionCalling Function Calling for Information Extraction: gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c)
 - [NexusRaven-V2: Surpassing GPT-4 for Zero-shot Function Calling](https://nexusflow.ai/blogs/ravenv2)
 """
 logger.info("## ✨ Conclusions and caveats")

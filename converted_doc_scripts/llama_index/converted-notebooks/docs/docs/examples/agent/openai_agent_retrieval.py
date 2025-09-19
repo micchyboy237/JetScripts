@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import VectorStoreIndex
     from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
@@ -32,7 +32,7 @@ async def main():
     Let's start by importing some simple building blocks.  
     
     The main thing we need is:
-    1. the OllamaFunctionCallingAdapter API
+    1. the OllamaFunctionCalling API
     2. a place to keep conversation history 
     3. a definition for tools that our agent can use.
     
@@ -104,13 +104,13 @@ async def main():
     
     Agents in LlamaIndex can be used with a `ToolRetriever` to retrieve tools during query-time.
     
-    During query-time, we would first use the `ObjectRetriever` to retrieve a set of relevant Tools. These tools would then be passed into the agent; more specifically, their function signatures would be passed into the OllamaFunctionCallingAdapter Function calling API.
+    During query-time, we would first use the `ObjectRetriever` to retrieve a set of relevant Tools. These tools would then be passed into the agent; more specifically, their function signatures would be passed into the OllamaFunctionCalling Function calling API.
     """
     logger.info("## Agent w/ Tool Retrieval")
 
     agent = FunctionAgent(
         tool_retriever=obj_index.as_retriever(similarity_top_k=2),
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     ctx = Context(agent)

@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import ChatPromptTemplate, PromptTemplate
 from llama_index.core import VectorStoreIndex
@@ -53,7 +53,7 @@ documents = loader.load(
     file_path="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp/llama2.pdf")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 node_parser = SentenceSplitter(chunk_size=1024)
 
@@ -75,7 +75,7 @@ We define the functions that we will use for dataset generation:
 logger.info("## Dataset Generation")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 
 """
@@ -97,7 +97,7 @@ QA_PROMPT = PromptTemplate(
 
 
 def generate_answers_for_questions(
-    questions: List[str], context: str, llm: OllamaFunctionCallingAdapter
+    questions: List[str], context: str, llm: OllamaFunctionCalling
 ) -> str:
     """Generate answers for questions given context."""
     answers = []
@@ -142,7 +142,7 @@ question_gen_template = ChatPromptTemplate(
 
 
 def generate_qa_pairs(
-    nodes: List[BaseNode], llm: OllamaFunctionCallingAdapter, num_questions_per_chunk: int = 10
+    nodes: List[BaseNode], llm: OllamaFunctionCalling, num_questions_per_chunk: int = 10
 ) -> List[Tuple[str, str]]:
     """Generate questions."""
     qa_pairs = []
@@ -261,7 +261,7 @@ def run_correctness_eval(
     query_str: str,
     reference_answer: str,
     generated_answer: str,
-    llm: OllamaFunctionCallingAdapter,
+    llm: OllamaFunctionCalling,
     threshold: float = 4.0,
 ) -> Dict:
     """Run correctness eval."""
@@ -287,7 +287,7 @@ Now let's try running this on some sample inputs with a chat model (GPT-4).
 logger.info(
     "Now let's try running this on some sample inputs with a chat model (GPT-4).")
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 
 query_str = (
@@ -374,7 +374,7 @@ logger.info("We now define our function below. Since we defined both a standard 
 def run_faithfulness_eval(
     generated_answer: str,
     contexts: List[str],
-    llm: OllamaFunctionCallingAdapter,
+    llm: OllamaFunctionCalling,
 ) -> Dict:
     """Run faithfulness eval."""
 
@@ -425,7 +425,7 @@ sample_size = 5
 qa_pairs_sample = random.sample(qa_pairs, sample_size)
 
 
-def run_evals(qa_pairs: List[Tuple[str, str]], llm: OllamaFunctionCallingAdapter, query_engine):
+def run_evals(qa_pairs: List[Tuple[str, str]], llm: OllamaFunctionCalling, query_engine):
     results_list = []
     for question, reference_answer in qa_pairs:
         response = query_engine.query(question)

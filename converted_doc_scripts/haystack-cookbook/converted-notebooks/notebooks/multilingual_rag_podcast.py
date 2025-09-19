@@ -35,7 +35,7 @@ This notebook shows how to create a multilingual Retrieval Augmented Generation 
 
 🧰 **Stack**:
 - Haystack LLM framework
-- OllamaFunctionCallingAdapter Whisper model for audio transcription
+- OllamaFunctionCalling Whisper model for audio transcription
 - Qdrant vector database
 - multilingual embedding model: multilingual-e5-large
 - multilingual LLM: Mistral Small
@@ -51,7 +51,7 @@ logger.info("# 🇮🇹🇬🇧 Multilingual RAG from a 🎧 podcast")
 ## Podcast transcription
 
 - download the audio from Youtube using `pytube`
-- transcribe it locally using Haystack's [`LocalWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/localwhispertranscriber) with the `whisper-small` model. We could use bigger models, which take longer to transcribe. We could also call the paid OllamaFunctionCallingAdapter API, using [`RemoteWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/remotewhispertranscriber).
+- transcribe it locally using Haystack's [`LocalWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/localwhispertranscriber) with the `whisper-small` model. We could use bigger models, which take longer to transcribe. We could also call the paid OllamaFunctionCalling API, using [`RemoteWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/remotewhispertranscriber).
 
 Since the transcription takes some time (about 10 minutes), I commented out the following code and will provide the transcription.
 """

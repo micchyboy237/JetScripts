@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index_desearch.tools import DesearchToolSpec
@@ -45,7 +45,7 @@ async def main():
     
     ## Testing the Desearch tools
     
-    We've imported our OllamaFunctionCallingAdapter agent, set up the API keys, and initialized our tool, checking the methods that it has available. Let's test out the tool before setting up our Agent.
+    We've imported our OllamaFunctionCalling agent, set up the API keys, and initialized our tool, checking the methods that it has available. Let's test out the tool before setting up our Agent.
     
     All of the Desearch search tools make use of the `AutoPrompt` option where Desearch will pass the query through an LLM to refine it in line with Desearch query best-practice.
     
@@ -91,7 +91,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=[*wrapped_retrieve.to_tool_list(), date_tool],
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

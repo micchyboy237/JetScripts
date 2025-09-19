@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SimpleDirectoryReader
     from llama_index.core import VectorStoreIndex, StorageContext
@@ -43,9 +43,9 @@ async def main():
     """
     > If you are using Google Colab, to enable dependencies just installed, you may need to **restart the runtime** (click on the "Runtime" menu at the top of the screen, and select "Restart session" from the dropdown menu).
     
-    # We will use the models from OllamaFunctionCallingAdapter. You should prepare the [api key](https://platform.openai.com/docs/quickstart) `OPENAI_API_KEY` as an environment variable.
+    # We will use the models from OllamaFunctionCalling. You should prepare the [api key](https://platform.openai.com/docs/quickstart) `OPENAI_API_KEY` as an environment variable.
     """
-    # logger.info("We will use the models from OllamaFunctionCallingAdapter. You should prepare the [api key](https://platform.openai.com/docs/quickstart) `OPENAI_API_KEY` as an environment variable.")
+    # logger.info("We will use the models from OllamaFunctionCalling. You should prepare the [api key](https://platform.openai.com/docs/quickstart) `OPENAI_API_KEY` as an environment variable.")
 
     # os.environ["OPENAI_API_KEY"] = "sk-***********"
 
@@ -146,7 +146,7 @@ async def main():
     """
     logger.info("Initialize the LLM.")
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     """
     When building the query engine, you can also set the `use_async` parameter to `True` to enable asynchronous search.

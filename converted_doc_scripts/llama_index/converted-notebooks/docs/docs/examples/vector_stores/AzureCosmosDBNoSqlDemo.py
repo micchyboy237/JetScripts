@@ -41,11 +41,11 @@ logger.info("# Azure Cosmos DB No SQL Vector Store")
 
 
 """
-# Setup Azure OllamaFunctionCallingAdapter
+# Setup Azure OllamaFunctionCalling
 
 The first step is to configure the llm and the embeddings model. These models will be used to create embeddings for the documents loaded into the database and for llm completions.
 """
-logger.info("# Setup Azure OllamaFunctionCallingAdapter")
+logger.info("# Setup Azure OllamaFunctionCalling")
 
 llm = AzureOllamaFunctionCallingAdapter(
     model="AZURE_OPENAI_MODEL",

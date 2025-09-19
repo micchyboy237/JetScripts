@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import PromptTemplate
     from llama_index.core.agent.workflow import AgentStream, ToolCallResult
@@ -8,15 +8,15 @@ async def main():
     from llama_index.core.workflow import Context
     import os
     import shutil
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/react_agent.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -31,39 +31,39 @@ async def main():
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info("# ReActAgent - A Simple Intro with Calculator Tools")
-    
+
     # %pip install llama-index
-    
-    
+
+
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-    
+
     """
     ## Define Function Tools
     
     We setup some trivial `multiply` and `add` tools. Note that you can define arbitrary functions and pass it to the `FunctionTool` (which will process the docstring and parameter signature).
     """
     logger.info("## Define Function Tools")
-    
+
     def multiply(a: int, b: int) -> int:
         """Multiply two integers and returns the result integer"""
         return a * b
-    
-    
+
+
     def add(a: int, b: int) -> int:
         """Add two integers and returns the result integer"""
         return a + b
-    
+
     """
     ## Run Some Queries
     """
     logger.info("## Run Some Queries")
-    
-    
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+
+
+    llm = OllamaFunctionCalling(model="llama3.2")
     agent = ReActAgent(tools=[multiply, add], llm=llm)
-    
+
     ctx = Context(agent)
-    
+
     """
     ## Run Some Example Queries
     
@@ -72,21 +72,21 @@ async def main():
     If we wanted to stream only the result, we can buffer the stream and start streaming once `Answer:` is in the response.
     """
     logger.info("## Run Some Example Queries")
-    
-    
+
+
     handler = agent.run("What is 20+(2*4)?", ctx=ctx)
-    
+
     async for ev in handler.stream_events():
         if isinstance(ev, AgentStream):
             logger.debug(f"{ev.delta}", end="", flush=True)
-    
+
     response = await handler
     logger.success(format_json(response))
-    
+
     logger.debug(str(response))
-    
+
     logger.debug(response.tool_calls)
-    
+
     """
     ## View Prompts
     
@@ -95,19 +95,19 @@ async def main():
     Within the agent, the current conversation history is dumped below this line.
     """
     logger.info("## View Prompts")
-    
+
     prompt_dict = agent.get_prompts()
     for k, v in prompt_dict.items():
         logger.debug(f"Prompt: {k}\n\nValue: {v.template}")
-    
+
     """
     ### Customizing the Prompt
     
     For fun, let's try instructing the agent to output the answer along with reasoning in bullet points. See "## Additional Rules" section.
     """
     logger.info("### Customizing the Prompt")
-    
-    
+
+
     react_system_header_str = """\
     
     You are designed to help with a variety of tasks, from answering questions \
@@ -160,22 +160,22 @@ async def main():
     
     """
     react_system_prompt = PromptTemplate(react_system_header_str)
-    
+
     agent.get_prompts()
-    
+
     agent.update_prompts({"react_header": react_system_prompt})
-    
+
     handler = agent.run("What is 5+3+2")
-    
+
     async for ev in handler.stream_events():
         if isinstance(ev, AgentStream):
             logger.debug(f"{ev.delta}", end="", flush=True)
-    
+
     response = await handler
     logger.success(format_json(response))
-    
+
     logger.debug(response)
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

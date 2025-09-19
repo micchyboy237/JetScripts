@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.dappier import DappierRealTimeSearchToolSpec
@@ -21,7 +21,7 @@ async def main():
     This tutorial walks through using the LLM tools provided by [Dappier](https://dappier.com/) to allow LLMs to use Dappier's pre-trained, LLM ready RAG models and natural language APIs to ensure factual, up-to-date, responses from premium content providers across key verticals like News, Finance, Sports, Weather, and more.
     
     
-    To get started, you will need an [OllamaFunctionCallingAdapter API key](https://platform.openai.com/account/api-keys) and a [Dappier API key](https://platform.dappier.com/profile/api-keys)
+    To get started, you will need an [OllamaFunctionCalling API key](https://platform.openai.com/account/api-keys) and a [Dappier API key](https://platform.dappier.com/profile/api-keys)
     
     We will import the relevant agents and tools and pass them our keys here:
     
@@ -36,7 +36,7 @@ async def main():
     """
     ## Setup API keys
     
-    You'll need to set up your API keys for OllamaFunctionCallingAdapter and Dappier.
+    You'll need to set up your API keys for OllamaFunctionCalling and Dappier.
     
     You can go to [here](https://platform.openai.com/settings/organization/api-keys) to get API Key from Open AI.
     """
@@ -72,7 +72,7 @@ async def main():
     """
     ## Usage
     
-    We've imported our OllamaFunctionCallingAdapter agent, set up the api key, and initialized our tool. Let's test out the tool before setting up our Agent.
+    We've imported our OllamaFunctionCalling agent, set up the api key, and initialized our tool. Let's test out the tool before setting up our Agent.
     
     ### Search Real Time Data
     
@@ -102,7 +102,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=dappier_tool_list,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

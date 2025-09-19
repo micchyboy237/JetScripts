@@ -54,9 +54,9 @@ Settings.embed_model = embed_model
 Settings.chunk_size = 1024
 
 """
-### Setup OllamaFunctionCallingAdapter ada embeddings as comparison
+### Setup OllamaFunctionCalling ada embeddings as comparison
 """
-logger.info("### Setup OllamaFunctionCallingAdapter ada embeddings as comparison")
+logger.info("### Setup OllamaFunctionCalling ada embeddings as comparison")
 
 embed_model_base = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 

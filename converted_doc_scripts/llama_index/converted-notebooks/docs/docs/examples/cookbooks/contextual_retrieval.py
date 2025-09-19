@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Settings
     from llama_index.core import SimpleDirectoryReader
@@ -43,7 +43,7 @@ async def main():
     
     1. `Paul Graham Essay` dataset.
     2. Anthropic LLM for context creation for each chunk.
-    3. OllamaFunctionCallingAdapter LLM for Synthetic query generation and embedding model.
+    3. OllamaFunctionCalling LLM for Synthetic query generation and embedding model.
     4. CohereAI Reranker.
     
     ## Installation
@@ -352,7 +352,7 @@ async def main():
     """
     logger.info("## Create Synthetic query dataset")
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     qa_dataset = create_eval_dataset(nodes, llm=llm, num_questions_per_chunk=2)
 

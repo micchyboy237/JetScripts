@@ -99,9 +99,9 @@ nodes = pipeline.run(documents=documents)
 nodes[0].metadata["document_title"]
 
 """
-### Text Splitter + Metadata Extractor + OllamaFunctionCallingAdapter Embedding
+### Text Splitter + Metadata Extractor + OllamaFunctionCalling Embedding
 """
-logger.info("### Text Splitter + Metadata Extractor + OllamaFunctionCallingAdapter Embedding")
+logger.info("### Text Splitter + Metadata Extractor + OllamaFunctionCalling Embedding")
 
 pipeline = IngestionPipeline(
     transformations=[
@@ -150,9 +150,9 @@ logger.info("### Now it will run instantly due to the cache.")
 nodes = new_pipeline.run(documents=documents)
 
 """
-Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and OllamaFunctionCallingAdapter embeddings are created now.
+Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and OllamaFunctionCalling embeddings are created now.
 """
-logger.info("Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and OllamaFunctionCallingAdapter embeddings are created now.")
+logger.info("Now let's add embeddings to it. You will observe that the parsing of nodes, title extraction is loaded from cache and OllamaFunctionCalling embeddings are created now.")
 
 pipeline = IngestionPipeline(
     transformations=[

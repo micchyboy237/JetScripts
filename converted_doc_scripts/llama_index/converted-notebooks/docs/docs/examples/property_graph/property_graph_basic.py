@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PropertyGraphIndex
 from llama_index.core import SimpleDirectoryReader
@@ -63,7 +63,7 @@ logger.info("## Construction")
 
 index = PropertyGraphIndex.from_documents(
     documents,
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
     embed_model=HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR),
     show_progress=True,
 )
@@ -102,7 +102,7 @@ index = PropertyGraphIndex.from_documents(
     kg_extractors=[
         ImplicitPathExtractor(),
         SimpleLLMPathExtractor(
-            llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
+            llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
             num_workers=4,
             max_paths_per_chunk=10,
         ),
@@ -199,7 +199,7 @@ logger.info("Then to load:")
 index = PropertyGraphIndex.from_existing(
     SimplePropertyGraphStore.from_persist_dir("./storage"),
     vector_store=ChromaVectorStore(chroma_collection=collection),
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3),
 )
 
 """

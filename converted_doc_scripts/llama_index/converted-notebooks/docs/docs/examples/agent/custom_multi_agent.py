@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent, ReActAgent
     from llama_index.core.llms import ChatMessage
@@ -43,7 +43,7 @@ async def main():
     
     ## Setup
     
-    In this example, we will use `OllamaFunctionCallingAdapter` as our LLM. For all LLMs, check out the [examples documentation](https://docs.llamaindex.ai/en/stable/examples/llm/openai/) or [LlamaHub](https://llamahub.ai/?tab=llms) for a list of all supported LLMs and how to install/use them.
+    In this example, we will use `OllamaFunctionCalling` as our LLM. For all LLMs, check out the [examples documentation](https://docs.llamaindex.ai/en/stable/examples/llm/openai/) or [LlamaHub](https://llamahub.ai/?tab=llms) for a list of all supported LLMs and how to install/use them.
     
     If we wanted, each agent could have a different LLM, but for this example, we will use the same LLM for all agents.
     """
@@ -51,7 +51,7 @@ async def main():
 
     # %pip install llama-index
 
-    sub_agent_llm = OllamaFunctionCallingAdapter(
+    sub_agent_llm = OllamaFunctionCalling(
         model="llama3.2", log_dir=f"{LOG_DIR}/chats")
 
     """
@@ -239,7 +239,7 @@ async def main():
         chat_history: list[ChatMessage]
 
     class PlannerWorkflow(Workflow):
-        llm: OllamaFunctionCallingAdapter = sub_agent_llm
+        llm: OllamaFunctionCalling = sub_agent_llm
         agents: dict[str, FunctionAgent] = {
             "ResearchAgent": research_agent,
             "WriteAgent": write_agent,

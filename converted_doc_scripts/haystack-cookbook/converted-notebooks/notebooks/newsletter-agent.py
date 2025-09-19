@@ -127,7 +127,7 @@ Our tool will expect the following inputs:
 logger.info("## Newsletter generation Pipeline and Tool")
 
 # if not "OPENAI_API_KEY" in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCallingAdapter API key: ")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key: ")
 
 template = [ChatMessage.from_user("""
 Create a entertaining newsletter for {{target_people}} based on the following articles.

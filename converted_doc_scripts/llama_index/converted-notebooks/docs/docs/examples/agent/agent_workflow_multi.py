@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import (
         AgentInput,
@@ -27,7 +27,7 @@ async def main():
 
     logger.info("# Multi-Agent Report Generation with AgentWorkflow")
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2", log_dir=f"{LOG_DIR}/chats")
 
     logger.info("## System Design")

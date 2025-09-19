@@ -1,7 +1,7 @@
 from jet.models.config import MODELS_CACHE_DIR
 from jet.transformers.formatters import format_json
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex
@@ -99,7 +99,7 @@ reference = paul_graham_rag_dataset[0].reference_answer
 
 You need to deploy the model on huggingface or can load it locally. Here we deployed it using HF Inference Endpoints.
 
-We will use OllamaFunctionCallingAdapter Embedding model and LLM for building Index, prometheus LLM for evaluation.
+We will use OllamaFunctionCalling Embedding model and LLM for building Index, prometheus LLM for evaluation.
 """
 logger.info("### Setup LLM and Embedding model.")
 
@@ -120,7 +120,7 @@ prometheus_llm = HuggingFaceInferenceAPI(
 
 
 
-Settings.llm = OllamaFunctionCallingAdapter()
+Settings.llm = OllamaFunctionCalling()
 Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 Settings.chunk_size = 512
 

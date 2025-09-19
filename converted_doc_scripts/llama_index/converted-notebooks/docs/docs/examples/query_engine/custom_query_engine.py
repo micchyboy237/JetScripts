@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
@@ -106,7 +106,7 @@ class RAGStringQueryEngine(CustomQueryEngine):
 
     retriever: BaseRetriever
     response_synthesizer: BaseSynthesizer
-    llm: OllamaFunctionCallingAdapter
+    llm: OllamaFunctionCalling
     qa_prompt: PromptTemplate
 
     def custom_query(self, query_str: str):
@@ -145,7 +145,7 @@ logger.debug(response.source_nodes[0].get_content())
 """
 logger.info("### Trying Option 2 (`RAGStringQueryEngine`)")
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 
 query_engine = RAGStringQueryEngine(

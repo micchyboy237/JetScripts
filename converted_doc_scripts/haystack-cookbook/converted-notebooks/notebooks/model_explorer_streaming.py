@@ -41,7 +41,7 @@ The other models use the [HuggingFaceAPIGenerator](https://docs.haystack.deepset
 
 ### Prerequisites
 
-- You need [HuggingFace](https://huggingface.co/docs/hub/security-tokens), [Cohere](https://docs.cohere.com/docs/connector-authentication), and [OllamaFunctionCallingAdapter](https://help.openai.com/en/articles/4936850-where-do-i-find-my-api-key) API keys. Save them as secrets in your Colab. Click on the key icon in the left menu or [see detailed instructions here](https://medium.com/@parthdasawant/how-to-use-secrets-in-google-colab-450c38e3ec75).
+- You need [HuggingFace](https://huggingface.co/docs/hub/security-tokens), [Cohere](https://docs.cohere.com/docs/connector-authentication), and [OllamaFunctionCalling](https://help.openai.com/en/articles/4936850-where-do-i-find-my-api-key) API keys. Save them as secrets in your Colab. Click on the key icon in the left menu or [see detailed instructions here](https://medium.com/@parthdasawant/how-to-use-secrets-in-google-colab-450c38e3ec75).
 - To use Mistral-7B-v0.1, you should also accept Mistral conditions here: https://huggingface.co/mistralai/Mistral-7B-v0.1
 """
 logger.info("## Streaming model explorer for Haystack")

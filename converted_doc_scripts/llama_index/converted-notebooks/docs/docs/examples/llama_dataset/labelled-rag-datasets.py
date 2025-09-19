@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex
 from llama_index.core.llama_dataset import (
@@ -142,7 +142,7 @@ The `RagDatasetGenerator` can be built over a set of documents to generate `Labe
 logger.info("The `RagDatasetGenerator` can be built over a set of documents to generate `LabelledRagDataExample`'s.")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 dataset_generator = RagDatasetGenerator.from_documents(
     documents,

@@ -1,6 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.search.adapters.custom_browser_tool_spec import CustomBrowserToolSpec
 from jet.search.adapters.searxng_llama_index_tool import SearXNGSearchToolSpec
 from jet.logger import CustomLogger
@@ -149,7 +149,7 @@ metadata_tool = FunctionTool.from_defaults(
 
 logger.info("Creating AgentWorkflow with imported tools.")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 workflow = AgentWorkflow.from_tools_or_functions(
     playwright_agent_tool_list

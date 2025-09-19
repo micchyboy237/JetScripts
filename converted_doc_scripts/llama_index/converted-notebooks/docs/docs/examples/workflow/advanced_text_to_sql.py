@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from IPython.display import display, HTML
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import PromptTemplate
     from llama_index.core import SQLDatabase, VectorStoreIndex
@@ -140,7 +140,7 @@ async def main():
         message_templates=[ChatMessage.from_str(prompt_str, role="user")]
     )
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     def _get_tableinfo_with_index(idx: int) -> str:
         results_gen = Path(tableinfo_dir).glob(f"{idx}_*")
@@ -319,7 +319,7 @@ async def main():
         response_synthesis_prompt_str,
     )
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     """
     ### Define Workflow

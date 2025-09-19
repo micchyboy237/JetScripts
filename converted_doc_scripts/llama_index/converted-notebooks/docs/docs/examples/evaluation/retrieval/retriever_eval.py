@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.evaluation import (
@@ -63,7 +63,7 @@ nodes = node_parser.get_nodes_from_documents(documents)
 for idx, node in enumerate(nodes):
     node.id_ = f"node_{idx}"
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 vector_index = VectorStoreIndex(nodes)
 retriever = vector_index.as_retriever(similarity_top_k=2)

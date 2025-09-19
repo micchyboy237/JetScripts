@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core.node_parser import SentenceSplitter
@@ -69,7 +69,7 @@ raptor_pack = RaptorPack(
     embed_model=HuggingFaceEmbedding(
         model="mxbai-embed-large"
     ),  # used for embedding clusters
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1),  # used for generating summaries
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1),  # used for generating summaries
     vector_store=vector_store,  # used for storage
     similarity_top_k=2,  # top k for each layer, or overall top-k for collapsed
     mode="collapsed",  # sets default mode
@@ -106,7 +106,7 @@ retriever = RaptorRetriever(
     embed_model=HuggingFaceEmbedding(
         model="mxbai-embed-large"
     ),  # used for embedding clusters
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1),  # used for generating summaries
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1),  # used for generating summaries
     vector_store=vector_store,  # used for storage
     similarity_top_k=2,  # top k for each layer, or overall top-k for collapsed
     mode="tree_traversal",  # sets default mode
@@ -120,7 +120,7 @@ logger.info("## Query Engine")
 
 
 query_engine = RetrieverQueryEngine.from_args(
-    retriever, llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
+    retriever, llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
 )
 
 response = query_engine.query("What baselines was RAPTOR compared against?")

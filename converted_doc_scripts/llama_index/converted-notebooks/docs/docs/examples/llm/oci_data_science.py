@@ -8,15 +8,15 @@ async def main():
     import ads
     import os
     import shutil
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/llm/oci_data_science.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -35,18 +35,18 @@ async def main():
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info("# Oracle Cloud Infrastructure Data Science")
-    
+
     # %pip install llama-index-llms-oci-data-science
-    
+
     # !pip install llama-index
-    
+
     """
     You will also need to install the [oracle-ads](https://accelerated-data-science.readthedocs.io/en/latest/index.html) SDK.
     """
     logger.info("You will also need to install the [oracle-ads](https://accelerated-data-science.readthedocs.io/en/latest/index.html) SDK.")
-    
+
     # !pip install -U oracle-ads
-    
+
     """
     ## Authentication
     The authentication methods supported for LlamaIndex are equivalent to those used with other OCI services and follow the standard SDK authentication methods, specifically API Key, session token, instance principal, and resource principal. More details can be found [here](https://accelerated-data-science.readthedocs.io/en/latest/user_guide/cli/authentication.html). Make sure to have the required [policies](https://docs.oracle.com/en-us/iaas/data-science/using/model-dep-policies-auth.htm) to access the OCI Data Science Model Deployment endpoint. The [oracle-ads](https://accelerated-data-science.readthedocs.io/en/latest/index.html) helps to simplify the authentication within OCI Data Science.
@@ -58,26 +58,26 @@ async def main():
     #### Call `complete` with a prompt
     """
     logger.info("## Authentication")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
     )
     response = llm.complete("Tell me a joke")
-    
+
     logger.debug(response)
-    
+
     """
     ### Call `chat` with a list of messages
     """
     logger.info("### Call `chat` with a list of messages")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
@@ -91,35 +91,35 @@ async def main():
             ChatMessage(role="user", content="I don't know, why?"),
         ]
     )
-    
+
     logger.debug(response)
-    
+
     """
     ## Streaming
     
     ### Using `stream_complete` endpoint
     """
     logger.info("## Streaming")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
     )
-    
+
     for chunk in llm.stream_complete("Tell me a joke"):
         logger.debug(chunk.delta, end="")
-    
+
     """
     ### Using `stream_chat` endpoint
     """
     logger.info("### Using `stream_chat` endpoint")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
@@ -133,37 +133,37 @@ async def main():
             ChatMessage(role="user", content="I don't know, why?"),
         ]
     )
-    
+
     for chunk in response:
         logger.debug(chunk.delta, end="")
-    
+
     """
     ## Async
     
     ### Call `acomplete` with a prompt
     """
     logger.info("## Async")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
     )
     response = llm.complete("Tell me a joke")
     logger.success(format_json(response))
-    
+
     logger.debug(response)
-    
+
     """
     ### Call `achat` with a list of messages
     """
     logger.info("### Call `achat` with a list of messages")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
@@ -178,33 +178,33 @@ async def main():
             ]
         )
     logger.success(format_json(response))
-    
+
     logger.debug(response)
-    
+
     """
     ### Using `astream_complete` endpoint
     """
     logger.info("### Using `astream_complete` endpoint")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
     )
-    
+
     for chunk in llm.stream_complete("Tell me a joke"):
         logger.debug(chunk.delta, end="")
-    
+
     """
     ### Using `astream_chat` endpoint
     """
     logger.info("### Using `astream_chat` endpoint")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
@@ -219,18 +219,18 @@ async def main():
             ]
         )
     logger.success(format_json(response))
-    
+
     async for chunk in response:
         logger.debug(chunk.delta, end="")
-    
+
     """
     ## Configure Model
     """
     logger.info("## Configure Model")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
@@ -250,17 +250,17 @@ async def main():
         ]
     )
     logger.debug(response)
-    
+
     """
     ## Function Calling
     
-    The [AI Quick Actions](https://docs.oracle.com/en-us/iaas/data-science/using/ai-quick-actions.htm) offers prebuilt service containers that make deploying and serving a large language model very easy. Either one of vLLM (a high-throughput and memory-efficient inference and serving engine for LLMs) or TGI (a high-performance text generation server for the popular open-source LLMs) is used in the service container to host the model, the end point created supports the OllamaFunctionCallingAdapter API protocol. This allows the model deployment to be used as a drop-in replacement for applications using OllamaFunctionCallingAdapter API. If the deployed model supports function calling, then integration with LlamaIndex tools, through the predict_and_call function on the llm allows to attach any tools and let the LLM decide which tools to call (if any).
+    The [AI Quick Actions](https://docs.oracle.com/en-us/iaas/data-science/using/ai-quick-actions.htm) offers prebuilt service containers that make deploying and serving a large language model very easy. Either one of vLLM (a high-throughput and memory-efficient inference and serving engine for LLMs) or TGI (a high-performance text generation server for the popular open-source LLMs) is used in the service container to host the model, the end point created supports the OllamaFunctionCalling API protocol. This allows the model deployment to be used as a drop-in replacement for applications using OllamaFunctionCalling API. If the deployed model supports function calling, then integration with LlamaIndex tools, through the predict_and_call function on the llm allows to attach any tools and let the LLM decide which tools to call (if any).
     """
     logger.info("## Function Calling")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
@@ -274,49 +274,49 @@ async def main():
             "top_logprobs": 3,
         },
     )
-    
-    
+
+
     def multiply(a: float, b: float) -> float:
         logger.debug(f"---> {a} * {b}")
         return a * b
-    
-    
+
+
     def add(a: float, b: float) -> float:
         logger.debug(f"---> {a} + {b}")
         return a + b
-    
-    
+
+
     def subtract(a: float, b: float) -> float:
         logger.debug(f"---> {a} - {b}")
         return a - b
-    
-    
+
+
     def divide(a: float, b: float) -> float:
         logger.debug(f"---> {a} / {b}")
         return a / b
-    
-    
+
+
     multiply_tool = FunctionTool.from_defaults(fn=multiply)
     add_tool = FunctionTool.from_defaults(fn=add)
     sub_tool = FunctionTool.from_defaults(fn=subtract)
     divide_tool = FunctionTool.from_defaults(fn=divide)
-    
+
     response = llm.predict_and_call(
         [multiply_tool, add_tool, sub_tool, divide_tool],
         user_msg="Calculate the result of `8 + 2 - 6`.",
         verbose=True,
     )
-    
+
     logger.debug(response)
-    
+
     """
     ### Using `FunctionAgent`
     """
     logger.info("### Using `FunctionAgent`")
-    
-    
+
+
     ads.set_auth(auth="security_token", profile="<replace-with-your-profile>")
-    
+
     llm = OCIDataScience(
         model="odsc-llm",
         endpoint="https://<MD_OCID>/predict",
@@ -330,33 +330,33 @@ async def main():
             "top_logprobs": 3,
         },
     )
-    
-    
+
+
     def multiply(a: float, b: float) -> float:
         logger.debug(f"---> {a} * {b}")
         return a * b
-    
-    
+
+
     def add(a: float, b: float) -> float:
         logger.debug(f"---> {a} + {b}")
         return a + b
-    
-    
+
+
     def subtract(a: float, b: float) -> float:
         logger.debug(f"---> {a} - {b}")
         return a - b
-    
-    
+
+
     def divide(a: float, b: float) -> float:
         logger.debug(f"---> {a} / {b}")
         return a / b
-    
-    
+
+
     multiply_tool = FunctionTool.from_defaults(fn=multiply)
     add_tool = FunctionTool.from_defaults(fn=add)
     sub_tool = FunctionTool.from_defaults(fn=subtract)
     divide_tool = FunctionTool.from_defaults(fn=divide)
-    
+
     agent = FunctionAgent(
         tools=[multiply_tool, add_tool, sub_tool, divide_tool],
         llm=llm,
@@ -365,9 +365,9 @@ async def main():
             "Calculate the result of `8 + 2 - 6`. Use tools. Return the calculated result."
         )
     logger.success(format_json(response))
-    
+
     logger.debug(response)
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

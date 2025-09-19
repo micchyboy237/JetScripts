@@ -68,7 +68,7 @@ except Exception as e:
     sys.exit(1)
 
 """
-For embedding generation, several provider options are available to users, including embedding generation within the database and third-party services such as OcigenAI, Hugging Face, and OllamaFunctionCallingAdapter. Users opting for third-party providers must establish credentials that include the requisite authentication information. Alternatively, if users select 'database' as their provider, they are required to load an ONNX model into the Oracle Database to facilitate embeddings.
+For embedding generation, several provider options are available to users, including embedding generation within the database and third-party services such as OcigenAI, Hugging Face, and OllamaFunctionCalling. Users opting for third-party providers must establish credentials that include the requisite authentication information. Alternatively, if users select 'database' as their provider, they are required to load an ONNX model into the Oracle Database to facilitate embeddings.
 
 ### Load ONNX Model
 

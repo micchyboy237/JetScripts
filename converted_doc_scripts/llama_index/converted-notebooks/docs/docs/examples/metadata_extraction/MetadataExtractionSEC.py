@@ -1,5 +1,5 @@
 from copy import deepcopy
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SimpleDirectoryReader
 from llama_index.core import VectorStoreIndex
@@ -61,7 +61,7 @@ logger.info(
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY_HERE"
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     temperature=0.1, model="llama3.2", request_timeout=300.0, context_window=4096, max_tokens=512)
 
 """
@@ -175,7 +175,7 @@ index_no_metadata = VectorStoreIndex(
     nodes=nodes_no_metadata,
 )
 engine_no_metadata = index_no_metadata.as_query_engine(
-    similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2")
+    similarity_top_k=10, llm=OllamaFunctionCalling(model="llama3.2")
 )
 
 final_engine_no_metadata = SubQuestionQueryEngine.from_defaults(
@@ -216,7 +216,7 @@ index = VectorStoreIndex(
     nodes=uber_nodes + lyft_nodes,
 )
 engine = index.as_query_engine(
-    similarity_top_k=10, llm=OllamaFunctionCallingAdapter(model="llama3.2"))
+    similarity_top_k=10, llm=OllamaFunctionCalling(model="llama3.2"))
 
 final_engine = SubQuestionQueryEngine.from_defaults(
     query_engine_tools=[

@@ -6,7 +6,7 @@ StorageContext,
 load_index_from_storage,
 ServiceContext,
 )
-from llama_index.llms import OllamaFunctionCallingAdapter
+from llama_index.llms import OllamaFunctionCalling
 from llama_index.query_engine import CitationQueryEngine
 from llama_index.response.notebook_utils import display_response
 import openai
@@ -31,7 +31,7 @@ s2reader = SemanticScholarReader()
 
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 service_context = ServiceContext.from_defaults(
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 )
 
 query_space = "large language models"

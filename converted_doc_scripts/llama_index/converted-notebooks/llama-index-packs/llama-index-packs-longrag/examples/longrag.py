@@ -1,5 +1,5 @@
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import StorageContext, load_index_from_storage
@@ -45,7 +45,7 @@ Below shows the usage of `LongRAGPack` using the `gpt-4o` LLM, which is able to 
 logger.info("## Usage")
 
 
-Settings.llm = OllamaFunctionCallingAdapter("gpt-4o")
+Settings.llm = OllamaFunctionCalling("gpt-4o")
 
 pack = LongRAGPack(
     data_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/temp")

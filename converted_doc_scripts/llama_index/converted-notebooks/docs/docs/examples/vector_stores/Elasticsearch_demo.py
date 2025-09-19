@@ -36,7 +36,7 @@ logger.info("# Elasticsearch")
 
 # import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCalling API Key:")
 
 """
 Download Data

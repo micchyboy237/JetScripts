@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings, VectorStoreIndex
 from llama_index.core.prompts import RichPromptTemplate
@@ -192,7 +192,7 @@ logger.info("Given this prompt template, lets define and index some few-shot tex
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCalling(model="llama3.2")
 Settings.embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 example_nodes = [

@@ -43,10 +43,10 @@ logger.info("# Azure CosmosDB MongoDB Vector Store")
 
 
 """
-### Setup Azure OllamaFunctionCallingAdapter
+### Setup Azure OllamaFunctionCalling
 The first step is to configure the models. They will be used to create embeddings for the documents loaded into the db and for llm completions.
 """
-logger.info("### Setup Azure OllamaFunctionCallingAdapter")
+logger.info("### Setup Azure OllamaFunctionCalling")
 
 
 llm = AzureOllamaFunctionCallingAdapter(

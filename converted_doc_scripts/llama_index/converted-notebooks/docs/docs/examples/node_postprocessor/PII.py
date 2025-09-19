@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document, VectorStoreIndex
 from llama_index.core.postprocessor import (
@@ -67,12 +67,12 @@ new_nodes[0].node.metadata["__pii_node_info__"]
 """
 ### Option 2: Use LLM for PII Masking
 
-NOTE: You should be using a *local* LLM model for PII masking. The example shown is using OllamaFunctionCallingAdapter, but normally you'd use an LLM running locally, possibly from huggingface. Examples for local LLMs are [here](https://gpt-index.readthedocs.io/en/latest/how_to/customization/custom_llms.html#example-using-a-huggingface-llm).
+NOTE: You should be using a *local* LLM model for PII masking. The example shown is using OllamaFunctionCalling, but normally you'd use an LLM running locally, possibly from huggingface. Examples for local LLMs are [here](https://gpt-index.readthedocs.io/en/latest/how_to/customization/custom_llms.html#example-using-a-huggingface-llm).
 """
 logger.info("### Option 2: Use LLM for PII Masking")
 
 
-processor = PIINodePostprocessor(llm=OllamaFunctionCallingAdapter())
+processor = PIINodePostprocessor(llm=OllamaFunctionCalling())
 
 
 new_nodes = processor.postprocess_nodes([NodeWithScore(node=node)])

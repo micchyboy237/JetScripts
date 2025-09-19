@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core import settings
@@ -112,7 +112,7 @@ embedding[:5]
 """
 ### Let's Build end to end RAG pipeline with Nomic v1.5 Embedding.
 
-We will use OllamaFunctionCallingAdapter for Generation step.
+We will use OllamaFunctionCalling for Generation step.
 
 #### Set Embedding model and llm.
 """
@@ -127,7 +127,7 @@ embed_model = NomicEmbedding(
     model_name="nomic-embed-text-v1.5",
 )
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 settings.llm = llm
 settings.embed_model = embed_model

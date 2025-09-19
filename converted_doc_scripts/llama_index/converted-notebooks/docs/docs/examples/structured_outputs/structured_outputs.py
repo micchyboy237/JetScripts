@@ -2,7 +2,7 @@ from jet.models.config import MODELS_CACHE_DIR
 from jet.transformers.formatters import format_json
 from IPython.display import clear_output
 from copy import deepcopy
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex
@@ -46,7 +46,7 @@ logger.info("# Examples of Structured Data Extraction in LlamaIndex")
 # nest_asyncio.apply()
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
@@ -146,7 +146,7 @@ chat_prompt_tmpl = ChatPromptTemplate(
     ]
 )
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 album = llm.structured_predict(
     Album, chat_prompt_tmpl, movie_name="Lord of the Rings"

@@ -59,12 +59,12 @@ To follow every step of this tutorial, launch the image as follows:
 docker run -d -p 6379:6379 --name dragonfly docker.dragonflydb.io/dragonflydb/dragonfly
 ```
 
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 Lets first begin by adding the openai api key. This will allow us to access openai for embeddings and to use chatgpt.
 """
 logger.info("### Start Dragonfly")
 
-# oai_api_key = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# oai_api_key = getpass.getpass("OllamaFunctionCalling API Key:")
 # os.environ["OPENAI_API_KEY"] = oai_api_key
 
 """
@@ -112,7 +112,7 @@ index = VectorStoreIndex.from_documents(
 
 Now that we have our data stored in the index, we can ask questions against the index.
 
-The index will use the data as the knowledge base for an LLM. The default setting for as_query_engine() utilizes OllamaFunctionCallingAdapter embeddings and GPT as the language model. Therefore, an OllamaFunctionCallingAdapter key is required unless you opt for a customized or local language model.
+The index will use the data as the knowledge base for an LLM. The default setting for as_query_engine() utilizes OllamaFunctionCalling embeddings and GPT as the language model. Therefore, an OllamaFunctionCalling key is required unless you opt for a customized or local language model.
 
 Below we will test searches against out index and then full RAG with an LLM.
 """

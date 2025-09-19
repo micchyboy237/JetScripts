@@ -1,6 +1,6 @@
 from jet.models.config import MODELS_CACHE_DIR
 from IPython.display import Markdown, display
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import (
     VectorStoreIndex,
@@ -45,7 +45,7 @@ logger.info("# Neo4j Graph Store")
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+llm = OllamaFunctionCalling(temperature=0, model="llama3.2")
 Settings.llm = llm
 Settings.chunk_size = 512
 

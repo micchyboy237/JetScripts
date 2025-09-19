@@ -60,7 +60,7 @@ logger.info("And configure the required environment variables:")
 
 # if "OPENAI_API_KEY" not in os.environ:
 #     os.environ["OPENAI_API_KEY"] = getpass.getpass(
-        "Enter your OllamaFunctionCallingAdapter API key: "
+        "Enter your OllamaFunctionCalling API key: "
     )
 
 """

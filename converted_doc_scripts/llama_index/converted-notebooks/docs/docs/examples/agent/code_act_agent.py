@@ -1,6 +1,6 @@
 import asyncio
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from jet.models.config import MODELS_CACHE_DIR
 from llama_index.core.llms import ChatMessage
@@ -251,7 +251,7 @@ class CodeActAgent(Workflow):
         self.code_execute_fn = code_execute_fn
         # Ensure llm is an instance of LLM or initialize a default
         if llm is None:
-            self.llm = OllamaFunctionCallingAdapter(
+            self.llm = OllamaFunctionCalling(
                 model="llama3.2", log_dir=f"{LOG_DIR}/chats"
             )
         elif not isinstance(llm, LLM):
@@ -355,7 +355,7 @@ async def main():
     agent = CodeActAgent(
         fns=[add, subtract, multiply, divide],
         code_execute_fn=code_executor.execute,
-        llm=OllamaFunctionCallingAdapter(
+        llm=OllamaFunctionCalling(
             model="llama3.2", log_dir=f"{LOG_DIR}/chats"),
     )
 

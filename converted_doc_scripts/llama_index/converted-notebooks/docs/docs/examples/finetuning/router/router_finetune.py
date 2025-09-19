@@ -1,5 +1,5 @@
 from collections import defaultdict
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import SimpleDirectoryReader
@@ -112,7 +112,7 @@ for wiki_title in wiki_titles:
     ).load_data()
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.3)
 
 city_descs_dict = {}
@@ -140,7 +140,7 @@ for idx, wiki_title in enumerate(wiki_titles):
     choice_to_id_dict[idx * 2 + 1] = f"{wiki_title}_summary"
 
 
-llm = OllamaFunctionCallingAdapter(model_name="gpt-3.5-turbo")
+llm = OllamaFunctionCalling(model_name="gpt-3.5-turbo")
 
 summary_q_tmpl = """\
 You are a summary question generator. Given an existing question which asks for a summary of a given topic, \
@@ -329,7 +329,7 @@ base_matches = run_evals(
 np.mean(base_matches)
 
 
-eval_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+eval_llm = OllamaFunctionCalling(model="llama3.2")
 
 llm_selector = LLMSingleSelector.from_defaults(
     llm=eval_llm,

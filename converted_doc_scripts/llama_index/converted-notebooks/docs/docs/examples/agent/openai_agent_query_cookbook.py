@@ -1,7 +1,7 @@
 async def main():
     from jet.models.config import MODELS_CACHE_DIR
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SQLDatabase
     from llama_index.core import Settings
@@ -67,7 +67,7 @@ async def main():
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/agent/openai_agent_query_cookbook.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
-    # OllamaFunctionCallingAdapter Agent + Query Engine Experimental Cookbook
+    # OllamaFunctionCalling Agent + Query Engine Experimental Cookbook
     
     
     In this notebook, we try out the FunctionAgent across a variety of query engine tools and datasets. We explore how FunctionAgent can compare/replace existing workflows solved by our retrievers/query engines.
@@ -84,12 +84,12 @@ async def main():
     
     Our existing "auto-retrieval" capabilities (in `VectorIndexAutoRetriever`) allow an LLM to infer the right query parameters for a vector database - including both the query string and metadata filter.
     
-    Since the OllamaFunctionCallingAdapter Function API can infer function parameters, we explore its capabilities in performing auto-retrieval here.
+    Since the OllamaFunctionCalling Function API can infer function parameters, we explore its capabilities in performing auto-retrieval here.
     
     If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
     """
     logger.info(
-        "# OllamaFunctionCallingAdapter Agent + Query Engine Experimental Cookbook")
+        "# OllamaFunctionCalling Agent + Query Engine Experimental Cookbook")
 
     # %pip install llama-index
     # %pip install llama-index-llms-ollama
@@ -99,7 +99,7 @@ async def main():
     os.environ["PINECONE_API_KEY"] = "..."
     # os.environ["OPENAI_API_KEY"] = "..."
 
-    Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    Settings.llm = OllamaFunctionCalling(model="llama3.2")
     Settings.embed_model = HuggingFaceEmbedding(
         model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
@@ -193,9 +193,9 @@ async def main():
     """
     #### Define Function Tool
     
-    Here we define the function interface, which is passed to OllamaFunctionCallingAdapter to perform auto-retrieval.
+    Here we define the function interface, which is passed to OllamaFunctionCalling to perform auto-retrieval.
     
-    We were not able to get OllamaFunctionCallingAdapter to work with nested pydantic objects or tuples as arguments,
+    We were not able to get OllamaFunctionCalling to work with nested pydantic objects or tuples as arguments,
     so we converted the metadata filter keys and values into lists for the function API to work with.
     """
     logger.info("#### Define Function Tool")
@@ -306,7 +306,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=[auto_retrieve_tool],
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
         system_prompt=(
             "You are a helpful assistant that can answer questions about celebrities by writing a filtered query to a vector database. "
             "Unless the user is asking to compare things, you generally only need to make one call to the retriever."
@@ -433,7 +433,7 @@ async def main():
 
     index.delete(deleteAll=True)
 
-    Settings.llm = OllamaFunctionCallingAdapter(
+    Settings.llm = OllamaFunctionCalling(
         temperature=0, model="llama3.2")
     Settings.embed_model = HuggingFaceEmbedding(
         model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
@@ -497,7 +497,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=[sql_tool, vector_tool],
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     ctx = Context(agent)

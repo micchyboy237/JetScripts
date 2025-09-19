@@ -2,7 +2,7 @@ import asyncio
 import os
 import shutil
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.agent.workflow import FunctionAgent
 from llama_index.core.tools import FunctionTool
@@ -29,7 +29,7 @@ async def main():
         result: int = Field(description="Result of the operation")
 
     logger.info("And a very simple calculator agent")
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     # Define tools as FunctionTool instances
     def add(x: int, y: int) -> int:

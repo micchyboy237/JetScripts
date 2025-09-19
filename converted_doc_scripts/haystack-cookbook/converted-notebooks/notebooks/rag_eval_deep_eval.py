@@ -37,14 +37,14 @@ This notebook shows how to use [DeepEval-Haystack](https://haystack.deepset.ai/i
 
 ## Prerequisites:
 
-- [OllamaFunctionCallingAdapter](https://openai.com/) key
-    - **DeepEval** uses  for computing some metrics, so we need an OllamaFunctionCallingAdapter key.
+- [OllamaFunctionCalling](https://openai.com/) key
+    - **DeepEval** uses  for computing some metrics, so we need an OllamaFunctionCalling key.
 """
 logger.info("# RAG pipeline evaluation using DeepEval")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ## Install dependencies

@@ -50,7 +50,7 @@ This tutorial demonstrates the callback handler's use for both in-notebook exper
 
 ℹ️ If you find that your particular query engine or use-case is not supported, open an issue on [GitHub](https://github.com/Arize-ai/open-inference-spec/issues).
 
-## Configue OllamaFunctionCallingAdapter API key
+## Configue OllamaFunctionCalling API key
 """
 logger.info("# OpenInference Callback Handler + Arize Phoenix")
 
@@ -58,13 +58,13 @@ logger.info("# OpenInference Callback Handler + Arize Phoenix")
 
 # if os.getenv("OPENAI_API_KEY") is None:
 #     os.environ["OPENAI_API_KEY"] = getpass(
-        "Paste your OllamaFunctionCallingAdapter key from:"
+        "Paste your OllamaFunctionCalling key from:"
         " https://platform.openai.com/account/api-keys\n"
     )
 # assert os.getenv("OPENAI_API_KEY", "").startswith(
     "sk-"
-), "This doesn't look like a valid OllamaFunctionCallingAdapter API key"
-logger.debug("OllamaFunctionCallingAdapter API key configured")
+), "This doesn't look like a valid OllamaFunctionCalling API key"
+logger.debug("OllamaFunctionCalling API key configured")
 
 """
 ## Install Dependencies and Import Libraries

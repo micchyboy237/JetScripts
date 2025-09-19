@@ -1,6 +1,6 @@
 from IPython.display import Markdown, display
 from PIL import Image
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
 from llama_index.core.response.notebook_utils import display_source_node
@@ -212,7 +212,7 @@ documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Project
 logger.info("#### Build index")
 
 your_openai_key = "YOUR_OPENAI_KEY"
-llm = OllamaFunctionCallingAdapter(api_key=your_openai_key)
+llm = OllamaFunctionCalling(api_key=your_openai_key)
 embed_model = JinaEmbedding(
     api_key=jinaai_api_key,
     model="jina-embeddings-v3",

@@ -111,7 +111,7 @@ If we navigate to our Azure Table Storage, we should now be able to see our docu
 
 # Define our models
 
-In staying with the Azure theme, let's define our Azure OllamaFunctionCallingAdapter embedding and LLM models.
+In staying with the Azure theme, let's define our Azure OllamaFunctionCalling embedding and LLM models.
 """
 logger.info("# Define our models")
 

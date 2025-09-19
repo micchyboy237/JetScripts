@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SQLDatabase
 from llama_index.core import Settings
@@ -204,7 +204,7 @@ vector_auto_retriever = VectorIndexAutoRetriever(
 )
 
 retriever_query_engine = RetrieverQueryEngine.from_args(
-    vector_auto_retriever, llm=OllamaFunctionCallingAdapter(model="llama3.2")
+    vector_auto_retriever, llm=OllamaFunctionCalling(model="llama3.2")
 )
 
 
@@ -230,7 +230,7 @@ logger.info("### Define SQLAutoVectorQueryEngine")
 
 
 query_engine = SQLAutoVectorQueryEngine(
-    sql_tool, vector_tool, llm=OllamaFunctionCallingAdapter(model="llama3.2")
+    sql_tool, vector_tool, llm=OllamaFunctionCalling(model="llama3.2")
 )
 
 response = query_engine.query(

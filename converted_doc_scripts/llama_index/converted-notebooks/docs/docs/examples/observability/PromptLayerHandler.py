@@ -17,7 +17,7 @@ logger.info(f"Logs: {log_file}")
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/observability/LlamaDebugHandler.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 # PromptLayer Handler
-[PromptLayer](https://promptlayer.com) is an LLMOps tool to help manage prompts, check out the [features](https://docs.promptlayer.com/introduction). Currently we only support OllamaFunctionCallingAdapter for this integration.
+[PromptLayer](https://promptlayer.com) is an LLMOps tool to help manage prompts, check out the [features](https://docs.promptlayer.com/introduction). Currently we only support OllamaFunctionCalling for this integration.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙 and PromptLayer.
 """

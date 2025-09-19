@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter as OpenAiLlm
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling as OpenAiLlm
 from jet.logger import CustomLogger
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.memory import ChatSummaryMemoryBuffer

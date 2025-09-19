@@ -1,6 +1,6 @@
 from jet.models.config import MODELS_CACHE_DIR
 from fastembed import SparseTextEmbedding
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Document
 from llama_index.core import VectorStoreIndex
@@ -160,7 +160,7 @@ logger.info("## Test out the Index")
 
 chat_engine = index.as_chat_engine(
     chat_mode="condense_plus_context",
-    llm=OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="sk-proj-..."),
+    llm=OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, api_key="sk-proj-..."),
 )
 
 response = chat_engine.chat("What training hardware was used for Llama2?")

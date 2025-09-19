@@ -76,9 +76,9 @@ NER_PROMPT = """
     """
 
 """
-Let's initialise an instance of the `LLMMetadataExtractor` using OllamaFunctionCallingAdapter as the LLM provider and the prompt defined above to perform metadata extraction
+Let's initialise an instance of the `LLMMetadataExtractor` using OllamaFunctionCalling as the LLM provider and the prompt defined above to perform metadata extraction
 """
-logger.info("Let's initialise an instance of the `LLMMetadataExtractor` using OllamaFunctionCallingAdapter as the LLM provider and the prompt defined above to perform metadata extraction")
+logger.info("Let's initialise an instance of the `LLMMetadataExtractor` using OllamaFunctionCalling as the LLM provider and the prompt defined above to perform metadata extraction")
 
 
 """
@@ -89,14 +89,14 @@ logger.info("Let's initialise an instance of the `LLMMetadataExtractor` using Ol
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+#   os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
-We will instatiate a `LLMMetadataExtractor` instance using the OllamaFunctionCallingAdapter as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".
+We will instatiate a `LLMMetadataExtractor` instance using the OllamaFunctionCalling as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".
 
 Another important aspect is the `raise_on_failure=False`, if for some document the LLM fails (e.g.: network error, or doesn't return a valid JSON object) we continue the processing of all the documents in the input.
 """
-logger.info("We will instatiate a `LLMMetadataExtractor` instance using the OllamaFunctionCallingAdapter as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".")
+logger.info("We will instatiate a `LLMMetadataExtractor` instance using the OllamaFunctionCalling as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".")
 
 
 chat_generator = OllamaFunctionCallingAdapterChatGenerator(

@@ -22,7 +22,7 @@ from llama_index.core.tools import FunctionTool, QueryEngineTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.readers.file import UnstructuredReader
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.models.config import MODELS_CACHE_DIR
 from jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter import CrossEncoderRerank
 from jet.logger import CustomLogger
@@ -44,7 +44,7 @@ Settings.embed_model = HuggingFaceEmbedding(
     model_name=model_name,
     cache_folder=MODELS_CACHE_DIR,
 )
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCalling(model="llama3.2")
 logger.info("Initialized embedding model and LLM")
 
 """
@@ -149,7 +149,7 @@ async def build_agent_per_doc(nodes: List, file_base: str) -> Tuple[FunctionAgen
             description="Useful for summarization questions",
         ),
     ]
-    function_llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    function_llm = OllamaFunctionCalling(model="llama3.2")
     agent = FunctionAgent(
         tools=query_engine_tools,
         llm=function_llm,
@@ -199,7 +199,7 @@ class CustomObjectRetriever(ObjectRetriever):
     def __init__(self, retriever, object_node_mapping, node_postprocessors=None, llm=None):
         self._retriever = retriever
         self._object_node_mapping = object_node_mapping
-        self._llm = llm or OllamaFunctionCallingAdapter(model="llama3.2")
+        self._llm = llm or OllamaFunctionCalling(model="llama3.2")
         self._node_postprocessors = node_postprocessors or []
 
     def retrieve(self, query_bundle: str | QueryBundle) -> List:

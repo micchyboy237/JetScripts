@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader
@@ -57,7 +57,7 @@ logger.info("## Get started in 5 lines of code")
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 data = SimpleDirectoryReader(
     input_dir="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()
 index = VectorStoreIndex.from_documents(data)
@@ -121,7 +121,7 @@ logger.debug(response)
 logger.info("## Streaming Support")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 Settings.llm = llm
 data = SimpleDirectoryReader(

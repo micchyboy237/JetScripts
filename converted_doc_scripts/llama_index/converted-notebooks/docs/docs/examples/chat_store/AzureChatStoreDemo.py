@@ -48,7 +48,7 @@ logging.getLogger("azure.core.pipeline.policies.http_logging_policy").setLevel(
 """
 # Define our models
 
-In staying with the Azure theme, let's define our Azure OllamaFunctionCallingAdapter embedding and LLM models.
+In staying with the Azure theme, let's define our Azure OllamaFunctionCalling embedding and LLM models.
 """
 logger.info("# Define our models")
 

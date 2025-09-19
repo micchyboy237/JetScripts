@@ -1,10 +1,10 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index import SimpleDirectoryReader, VectorStoreIndex
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.core.workflow import Context
-    from llama_index.llms import OllamaFunctionCallingAdapter
+    from llama_index.llms import OllamaFunctionCalling
     from llama_index.tools import QueryEngineTool, ToolMetadata
     from llama_index.tools.text_to_image.base import TextToImageToolSpec
     import os
@@ -44,7 +44,7 @@ async def main():
         ),
     )
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     text_to_image_spec = TextToImageToolSpec()
     tools = text_to_image_spec.to_tool_list()

@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import (
 Settings,
@@ -49,13 +49,13 @@ In this tutorial, you will:
 - Inspect the traces and spans of your application to identify sources of latency and cost,
 - Export your trace data as a pandas dataframe and run an [LLM Evals](https://docs.arize.com/phoenix/concepts/llm-evals).
 
-ℹ️ This notebook requires an OllamaFunctionCallingAdapter API key.
+ℹ️ This notebook requires an OllamaFunctionCalling API key.
 
 [Observability Documentation](https://docs.llamaindex.ai/en/stable/module_guides/observability/)
 
 ## 1. Install Dependencies and Import Libraries
 
-Install Phoenix, LlamaIndex, and OllamaFunctionCallingAdapter.
+Install Phoenix, LlamaIndex, and OllamaFunctionCalling.
 """
 logger.info("# Observability with Arize Phoenix - Tracing and Evaluating a LlamaIndex Application")
 
@@ -83,11 +83,11 @@ logger.info("## 2. Launch Phoenix")
 session = px.launch_app()
 
 """
-## 3. Configure Your OllamaFunctionCallingAdapter API Key
+## 3. Configure Your OllamaFunctionCalling API Key
 
-Set your OllamaFunctionCallingAdapter API key if it is not already set as an environment variable.
+Set your OllamaFunctionCalling API key if it is not already set as an environment variable.
 """
-logger.info("## 3. Configure Your OllamaFunctionCallingAdapter API Key")
+logger.info("## 3. Configure Your OllamaFunctionCalling API Key")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -138,7 +138,7 @@ set_global_handler("arize_phoenix")
 logger.info("### Setup LLM and Embedding Model")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.2)
 embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
 Settings.llm = llm

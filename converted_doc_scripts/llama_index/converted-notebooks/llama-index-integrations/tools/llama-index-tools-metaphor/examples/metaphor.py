@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
     from llama_index.tools.metaphor.base import MetaphorToolSpec
@@ -19,7 +19,7 @@ async def main():
     
     This tutorial walks through using the LLM tools provided by the [Metaphor API](https://platform.metaphor.systems/) to allow LLMs to easily search and retrieve HTML content from the Internet.
     
-    To get started, you will need an [OllamaFunctionCallingAdapter api key](https://platform.openai.com/account/api-keys) and a [Metaphor API key](https://dashboard.metaphor.systems/overview)
+    To get started, you will need an [OllamaFunctionCalling api key](https://platform.openai.com/account/api-keys) and a [Metaphor API key](https://dashboard.metaphor.systems/overview)
     
     We will import the relevant agents and tools and pass them our keys here:
     """
@@ -38,7 +38,7 @@ async def main():
     """
     ## Testing the Metaphor tools
     
-    We've imported our OllamaFunctionCallingAdapter agent, set up the api key, and initialized our tool, checking the methods that it has available. Let's test out the tool before setting up our Agent.
+    We've imported our OllamaFunctionCalling agent, set up the api key, and initialized our tool, checking the methods that it has available. Let's test out the tool before setting up our Agent.
     
     All of the Metaphor search tools make use of the `AutoPrompt` option where Metaphor will pass the query through an LLM to refine and improve it.
     """
@@ -67,7 +67,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=metaphor_tool_list,
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     ctx = Context(agent)
@@ -109,7 +109,7 @@ async def main():
 
     agent = FunctionAgent(
         tools=[*wrapped_retrieve.to_tool_list(), metaphor_tool_list[4]],
-        llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     logger.debug(

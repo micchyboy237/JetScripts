@@ -29,7 +29,7 @@ logger.info(f"Logs: {log_file}")
 
 Qdrant supports hybrid search by combining search results from `sparse` and `dense` vectors.
 
-`dense` vectors are the ones you have probably already been using -- embedding models from OllamaFunctionCallingAdapter, BGE, SentenceTransformers, etc. are typically `dense` embedding models. They create a numerical representation of a piece of text, represented as a long list of numbers. These `dense` vectors can capture rich semantics across the entire piece of text.
+`dense` vectors are the ones you have probably already been using -- embedding models from OllamaFunctionCalling, BGE, SentenceTransformers, etc. are typically `dense` embedding models. They create a numerical representation of a piece of text, represented as a long list of numbers. These `dense` vectors can capture rich semantics across the entire piece of text.
 
 `sparse` vectors are slightly different. They use a specialized approach or model (TF-IDF, BM25, SPLADE, etc.) for generating vectors. These vectors are typically mostly zeros, making them `sparse` vectors. These `sparse` vectors are great at capturing specific keywords and similar small details.
 
@@ -60,7 +60,7 @@ Now, we can index our data.
 
 Hybrid search with Qdrant must be enabled from the beginning -- we can simply set `enable_hybrid=True`.
 
-This will run sparse vector generation locally using the `"prithvida/Splade_PP_en_v1"` using fastembed, in addition to generating dense vectors with OllamaFunctionCallingAdapter.
+This will run sparse vector generation locally using the `"prithvida/Splade_PP_en_v1"` using fastembed, in addition to generating dense vectors with OllamaFunctionCalling.
 """
 logger.info("## Indexing Data")
 

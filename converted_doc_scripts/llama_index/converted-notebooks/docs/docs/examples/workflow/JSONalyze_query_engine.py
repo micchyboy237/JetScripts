@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from IPython.display import Markdown, display
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.base.response.schema import Response
     from llama_index.core.indices.struct_store.sql_retriever import (
@@ -442,7 +442,7 @@ async def main():
     """
     logger.info("## Define LLM")
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     """
     ### Run the Workflow!

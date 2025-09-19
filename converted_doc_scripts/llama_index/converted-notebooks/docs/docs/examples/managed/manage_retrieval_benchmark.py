@@ -2,7 +2,7 @@ from google.ai.generativelanguage import (
     GenerateAnswerRequest,
 )
 from google.oauth2 import service_account
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -313,7 +313,7 @@ logger.debug(response.response)
 * The results are mostly partly correct without reranker.
 * After applying either `Gemini as LLM` or `SBERT as cross-encoder` reranker, the results are more comprehensive and accurate.
 
-## LlamaIndex Default Baseline with OllamaFunctionCallingAdapter embedding and GPT as LLM for Synthesizer
+## LlamaIndex Default Baseline with OllamaFunctionCalling embedding and GPT as LLM for Synthesizer
 """
 logger.info("### `Observation` for `Google Semantic Retrieval`")
 
@@ -449,7 +449,7 @@ sys.path.insert(0, "ColBERT/")
 logger.info("### Build ColBERT-V2 end-to-end Index")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+Settings.llm = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 documents = SimpleDirectoryReader(
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data/").load_data()

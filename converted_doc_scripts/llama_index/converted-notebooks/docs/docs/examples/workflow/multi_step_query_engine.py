@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from IPython.display import Markdown, display
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import Settings
     from llama_index.core import SimpleDirectoryReader
@@ -255,7 +255,7 @@ async def main():
     """
     logger.info("## Setup LLM")
 
-    llm = OllamaFunctionCallingAdapter(
+    llm = OllamaFunctionCalling(
         model="llama3.2", log_dir=f"{LOG_DIR}/chats")
 
     Settings.llm = llm

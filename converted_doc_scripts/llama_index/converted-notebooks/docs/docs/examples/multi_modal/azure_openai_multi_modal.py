@@ -24,11 +24,11 @@ logger.info(f"Logs: {log_file}")
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/azure_openai_multi_modal.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
-# Multi-Modal LLM using Azure OllamaFunctionCallingAdapter GPT-4o mini for image reasoning
+# Multi-Modal LLM using Azure OllamaFunctionCalling GPT-4o mini for image reasoning
 
-In this notebook, we show how to use GPT-4o mini with the **Azure** OllamaFunctionCallingAdapter LLM class/abstraction for image understanding/reasoning. For a more complete example, please visit [this notebook](https://github.com/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/openai_multi_modal.ipynb).
+In this notebook, we show how to use GPT-4o mini with the **Azure** OllamaFunctionCalling LLM class/abstraction for image understanding/reasoning. For a more complete example, please visit [this notebook](https://github.com/run-llama/llama_index/blob/main/docs/docs/examples/multi_modal/openai_multi_modal.ipynb).
 """
-logger.info("# Multi-Modal LLM using Azure OllamaFunctionCallingAdapter GPT-4o mini for image reasoning")
+logger.info("# Multi-Modal LLM using Azure OllamaFunctionCalling GPT-4o mini for image reasoning")
 
 # %pip install llama-index-llms-azure-openai
 
@@ -36,9 +36,9 @@ logger.info("# Multi-Modal LLM using Azure OllamaFunctionCallingAdapter GPT-4o m
 ## Prerequisites
 
 1. Setup an Azure subscription - you can create one for free [here](https://azure.microsoft.com/en-us/free/cognitive-services/)
-2. Apply for access to Azure OllamaFunctionCallingAdapter Service [here](https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xUOFA5Qk1UWDRBMjg0WFhPMkIzTzhKQ1dWNyQlQCN0PWcu) 
+2. Apply for access to Azure OllamaFunctionCalling Service [here](https://customervoice.microsoft.com/Pages/ResponsePage.aspx?id=v4j5cvGGr0GRqy180BHbR7en2Ais5pxKtso_Pz4b1_xUOFA5Qk1UWDRBMjg0WFhPMkIzTzhKQ1dWNyQlQCN0PWcu) 
 3. Create a resource in the Azure portal [here](https://portal.azure.com/?microsoft_azure_marketplace_ItemHideKey=microsoft_openai_tip#create/Microsoft.CognitiveServicesOllamaFunctionCallingAdapter)
-4. Deploy a model in Azure OllamaFunctionCallingAdapter Studio [here](https://oai.azure.com/)
+4. Deploy a model in Azure OllamaFunctionCalling Studio [here](https://oai.azure.com/)
 
 
 You can find more details in [this guide.](https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/create-resource?pivots=web-portal)
@@ -57,8 +57,8 @@ os.environ["OPENAI_API_VERSION"] = "2024-02-15-preview"
 """
 ## Initialize `AzureOllamaFunctionCallingAdapter` and Load Images from URLs
 
-Unlike regular `OllamaFunctionCallingAdapter`, you need to pass the `engine` argument in addition to `model`. The `engine` is the name you 
-gave to your model when you deployed it in Azure OllamaFunctionCallingAdapter Studio.
+Unlike regular `OllamaFunctionCalling`, you need to pass the `engine` argument in addition to `model`. The `engine` is the name you 
+gave to your model when you deployed it in Azure OllamaFunctionCalling Studio.
 """
 logger.info("## Initialize `AzureOllamaFunctionCallingAdapter` and Load Images from URLs")
 

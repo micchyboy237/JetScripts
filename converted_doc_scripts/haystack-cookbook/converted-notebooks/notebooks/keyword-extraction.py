@@ -28,7 +28,7 @@ This notebook demonstrates how to extract keywords and key phrases from text usi
 
 - Parse and display the results as JSON.
 
-### Install packages and setup OllamaFunctionCallingAdapter API key
+### Install packages and setup OllamaFunctionCalling API key
 """
 logger.info("# Keyword Extraction with LLM Chat Generator")
 
@@ -37,7 +37,7 @@ logger.info("# Keyword Extraction with LLM Chat Generator")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCallingAdapter API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
 
 """
 ### Import Required Libraries

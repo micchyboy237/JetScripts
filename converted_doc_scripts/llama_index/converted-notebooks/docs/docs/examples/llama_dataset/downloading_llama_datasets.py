@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import VectorStoreIndex
     from llama_index.core.evaluation import (
@@ -94,15 +94,15 @@ async def main():
     judges = {}
 
     judges["correctness"] = CorrectnessEvaluator(
-        llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
+        llm=OllamaFunctionCalling(temperature=0, model="llama3.2"),
     )
 
     judges["relevancy"] = RelevancyEvaluator(
-        llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
+        llm=OllamaFunctionCalling(temperature=0, model="llama3.2"),
     )
 
     judges["faithfulness"] = FaithfulnessEvaluator(
-        llm=OllamaFunctionCallingAdapter(temperature=0, model="llama3.2"),
+        llm=OllamaFunctionCalling(temperature=0, model="llama3.2"),
     )
 
     judges["semantic_similarity"] = SemanticSimilarityEvaluator()

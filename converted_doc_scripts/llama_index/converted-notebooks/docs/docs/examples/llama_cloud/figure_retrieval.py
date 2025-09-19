@@ -43,7 +43,7 @@ embedding_config = {
     "type": "OPENAI_EMBEDDING",
     "component": {
         "api_key": openai_api_key,
-        "model_name": "text-embedding-ada-002",  # You can choose any OllamaFunctionCallingAdapter Embedding model
+        "model_name": "text-embedding-ada-002",  # You can choose any OllamaFunctionCalling Embedding model
     },
 }
 

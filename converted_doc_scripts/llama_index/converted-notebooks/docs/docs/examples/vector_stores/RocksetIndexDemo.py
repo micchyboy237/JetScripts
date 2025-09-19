@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import SimpleDirectoryReader
@@ -34,7 +34,7 @@ By integrating Rockset with LlamaIndex, you can easily use LLMs on your own real
 We'll walk through a demonstration of how to use Rockset as a vector store in LlamaIndex. 
 
 ## Tutorial
-In this example, we'll use OllamaFunctionCallingAdapter's `text-embedding-ada-002` model to generate embeddings and Rockset as vector store to store embeddings.
+In this example, we'll use OllamaFunctionCalling's `text-embedding-ada-002` model to generate embeddings and Rockset as vector store to store embeddings.
 We'll ingest text from a file and ask questions about the content.
 
 ### Setting Up Your Environment
@@ -83,7 +83,7 @@ Instantiate the LLM and service context.
 logger.info("Instantiate the LLM and service context.")
 
 
-Settings.llm = OllamaFunctionCallingAdapter(temperature=0.8, model="llama3.2")
+Settings.llm = OllamaFunctionCalling(temperature=0.8, model="llama3.2")
 
 """
 Instantiate the vector store and storage context.

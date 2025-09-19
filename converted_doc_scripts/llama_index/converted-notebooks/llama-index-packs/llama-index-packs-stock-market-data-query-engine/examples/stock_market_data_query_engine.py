@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.llama_pack import download_llama_pack
 import os
@@ -33,7 +33,7 @@ StockMarketDataQueryEnginePack = download_llama_pack(
 logger.info("#### Initialize Pack")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 stock_market_data_pack = StockMarketDataQueryEnginePack(
     ["MSFT", "AAPL", "GOOG", "AMZN", "NVDA", "META", "TSLA", "CRM", "AMD", "INTC"],

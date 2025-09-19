@@ -93,11 +93,11 @@ vector_store = NileVectorStore(
 )
 
 """
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 
 You can set it in an .env file, or in Python directly
 """
-logger.info("### Setup OllamaFunctionCallingAdapter")
+logger.info("### Setup OllamaFunctionCalling")
 
 # %env OPENAI_API_KEY=sk-...
 

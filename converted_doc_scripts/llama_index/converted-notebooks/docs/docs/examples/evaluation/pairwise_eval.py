@@ -1,5 +1,5 @@
 from jet.transformers.formatters import format_json
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Response
 from llama_index.core.evaluation import PairwiseComparisonEvaluator
@@ -43,7 +43,7 @@ Using GPT-4 here for evaluation
 """
 logger.info("Using GPT-4 here for evaluation")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 evaluator_gpt4 = PairwiseComparisonEvaluator(llm=gpt4)
 

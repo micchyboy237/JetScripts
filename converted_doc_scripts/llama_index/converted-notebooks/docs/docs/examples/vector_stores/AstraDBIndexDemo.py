@@ -53,7 +53,7 @@ api_endpoint = input(
 )
 
 # os.environ["OPENAI_API_KEY"] = getpass.getpass(
-    "\nPlease enter your OllamaFunctionCallingAdapter API Key (e.g. 'sk-...'):"
+    "\nPlease enter your OllamaFunctionCalling API Key (e.g. 'sk-...'):"
 )
 
 """

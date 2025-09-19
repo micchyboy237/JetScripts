@@ -47,7 +47,7 @@ logger.info(f"Logs: {log_file}")
 
 ## Basic Example
 
-In this notebook, we take a Paul Graham essay, split it into chunks, embed it using an Azure OllamaFunctionCallingAdapter embedding model, load it into an Azure AI Search index, and then query it.
+In this notebook, we take a Paul Graham essay, split it into chunks, embed it using an Azure OllamaFunctionCalling embedding model, load it into an Azure AI Search index, and then query it.
 
 If you're opening this Notebook on colab, you will probably need to install LlamaIndex 🦙.
 """
@@ -62,9 +62,9 @@ logger.info("# Azure AI Search")
 
 
 """
-## Setup Azure OllamaFunctionCallingAdapter
+## Setup Azure OllamaFunctionCalling
 """
-logger.info("## Setup Azure OllamaFunctionCallingAdapter")
+logger.info("## Setup Azure OllamaFunctionCalling")
 
 # aoai_api_key = "YOUR_AZURE_OPENAI_API_KEY"
 aoai_endpoint = "YOUR_AZURE_OPENAI_ENDPOINT"

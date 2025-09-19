@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import SQLDatabase
 from llama_index.core import VectorStoreIndex
@@ -155,7 +155,7 @@ vector_query_engines = {}
 for city, wiki_doc in zip(cities, wiki_docs):
     vector_index = VectorStoreIndex.from_documents([wiki_doc])
     query_engine = vector_index.as_query_engine(
-        similarity_top_k=2, llm=OllamaFunctionCallingAdapter(model="llama3.2")
+        similarity_top_k=2, llm=OllamaFunctionCalling(model="llama3.2")
     )
     vector_indices[city] = vector_index
     vector_query_engines[city] = query_engine
@@ -186,7 +186,7 @@ for city in cities:
 
 
 s_engine = SubQuestionQueryEngine.from_defaults(
-    query_engine_tools=query_engine_tools, llm=OllamaFunctionCallingAdapter(
+    query_engine_tools=query_engine_tools, llm=OllamaFunctionCalling(
         model="llama3.2")
 )
 
@@ -213,7 +213,7 @@ logger.info("### Define SQLJoinQueryEngine")
 
 
 query_engine = SQLJoinQueryEngine(
-    sql_tool, s_engine_tool, llm=OllamaFunctionCallingAdapter(model="llama3.2")
+    sql_tool, s_engine_tool, llm=OllamaFunctionCalling(model="llama3.2")
 )
 
 response = query_engine.query(

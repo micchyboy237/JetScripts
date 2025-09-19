@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.indices.managed.types import ManagedIndexQueryMode
 from llama_index.core.schema import TextNode
@@ -165,7 +165,7 @@ Now let's create a `VectaraAutoRetriever` instance and try `retrieve()`:
 logger.info("## Running auto-retrieval")
 
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
+llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0)
 
 retriever = VectaraAutoRetriever(
     index,

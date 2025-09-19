@@ -66,10 +66,10 @@ resp = llm.chat([messages])
 logger.debug(resp)
 
 """
-## Call `chat` with OllamaFunctionCallingAdapter Models
+## Call `chat` with OllamaFunctionCalling Models
 # You need to either set env var `OPENAI_API_KEY`
 """
-logger.info("## Call `chat` with OllamaFunctionCallingAdapter Models")
+logger.info("## Call `chat` with OllamaFunctionCalling Models")
 
 
 # os.environ["OPENAI_API_KEY"] = "<your-api-key>"

@@ -44,14 +44,14 @@ logger.info("If you're opening this Notebook on colab, you will probably need to
 
 
 """
-### Setup OllamaFunctionCallingAdapter
+### Setup OllamaFunctionCalling
 Lets first begin by adding the openai api key. It will be used to created embeddings for the documents loaded into the index.
 """
-logger.info("### Setup OllamaFunctionCallingAdapter")
+logger.info("### Setup OllamaFunctionCalling")
 
 # import getpass
 
-# OPENAI_API_KEY = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# OPENAI_API_KEY = getpass.getpass("OllamaFunctionCalling API Key:")
 # openai.api_key = OPENAI_API_KEY
 
 """

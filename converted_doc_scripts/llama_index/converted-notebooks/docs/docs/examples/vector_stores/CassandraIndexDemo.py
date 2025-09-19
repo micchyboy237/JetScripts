@@ -93,13 +93,13 @@ cassio.init(
 )
 
 """
-### OllamaFunctionCallingAdapter key
+### OllamaFunctionCalling key
 
-In order to use embeddings by OllamaFunctionCallingAdapter you need to supply an OllamaFunctionCallingAdapter API Key:
+In order to use embeddings by OllamaFunctionCalling you need to supply an OllamaFunctionCalling API Key:
 """
-logger.info("### OllamaFunctionCallingAdapter key")
+logger.info("### OllamaFunctionCalling key")
 
-# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCallingAdapter API Key:")
+# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key:")
 
 """
 ### Download data

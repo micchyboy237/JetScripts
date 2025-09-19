@@ -39,9 +39,9 @@ logger.info("# Cookbook LlamaIndex Integration (Instrumentation Module)")
 # %pip install langfuse llama_index --upgrade
 
 """
-Initialize the integration. Get your API keys from the Langfuse project settings. This example uses OllamaFunctionCallingAdapter for embeddings and chat completions. You can also use any other model supported by LlamaIndex.
+Initialize the integration. Get your API keys from the Langfuse project settings. This example uses OllamaFunctionCalling for embeddings and chat completions. You can also use any other model supported by LlamaIndex.
 """
-logger.info("Initialize the integration. Get your API keys from the Langfuse project settings. This example uses OllamaFunctionCallingAdapter for embeddings and chat completions. You can also use any other model supported by LlamaIndex.")
+logger.info("Initialize the integration. Get your API keys from the Langfuse project settings. This example uses OllamaFunctionCalling for embeddings and chat completions. You can also use any other model supported by LlamaIndex.")
 
 
 os.environ["LANGFUSE_PUBLIC_KEY"] = ""

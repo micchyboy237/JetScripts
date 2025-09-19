@@ -150,7 +150,7 @@ logger.info("## Query A SQL Database with Natural Language")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCallingAdapter API Key: ")
+# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key: ")
 
 
 prompt = PromptBuilder(template="""Please generate an SQL query. The query should answer the following Question: {{question}};
@@ -265,7 +265,7 @@ def sql_query_func(queries: List[str]):
 """
 ### Define Tools
 
-Now, let's provide this function as a tool. Below, we are using OllamaFunctionCallingAdapter for demonstration purposes so we abide by their function definition schema 👇
+Now, let's provide this function as a tool. Below, we are using OllamaFunctionCalling for demonstration purposes so we abide by their function definition schema 👇
 """
 logger.info("### Define Tools")
 

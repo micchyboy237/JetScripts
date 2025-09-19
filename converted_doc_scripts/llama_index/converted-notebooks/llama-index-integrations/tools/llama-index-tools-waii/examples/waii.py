@@ -1,5 +1,5 @@
 async def main():
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index import VectorStoreIndex
     from llama_index.core.agent.workflow import FunctionAgent
@@ -34,7 +34,7 @@ async def main():
     ).response
 
     agent = FunctionAgent(
-        waii_tool.to_tool_list(), llm=OllamaFunctionCallingAdapter(model="llama3.2"),
+        waii_tool.to_tool_list(), llm=OllamaFunctionCalling(model="llama3.2"),
     )
 
     ctx = Context(agent)

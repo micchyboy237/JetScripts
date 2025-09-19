@@ -1,5 +1,5 @@
 from jet.logger import CustomLogger
-from langchain.llms import OllamaFunctionCallingAdapter
+from langchain.llms import OllamaFunctionCalling
 from llama_index.llms.langchain import LangChainLLM
 import os
 import shutil
@@ -23,7 +23,7 @@ logger.info("# LangChain LLM")
 
 
 
-llm = LangChainLLM(llm=OllamaFunctionCallingAdapter())
+llm = LangChainLLM(llm=OllamaFunctionCalling())
 
 response_gen = llm.stream_complete("Hi this is")
 

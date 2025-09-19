@@ -1,4 +1,4 @@
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.program import FunctionCallingProgram
@@ -23,7 +23,7 @@ logger.info(f"Logs: {log_file}")
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/output_parsing/function_program.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
 This guide shows you how to do structured data extraction with our `FunctionCallingProgram`. Given a function-calling LLM as well as an output Pydantic class, generate a structured Pydantic object. We use three different function calling LLMs:
-- OllamaFunctionCallingAdapter
+- OllamaFunctionCalling
 - Anthropic Claude
 - Mistral
 
@@ -71,11 +71,11 @@ class Album(BaseModel):
 ## Define Function Calling Program
 
 We define a function calling program with three function-calling LLMs: 
-- OllamaFunctionCallingAdapter 
+- OllamaFunctionCalling 
 - Anthropic
 - Mistral
 
-### Function Calling Program with OllamaFunctionCallingAdapter
+### Function Calling Program with OllamaFunctionCalling
 
 Here we use gpt-3.5-turbo.
 
@@ -90,7 +90,7 @@ prompt_template_str = """\
 Generate an example album, with an artist and a list of songs. \
 Using the movie {movie_name} as inspiration.\
 """
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,
@@ -124,7 +124,7 @@ Generate example albums, with an artist and a list of songs, using each movie be
 Here are the movies:
 {movie_names}
 """
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 program = FunctionCallingProgram.from_defaults(
     output_cls=Album,

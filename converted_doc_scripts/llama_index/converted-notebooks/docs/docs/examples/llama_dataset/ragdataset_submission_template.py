@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import SimpleDirectoryReader
     from llama_index.core import VectorStoreIndex
@@ -34,7 +34,7 @@ async def main():
     
     This notebook serves as a template for creating a particular kind of `LlamaDataset`, namely `LabelledRagDataset`. Additionally, this template aids in the preparation of all of the necessary supplementary materials in order to make a `LlamaDataset` contribution to [llama-hub](https://llamahub.ai).
     
-    # **NOTE**: Since this notebook uses OllamaFunctionCallingAdapter LLM's as a default, an `OPENAI_API_KEY` is required. You can pass the `OPENAI_API_KEY` by specifying the `api_key` argument when constructing the LLM. Or by running `export OPENAI_API_KEY=<api_key>` before spinning up this jupyter notebook.
+    # **NOTE**: Since this notebook uses OllamaFunctionCalling LLM's as a default, an `OPENAI_API_KEY` is required. You can pass the `OPENAI_API_KEY` by specifying the `api_key` argument when constructing the LLM. Or by running `export OPENAI_API_KEY=<api_key>` before spinning up this jupyter notebook.
     
     ### Prerequisites
     
@@ -111,7 +111,7 @@ async def main():
     
     documents = SimpleDirectoryReader(input_dir="data/paul_graham").load_data()
     
-    llm = OllamaFunctionCallingAdapter(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
+    llm = OllamaFunctionCalling(model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
     
     dataset_generator = RagDatasetGenerator.from_documents(
         documents,
@@ -131,7 +131,7 @@ async def main():
     
     
     documents = SimpleDirectoryReader(input_dir=<FILL-IN>).load_data()
-    llm=<FILL-IN>  # Recommend OllamaFunctionCallingAdapter GPT-4 for reference_answer generation
+    llm=<FILL-IN>  # Recommend OllamaFunctionCalling GPT-4 for reference_answer generation
     
     dataset_generator = RagDatasetGenerator.from_documents(
         documents,

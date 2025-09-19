@@ -194,7 +194,7 @@ except Exception as e:
     sys.exit(1)
 
 """
-With the inclusion of a demo user and a populated sample table, the remaining configuration involves setting up embedding and summary functionalities. Users are presented with multiple provider options, including local database solutions and third-party services such as Ocigenai, Hugging Face, and OllamaFunctionCallingAdapter. Should users opt for a third-party provider, they are required to establish credentials containing the necessary authentication details. Conversely, if selecting a database as the provider for embeddings, it is necessary to upload an ONNX model to the Oracle Database. No additional setup is required for summary functionalities when using the database option.
+With the inclusion of a demo user and a populated sample table, the remaining configuration involves setting up embedding and summary functionalities. Users are presented with multiple provider options, including local database solutions and third-party services such as Ocigenai, Hugging Face, and OllamaFunctionCalling. Should users opt for a third-party provider, they are required to establish credentials containing the necessary authentication details. Conversely, if selecting a database as the provider for embeddings, it is necessary to upload an ONNX model to the Oracle Database. No additional setup is required for summary functionalities when using the database option.
 
 ### Load ONNX Model
 

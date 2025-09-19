@@ -8,7 +8,7 @@ from haystack.dataclasses import ChatMessage, StreamingChunk
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack_integrations.components.embedders.cohere import CohereDocumentEmbedder, CohereTextEmbedder
 from jet.logger import CustomLogger
-from openai import OllamaFunctionCallingAdapter, Stream
+from openai import OllamaFunctionCalling, Stream
 from openai.types.chat import ChatCompletion, ChatCompletionChunk
 from pydantic import BaseModel
 from typing import List, Any, Dict, Optional, Callable, Union
@@ -42,7 +42,7 @@ by Tuana Celik ([LI](https://www.linkedin.com/in/tuanacelik/), [Twitter](https:/
 
 Query decomposition is a technique we can use to decompose complex queries into simpler steps, answering each sub-question, and getting an LLM to reason about the final answer based on the answers to the sub-questions.
 
-In this recipe, we're using the structured output functionality (currently in beta) by OllamaFunctionCallingAdapter to construct `Questions` which lists the sub-questions based on the original question, as well as keeping track of the intermediate answers to each question.
+In this recipe, we're using the structured output functionality (currently in beta) by OllamaFunctionCalling to construct `Questions` which lists the sub-questions based on the original question, as well as keeping track of the intermediate answers to each question.
 
 ## 📺 Code Along
 
@@ -60,7 +60,7 @@ logger.info("# Advanced RAG: Query Decomposition and Reasoning")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCallingAdapter API Key:")
+#   os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key:")
 
 if "COHERE_API_KEY" not in os.environ:
 #   os.environ["COHERE_API_KEY"] = getpass("Cohere API Key:")
@@ -86,7 +86,7 @@ document_store.write_documents(docs_with_embeddings["documents"])
 
 > 🚀 This step is a completely optional advanced step
 
-Let's extend the `OllamaFunctionCallingAdapterGeneraotor` to be able to make use of the [strctured output option by OllamaFunctionCallingAdapter](https://platform.openai.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
+Let's extend the `OllamaFunctionCallingAdapterGeneraotor` to be able to make use of the [strctured output option by OllamaFunctionCalling](https://platform.openai.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
 """
 logger.info("## 🧪 Experimental Addition to the OllamaFunctionCallingAdapterGenerator for Structured Output Support")
 

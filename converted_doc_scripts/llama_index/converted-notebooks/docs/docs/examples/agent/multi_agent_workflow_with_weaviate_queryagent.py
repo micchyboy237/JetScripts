@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     from enum import Enum
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapterResponses
     from jet.logger import CustomLogger
     from llama_index.core.agent.workflow import FunctionAgent
@@ -48,7 +48,7 @@ async def main():
     
     **Things you will need:**
     
-    - An OllamaFunctionCallingAdapter API key (or switch to another provider and adjust the code below)
+    - An OllamaFunctionCalling API key (or switch to another provider and adjust the code below)
     - A Weaviate sandbox (this is free)
     - Your Weaviate sandbox URL and API key
     
@@ -167,7 +167,7 @@ async def main():
 
     weaviate_agent = fresh_setup_weaviate(client)
 
-    llm = OllamaFunctionCallingAdapter(model="llama3.2")
+    llm = OllamaFunctionCalling(model="llama3.2")
 
     def write_to_weaviate_collection(urls=list[str]):
         """Useful for writing new content to the WeaviateDocs collection"""

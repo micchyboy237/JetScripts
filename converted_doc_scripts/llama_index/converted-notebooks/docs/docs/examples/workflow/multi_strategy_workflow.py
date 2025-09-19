@@ -1,7 +1,7 @@
 async def main():
     from jet.transformers.formatters import format_json
     # from google.colab import userdata
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core import (
         SimpleDirectoryReader,
@@ -48,7 +48,7 @@ async def main():
 
     ## Install dependencies
 
-    We need LlamaIndex, the file reader (for reading PDFs), the workflow visualizer (to draw the diagram above), and OllamaFunctionCallingAdapter to embed the data and query an LLM.
+    We need LlamaIndex, the file reader (for reading PDFs), the workflow visualizer (to draw the diagram above), and OllamaFunctionCalling to embed the data and query an LLM.
     """
     logger.info("# Multi-strategy workflow with reflection")
 
@@ -74,9 +74,9 @@ async def main():
     logger.info("## Bring in dependencies")
 
     """
-    We also need to set up our OllamaFunctionCallingAdapter key.
+    We also need to set up our OllamaFunctionCalling key.
     """
-    logger.info("We also need to set up our OllamaFunctionCallingAdapter key.")
+    logger.info("We also need to set up our OllamaFunctionCalling key.")
 
     # os.environ["OPENAI_API_KEY"] = userdata.get("openai-key")
 
@@ -156,7 +156,7 @@ async def main():
             llm = await ctx.store.get("llm", default=None)
             logger.success(format_json(llm))
             if llm is None:
-                await ctx.store.set("llm", OllamaFunctionCallingAdapter(model="llama3.2", log_dir=f"{LOG_DIR}/chats", temperature=0.1))
+                await ctx.store.set("llm", OllamaFunctionCalling(model="llama3.2", log_dir=f"{LOG_DIR}/chats", temperature=0.1))
                 await ctx.store.set(
                     "index", self.load_or_create_index("data", "storage")
                 )

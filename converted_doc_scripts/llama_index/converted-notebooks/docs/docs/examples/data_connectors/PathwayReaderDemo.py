@@ -57,14 +57,14 @@ logging.basicConfig(stream=sys.stdout, level=logging.ERROR)
 logging.getLogger().addHandler(logging.StreamHandler(stream=sys.stdout))
 
 """
-Set up your OllamaFunctionCallingAdapter API key.
+Set up your OllamaFunctionCalling API key.
 """
-logger.info("Set up your OllamaFunctionCallingAdapter API key.")
+logger.info("Set up your OllamaFunctionCalling API key.")
 
 # import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+#     os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCalling API Key:")
 
 """
 ## Create the reader and connect to a public pipeline

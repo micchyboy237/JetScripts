@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import Settings
 from llama_index.core import VectorStoreIndex
@@ -58,7 +58,7 @@ logger.info("## Default Settings")
 # os.environ["OPENAI_API_KEY"] = "YOUR_API_KEY"
 
 
-Settings.llm = OllamaFunctionCallingAdapter(model="llama3.2")
+Settings.llm = OllamaFunctionCalling(model="llama3.2")
 Settings.embed_model = HuggingFaceEmbedding(
     model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
 
@@ -112,7 +112,7 @@ to be used in a production setting without heavy sandboxing or virtual machines.
 """
 logger.info("## Create Pandas Query Engines")
 
-llm = OllamaFunctionCallingAdapter(model="llama3.2")
+llm = OllamaFunctionCalling(model="llama3.2")
 
 df_query_engines = [
     PandasQueryEngine(table_df, llm=llm) for table_df in table_dfs

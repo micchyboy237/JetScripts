@@ -58,13 +58,13 @@ URL = "postgresql+psycopg://{username}:{password}@{host}:{port}/{db_name}".forma
 client = PGVectoRs(
     db_url=URL,
     collection_name="example",
-    dimension=1536,  # Using OllamaFunctionCallingAdapter’s text-embedding-ada-002
+    dimension=1536,  # Using OllamaFunctionCalling’s text-embedding-ada-002
 )
 
 """
-#### Setup OllamaFunctionCallingAdapter
+#### Setup OllamaFunctionCalling
 """
-logger.info("#### Setup OllamaFunctionCallingAdapter")
+logger.info("#### Setup OllamaFunctionCalling")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."

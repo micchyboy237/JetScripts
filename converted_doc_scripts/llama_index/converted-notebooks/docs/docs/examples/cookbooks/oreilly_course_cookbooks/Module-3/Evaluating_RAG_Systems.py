@@ -1,6 +1,6 @@
 from jet.transformers.formatters import format_json
 from IPython.display import display, HTML
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import (
     SimpleDirectoryReader,
@@ -107,7 +107,7 @@ documents = reader.load_data()
 """
 logger.info("#### Generate Question")
 
-gpt4 = OllamaFunctionCallingAdapter(
+gpt4 = OllamaFunctionCalling(
     model="llama3.2", request_timeout=300.0, context_window=4096, temperature=0.1)
 
 dataset_generator = DatasetGenerator.from_documents(
@@ -131,9 +131,9 @@ logger.info("To be consistent we will fix evaluation query")
 
 eval_query = "How did the author describe their early attempts at writing short stories?"
 
-gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt35 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
-gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 vector_index = VectorStoreIndex.from_documents(documents, llm=gpt35)
 

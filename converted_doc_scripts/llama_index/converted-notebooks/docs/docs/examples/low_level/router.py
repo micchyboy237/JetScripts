@@ -1,5 +1,5 @@
 from dataclasses import fields
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import PromptTemplate
 from llama_index.core import SummaryIndex
@@ -87,7 +87,7 @@ logger.info(
     "Let's try this prompt on a set of toy questions and see what the output brings.")
 
 
-llm = OllamaFunctionCallingAdapter(
+llm = OllamaFunctionCalling(
     model="llama3.2")
 
 
@@ -254,9 +254,9 @@ def route_query(
 
 In the previous section, we showed how to build a router with a text completion endpoint. This includes formatting the prompt to encourage the model output structured JSON, and a parse function to load in JSON.
 
-This process can feel a bit messy. Function calling endpoints (e.g. OllamaFunctionCallingAdapter) abstract away this complexity by allowing the model to natively output structured functions. This obviates the need to manually prompt + parse the outputs. 
+This process can feel a bit messy. Function calling endpoints (e.g. OllamaFunctionCalling) abstract away this complexity by allowing the model to natively output structured functions. This obviates the need to manually prompt + parse the outputs. 
 
-LlamaIndex offers an abstraction called a `PydanticProgram` that integrates with a function endpoint to produce a structured Pydantic object. We integrate with OllamaFunctionCallingAdapter and Guidance.
+LlamaIndex offers an abstraction called a `PydanticProgram` that integrates with a function endpoint to produce a structured Pydantic object. We integrate with OllamaFunctionCalling and Guidance.
 
 We redefine our `Answer` class with annotations, as well as an `Answers` class containing a list of answers.
 """
@@ -348,7 +348,7 @@ class RouterQueryEngine(CustomQueryEngine):
     choice_descriptions: List[str]
     verbose: bool = False
     router_prompt: PromptTemplate
-    llm: OllamaFunctionCallingAdapter
+    llm: OllamaFunctionCalling
     summarizer: TreeSummarize = Field(default_factory=TreeSummarize)
 
     def custom_query(self, query_str: str):
@@ -399,7 +399,7 @@ router_query_engine = RouterQueryEngine(
     choice_descriptions=choices,
     verbose=True,
     router_prompt=router_prompt1,
-    llm=OllamaFunctionCallingAdapter(
+    llm=OllamaFunctionCalling(
         model="llama3.2"),
 )
 

@@ -39,7 +39,7 @@ logger.info(f"Logs: {log_file}")
 # Finetuning an Adapter on Top of any Black-Box Embedding Model
 
 
-We have capabilities in LlamaIndex allowing you to fine-tune an adapter on top of embeddings produced from any model (sentence_transformers, OllamaFunctionCallingAdapter, and more). 
+We have capabilities in LlamaIndex allowing you to fine-tune an adapter on top of embeddings produced from any model (sentence_transformers, OllamaFunctionCalling, and more). 
 
 This allows you to transform your embedding representations into a new latent space that's optimized for retrieval over your specific data and queries. This can lead to small increases in retrieval performance that in turn translate to better performing RAG systems.
 

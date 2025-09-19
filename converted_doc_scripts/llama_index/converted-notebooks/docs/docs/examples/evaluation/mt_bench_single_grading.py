@@ -1,6 +1,6 @@
 async def main():
     from jet.transformers.formatters import format_json
-    from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
     from jet.logger import CustomLogger
     from llama_index.core.evaluation import CorrectnessEvaluator
     from llama_index.core.llama_dataset import download_llama_dataset
@@ -25,8 +25,8 @@ async def main():
     
     In this notebook, we'll conduct an evaluation of three different evaluators that will be judging another LLM's response for response against a user query. More specifically, we will run benchmarks using a mini version of the MT-Bench single-grading dataset. In this version, we only consider the answers on the 160 questions (i.e., 80 x 2, since there are 80 two-turn dialogues) provided by llama2-70b. The reference answers used for this benchmark are provided by GPT-4. And so, our benchmarks on these three evaluators will assess closeness to GPT-4 (actually, self-consistency for the case of GPT-4).
     
-    1. GPT-3.5 (OllamaFunctionCallingAdapter)
-    2. GPT-4 (OllamaFunctionCallingAdapter)
+    1. GPT-3.5 (OllamaFunctionCalling)
+    2. GPT-4 (OllamaFunctionCalling)
     3. Gemini-Pro (Google)
     """
     logger.info(
@@ -60,8 +60,8 @@ async def main():
     """
     logger.info("### Define Our Evaluators")
 
-    llm_gpt4 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
-    llm_gpt35 = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+    llm_gpt4 = OllamaFunctionCalling(temperature=0, model="llama3.2")
+    llm_gpt35 = OllamaFunctionCalling(temperature=0, model="llama3.2")
     llm_gemini = Gemini(model="models/gemini-pro", temperature=0)
 
     evaluators = {

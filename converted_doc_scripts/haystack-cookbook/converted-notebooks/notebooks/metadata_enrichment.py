@@ -64,7 +64,7 @@ logger.info("# Advanced RAG: Automated Structured Metadata Enrichment")
 
 > 🚀 This is the same extension to the `OllamaFunctionCallingAdapterGenerator` that was used in the [Advanced RAG: Query Decomposition and Reasoning](https://haystack.deepset.ai/cookbook/query_decomposition) example
 
-Let's extend the `OllamaFunctionCallingAdapterGeneraotor` to be able to make use of the [strctured output option by OllamaFunctionCallingAdapter](https://platform.openai.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
+Let's extend the `OllamaFunctionCallingAdapterGeneraotor` to be able to make use of the [strctured output option by OllamaFunctionCalling](https://platform.openai.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
 """
 logger.info("## 🧪 Experimental Addition to the OllamaFunctionCallingAdapterGenerator for Structured Output Support")
 
@@ -115,7 +115,7 @@ class OllamaFunctionCallingAdapterGenerator(OllamaFunctionCallingAdapterGenerato
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCallingAdapter API Key:")
+#   os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key:")
 
 """
 ## Custom `MetadataEnricher`

@@ -1,5 +1,5 @@
 from jet.models.config import MODELS_CACHE_DIR
-from jet.llm.ollama.adapters.ollama_llama_index_llm_adapter import OllamaFunctionCallingAdapter
+from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
 from jet.logger import CustomLogger
 from llama_index.core import (
     load_index_from_storage,
@@ -112,7 +112,7 @@ embed_model = TogetherEmbedding(
     model_name="togethercomputer/m2-bert-80M-32k-retrieval", api_key=api_key
 )
 
-llm = OllamaFunctionCallingAdapter(temperature=0, model="llama3.2")
+llm = OllamaFunctionCalling(temperature=0, model="llama3.2")
 
 """
 ### Create Document Store 

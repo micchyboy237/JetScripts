@@ -20,15 +20,15 @@ async def main():
     import asyncio
     import os
     import shutil
-    
-    
+
+
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
     logger = CustomLogger(log_file, overwrite=True)
     logger.info(f"Logs: {log_file}")
-    
+
     """
     <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/cookbooks/airtrain.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
     
@@ -41,26 +41,26 @@ async def main():
     ## Installation & Setup
     """
     logger.info("# AirtrainAI Cookbook")
-    
+
     # %pip install llama-index-embeddings-huggingface==0.2.4
     # %pip install llama-index-readers-web==0.2.2
     # %pip install llama-index-readers-github==0.2.0
-    
+
     # %pip install airtrain-py[llama-index]
-    
+
     # import nest_asyncio
-    
+
     # nest_asyncio.apply()
-    
+
     """
     ### API Key Setup
     
     Set up the API keys that will be required to run the examples that follow.
-    The GitHub API token and OllamaFunctionCallingAdapter API key are only required for the example
+    The GitHub API token and OllamaFunctionCalling API key are only required for the example
     'Usage with Readers/Embeddings/Splitters'. Instructions for getting a GitHub
     access token are
     [here](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens)
-    while an OllamaFunctionCallingAdapter API key can be obtained
+    while an OllamaFunctionCalling API key can be obtained
     [here](https://platform.openai.com/api-keys).
     
     To obtain your Airtrain API Key:
@@ -72,13 +72,13 @@ async def main():
     to delete the dataset in the Airtrain UI as you go along, to make space for another one.
     """
     logger.info("### API Key Setup")
-    
-    
+
+
     os.environ["GITHUB_TOKEN"] = "<your GitHub token>"
     # os.environ["OPENAI_API_KEY"] = "<your OpenAi API key>"
-    
+
     os.environ["AIRTRAIN_API_KEY"] = "<your Airtrain API key>"
-    
+
     """
     ## Example 1: Usage with Readers/Embeddings/Splitters
     
@@ -88,17 +88,17 @@ async def main():
     
     To illustrate the flexibility of this, we'll do both:
     1. Create a dataset directly of documents. In this case whole pages from the [Sematic](https://docs.sematic.dev/) docs.
-    2. Use OllamaFunctionCallingAdapter embeddings and the `SemanticSplitterNodeParser` to split those documents into nodes, and create a dataset from those.
+    2. Use OllamaFunctionCalling embeddings and the `SemanticSplitterNodeParser` to split those documents into nodes, and create a dataset from those.
     """
     logger.info("## Example 1: Usage with Readers/Embeddings/Splitters")
-    
-    
-    
+
+
+
     """
     The next step is to set up our reader. In this case we're using the GitHub reader, but that's just for illustrative purposes. Airtrain can ingest documents no matter what reader they came from originally.
     """
     logger.info("The next step is to set up our reader. In this case we're using the GitHub reader, but that's just for illustrative purposes. Airtrain can ingest documents no matter what reader they came from originally.")
-    
+
     github_token = os.environ.get("GITHUB_TOKEN")
     github_client = GithubClient(github_token=github_token, verbose=True)
     reader = GithubRepositoryReader(
@@ -119,14 +119,14 @@ async def main():
         ),
     )
     read_kwargs = dict(branch="main")
-    
+
     """
     Read the documents with the reader
     """
     logger.info("Read the documents with the reader")
-    
+
     documents = reader.load_data(**read_kwargs)
-    
+
     """
     ### Create dataset directly from documents
     
@@ -142,13 +142,13 @@ async def main():
     in any way you like before uploading to Airtrain.
     """
     logger.info("### Create dataset directly from documents")
-    
+
     result = at.upload_from_llama_nodes(
         documents,
         name="Sematic Docs Dataset: Whole Documents",
     )
     logger.debug(f"Uploaded {result.size} rows to '{result.name}'. View at: {result.url}")
-    
+
     """
     ### Create dataset after splitting and embedding
     
@@ -158,28 +158,28 @@ async def main():
     that are nearest to it in the full n-dimensional embedding space, to drill down further. Automated clusters and other insights
     will also be generated to enrich and aid your exploration.
     
-    Here we'll use OllamaFunctionCallingAdapter embeddings and a `SemanticSplitterNodeParser` splitter, but you can use any other LlamaIndex tooling you
+    Here we'll use OllamaFunctionCalling embeddings and a `SemanticSplitterNodeParser` splitter, but you can use any other LlamaIndex tooling you
     like to process your nodes before uploading to Airtrain. You can even skip embedding them yourself entirely, in which case
     Airtrain will embed the nodes for you.
     """
     logger.info("### Create dataset after splitting and embedding")
-    
+
     embed_model = HuggingFaceEmbedding(model_name="sentence-transformers/all-MiniLM-L6-v2", cache_folder=MODELS_CACHE_DIR)
     splitter = SemanticSplitterNodeParser(
         buffer_size=1, breakpoint_percentile_threshold=95, embed_model=embed_model
     )
     nodes = splitter.get_nodes_from_documents(documents)
-    
+
     """
     ⚠️ **Note** ⚠️: If you are on an Airtrain trial and already created a whole-document dataset, you will need to delete it before uploading a new dataset.
     """
-    
+
     result = at.upload_from_llama_nodes(
         nodes,
         name="Sematic Docs, split + embedded",
     )
     logger.debug(f"Uploaded {result.size} rows to {result.name}. View at: {result.url}")
-    
+
     """
     ## Example 2: Using the [Workflow](https://docs.llamaindex.ai/en/stable/module_guides/workflow/#workflows) API
     
@@ -189,10 +189,10 @@ async def main():
     to web scraping workflows; any workflow producing documents or nodes will do.
     """
     logger.info("## Example 2: Using the [Workflow](https://docs.llamaindex.ai/en/stable/module_guides/workflow/#workflows) API")
-    
-    
-    
-    
+
+
+
+
     """
     Specify the comment threads we'll be scraping from. The particular ones in this example were on or near the front page on September 30th, 2024. If
     you wish to ingest from pages besides Hacker News, be aware that some sites have their content rendered client-side, in which case you might
@@ -200,7 +200,7 @@ async def main():
     we'll use a page with server-side rendered HTML for simplicity.
     """
     logger.info("Specify the comment threads we'll be scraping from. The particular ones in this example were on or near the front page on September 30th, 2024. If")
-    
+
     URLS = [
         "https://news.ycombinator.com/item?id=41694044",
         "https://news.ycombinator.com/item?id=41696046",
@@ -232,21 +232,21 @@ async def main():
         "https://news.ycombinator.com/item?id=41689138",
         "https://news.ycombinator.com/item?id=41691530",
     ]
-    
+
     """
     Next we'll define a basic event, as events are the standard way to pass data between steps in LlamaIndex workflows.
     """
     logger.info("Next we'll define a basic event, as events are the standard way to pass data between steps in LlamaIndex workflows.")
-    
+
     class CompletedDocumentRetrievalEvent(Event):
         name: str
         documents: list[Node]
-    
+
     """
     After that we'll define the workflow itself. In our case, this will have one step to ingest the documents from the web, one to ingest them to Airtrain, and one to wrap up the workflow.
     """
     logger.info("After that we'll define the workflow itself. In our case, this will have one step to ingest the documents from the web, one to ingest them to Airtrain, and one to wrap up the workflow.")
-    
+
     class IngestToAirtrainWorkflow(Workflow):
         @step
         async def ingest_documents(
@@ -260,19 +260,19 @@ async def main():
             return CompletedDocumentRetrievalEvent(
                 name=ev.get("name"), documents=documents
             )
-    
+
         @step
         async def ingest_documents_to_airtrain(
             self, ctx: Context, ev: CompletedDocumentRetrievalEvent
         ) -> StopEvent | None:
             dataset_meta = upload_from_llama_nodes(ev.documents, name=ev.name)
             return StopEvent(result=dataset_meta)
-    
+
     """
     Since the workflow API treats async code as a first-class citizen, we'll define an async `main` to drive the workflow.
     """
     logger.info("Since the workflow API treats async code as a first-class citizen, we'll define an async `main` to drive the workflow.")
-    
+
     async def main() -> None:
         workflow = IngestToAirtrainWorkflow()
         result = await workflow.run(
@@ -283,7 +283,7 @@ async def main():
         logger.debug(
             f"Uploaded {result.size} rows to {result.name}. View at: {result.url}"
         )
-    
+
     """
     Finally, we'll execute the async main using an asyncio event loop.
     
@@ -291,9 +291,9 @@ async def main():
     you will need to delete the resulting dataset(s) before uploading a new one.
     """
     logger.info("Finally, we'll execute the async main using an asyncio event loop.")
-    
+
     asyncio.run(main())  # actually run the main & the workflow
-    
+
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

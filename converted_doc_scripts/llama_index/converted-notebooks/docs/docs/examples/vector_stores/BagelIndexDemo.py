@@ -65,7 +65,7 @@ logger.info("# Bagel Network")
 
 # import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCallingAdapter API Key:")
+# os.environ["OPENAI_API_KEY"] = getpass.getpass("OllamaFunctionCalling API Key:")
 
 # openai.api_key = os.environ["OPENAI_API_KEY"]
 
