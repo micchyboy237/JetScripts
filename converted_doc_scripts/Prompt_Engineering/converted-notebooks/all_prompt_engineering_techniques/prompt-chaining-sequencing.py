@@ -53,8 +53,6 @@ load_dotenv()
 
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
-llm = ChatOllama(model="llama3.2")
-
 """
 ## Basic Prompt Chaining
 
@@ -66,11 +64,13 @@ story_prompt = PromptTemplate(
     input_variables=["genre"],
     template="Write a short {genre} story in 3-4 sentences."
 )
+story_llm = ChatOllama(model="llama3.2", agent_name="story")
 
 summary_prompt = PromptTemplate(
     input_variables=["story"],
     template="Summarize the following story in one sentence:\n{story}"
 )
+summary_llm = ChatOllama(model="llama3.2", agent_name="summary")
 
 
 def story_chain(genre):
@@ -82,8 +82,8 @@ def story_chain(genre):
     Returns:
         tuple: A tuple containing the generated story and its summary.
     """
-    story = (story_prompt | llm).invoke({"genre": genre}).content
-    summary = (summary_prompt | llm).invoke({"story": story}).content
+    story = (story_prompt | story_llm).invoke({"genre": genre}).content
+    summary = (summary_prompt | summary_llm).invoke({"story": story}).content
     return story, summary
 
 
@@ -102,16 +102,19 @@ theme_prompt = PromptTemplate(
     input_variables=["text"],
     template="Identify the main theme of the following text:\n{text}"
 )
+theme_llm = ChatOllama(model="llama3.2", agent_name="theme")
 
 tone_prompt = PromptTemplate(
     input_variables=["text"],
     template="Describe the overall tone of the following text:\n{text}"
 )
+tone_llm = ChatOllama(model="llama3.2", agent_name="tone")
 
 takeaway_prompt = PromptTemplate(
     input_variables=["text", "theme", "tone"],
     template="Given the following text with the main theme '{theme}' and tone '{tone}', what are the key takeaways?\n{text}"
 )
+takeaway_llm = ChatOllama(model="llama3.2", agent_name="takeaway")
 
 
 def analyze_text(text):
@@ -123,9 +126,9 @@ def analyze_text(text):
     Returns:
         dict: A dictionary containing the theme, tone, and key takeaways of the text.
     """
-    theme = (theme_prompt | llm).invoke({"text": text}).content
-    tone = (tone_prompt | llm).invoke({"text": text}).content
-    takeaways = (takeaway_prompt | llm).invoke(
+    theme = (theme_prompt | theme_llm).invoke({"text": text}).content
+    tone = (tone_prompt | tone_llm).invoke({"text": text}).content
+    takeaways = (takeaway_prompt | takeaway_llm).invoke(
         {"text": text, "theme": theme, "tone": tone}).content
     return {"theme": theme, "tone": tone, "takeaways": takeaways}
 
@@ -147,11 +150,13 @@ answer_prompt = PromptTemplate(
     input_variables=["question"],
     template="Answer the following question concisely:\n{question}"
 )
+answer_llm = ChatOllama(model="llama3.2", agent_name="answer")
 
 follow_up_prompt = PromptTemplate(
     input_variables=["question", "answer"],
     template="Based on the question '{question}' and the answer '{answer}', generate a relevant follow-up question."
 )
+follow_up_llm = ChatOllama(model="llama3.2", agent_name="follow_up")
 
 
 def dynamic_qa(initial_question, num_follow_ups=3):
@@ -168,12 +173,12 @@ def dynamic_qa(initial_question, num_follow_ups=3):
     current_question = initial_question
 
     for _ in range(num_follow_ups + 1):  # +1 for the initial question
-        answer = (answer_prompt | llm).invoke(
+        answer = (answer_prompt | answer_llm).invoke(
             {"question": current_question}).content
         qa_chain.append({"question": current_question, "answer": answer})
 
         if _ < num_follow_ups:  # Generate follow-up for all but the last iteration
-            current_question = (follow_up_prompt | llm).invoke(
+            current_question = (follow_up_prompt | follow_up_llm).invoke(
                 {"question": current_question, "answer": answer}).content
 
     return qa_chain
@@ -197,11 +202,13 @@ generate_prompt = PromptTemplate(
     input_variables=["topic"],
     template="Generate a 4-digit number related to the topic: {topic}. Respond with ONLY the number, no additional text."
 )
+generate_llm = ChatOllama(model="llama3.2", agent_name="generate")
 
 validate_prompt = PromptTemplate(
     input_variables=["number", "topic"],
     template="Is the number {number} truly related to the topic '{topic}'? Answer with 'Yes' or 'No' and explain why."
 )
+validate_llm = ChatOllama(model="llama3.2", agent_name="validate")
 
 
 def extract_number(text):
@@ -229,14 +236,14 @@ def robust_number_generation(topic, max_attempts=3):
     """
     for attempt in range(max_attempts):
         try:
-            response = (generate_prompt | llm).invoke({"topic": topic}).content
+            response = (generate_prompt | generate_llm).invoke({"topic": topic}).content
             number = extract_number(response)
 
             if not number:
                 raise ValueError(
                     f"Failed to extract a 4-digit number from the response: {response}")
 
-            validation = (validate_prompt | llm).invoke(
+            validation = (validate_prompt | validate_llm).invoke(
                 {"number": number, "topic": topic}).content
             if validation.lower().startswith("yes"):
                 return number
