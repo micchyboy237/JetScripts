@@ -1,6 +1,7 @@
 from IPython.display import Markdown
 from dotenv import load_dotenv
 from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.file.utils import save_file
 from jet.logger import CustomLogger
 from langchain.schema import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -128,7 +129,7 @@ logger.info("Now let's set up several MLX foundation models to power our agent, 
 # o3_mini = ChatMLX(model="o3-mini-2025-01-31", api_key=os.getenv("OPENAI_API_KEY"))
 
 # gpt_4_1 = ChatMLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key=os.getenv("OPENAI_API_KEY"))
-model_client = ChatOllama(model="llama3.2")
+model_client = ChatOllama(model="qwen3:4b-q4_K_M")
 
 """
 ## Web Agent
@@ -269,15 +270,24 @@ for s in web_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        message.pretty_print()
+        logger.success(message)
 
 """
 Examine the agent's intermediate steps printed above, including how it chooses and configures different tool parameters. Then, display the agent's final answer in markdown format.
 """
 logger.info("Examine the agent's intermediate steps printed above, including how it chooses and configures different tool parameters. Then, display the agent's final answer in markdown format.")
 
+# Markdown(message.content)
+prompt_response_md1 = f"""\
+## Prompt
 
-Markdown(message.content)
+{inputs["messages"][-1].content}
+
+## Response
+
+{message.content}
+"""
+save_file(prompt_response_md1, f"{OUTPUT_DIR}/agent_chat_1.md")
 
 """
 Let's try a different example.
@@ -297,14 +307,25 @@ for s in web_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        message.pretty_print()
+        logger.success(message)
 
 """
 Print the agent's final response as markdown.
 """
 logger.info("Print the agent's final response as markdown.")
 
-Markdown(message.content)
+prompt_response_md2 = f"""\
+## Prompt
+
+{inputs["messages"][-1].content}
+
+## Response
+
+{message.content}
+"""
+
+# Markdown(message.content)
+save_file(prompt_response_md2, f"{OUTPUT_DIR}/agent_response_2.md")
 
 """
 Notice how the agent cleverly combines Tavily’s tools—search, crawl, and extract—to complete the task end-to-end.

@@ -2,10 +2,10 @@ from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain import hub
 from langchain.agents import AgentExecutor, Tool, ZeroShotAgent, create_react_agent
-from langchain.chains import LLMChain
+from langchain.chains.llm import LLMChain
 from langchain.memory import ConversationBufferMemory, ReadOnlySharedMemory
 from langchain.prompts import PromptTemplate
-from langchain_community.utilities import GoogleSearchAPIWrapper
+from langchain_community.utilities import GoogleSerperAPIWrapper
 import os
 import shutil
 
@@ -41,19 +41,21 @@ template = """This is a conversation between a human and a bot:
 Write a summary of the conversation for {input}:
 """
 
+summary_model = ChatOllama(model="llama3.2", agent_name="summary")
+
 prompt = PromptTemplate(
     input_variables=["input", "chat_history"], template=template)
 memory = ConversationBufferMemory(memory_key="chat_history")
 readonlymemory = ReadOnlySharedMemory(memory=memory)
 summary_chain = LLMChain(
-    llm=Ollama(),
+    llm=summary_model,
     prompt=prompt,
     verbose=True,
     # use the read-only memory to prevent the tool from modifying the memory
     memory=readonlymemory,
 )
 
-search = GoogleSearchAPIWrapper()
+search = GoogleSerperAPIWrapper()
 tools = [
     Tool(
         name="Search",
@@ -75,8 +77,8 @@ We can now construct the `LLMChain`, with the Memory object, and then create the
 logger.info(
     "We can now construct the `LLMChain`, with the Memory object, and then create the agent.")
 
-model = Ollama()
-agent = create_react_agent(model, tools, prompt)
+react_agent = ChatOllama(model="llama3.2", agent_name="react_agent")
+agent = create_react_agent(react_agent, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory)
 
 agent_executor.invoke({"input": "What is ChatGPT?"})
@@ -114,17 +116,18 @@ template = """This is a conversation between a human and a bot:
 Write a summary of the conversation for {input}:
 """
 
+summary_model2 = ChatOllama(model="llama3.2", agent_name="summary2")
 prompt = PromptTemplate(
     input_variables=["input", "chat_history"], template=template)
 memory = ConversationBufferMemory(memory_key="chat_history")
 summary_chain = LLMChain(
-    llm=Ollama(),
+    llm=summary_model2,
     prompt=prompt,
     verbose=True,
     memory=memory,  # <--- this is the only change
 )
 
-search = GoogleSearchAPIWrapper()
+search = GoogleSerperAPIWrapper()
 tools = [
     Tool(
         name="Search",
@@ -138,8 +141,9 @@ tools = [
     ),
 ]
 
+react_agent2 = ChatOllama(model="llama3.2", agent_name="react_agent2")
 prompt = hub.pull("hwchase17/react")
-agent = create_react_agent(model, tools, prompt)
+agent = create_react_agent(react_agent2, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, memory=memory)
 
 agent_executor.invoke({"input": "What is ChatGPT?"})
