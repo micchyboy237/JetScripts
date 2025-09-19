@@ -214,7 +214,7 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
     }, f"{output_dir}/reranked_results_cross_encoder_merged.json")
 
     # Print final cross-encoder reranked merged results
-    print_results(query, cross_encoder_merged, split_chunks)
+    print_results(query, merged_results, split_chunks)
 
 
 def parse_arguments():
