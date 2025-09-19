@@ -1,5 +1,5 @@
 {
-  "model_id": "nomic-ai/nomic-embed-text-v1.5",
-  "max_context": 8192,
-  "max_embeddings": 768
+  "model_id": "mistralai/Mistral-7B-Instruct-v0.3",
+  "max_context": 32768,
+  "max_embeddings": 4096
 }

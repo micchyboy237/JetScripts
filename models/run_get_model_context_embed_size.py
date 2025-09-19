@@ -7,7 +7,7 @@ from jet.transformers.formatters import format_json
 
 if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(__file__), "constants")
-    model_id: ModelType = "nomic-ai/nomic-embed-text-v1.5"
+    model_id: ModelType = "mistralai/Mistral-7B-Instruct-v0.3"
 
     max_context, max_embeddings = get_model_limits(model_id)
 
