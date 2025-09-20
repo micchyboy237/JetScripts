@@ -95,26 +95,26 @@ def specificity_score(response):
 
 Manual evaluation involves human assessment of prompt-response pairs. Let's create a function to simulate this process:
 """
-logger.info("## Manual Evaluation Techniques")
+# logger.info("## Manual Evaluation Techniques")
 
 
-def manual_evaluation(prompt, response, criteria):
-    """Simulate manual evaluation of a prompt-response pair."""
-    logger.debug(f"Prompt: {prompt}")
-    logger.debug(f"Response: {response}")
-    logger.debug("\nEvaluation Criteria:")
-    for criterion in criteria:
-        score = float(input(f"Score for {criterion} (0-10): "))
-        logger.debug(f"{criterion}: {score}/10")
-    logger.debug("\nAdditional Comments:")
-    comments = input("Enter any additional comments: ")
-    logger.debug(f"Comments: {comments}")
+# def manual_evaluation(prompt, response, criteria):
+#     """Simulate manual evaluation of a prompt-response pair."""
+#     logger.debug(f"Prompt: {prompt}")
+#     logger.debug(f"Response: {response}")
+#     logger.debug("\nEvaluation Criteria:")
+#     for criterion in criteria:
+#         score = float(input(f"Score for {criterion} (0-10): "))
+#         logger.debug(f"{criterion}: {score}/10")
+#     logger.debug("\nAdditional Comments:")
+#     comments = input("Enter any additional comments: ")
+#     logger.debug(f"Comments: {comments}")
 
 
-prompt = "Explain the concept of machine learning in simple terms."
-response = llm.invoke(prompt).content
-criteria = ["Clarity", "Accuracy", "Simplicity"]
-manual_evaluation(prompt, response, criteria)
+# prompt = "Explain the concept of machine learning in simple terms."
+# response = llm.invoke(prompt).content
+# criteria = ["Clarity", "Accuracy", "Simplicity"]
+# manual_evaluation(prompt, response, criteria)
 
 """
 ## Automated Evaluation Techniques
