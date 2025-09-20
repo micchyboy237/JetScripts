@@ -18,7 +18,7 @@ if __name__ == "__main__":
         "evaluating-prompt-effectiveness.py",
     ]
     rerun_mode: Literal["all", "failed",
-                        "unrun", "failed_and_unrun"] = "all"
+                        "unrun", "failed_and_unrun"] = "failed"
     run_python_files_in_directory(
         target_dir,
         includes=includes,
