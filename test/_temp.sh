@@ -11,7 +11,6 @@ llama-server --jinja -fa on -hf bartowski/Hermes-3-Llama-3.1-8B-GGUF:Q4_K_M --ch
 curl -N http://shawn-pc.local:8080/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF:Q4_K_M",
     "messages": [
       {"role": "system", "content": "You are a helpful assistant."},
       {"role": "user", "content": "Explain black holes in simple terms."}
