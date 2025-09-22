@@ -10,13 +10,11 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-async def example_usage():
+async def example_usage(query: str, use_cache: bool = True):
     """
     Example usage of web_deep_search, rag_search, prepare_context, and llm_generate functions.
     Demonstrates searching for information on recent AI advancements.
     """
-    query = "Latest advancements in AI research 2025"
-
     sub_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
 
     # Example 1: Using web_deep_search
@@ -25,7 +23,7 @@ async def example_usage():
         query=query,
         embed_model="all-MiniLM-L6-v2",
         llm_model="llama-3.2-3b-instruct-4bit",
-        use_cache=True,
+        use_cache=use_cache,
         urls_limit=10
     )
 
@@ -52,7 +50,7 @@ async def example_usage():
         chunk_overlap=50,
         merge_chunks=False,
         urls=sample_urls,
-        use_cache=True,
+        use_cache=use_cache,
         urls_limit=10
     )
 
@@ -82,7 +80,7 @@ async def example_usage():
         chunk_overlap=50,
         merge_chunks=False,
         urls=None,
-        use_cache=True,
+        use_cache=use_cache,
         urls_limit=5
     )
 
@@ -120,4 +118,6 @@ async def example_usage():
     save_file(llm_result, f"{sub_dir}/llm_result.json")
 
 if __name__ == "__main__":
-    asyncio.run(example_usage())
+    query = "Latest advancements in AI research 2025"
+    use_cache = False
+    asyncio.run(example_usage(query, use_cache))
