@@ -3,7 +3,7 @@ import shutil
 import asyncio
 from typing import List
 from jet.file.utils import save_file
-from jet.search.deep_search import web_deep_search, rag_search, WebDeepSearchResult, RagSearchResult, HeaderSearchResult
+from jet.search.deep_search import aweb_deep_search, rag_search, WebDeepSearchResult, RagSearchResult, HeaderSearchResult
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

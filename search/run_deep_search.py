@@ -9,17 +9,17 @@ from jet.utils.text import format_sub_dir
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-async def example_usage(query: str, use_cache: bool = True):
+def example_usage(query: str, use_cache: bool = True):
     """
-    Example usage of web_deep_search, rag_search, prepare_context, and llm_generate functions.
+    Example usage of aweb_deep_search, rag_search, prepare_context, and llm_generate functions.
     Demonstrates searching for information on recent AI advancements.
     """
     sub_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     shutil.rmtree(sub_dir, ignore_errors=True)
 
-    # Example 1: Using web_deep_search
-    print("Running web_deep_search...")
-    deep_search_result: WebDeepSearchResult = await web_deep_search(
+    # Example 1: Using aweb_deep_search
+    print("Running aweb_deep_search...")
+    deep_search_result: WebDeepSearchResult = web_deep_search(
         query=query,
         embed_model="all-MiniLM-L6-v2",
         llm_model="llama-3.2-3b-instruct-4bit",
@@ -41,7 +41,7 @@ async def example_usage(query: str, use_cache: bool = True):
     sample_urls = [
         "https://www.crescendo.ai/news/latest-ai-news-and-updates",
     ]
-    rag_search_result: RagSearchResult = await rag_search(
+    rag_search_result: RagSearchResult = rag_search(
         query=query,
         embed_model="all-MiniLM-L6-v2",
         top_k=None,
@@ -71,7 +71,7 @@ async def example_usage(query: str, use_cache: bool = True):
 
     # Example 3: Using rag_search without URLs to fetch search results
     print("\nRunning rag_search without URLs...")
-    rag_search_no_urls_result: RagSearchResult = await rag_search(
+    rag_search_no_urls_result: RagSearchResult = rag_search(
         query=query,
         embed_model="all-MiniLM-L6-v2",
         top_k=None,
@@ -101,7 +101,7 @@ async def example_usage(query: str, use_cache: bool = True):
 
     save_file(context_data, f"{sub_dir}/context_data.json")
 
-    llm_result: LLMGenerateResult = await llm_generate(
+    llm_result: LLMGenerateResult = llm_generate(
         query=query,
         context_data=context_data,
         llm_model="llama-3.2-3b-instruct-4bit"

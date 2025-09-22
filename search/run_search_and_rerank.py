@@ -1,6 +1,5 @@
 import os
 import shutil
-import asyncio
 import argparse
 from jet.file.utils import save_file
 from jet.search.deep_search import web_deep_search
@@ -14,6 +13,8 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.orange(f"Log file: {log_file}")
+
+MAX_TOKENS = 1000
 
 
 if __name__ == "__main__":
@@ -31,7 +32,7 @@ if __name__ == "__main__":
     sub_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     shutil.rmtree(sub_dir, ignore_errors=True)
 
-    result = asyncio.run(web_deep_search(query, use_cache=use_cache))
+    result = web_deep_search(query, use_cache=use_cache, max_tokens=MAX_TOKENS)
 
     if result and any(result[key] for key in result if key not in ["query", "response", "token_info"]):
         os.makedirs(sub_dir, exist_ok=True)
