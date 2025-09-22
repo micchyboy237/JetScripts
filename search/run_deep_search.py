@@ -1,7 +1,7 @@
-import asyncio
-import argparse
 import os
 import shutil
+import asyncio
+import argparse
 from jet.file.utils import save_file
 from jet.search.deep_search import web_deep_search
 
@@ -20,5 +20,5 @@ if __name__ == "__main__":
 
     query = args.query if args.query else args.query_pos or "Top 10 isekai anime 2025 with release date, synopsis, number of episode, airing status"
 
-    search_result = asyncio.run(web_deep_search(query))
-    save_file(search_result, f"{OUTPUT_DIR}/search_result.json")
+    deep_search_result = asyncio.run(web_deep_search(query))
+    save_file(deep_search_result, f"{OUTPUT_DIR}/deep_search_result.json")
