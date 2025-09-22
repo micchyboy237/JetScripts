@@ -5,7 +5,8 @@ MODE=""
 
 # Client 1 configuration
 CLIENT1_LISTEN_PORT="11434"
-CLIENT1_TARGET_URL="http://jethros-macbook-air.local:11434"
+# CLIENT1_TARGET_URL="http://jethros-macbook-air.local:11434"
+CLIENT1_TARGET_URL="http://shawn-pc.local:11434"
 CLIENT1_PROXY_SCRIPT="ollama_proxy.py"
 
 # Client 2 configuration
