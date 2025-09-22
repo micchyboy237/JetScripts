@@ -10,30 +10,8 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 async def example_usage():
-    """
-    Example usage of web_deep_search and rag_search functions.
-    Demonstrates searching for information on recent AI advancements.
-    """
     query = "Latest advancements in AI research 2025"
 
-    # Example 1: Using web_deep_search
-    print("Running web_deep_search...")
-    deep_search_result: WebDeepSearchResult = await web_deep_search(
-        query=query,
-        embed_model="all-MiniLM-L6-v2",
-        llm_model="llama-3.2-3b-instruct-4bit"
-    )
-
-    # Print key results
-    print(f"\nQuery: {deep_search_result['query']}")
-    print(f"Number of search results: {len(deep_search_result['search_results'])}")
-    print(f"High score URLs: {len(deep_search_result['high_score_urls'])}")
-    print(f"Response text: {deep_search_result['response_text'][:200]}...")  # Truncated for brevity
-    print(f"Total tokens: {deep_search_result['token_info']['total_tokens']}")
-
-    save_file(deep_search_result, f"{OUTPUT_DIR}/deep_search_result.json")
-
-    # Example 2: Using rag_search directly with existing results
     print("\nRunning rag_search with existing search results...")
     rag_result: RagSearchResult = await rag_search(
         query=query,
