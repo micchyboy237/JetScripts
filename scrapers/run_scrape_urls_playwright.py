@@ -14,6 +14,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
+logger.orange(f"Log file: {log_file}")
 
 
 class ScrapeResult(TypedDict):
