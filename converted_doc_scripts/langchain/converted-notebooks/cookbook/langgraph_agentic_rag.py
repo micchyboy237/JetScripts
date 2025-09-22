@@ -4,7 +4,7 @@ from jet.logger import logger
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.tools.render import format_tool_to_ollama_function
+from langchain.tools.render import format_tool_to_openai_function
 from langchain.tools.retriever import create_retriever_tool
 from langchain_chroma import Chroma
 from langchain_community.document_loaders import WebBaseLoader
@@ -219,7 +219,7 @@ def call_model(state):
     logger.debug("---CALL AGENT---")
     messages = state["messages"]
     model = ChatOllama(model="llama3.2")
-    functions = [format_tool_to_ollama_function(t) for t in tools]
+    functions = [format_tool_to_openai_function(t) for t in tools]
     model = model.bind_functions(functions)
     response = model.invoke(messages)
     return {"messages": [response]}

@@ -514,14 +514,19 @@ render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 
 inputs = {"question": "What is the AlphaCodium paper about?"}
-for output in app.stream(inputs):
+config = {"configurable": {"thread_id": "1"}}  # Unique thread_id for this execution
+
+# Update the stream call to include config
+for output in app.stream(inputs, config=config):
     for key, value in output.items():
         logger.debug(f"Node '{key}':")
     logger.debug("\n---\n")
 
-logger.debug(value["generation"])
+
+logger.success(value["generation"])
 
 save_file(app, f"{OUTPUT_DIR}/workflow_state.json")
+save_file(value["generation"], f"{OUTPUT_DIR}/output.md")
 
 """
 Trace: 
