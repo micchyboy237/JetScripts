@@ -1,40 +1,34 @@
-# llama.cpp
-llama-server -hf bartowski/Llama-3.2-3B-Instruct-GGUF --host 0.0.0.0 --port 8080
-llama-server -hf ggml-org/gemma-3-4b-it-GGUF --host 0.0.0.0 --port 8080
-llama-server -hf bartowski/Qwen_Qwen3-4B-Instruct-2507-GGUF:Q4_K_M --host 0.0.0.0 --port 8080
-llama-server -hf ggml-org/Qwen2.5-VL-7B-Instruct-GGUF:Q4_K_M --host 0.0.0.0 --port 8080
-llama-server --jinja -fa on -hf bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M --host 0.0.0.0 --port 8080
-llama-server --jinja -fa on -hf bartowski/Mistral-Nemo-Instruct-2407-GGUF:Q4_K_M --host 0.0.0.0 --port 8080
-llama-server --jinja -fa on -hf bartowski/DeepSeek-R1-Distill-Qwen-7B-GGUF:Q4_K_M --chat-template-file models/templates/llama-cpp-deepseek-r1.jinja --host 0.0.0.0 --port 8080
-llama-server --jinja -fa on -hf bartowski/Hermes-3-Llama-3.1-8B-GGUF:Q4_K_M --chat-template-file models/templates/NousResearch-Hermes-3-Llama-3.1-8B-tool_use.jinja --host 0.0.0.0 --port 8080
+Set-Content -Path "C:\Users\druiv\Desktop\Jet_Files\Jet_Windows_Workspace\cli_commands\Run-VramRamInfo.ps1" -Value @"
+# Run-VramRamInfo.ps1
+# Continuously display GPU and system RAM information in CSV format with newline separation
 
-# Chat CURL command
-curl -N http://shawn-pc.local:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant."},
-      {"role": "user", "content": "Explain black holes in simple terms."}
-    ],
-    "stream": true
-  }'
+# Function to get system RAM info in CSV format
+function Get-SystemRamInfo {
+    `$os = Get-CimInstance -ClassName Win32_OperatingSystem
+    `$totalRam = [math]::Round(`$os.TotalVisibleMemorySize / 1MB, 2)  # Convert KB to GB
+    `$freeRam = [math]::Round(`$os.FreePhysicalMemory / 1MB, 2)      # Convert KB to GB
+    `$usedRam = [math]::Round(`$totalRam - `$freeRam, 2)
+    `$utilization = [math]::Round((`$usedRam / `$totalRam) * 100, 2)  # Calculate RAM utilization percentage
+    return "0, System RAM, `$utilization %, `${usedRam} GB, `${totalRam} GB"
+}
 
-curl -N http://jethros-macbook-air.local:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant."},
-      {"role": "user", "content": "Explain black holes in simple terms."}
-    ],
-    "stream": true
-  }'
+# Output CSV header once
+Write-Output "index, name, utilization, used, total"
 
-curl -N http://localhost:8080/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "system", "content": "You are a helpful assistant."},
-      {"role": "user", "content": "Explain black holes in simple terms."}
-    ],
-    "stream": true
-  }'
+# Main loop to display GPU and RAM info
+while (`$true) {
+    # Get GPU information using nvidia-smi
+    `$gpuInfo = nvidia-smi --query-gpu=index,name,utilization.gpu,memory.used,memory.total --format=csv,noheader
+
+    # Get RAM information in CSV format
+    `$ramInfo = Get-SystemRamInfo
+
+    # Display GPU and RAM info
+    Write-Output `$gpuInfo
+    Write-Output `$ramInfo
+    Write-Output ""  # Add newline for separation between iterations
+
+    # Wait for 1 second before refreshing
+    Start-Sleep -Seconds 1
+}
+"@
