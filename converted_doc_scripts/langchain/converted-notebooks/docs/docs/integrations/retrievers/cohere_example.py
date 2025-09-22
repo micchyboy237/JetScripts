@@ -32,15 +32,13 @@ logger.info("# Cohere RAG")
 
 rag = CohereRagRetriever(llm=ChatCohere())
 
-def _pretty_logger.debug(docs):
+def _pretty_print(docs):
     for doc in docs:
         logger.debug(doc.metadata)
         logger.debug("\n\n" + doc.page_content)
         logger.debug("\n\n" + "-" * 30 + "\n\n")
 
-_pretty_logger.debug(rag.invoke("What is cohere ai?"))
-
-_pretty_logger.debug(await rag.ainvoke("What is cohere ai?"))  # async version
+_pretty_print(rag.invoke("What is cohere ai?"))
 
 docs = rag.invoke(
     "Does langchain support cohere RAG?",
@@ -49,7 +47,7 @@ docs = rag.invoke(
         Document(page_content="The sky is blue!"),
     ],
 )
-_pretty_logger.debug(docs)
+_pretty_print(docs)
 
 """
 Please note that connectors and documents cannot be used simultaneously. If you choose to provide documents in the `invoke` method, they will take precedence, and connectors will not be utilized for that particular request, as shown in the snippet above!
