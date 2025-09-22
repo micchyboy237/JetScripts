@@ -8,7 +8,6 @@ from jet.utils.text import format_sub_dir
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 async def example_usage(query: str, use_cache: bool = True):
     """
@@ -16,6 +15,7 @@ async def example_usage(query: str, use_cache: bool = True):
     Demonstrates searching for information on recent AI advancements.
     """
     sub_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+    shutil.rmtree(sub_dir, ignore_errors=True)
 
     # Example 1: Using web_deep_search
     print("Running web_deep_search...")
