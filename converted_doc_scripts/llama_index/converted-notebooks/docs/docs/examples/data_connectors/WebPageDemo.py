@@ -1,11 +1,12 @@
 from IPython.display import Markdown, display
-from jet.logger import CustomLogger
+from jet.logger import logger
 from llama_index.core import SummaryIndex
 from llama_index.core import VectorStoreIndex
 from llama_index.readers.web import AgentQLWebReader
 from llama_index.readers.web import BrowserbaseWebReader
 from llama_index.readers.web import FireCrawlWebReader
 from llama_index.readers.web import HyperbrowserWebReader
+from llama_index.readers.web import OlostepWebReader
 from llama_index.readers.web import OxylabsWebReader
 from llama_index.readers.web import RssReader
 from llama_index.readers.web import ScrapflyReader
@@ -24,9 +25,13 @@ import sys
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/data_connectors/WebPageDemo.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -78,7 +83,7 @@ logger.info("# Using Spider Reader 🕷")
 
 
 spider_reader = SpiderWebReader(
-    api_key="YOUR_API_KEY",  # Get one at https://spider.cloud
+    # Get one at https://spider.cloud
     mode="scrape",
 )
 
@@ -92,7 +97,6 @@ logger.info("Crawl domain following all deeper subpages")
 
 
 spider_reader = SpiderWebReader(
-    api_key="YOUR_API_KEY",
     mode="crawl",
 )
 
@@ -135,7 +139,7 @@ logger.info("### Using FireCrawl Reader 🔥")
 
 
 firecrawl_reader = FireCrawlWebReader(
-    api_key="<your_api_key>",  # Replace with your actual API key from https://www.firecrawl.dev/
+    # Replace with your actual API key from https://www.firecrawl.dev/
     mode="scrape",  # Choose between "crawl" and "scrape" for single page scraping
     params={"additional": "parameters"},  # Optional additional parameters
 )
@@ -156,7 +160,7 @@ logger.info("Using firecrawl for a single page")
 
 
 firecrawl_reader = FireCrawlWebReader(
-    api_key="<your_api_key>",  # Replace with your actual API key from https://www.firecrawl.dev/
+    # Replace with your actual API key from https://www.firecrawl.dev/
     mode="scrape",  # Choose between "crawl" and "scrape" for single page scraping
     params={"additional": "parameters"},  # Optional additional parameters
 )
@@ -177,7 +181,7 @@ logger.info("Using FireCrawl's extract mode to extract structured data from URLs
 
 
 firecrawl_reader = FireCrawlWebReader(
-    api_key="<your_api_key>",  # Replace with your actual API key from https://www.firecrawl.dev/
+    # Replace with your actual API key from https://www.firecrawl.dev/
     mode="extract",  # Use extract mode to extract structured data
     params={
         "prompt": "Extract the title, author, and main points from this essay",
@@ -221,7 +225,7 @@ logger.info("# Using Hyperbrowser Reader ⚡")
 # %pip install hyperbrowser
 
 
-reader = HyperbrowserWebReader(api_key="your_api_key_here")
+reader = HyperbrowserWebReader()
 docs = reader.load_data(
     urls=["https://example.com"],
     operation="scrape",
@@ -273,7 +277,7 @@ logger.info("## Using ScrapFly")
 
 
 scrapfly_reader = ScrapflyReader(
-    api_key="Your ScrapFly API key",  # Get your API key from https://www.scrapfly.io/
+    # Get your API key from https://www.scrapfly.io/
     ignore_scrape_failures=True,  # Ignore unprocessable web pages and log their exceptions
 )
 
@@ -288,7 +292,7 @@ logger.info("The ScrapflyReader also allows passigng ScrapeConfig object for cus
 
 
 scrapfly_reader = ScrapflyReader(
-    api_key="Your ScrapFly API key",  # Get your API key from https://www.scrapfly.io/
+    # Get your API key from https://www.scrapfly.io/
     ignore_scrape_failures=True,  # Ignore unprocessable web pages and log their exceptions
 )
 
@@ -326,7 +330,6 @@ logger.info("# Using ZyteWebReader")
 
 
 zyte_reader = ZyteWebReader(
-    api_key="your ZYTE API key here",
     mode="article",  # or "html-text" or "html"
 )
 
@@ -352,7 +355,6 @@ zyte_dw_params = {
 }
 
 zyte_reader = ZyteWebReader(
-    api_key="your ZYTE API key here",
     download_kwargs=zyte_dw_params,
 )
 
@@ -368,7 +370,6 @@ Set "continue_on_failure" to False if you'd like to stop when any request fails.
 logger.info("Set "continue_on_failure" to False if you'd like to stop when any request fails.")
 
 zyte_reader = ZyteWebReader(
-    api_key="your ZYTE API key here",
     mode="html-text",
     download_kwargs=zyte_dw_params,
     continue_on_failure=False,
@@ -391,7 +392,7 @@ logger.info("# Using AgentQLWebReader 🐠")
 
 
 agentql_reader = AgentQLWebReader(
-    api_key="YOUR_API_KEY",  # Replace with your actual API key from https://dev.agentql.com
+    # Replace with your actual API key from https://dev.agentql.com
     params={
         "is_scroll_to_bottom_enabled": True
     },  # Optional additional parameters
@@ -490,7 +491,7 @@ logger.info("# Using ZenRows Web Reader 🌐")
 
 
 zenrows_reader = ZenRowsWebReader(
-    api_key="YOUR_API_KEY",  # Get one at https://app.zenrows.com/register
+    # Get one at https://app.zenrows.com/register
     response_type="markdown",
 )
 
@@ -498,7 +499,6 @@ documents = zenrows_reader.load_data(["https://httpbin.io/html"])
 logger.debug(documents[0].text[:500])  # Print first 500 characters
 
 zenrows_advanced = ZenRowsWebReader(
-    api_key="YOUR_API_KEY",
     js_render=True,  # Enable JavaScript rendering
     premium_proxy=True,  # Use residential proxies
     proxy_country="us",  # Optional: specify country
@@ -510,7 +510,7 @@ documents = zenrows_advanced.load_data(
 logger.debug(f"Scraped {len(documents[0].text)} characters with advanced features")
 
 zenrows_reader = ZenRowsWebReader(
-    api_key="YOUR_API_KEY", js_render=True, response_type="markdown"
+    js_render=True, response_type="markdown"
 )
 
 urls = ["https://example.com/", "https://httpbin.io/html"]
@@ -525,7 +525,41 @@ display(Markdown(f"<b>{response}</b>"))
 
 """
 For more advanced features like custom headers, CSS data extraction, screenshot capabilities, and detailed configuration options, visit the [ZenRows documentation](https://docs.zenrows.com/universal-scraper-api/api-reference).
+
+# Using Olostep Web Reader 🧢
+
+[Olostep](https://www.olostep.com/) is reliable and **cost-effective web scraping API built for scale.** It bypasses bot detection, delivers results in seconds, and can process millions of requests. 
+
+The API returns clean data from any website in various formats, including Markdown, HTML, and structured JSON. 
+
+Sign up [here](https://www.olostep.com/auth) and get 1000 credits for free.
 """
-logger.info("For more advanced features like custom headers, CSS data extraction, screenshot capabilities, and detailed configuration options, visit the [ZenRows documentation](https://docs.zenrows.com/universal-scraper-api/api-reference).")
+logger.info("# Using Olostep Web Reader 🧢")
+
+
+reader = OlostepWebReader(mode="scrape")
+
+documents = reader.load_data(url="https://www.olostep.com/")
+
+index = SummaryIndex.from_documents(documents)
+query_engine = index.as_query_engine()
+response = query_engine.query("Summarize in 100 words")
+
+logger.debug(response)
+
+
+reader = OlostepWebReader(mode="search")
+
+documents = reader.load_data(query="What are the latest advancements in AI?")
+
+documents_with_params = reader.load_data(
+    query="What are the latest advancements in AI?", params={"country": "US"}
+)
+
+index = SummaryIndex.from_documents(documents)
+query_engine = index.as_query_engine()
+response = query_engine.query("List me the headlines")
+
+logger.debug(response)
 
 logger.info("\n\n[DONE]", bright=True)

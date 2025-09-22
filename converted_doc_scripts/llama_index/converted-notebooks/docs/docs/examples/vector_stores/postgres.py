@@ -1,5 +1,5 @@
 from datetime import datetime
-from jet.logger import CustomLogger
+from jet.logger import logger
 from llama_index.core import SimpleDirectoryReader, StorageContext
 from llama_index.core import VectorStoreIndex
 from llama_index.core.query_engine import RetrieverQueryEngine
@@ -11,7 +11,18 @@ MetadataFilter,
 MetadataFilters,
 )
 from llama_index.vector_stores.postgres import PGVectorStore
+from sqlalchemy import (
+Table,
+MetaData,
+Column,
+String,
+Integer,
+create_engine,
+insert,
+)
+from sqlalchemy import Select
 from sqlalchemy import make_url
+from typing import Any
 import csv
 import os
 import psycopg2
@@ -23,9 +34,13 @@ import textwrap
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 <a href="https://colab.research.google.com/github/run-llama/llama_index/blob/main/docs/docs/examples/vector_stores/postgres.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
@@ -56,10 +71,10 @@ logger.info("Running the following cell will install Postgres with PGVector in C
 
 
 """
-### Setup OllamaFunctionCalling
-The first step is to configure the openai key. It will be used to created embeddings for the documents loaded into the index
+### Setup Ollama
+The first step is to configure the ollama key. It will be used to created embeddings for the documents loaded into the index
 """
-logger.info("### Setup OllamaFunctionCalling")
+logger.info("### Setup Ollama")
 
 
 # os.environ["OPENAI_API_KEY"] = "sk-..."
@@ -78,7 +93,7 @@ Load the documents stored in the `data/paul_graham/` using the SimpleDirectoryRe
 """
 logger.info("### Loading documents")
 
-documents = SimpleDirectoryReader("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/jet-resume/data").load_data()
+documents = SimpleDirectoryReader("./data/paul_graham").load_data()
 logger.debug("Document ID:", documents[0].doc_id)
 
 """
@@ -112,7 +127,7 @@ vector_store = PGVectorStore.from_params(
     port=url.port,
     user=url.username,
     table_name="paul_graham_essay",
-    embed_dim=1536,  # openai embedding dimension
+    embed_dim=1536,  # ollama embedding dimension
     hnsw_kwargs={
         "hnsw_m": 16,
         "hnsw_ef_construction": 64,
@@ -153,7 +168,7 @@ vector_store = PGVectorStore.from_params(
     port=5432,
     user="postgres",
     table_name="paul_graham_essay",
-    embed_dim=1536,  # openai embedding dimension
+    embed_dim=1536,  # ollama embedding dimension
     hnsw_kwargs={
         "hnsw_m": 16,
         "hnsw_ef_construction": 64,
@@ -187,7 +202,7 @@ hybrid_vector_store = PGVectorStore.from_params(
     port=url.port,
     user=url.username,
     table_name="paul_graham_essay_hybrid_search",
-    embed_dim=1536,  # openai embedding dimension
+    embed_dim=1536,  # ollama embedding dimension
     hybrid_search=True,
     text_search_config="english",
     hnsw_kwargs={
@@ -312,7 +327,7 @@ vector_store = PGVectorStore.from_params(
     port=url.port,
     user=url.username,
     table_name="metadata_filter_demo3",
-    embed_dim=1536,  # openai embedding dimension
+    embed_dim=1536,  # ollama embedding dimension
     hnsw_kwargs={
         "hnsw_m": 16,
         "hnsw_ef_construction": 64,
@@ -466,6 +481,87 @@ retrieved_nodes = retriever.retrieve("What is this software project about?")
 
 for node in retrieved_nodes:
     logger.debug(node.node.metadata)
+
+filters = MetadataFilters(
+    filters=[
+        MetadataFilter(key="fixes", value="5680", operator="contains"),
+    ]
+)
+
+retriever = index.as_retriever(
+    similarity_top_k=10,
+    filters=filters,
+)
+
+retrieved_nodes = retriever.retrieve("How did these commits fix the issue?")
+for node in retrieved_nodes:
+    logger.debug(node.node.metadata)
+
+"""
+### Customize queries
+
+It is possible to build more complex queries such as joining other tables. This is done by setting the `customize_query_fn` argument with your function. First, lets create a user table and populate it.
+"""
+logger.info("### Customize queries")
+
+
+engine = create_engine(url=connection_string + "/" + db_name)
+
+metadata = MetaData()
+
+user_table = Table(
+    "user",
+    metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("name", String, nullable=False),
+    Column("email", String, nullable=False),
+)
+
+user_table.drop(engine, checkfirst=True)
+user_table.create(engine)
+
+with engine.begin() as conn:
+    stmt = insert(user_table)
+    conn.execute(
+        stmt, [{"name": "Konstantina", "email": "konstantina@timescale.com"}]
+    )
+
+"""
+Then, we can create a query customization function and instantiate `PGVectorStore` with `customize_query_fn`.
+"""
+logger.info("Then, we can create a query customization function and instantiate `PGVectorStore` with `customize_query_fn`.")
+
+
+
+def customize_query(query: Select, table_class: Any, **kwargs: Any) -> Select:
+    return query.add_columns(user_table.c.name).join(
+        user_table,
+        user_table.c.email == table_class.metadata_["author"].astext,
+    )
+
+
+vector_store = PGVectorStore.from_params(
+    database=db_name,
+    host=url.host,
+    password=url.password,
+    port=url.port,
+    user=url.username,
+    table_name="metadata_filter_demo3",
+    embed_dim=1536,  # ollama embedding dimension
+    hnsw_kwargs={
+        "hnsw_m": 16,
+        "hnsw_ef_construction": 64,
+        "hnsw_ef_search": 40,
+        "hnsw_dist_method": "vector_cosine_ops",
+    },
+    customize_query_fn=customize_query,
+)
+index = VectorStoreIndex.from_vector_store(vector_store=vector_store)
+
+"""
+We can then query the vector store and retrieve any additional field added to the select statement in a dictionary named `custom_fields` in the node metadata.
+"""
+logger.info("We can then query the vector store and retrieve any additional field added to the select statement in a dictionary named `custom_fields` in the node metadata.")
 
 filters = MetadataFilters(
     filters=[

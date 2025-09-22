@@ -16,8 +16,8 @@ from jet.utils.file_utils.search import find_files
 REPLACE_OLLAMA_MAP = {
     "llama-index-llms-openai": "llama-index-llms-ollama",
     "llama-index-embeddings-openai": "llama-index-embeddings-huggingface",
-    "llama_index.llms.openai": "jet.llm.ollama.adapters.ollama_llama_index_llm_adapter",
-    "llama_index.llms.anthropic": "jet.llm.ollama.adapters.ollama_llama_index_llm_adapter",
+    "llama_index.llms.openai": "jet.adapters.llama_index.ollama_function_calling",
+    "llama_index.llms.anthropic": "jet.adapters.llama_index.ollama_function_calling",
     "llama_index.embeddings.openai": "llama_index.embeddings.huggingface",
     "llama_index.graph_stores.neo4j": "jet.vectors.adapters.neo4j_property_graph_adapter",
     "llama_index.postprocessor.cohere_rerank": "jet.models.embeddings.adapters.rerank_cross_encoder_llama_index_adapter",
@@ -738,7 +738,12 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
     ]
     include_files = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production/tutorials/agent-with-tavily-web-access/hybrid-agent-tutorial.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/embeddings/ollama_embedding.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/vector_stores/orallamavs.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/vector_stores/postgres.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data_connectors/WebPageDemo.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/memory/custom_multi_turn_memory.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/cookbooks/build_knowledge_graph_with_neo4j_llamacloud.ipynb",
     ]
     exclude_files = [
         "_*.py",

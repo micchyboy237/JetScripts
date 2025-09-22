@@ -1,23 +1,29 @@
-async def main():
-    from jet.transformers.formatters import format_json
-    from jet.adapters.llama_index.ollama_function_calling import OllamaFunctionCalling
-    from jet.logger import CustomLogger
-    from llama_index.core.agent.workflow import FunctionAgent
-    from llama_index.core.llms import ChatMessage, TextBlock
-    from llama_index.core.memory import Memory, BaseMemoryBlock
-    from pydantic import Field
-    from typing import List, Optional, Any
-    import os
-    import shutil
-    import tiktoken
+from jet.transformers.formatters import format_json
+from jet.adapters.llama_index.ollama_function_calling import Ollama
+from jet.logger import logger
+from llama_index.core.agent.workflow import FunctionAgent
+from llama_index.core.llms import ChatMessage, TextBlock
+from llama_index.core.memory import Memory, BaseMemoryBlock
+from pydantic import Field
+from typing import List, Optional, Any
+import os
+import shutil
+import tiktoken
 
+async def main():
+    
+    
     OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
     log_file = os.path.join(OUTPUT_DIR, "main.log")
-    logger = CustomLogger(log_file, overwrite=True)
+    logger.basicConfig(filename=log_file)
     logger.info(f"Logs: {log_file}")
-
+    
+    PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+    os.makedirs(PERSIST_DIR, exist_ok=True)
+    
     """
     # Reducing Multi-Turn Confusion with LlamaIndex Memory
     
@@ -30,35 +36,38 @@ async def main():
     **NOTE:** This notebook was tested with `llama-index-core>=0.12.37`, as that version included some fixes to make this work nicely.
     """
     logger.info("# Reducing Multi-Turn Confusion with LlamaIndex Memory")
-
+    
     # %pip install -U llama-index-core llama-index-llms-ollama
-
+    
+    
     # os.environ["OPENAI_API_KEY"] = "sk-..."
-
+    
     """
     ## Setup
     
     To make this work, we need two things
-    1. A memory block that condenses a;; past chat messages into a single string while maintaining a token limit
+    1. A memory block that condenses all past chat messages into a single string while maintaining a token limit
     2. A `Memory` instance that uses that memory block, and has token limits configured such that multi-turn conversations are always flushed to the memory block for handling
     
     First, the custom memory block:
     """
     logger.info("## Setup")
-
+    
+    
+    
     class CondensedMemoryBlock(BaseMemoryBlock[str]):
         current_memory: List[str] = Field(default_factory=list)
         token_limit: int = Field(default=50000)
         tokenizer: tiktoken.Encoding = tiktoken.encoding_for_model(
             "gpt-4o"
-        )  # all openai models use 4o tokenizer these days
-
+        )  # all ollama models use 4o tokenizer these days
+    
         async def _aget(
             self, messages: Optional[List[ChatMessage]] = None, **block_kwargs: Any
         ) -> str:
             """Return the current memory block contents."""
             return "\n".join(self.current_memory)
-
+    
         async def _aput(self, messages: List[ChatMessage]) -> None:
             """Push messages into the memory block. (Only handles text content)"""
             for message in messages:
@@ -68,10 +77,10 @@ async def main():
                     if isinstance(block, TextBlock)
                 )
                 memory_str = f"<message role={message.role}>"
-
+    
                 if text_contents:
                     memory_str += f"\n{text_contents}"
-
+    
                 kwargs = {
                     key: val
                     for key, val in message.additional_kwargs.items()
@@ -79,10 +88,10 @@ async def main():
                 }
                 if kwargs:
                     memory_str += f"\n({kwargs})"
-
+    
                 memory_str += "\n</message>"
                 self.current_memory.append(memory_str)
-
+    
             message_length = sum(
                 len(self.tokenizer.encode(message))
                 for message in self.current_memory
@@ -93,14 +102,14 @@ async def main():
                     len(self.tokenizer.encode(message))
                     for message in self.current_memory
                 )
-
+    
     """
     And then, a `Memory` instance that uses that block while configuring a very limited token limit for the short-term memory:
     """
     logger.info("And then, a `Memory` instance that uses that block while configuring a very limited token limit for the short-term memory:")
-
+    
     block = CondensedMemoryBlock(name="condensed_memory")
-
+    
     memory = Memory.from_defaults(
         session_id="test-mem-01",
         token_limit=60000,
@@ -110,47 +119,45 @@ async def main():
         insert_method="user",
         chat_history_token_ratio=0.0001,
     )
-
+    
     """
     ## Usage
     
     Let's explore using this with some dummy messages, and observe how the memory is managed.
     """
     logger.info("## Usage")
-
+    
     initial_messages = [
         ChatMessage(role="user", content="Hello! My name is Logan"),
         ChatMessage(role="assistant", content="Hello! How can I help you?"),
         ChatMessage(role="user", content="What is the capital of France?"),
-        ChatMessage(role="assistant",
-                    content="The capital of France is Paris"),
+        ChatMessage(role="assistant", content="The capital of France is Paris"),
     ]
-
+    
     await memory.aput_messages(initial_messages)
-
+    
     """
     Then, lets add our next user message!
     """
     logger.info("Then, lets add our next user message!")
-
+    
     await memory.aput_messages(
         [ChatMessage(role="user", content="What was my name again?")]
     )
-
+    
     """
     With that, we can explore what the chat history looks like before sending to an LLM.
     """
-    logger.info(
-        "With that, we can explore what the chat history looks like before sending to an LLM.")
-
+    logger.info("With that, we can explore what the chat history looks like before sending to an LLM.")
+    
     chat_history = await memory.aget()
     logger.success(format_json(chat_history))
-
+    
     for message in chat_history:
         logger.debug(message.role)
         logger.debug(message.content)
         logger.debug()
-
+    
     """
     Great! Even though we added many messages, it gets condensed into a single user message!
     
@@ -161,33 +168,39 @@ async def main():
     Here, we can create a `FunctionAgent` with some simple tools that uses our memory.
     """
     logger.info("## Agent Usage")
-
+    
+    
+    
     def multiply(a: float, b: float) -> float:
         """Multiply two numbers."""
         return a * b
-
+    
+    
     def divide(a: float, b: float) -> float:
         """Divide two numbers."""
         return a / b
-
+    
+    
     def add(a: float, b: float) -> float:
         """Add two numbers."""
         return a + b
-
+    
+    
     def subtract(a: float, b: float) -> float:
         """Subtract two numbers."""
         return a - b
-
-    llm = OllamaFunctionCalling(model="llama3.2")
-
+    
+    
+    llm = Ollama(model="llama3.2")
+    
     agent = FunctionAgent(
         tools=[multiply, divide, add, subtract],
         llm=llm,
         system_prompt="You are a helpful assistant that can do simple math operations with tools.",
     )
-
+    
     block = CondensedMemoryBlock(name="condensed_memory")
-
+    
     memory = Memory.from_defaults(
         session_id="test-mem-01",
         token_limit=60000,
@@ -197,37 +210,37 @@ async def main():
         insert_method="user",
         chat_history_token_ratio=0.0001,
     )
-
+    
     resp = await agent.run("What is (3214 * 322) / 2?", memory=memory)
     logger.success(format_json(resp))
     logger.debug(resp)
-
+    
     current_chat_history = await memory.aget()
     logger.success(format_json(current_chat_history))
     for message in current_chat_history:
         logger.debug(message.role)
         logger.debug(message.content)
         logger.debug()
-
+    
     """
     Perfect! Since the memory didn't have a new user message yet, it added one with our current memory. On the next user message, that memory and the user message would get combined like we saw earlier.
     
     Let's try a few follow ups to confirm this is working properly
     """
     logger.info("Perfect! Since the memory didn't have a new user message yet, it added one with our current memory. On the next user message, that memory and the user message would get combined like we saw earlier.")
-
+    
     resp = await agent.run(
-        "What was the last question I asked you?", memory=memory
-    )
+            "What was the last question I asked you?", memory=memory
+        )
     logger.success(format_json(resp))
     logger.debug(resp)
-
+    
     resp = await agent.run(
-        "And how did you go about answering that message?", memory=memory
-    )
+            "And how did you go about answering that message?", memory=memory
+        )
     logger.success(format_json(resp))
     logger.debug(resp)
-
+    
     logger.info("\n\n[DONE]", bright=True)
 
 if __name__ == '__main__':

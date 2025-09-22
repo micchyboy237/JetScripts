@@ -1,4 +1,4 @@
-from jet.logger import CustomLogger
+from jet.logger import logger
 from llama_index.core.schema import NodeRelationship, RelatedNodeInfo, TextNode
 from llama_index.core.vector_stores.types import (
 ExactMatchFilter,
@@ -16,9 +16,13 @@ import sys
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Oracle AI Vector Search: Vector Store
@@ -225,14 +229,6 @@ def manage_texts(vector_stores):
     - vector_stores (list): A list of OracleVS instances.
     """
     for i, vs in enumerate(vector_stores, start=1):
-        try:
-            vs.add_texts(text_nodes, metadata)
-            logger.debug(f"\n\n\nAdd texts complete for vector store {i}\n\n\n")
-        except Exception as ex:
-            logger.debug(
-                f"\n\n\nExpected error on duplicate add for vector store {i}\n\n\n"
-            )
-
         vs.delete("test-1")
         logger.debug(f"\n\n\nDelete texts complete for vector store {i}\n\n\n")
 
