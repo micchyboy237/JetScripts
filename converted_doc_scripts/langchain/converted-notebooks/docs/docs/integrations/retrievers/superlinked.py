@@ -8,7 +8,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
 from langchain_superlinked import SuperlinkedRetriever
 from typing import Optional, List, Dict, Any
-import ChatModelTabs from "@theme/ChatModelTabs";
+# import ChatModelTabs from "@theme/ChatModelTabs";
 import os
 import shutil
 import superlinked.framework as sl
@@ -217,11 +217,11 @@ For detailed documentation of all SuperlinkedRetriever features and configuratio
 
 """
 logger.info("## API reference")
+"""
 SuperlinkedRetriever Usage Examples
 
 This file demonstrates how to use the SuperlinkedRetriever with different
 space configurations to showcase its flexibility across various use cases.
-"""
 """
 
 
