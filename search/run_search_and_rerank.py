@@ -65,6 +65,9 @@ if __name__ == "__main__":
         save_file(result["filtered_results"], f"{sub_dir}/filtered_results.json")
         save_file(result["filtered_urls"], f"{sub_dir}/filtered_urls.json")
         save_file(result["token_info"], f"{sub_dir}/token_info.json")
+        save_file(result["all_completed_urls"], f"{sub_dir}/all_completed_urls.json")
+        save_file(result["all_urls_with_medium_scores"], f"{sub_dir}/all_urls_with_medium_scores.json")
+        save_file(result["all_urls_with_high_scores"], f"{sub_dir}/all_urls_with_high_scores.json")
         logger.info(f"Results saved to {sub_dir}")
     else:
         logger.warning("No results to save.")
