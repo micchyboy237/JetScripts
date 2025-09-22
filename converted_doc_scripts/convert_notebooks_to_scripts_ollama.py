@@ -732,12 +732,12 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
     ]
     include_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production/tutorials/agent-with-tavily-web-access/hybrid-agent-tutorial.ipynb",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production/tutorials/agent-with-tavily-web-access/hybrid-agent-tutorial.ipynb",
     ]
     exclude_files = [
         "_*.py",
