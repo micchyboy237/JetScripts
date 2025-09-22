@@ -14,7 +14,7 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.orange(f"Log file: {log_file}")
 
-MAX_TOKENS = 1000
+MAX_TOKENS = 2000
 
 
 if __name__ == "__main__":
