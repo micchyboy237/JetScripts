@@ -729,10 +729,11 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
     ]
