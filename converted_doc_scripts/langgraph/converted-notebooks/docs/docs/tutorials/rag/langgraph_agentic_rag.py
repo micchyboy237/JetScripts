@@ -177,7 +177,8 @@ for chunk in graph.stream(
                 "content": "What does Lilian Weng say about types of reward hacking?",
             }
         ]
-    }
+    },
+    config={"configurable": {"thread_id": "1"}}  # Unique thread_id for this execution
 ):
     for node, update in chunk.items():
         logger.debug("Update from node", node)

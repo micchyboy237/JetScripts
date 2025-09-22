@@ -337,8 +337,9 @@ inputs = {
         ("user", "What does Lilian Weng say about the types of agent memory?"),
     ]
 }
+config = {"configurable": {"thread_id": "1"}}  # Unique thread_id for this execution
 state = AgentState(messages=inputs["messages"])
-for output in graph.stream(state):
+for output in graph.stream(state, config=config):
     for key, value in output.items():
         logger.debug(f"Output from node '{key}':")
         logger.debug("---")
