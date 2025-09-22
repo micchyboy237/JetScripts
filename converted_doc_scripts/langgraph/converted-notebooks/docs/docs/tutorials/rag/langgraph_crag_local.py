@@ -1,19 +1,19 @@
+from pydantic import BaseModel, Field
 from IPython.display import Image, display
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings  # api
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings  # local
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.file import save_file
 from jet.logger import logger
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain import hub
-from langchain.prompts import PromptTemplate
+from langchain.prompts import ChatPromptTemplate
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.chat_models import ChatOllama
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.vectorstores import SKLearnVectorStore
-from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.output_parsers import StrOutputParser
-from langchain_mistralai.chat_models import ChatMistralAI
+from langchain_core.runnables import RunnableConfig
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, END, StateGraph
 from langsmith import Client
 from langsmith.evaluation import evaluate
@@ -24,7 +24,6 @@ import os
 import shutil
 import uuid
 
-
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
@@ -33,13 +32,10 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
-
 """
 # Corrective RAG (CRAG) using local LLMs
 
-[Corrective-RAG (CRAG)](https://arxiv.org/abs/2401.15884) is a strategy for RAG that incorporates self-reflection / self-grading on retrieved documents. 
+[Corrective-RAG (CRAG)](https://arxiv.org/abs/2401.15884) is a strategy for RAG that incorporates self-reflection / self-grading on retrieved documents.
 
 The paper follows this general flow:
 
@@ -51,11 +47,9 @@ The paper follows this general flow:
 
 We will implement some of these ideas from scratch using [LangGraph](https://langchain-ai.github.io/langgraph/):
 
-* If *any* documents are irrelevant, we'll supplement retrieval with web search. 
-* We'll skip the knowledge refinement, but this can be added back as a node if desired. 
-* We'll use [Tavily Search](https://python.langchain.com/docs/integrations/tools/tavily_search/) for web search.
-
-![Screenshot 2024-06-24 at 3.03.16 PM.png](attachment:b77a7d3b-b28a-4dcf-9f1a-861f2f2c5f6c.png)
+* If *any* documents are irrelevant, we'll supplement retrieval with web search.
+* We'll skip the knowledge refinement, but this can be added back as a node if desired.
+* We'll use [Tavily Search](https://python.langchain.com/v0.2/docs/integrations/tools/tavily_search/) for web search.
 
 ## Setup
 
@@ -64,7 +58,7 @@ We'll use [Ollama](https://ollama.ai/) to access a local LLM:
 * Download [Ollama app](https://ollama.ai/).
 * Pull your model of choice, e.g.: `ollama pull llama3`
 
-We'll use [Tavily](https://python.langchain.com/docs/integrations/tools/tavily_search/) for web search.
+We'll use [Tavily](https://python.langchain.com/v0.2/docs/integrations/tools/tavily_search/) for web search.
 
 We'll use a vectorstore with [Nomic local embeddings](https://blog.nomic.ai/posts/nomic-embed-text-v1) or, optionally, Ollama embeddings.
 
@@ -73,24 +67,11 @@ Let's install our required packages and set our API keys:
 """
 logger.info("# Corrective RAG (CRAG) using local LLMs")
 
-# %%capture --no-stderr
-# %pip install -U langchain_community tiktoken langchainhub scikit-learn langchain langgraph tavily-python  nomic[local] langchain-nomic jet.adapters.langchain.chat_ollama
-
-# import getpass
-
-
-def _set_env(key: str):
-    if key not in os.environ:
-        #         os.environ[key] = getpass.getpass(f"{key}:")
-
-        # _set_env("OPENAI_API_KEY")
-_set_env("TAVILY_API_KEY")
-
 """
 <div class="admonition tip">
     <p class="admonition-title">Set up <a href="https://smith.langchain.com">LangSmith</a> for LangGraph development</p>
     <p style="padding-top: 5px;">
-        Sign up for LangSmith to quickly spot issues and improve the performance of your LangGraph projects. LangSmith lets you use trace data to debug, test, and monitor your LLM apps built with LangGraph — read more about how to get started <a href="https://docs.smith.langchain.com">here</a>. 
+        Sign up for LangSmith to quickly spot issues and improve the performance of your LangGraph projects. LangSmith lets you use trace data to debug, test, and monitor your LLM apps built with LangGraph — read more about how to get started <a href="https://docs.smith.langchain.com">here</a>.
     </p>
 </div>
 
@@ -99,9 +80,8 @@ _set_env("TAVILY_API_KEY")
 You can select from [Ollama LLMs](https://ollama.com/library).
 """
 logger.info("### LLM")
-
-local_llm = "llama3"
-model_tested = "llama3-8b"
+local_llm = "llama3.2"
+model_tested = "llama3.2-3b"
 metadata = f"CRAG, {model_tested}"
 
 """
@@ -110,31 +90,27 @@ metadata = f"CRAG, {model_tested}"
 Let's index 3 blog posts.
 """
 logger.info("## Create Index")
-
-
 urls = [
     "https://lilianweng.github.io/posts/2023-06-23-agent/",
     "https://lilianweng.github.io/posts/2023-03-15-prompt-engineering/",
     "https://lilianweng.github.io/posts/2023-10-25-adv-attack-llm/",
 ]
-
 docs = [WebBaseLoader(url).load() for url in urls]
 docs_list = [item for sublist in docs for item in sublist]
-
 text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=250, chunk_overlap=0
 )
-
 doc_splits = text_splitter.split_documents(docs_list)
+doc_splits = doc_splits[:10]  # temporary line for faster testing
+
 
 """
-embedding=OllamaEmbeddings(
+embedding=NomicEmbeddings(
     model="nomic-embed-text-v1.5",
     inference_mode="local",
 )
 """
-embedding = OllamaEmbeddings(model="mxbai-embed-large")
-
+embedding = OllamaEmbeddings(model="nomic-embed-text")
 vectorstore = SKLearnVectorStore.from_documents(
     documents=doc_splits,
     embedding=embedding,
@@ -143,70 +119,52 @@ retriever = vectorstore.as_retriever(k=4)
 
 """
 ## Define Tools
+Define structured output models and graders
 """
 logger.info("## Define Tools")
 
 
-llm = ChatOllama(model="llama3.2")
+class GradeDocuments(BaseModel):
+    score: str = Field(
+        description="Binary score 'yes' or 'no' indicating document relevance to the question")
 
-prompt = PromptTemplate(
-    template="""You are a teacher grading a quiz. You will be given:
-    1/ a QUESTION
-    2/ A FACT provided by the student
 
-    You are grading RELEVANCE RECALL:
-    A score of 1 means that ANY of the statements in the FACT are relevant to the QUESTION.
-    A score of 0 means that NONE of the statements in the FACT are relevant to the QUESTION.
-    1 is the highest (best) score. 0 is the lowest score you can give.
+class GenerationOutput(BaseModel):
+    answer: str = Field(description="The generated answer to the question")
 
-    Explain your reasoning in a step-by-step manner. Ensure your reasoning and conclusion are correct.
 
-    Avoid simply stating the correct answer at the outset.
-
-    Question: {question} \n
-    Fact: \n\n {documents} \n\n
-
-    Give a binary score 'yes' or 'no' score to indicate whether the document is relevant to the question. \n
-    Provide the binary score as a JSON with a single key 'score' and no premable or explanation.
-    """,
-    input_variables=["question", "documents"],
+# Setup retrieval grader
+llm = ChatOllama(model="llama3.2", temperature=0)
+structured_llm_grader = llm.with_structured_output(GradeDocuments)
+system = """You are a grader assessing relevance of a retrieved document to a user question.
+If the document contains keyword(s) or semantic meaning related to the question, grade it as relevant.
+Give a binary score 'yes' or 'no' to indicate whether the document is relevant to the question."""
+grade_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system),
+        ("human",
+         "Retrieved document: \n\n{documents}\n\nUser question: {question}"),
+    ]
 )
+retrieval_grader = grade_prompt | structured_llm_grader
 
-retrieval_grader = prompt | llm | JsonOutputParser()
-question = "agent memory"
-docs = retriever.invoke(question)
-doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke(
-    {"question": question, "documents": doc_txt}))
-
-
-prompt = PromptTemplate(
-    template="""You are an assistant for question-answering tasks.
-
-    Use the following documents to answer the question.
-
-    If you don't know the answer, just say that you don't know.
-
-    Use three sentences maximum and keep the answer concise:
-    Question: {question}
-    Documents: {documents}
-    Answer:
-    """,
-    input_variables=["question", "documents"],
+# Setup RAG chain
+structured_llm = llm.with_structured_output(GenerationOutput)
+system_gen = """You are an assistant for question-answering tasks.
+Use the following documents to answer the question in three sentences maximum.
+If you don't know the answer, just say that you don't know."""
+rag_prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system_gen),
+        ("human", "Question: {question}\nDocuments: {documents}\nAnswer:"),
+    ]
 )
-
-llm = ChatOllama(model="llama3.2")
-
-rag_chain = prompt | llm | StrOutputParser()
-
-generation = rag_chain.invoke({"documents": docs, "question": question})
-logger.debug(generation)
-
+rag_chain = rag_prompt | structured_llm
 
 web_search_tool = TavilySearchResults(k=3)
 
 """
-## Create the Graph 
+## Create the Graph
 
 Here we'll explicitly define the majority of the control flow, only using an LLM to define a single branch point following grading.
 """
@@ -216,14 +174,12 @@ logger.info("## Create the Graph")
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
-
     Attributes:
         question: question
         generation: LLM generation
         search: whether to add search
         documents: list of documents
     """
-
     question: str
     generation: str
     search: str
@@ -234,10 +190,8 @@ class GraphState(TypedDict):
 def retrieve(state):
     """
     Retrieve documents
-
     Args:
         state (dict): The current graph state
-
     Returns:
         state (dict): New key added to state, documents, that contains retrieved documents
     """
@@ -251,18 +205,17 @@ def retrieve(state):
 def generate(state):
     """
     Generate answer
-
     Args:
         state (dict): The current graph state
-
     Returns:
         state (dict): New key added to state, generation, that contains LLM generation
     """
-
     question = state["question"]
     documents = state["documents"]
     generation = rag_chain.invoke(
-        {"documents": documents, "question": question})
+        {"documents": [doc.page_content for doc in documents],
+            "question": question}
+    ).answer
     steps = state["steps"]
     steps.append("generate_answer")
     return {
@@ -276,14 +229,11 @@ def generate(state):
 def grade_documents(state):
     """
     Determines whether the retrieved documents are relevant to the question.
-
     Args:
         state (dict): The current graph state
-
     Returns:
         state (dict): Updates documents key with only filtered relevant documents
     """
-
     question = state["question"]
     documents = state["documents"]
     steps = state["steps"]
@@ -294,12 +244,11 @@ def grade_documents(state):
         score = retrieval_grader.invoke(
             {"question": question, "documents": d.page_content}
         )
-        grade = score["score"]
+        grade = score.score
         if grade == "yes":
             filtered_docs.append(d)
         else:
             search = "Yes"
-            continue
     return {
         "documents": filtered_docs,
         "question": question,
@@ -311,14 +260,11 @@ def grade_documents(state):
 def web_search(state):
     """
     Web search based on the re-phrased question.
-
     Args:
         state (dict): The current graph state
-
     Returns:
         state (dict): Updates documents key with appended web results
     """
-
     question = state["question"]
     documents = state.get("documents", [])
     steps = state["steps"]
@@ -336,10 +282,8 @@ def web_search(state):
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
-
     Args:
         state (dict): The current graph state
-
     Returns:
         str: Binary decision for next node to call
     """
@@ -351,12 +295,10 @@ def decide_to_generate(state):
 
 
 workflow = StateGraph(GraphState)
-
-workflow.add_node("retrieve", retrieve)  # retrieve
-workflow.add_node("grade_documents", grade_documents)  # grade documents
-workflow.add_node("generate", generate)  # generate
-workflow.add_node("web_search", web_search)  # web search
-
+workflow.add_node("retrieve", retrieve)
+workflow.add_node("grade_documents", grade_documents)
+workflow.add_node("generate", generate)
+workflow.add_node("web_search", web_search)
 workflow.add_edge(START, "retrieve")
 workflow.add_edge("retrieve", "grade_documents")
 workflow.add_conditional_edges(
@@ -369,10 +311,14 @@ workflow.add_conditional_edges(
 )
 workflow.add_edge("web_search", "generate")
 workflow.add_edge("generate", END)
-
-custom_graph = workflow.compile()
-
-display(Image(custom_graph.get_graph(xray=True).draw_mermaid_png()))
+custom_graph = workflow.compile(checkpointer=MemorySaver())
+config: RunnableConfig = {"configurable": {
+    "thread_id": str(uuid.uuid4())}, "recursion_limit": 100}
+example = {"input": "What are the types of agent memory?"}
+state = custom_graph.invoke(
+    {"question": example["input"], "steps": []}, config)
+save_file(state, f"{OUTPUT_DIR}/workflow_state.json")
+render_mermaid_graph(custom_graph, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 
 def predict_custom_agent_local_answer(example: dict):
@@ -385,10 +331,11 @@ def predict_custom_agent_local_answer(example: dict):
 
 example = {"input": "What are the types of agent memory?"}
 response = predict_custom_agent_local_answer(example)
-response
+save_file(
+    response, f"{OUTPUT_DIR}/predict_custom_agent_local_answer_response.json")
 
 """
-Trace: 
+Trace:
 
 https://smith.langchain.com/public/88e7579e-2571-4cf6-98d2-1f9ce3359967/r
 
@@ -406,9 +353,7 @@ We'll create a dataset and save it in LangSmith.
 """
 logger.info("## Evaluation")
 
-
 client = Client()
-
 examples = [
     (
         "How does the ReAct agent use self-reflection? ",
@@ -423,12 +368,11 @@ examples = [
         "Five types of adversarial attacks are (1) Token manipulation, (2) Gradient based attack, (3) Jailbreak prompting, (4) Human red-teaming, (5) Model red-teaming.",
     ),
     (
-        "Who did the Chicago Bears draft first in the 2024 NFL draft”?",
+        "Who did the Chicago Bears draft first in the 2024 NFL draft?",
         "The Chicago Bears drafted Caleb Williams first in the 2024 NFL draft.",
     ),
     ("Who won the 2024 NBA finals?", "The Boston Celtics on the 2024 NBA finals"),
 ]
-
 dataset_name = "Corrective RAG Agent Testing"
 if not client.has_dataset(dataset_name=dataset_name):
     dataset = client.create_dataset(dataset_name=dataset_name)
@@ -447,7 +391,6 @@ We'll use `gpt-4o` as our LLM grader.
 """
 logger.info("Now, we'll use an `LLM as a grader` to compare both agent responses to our ground truth reference answer.")
 
-
 grade_prompt_answer_accuracy = hub.pull("langchain-ai/rag-answer-vs-reference")
 
 
@@ -455,14 +398,11 @@ def answer_evaluator(run, example) -> dict:
     """
     A simple evaluator for RAG answer accuracy
     """
-
     input_question = example.inputs["input"]
     reference = example.outputs["output"]
     prediction = run.outputs["response"]
-
     llm = ChatOllama(model="llama3.2")
     answer_grader = grade_prompt_answer_accuracy | llm
-
     score = answer_grader.invoke(
         {
             "question": input_question,
@@ -483,7 +423,6 @@ This evaluates the specific reasoning traces taken by our agents!
 """
 logger.info("### Trajectory")
 
-
 expected_trajectory_1 = [
     "retrieve_documents",
     "grade_document_retrieval",
@@ -501,9 +440,8 @@ def find_tool_calls_react(messages):
     """
     Find all tool calls in the messages returned
     """
-    tool_calls = [
-        tc["name"] for m in messages["messages"] for tc in getattr(m, "tool_calls", [])
-    ]
+    tool_calls = [tc['name'] for m in messages['messages']
+                  for tc in getattr(m, 'tool_calls', [])]
     return tool_calls
 
 
@@ -518,7 +456,6 @@ def check_trajectory_react(root_run: Run, example: Example) -> dict:
         score = 1
     else:
         score = 0
-
     return {"score": int(score), "key": "tool_calls_in_exact_order"}
 
 
@@ -532,7 +469,6 @@ def check_trajectory_custom(root_run: Run, example: Example) -> dict:
         score = 1
     else:
         score = 0
-
     return {"score": int(score), "key": "tool_calls_in_exact_order"}
 
 
@@ -543,14 +479,13 @@ experiment_results = evaluate(
     evaluators=[answer_evaluator, check_trajectory_custom],
     experiment_prefix=experiment_prefix + "-answer-and-tool-use",
     num_repetitions=3,
-    max_concurrency=1,  # Use when running locally
+    max_concurrency=1,
     metadata={"version": metadata},
 )
+save_file(experiment_results, f"{OUTPUT_DIR}/experiment_results.json")
 
 """
 We can see the results benchmarked against `GPT-4o` and `Llama-3-70b` using `Custom` agent (as shown here) and ReAct.
-
-![Screenshot 2024-06-24 at 4.14.04 PM.png](attachment:80e86604-7734-4aeb-a200-d1413870c3cb.png)
 
 The `local custom agent` performs well in terms of tool calling reliability: it follows the expected reasoning traces.
 

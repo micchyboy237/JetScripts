@@ -1,13 +1,17 @@
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.file.utils import save_file
 from jet.logger import logger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain import hub
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.chat_models import ChatOllama
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_community.vectorstores import Chroma
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.output_parsers import StrOutputParser
+# from langchain_nomic.embeddings import NomicEmbeddings
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph, START
 from pprint import pprint
 from typing import List
@@ -60,26 +64,24 @@ In the [paper](https://arxiv.org/abs/2310.11511), a few decisions are made:
 
 We will implement some of these ideas from scratch using [LangGraph](https://langchain-ai.github.io/langgraph/).
 
-![Screenshot 2024-04-01 at 12.42.59 PM.png](attachment:5fca0a3e-d13d-4bfa-95ea-58203640cc7a.png)
-
 ## Setup
 
 First let's install our required packages and set our API keys
 """
 logger.info("# Self-RAG using local LLMs")
 
-# %%capture --no-stderr
+# %capture --no-stderr
 # %pip install -U langchain-nomic langchain_community tiktoken langchainhub chromadb langchain langgraph nomic[local]
 
 # import getpass
 
 
-def _set_env(key: str):
-    if key not in os.environ:
+# def _set_env(key: str):
+#     if key not in os.environ:
 #         os.environ[key] = getpass.getpass(f"{key}:")
 
 
-_set_env("NOMIC_API_KEY")
+# _set_env("NOMIC_API_KEY")
 
 """
 <div class="admonition tip">
@@ -132,11 +134,13 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=250, chunk_overlap=0
 )
 doc_splits = text_splitter.split_documents(docs_list)
+doc_splits = doc_splits[:10]  # temporary line for faster testing
 
 vectorstore = Chroma.from_documents(
     documents=doc_splits,
     collection_name="rag-chroma",
-    embedding=OllamaEmbeddings(model="mxbai-embed-large"),
+    embedding=OllamaEmbeddings(model="nomic-embed-text"),
+    persist_directory=PERSIST_DIR,
 )
 retriever = vectorstore.as_retriever()
 
@@ -161,9 +165,10 @@ prompt = PromptTemplate(
 
 retrieval_grader = prompt | llm | JsonOutputParser()
 question = "agent memory"
-docs = retriever.invoke(question)
+docs = retriever.get_relevant_documents(question)
 doc_txt = docs[1].page_content
-logger.debug(retrieval_grader.invoke({"question": question, "document": doc_txt}))
+logger.debug(retrieval_grader.invoke(
+    {"question": question, "document": doc_txt}))
 
 
 prompt = hub.pull("rlm/rag-prompt")
@@ -236,8 +241,6 @@ Capture the flow in as a graph.
 logger.info("# Graph")
 
 
-
-
 class GraphState(TypedDict):
     """
     Represents the state of our graph.
@@ -252,6 +255,7 @@ class GraphState(TypedDict):
     generation: str
     documents: List[str]
 
+
 def retrieve(state):
     """
     Retrieve documents
@@ -265,7 +269,7 @@ def retrieve(state):
     logger.debug("---RETRIEVE---")
     question = state["question"]
 
-    documents = retriever.invoke(question)
+    documents = retriever.get_relevant_documents(question)
     return {"documents": documents, "question": question}
 
 
@@ -336,8 +340,6 @@ def transform_query(state):
     return {"documents": documents, "question": better_question}
 
 
-
-
 def decide_to_generate(state):
     """
     Determines whether to generate an answer, or re-generate a question.
@@ -387,17 +389,21 @@ def grade_generation_v_documents_and_question(state):
     if grade == "yes":
         logger.debug("---DECISION: GENERATION IS GROUNDED IN DOCUMENTS---")
         logger.debug("---GRADE GENERATION vs QUESTION---")
-        score = answer_grader.invoke({"question": question, "generation": generation})
+        score = answer_grader.invoke(
+            {"question": question, "generation": generation})
         grade = score["score"]
         if grade == "yes":
             logger.debug("---DECISION: GENERATION ADDRESSES QUESTION---")
             return "useful"
         else:
-            logger.debug("---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
+            logger.debug(
+                "---DECISION: GENERATION DOES NOT ADDRESS QUESTION---")
             return "not useful"
     else:
-        logger.debug("---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
+        logger.debug(
+            "---DECISION: GENERATION IS NOT GROUNDED IN DOCUMENTS, RE-TRY---")
         return "not supported"
+
 
 """
 ## Build Graph
@@ -435,7 +441,8 @@ workflow.add_conditional_edges(
     },
 )
 
-app = workflow.compile()
+app = workflow.compile(checkpointer=MemorySaver())
+render_mermaid_graph(app, f"{OUTPUT_DIR}/graph_output.png", xray=True)
 
 """
 ## Run
@@ -446,10 +453,12 @@ logger.info("## Run")
 inputs = {"question": "Explain how the different types of agent memory work?"}
 for output in app.stream(inputs):
     for key, value in output.items():
-        plogger.debug(f"Node '{key}':")
-    plogger.debug("\n---\n")
+        logger.debug(f"Node '{key}':")
+    logger.debug("\n---\n")
 
-plogger.debug(value["generation"])
+logger.debug(value["generation"])
+
+save_file(app, f"{OUTPUT_DIR}/workflow_state.json")
 
 """
 Trace: 
