@@ -6,7 +6,7 @@ import time
 import traceback
 from collections.abc import Iterable
 from datetime import datetime
-from jet.llm.models import OLLAMA_MODEL_EMBEDDING_TOKENS
+from jet.llm.models import OLLAMA_MODEL_CONTEXTS
 from jet._token.token_utils import get_model_max_tokens, token_counter
 from jet.transformers.formatters import format_json
 from jet.transformers.json_parsers import parse_json
@@ -239,7 +239,7 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
         "tools", request_dict.get("tools", None)))
     total_tokens = prompt_token_count + tools_token_count + response_token_count
 
-    model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[model]
+    model_max_length = OLLAMA_MODEL_CONTEXTS[model]
 
     log_entry = (
         f"## Request Info\n\n"
@@ -709,7 +709,7 @@ def response(flow: http.HTTPFlow):
             logger.log("Tools:",
                        final_response_tool_calls, colors=["DEBUG", "SUCCESS"])
 
-        model_max_length = OLLAMA_MODEL_EMBEDDING_TOKENS[request_content['model']]
+        model_max_length = OLLAMA_MODEL_CONTEXTS[request_content['model']]
 
         messages = request_content.get(
             'messages', request_content.get('prompt', None))
