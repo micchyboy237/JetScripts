@@ -730,20 +730,15 @@ if __name__ == "__main__":
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
     ]
     include_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/embeddings/ollama_embedding.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/vector_stores/orallamavs.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/vector_stores/postgres.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/data_connectors/WebPageDemo.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/memory/custom_multi_turn_memory.ipynb",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index/docs/docs/examples/cookbooks/build_knowledge_graph_with_neo4j_llamacloud.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production/tutorials/",
     ]
     exclude_files = [
         "_*.py",

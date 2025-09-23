@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
-from jet.llm.mlx.base_langchain import ChatMLX
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain_core.messages import AIMessage, SystemMessage
 from langchain_core.messages import HumanMessage
 from langchain_core.messages import RemoveMessage
@@ -19,7 +19,8 @@ from redisvl.query import CountQuery
 from redisvl.query import VectorRangeQuery
 from redisvl.query.filter import Tag
 from redisvl.schema.schema import IndexSchema
-from redisvl.utils.vectorize.text.openai import MLXTextVectorizer
+# from redisvl.utils.vectorize.text.openai import OpenAITextVectorizer
+from jet.adapters.redisvl.ollama_text_vectorizer import OllamaTextVectorizer
 from typing import Dict, Optional
 from typing import List, Optional
 from typing import List, Optional, Union
@@ -32,9 +33,13 @@ import ulid
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-memory-with-redis--agent-memory-tutorial)
@@ -94,19 +99,19 @@ Before diving into the code, let's set up our development environment with the r
 """
 logger.info("# Agent Memory with Redis")
 
-# %pip install langchain-openai langgraph-checkpoint langgraph langgraph-checkpoint-redis langchain-redis
+# %pip install langchain-ollama langgraph-checkpoint langgraph langgraph-checkpoint-redis langchain-redis
 
 """
 ## Required API keys
 
-You must add an [MLX API](https://platform.openai.com/signup) key with billing information for this tutorial.
+You must add an [Ollama API](https://platform.ollama.com/signup) key with billing information for this tutorial.
 """
 logger.info("## Required API keys")
 
 # import getpass
 
-def _set_env(key: str):
-    if key not in os.environ:
+# def _set_env(key: str):
+#     if key not in os.environ:
 #         os.environ[key] = getpass.getpass(f"{key}:")
 
 
@@ -124,12 +129,13 @@ Run the cell below to get a localized Redis instance on your Google colab server
 """
 logger.info("## Setup Redis")
 
-# %%sh
+"""
 curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
 sudo apt-get update  > /dev/null 2>&1
 sudo apt-get install redis-stack-server  > /dev/null 2>&1
 redis-stack-server --daemonize yes
+"""
 
 """
 Let's test out Redis connection and create a client to communicate with the server.
@@ -201,7 +207,7 @@ class Memories(BaseModel):
     """
     A list of memories extracted from a conversation by an LLM.
 
-    NOTE: MLX's structured output requires us to wrap the list in an object.
+    NOTE: Ollama's structured output requires us to wrap the list in an object.
     """
 
     memories: List[Memory]
@@ -232,32 +238,31 @@ logger.info("# Memory Storage")
 
 
 memory_schema = IndexSchema.from_dict({
-        "index": {
-            "name": "agent_memories",  # Index name for identification
-            "prefix": "memory",       # Redis key prefix (memory:1, memory:2, etc.)
-            "key_separator": ":",
-            "storage_type": "json",
-        },
-        "fields": [
-            {"name": "content", "type": "text"},
-            {"name": "memory_type", "type": "tag"},
-            {"name": "metadata", "type": "text"},
-            {"name": "created_at", "type": "text"},
-            {"name": "user_id", "type": "tag"},
-            {"name": "memory_id", "type": "tag"},
-            {
-                "name": "embedding",
-                "type": "vector",
-                "attrs": {
-                    "algorithm": "flat",
-                    "dims": 1536,  # MLX embedding dimension
-                    "distance_metric": "cosine",
-                    "datatype": "float32",
-                },
+    "index": {
+        "name": "agent_memories",  # Index name for identification
+        "prefix": "memory",       # Redis key prefix (memory:1, memory:2, etc.)
+        "key_separator": ":",
+        "storage_type": "json",
+    },
+    "fields": [
+        {"name": "content", "type": "text"},
+        {"name": "memory_type", "type": "tag"},
+        {"name": "metadata", "type": "text"},
+        {"name": "created_at", "type": "text"},
+        {"name": "user_id", "type": "tag"},
+        {"name": "memory_id", "type": "tag"},
+        {
+            "name": "embedding",
+            "type": "vector",
+            "attrs": {
+                "algorithm": "flat",
+                "dims": 768,  # Updated to match nomic-embed-text dimensions
+                "distance_metric": "cosine",
+                "datatype": "float32",
             },
-        ],
-    }
-)
+        },
+    ],
+})
 
 """
 Below we create the `SearchIndex` from the `IndexSchema` and our Redis client connection object. We will overwrite the index spec if its already created!
@@ -285,12 +290,12 @@ logger.info("Now that the index is created, we can inspect the long term memory 
 """
 ## Functions to access memories
 
-Next, we provide three core functions to access, store and retrieve memories. We will eventually use these in tools for the LLM to call. We will start by loading a vectorizer class to create MLX embeddings.
+Next, we provide three core functions to access, store and retrieve memories. We will eventually use these in tools for the LLM to call. We will start by loading a vectorizer class to create Ollama embeddings.
 """
 logger.info("## Functions to access memories")
 
 
-openai_embed = MLXTextVectorizer(model="text-embedding-ada-002")
+ollama_embed = OllamaTextVectorizer(model="nomic-embed-text")
 
 """
 Next we will set up a simple logger so our functions will record log activity of what's happening.
@@ -328,7 +333,7 @@ def similar_memory_exists(
     distance_threshold: float = 0.1,
 ) -> bool:
     """Check if a similar long-term memory already exists in Redis."""
-    content_embedding = openai_embed.embed(content)
+    content_embedding = ollama_embed.embed(content)
 
     filters = (Tag("user_id") == user_id) & (Tag("memory_type") == memory_type)
 
@@ -395,7 +400,7 @@ def store_memory(
         logger.info("Similar memory found, skipping storage")
         return
 
-    embedding = openai_embed.embed(content)
+    embedding = ollama_embed.embed(content)
 
     memory_data = {
         "user_id": user_id or SYSTEM_USER_ID,
@@ -442,7 +447,7 @@ def retrieve_memories(
     """
     logger.debug(f"Retrieving memories for query: {query}")
     vector_query = VectorRangeQuery(
-        vector=openai_embed.embed(query),
+        vector=ollama_embed.embed(query),
         return_fields=[
             "content",
             "memory_type",
@@ -677,11 +682,11 @@ logger.info("Next we define the set of tools for the agent.")
 tools = [store_memory_tool, retrieve_memories_tool]
 
 """
-Configure the LLM from MLX.
+Configure the LLM from Ollama.
 """
-logger.info("Configure the LLM from MLX.")
+logger.info("Configure the LLM from Ollama.")
 
-llm = ChatMLX(model="qwen3-1.7b-4bit", temperature=0.7).bind_tools(tools)
+llm = ChatOllama(model="llama3.2").bind_tools(tools)
 
 """
 Assemble the ReAct agent combining the LLM, tools, checkpointer, and system prompt!
@@ -842,7 +847,7 @@ The summary becomes part of the conversation history, allowing the agent to refe
 logger.info("## Node 3: Conversation Summarization")
 
 
-summarizer = ChatMLX(model="qwen3-1.7b-4bit", temperature=0.3)
+summarizer = ChatOllama(model="llama3.2")
 
 MESSAGE_SUMMARIZATION_THRESHOLD = 6
 
