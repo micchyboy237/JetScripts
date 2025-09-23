@@ -40,9 +40,7 @@ os.makedirs(PERSIST_DIR, exist_ok=True)
 
 # 1. Preprocess documents
 urls = [
-    "https://lilianweng.github.io/posts/2024-11-28-reward-hacking/",
-    "https://lilianweng.github.io/posts/2024-07-07-hallucination/",
-    "https://lilianweng.github.io/posts/2024-04-12-diffusion-video/",
+    "https://myanimelist.net/stacks/28254",
 ]
 
 docs = [WebBaseLoader(url).load() for url in urls]
@@ -61,8 +59,8 @@ retriever = vectorstore.as_retriever()
 
 retriever_tool = create_retriever_tool(
     retriever,
-    "retrieve_blog_posts",
-    "Search and return information about Lilian Weng blog posts.",
+    "retrieve_anime_details",
+    "Search and return information about isekai anime in 2025.",
 )
 
 # 3. Initialize response model
@@ -174,7 +172,7 @@ for chunk in graph.stream(
         "messages": [
             {
                 "role": "user",
-                "content": "What does Lilian Weng say about types of reward hacking?",
+                "content": "Top 10 isekai anime 2025 with release date, synopsis, number of episode, airing status",
             }
         ]
     },
