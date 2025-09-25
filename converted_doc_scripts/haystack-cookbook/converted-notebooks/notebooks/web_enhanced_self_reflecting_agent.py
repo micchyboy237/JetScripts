@@ -173,7 +173,7 @@ logger.info("## Web-Enhanced Self-Reflecting Agent")
 self_reflecting_agent = Pipeline(max_runs_per_component=5)
 self_reflecting_agent.add_component("retriever", InMemoryBM25Retriever(document_store=document_store, top_k=3))
 self_reflecting_agent.add_component("prompt_builder_for_agent", PromptBuilder(template=agent_prompt_template))
-self_reflecting_agent.add_component("llm_for_agent", OllamaGenerator(model="llama3.2", url = "http://localhost:11434"))
+self_reflecting_agent.add_component("llm_for_agent", OllamaGenerator(model="qwen3:4b-q4_K_M", url = "http://localhost:11434"))
 self_reflecting_agent.add_component("web_search", SerperDevWebSearch())
 self_reflecting_agent.add_component("router", ConditionalRouter(main_routes))
 
@@ -188,7 +188,7 @@ result = self_reflecting_agent.run({"retriever":{"query":query}, "prompt_builder
 
 logger.debug(result["router"]["answer"])
 
-query = "What's Llama3.2?"
+query = "What's Qwen3?"
 result= self_reflecting_agent.run({"retriever":{"query":query}, "prompt_builder_for_agent":{"query":query}, "router":{"query":query}}, include_outputs_from={"retriever", "router", "llm_for_agent", "web_search", "prompt_builder_for_agent"})
 
 logger.debug(result["router"]["answer"])
