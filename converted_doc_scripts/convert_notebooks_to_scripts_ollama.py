@@ -173,9 +173,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
-
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
     """.strip()
     log_done_code = 'logger.info("\\n\\n[DONE]", bright=True)'
     return "\n\n".join([import_code, code, log_done_code])
