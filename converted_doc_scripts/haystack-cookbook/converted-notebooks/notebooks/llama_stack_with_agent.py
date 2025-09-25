@@ -3,7 +3,7 @@ from haystack.components.generators.utils import print_streaming_chunk
 from haystack.dataclasses import ChatMessage
 from haystack.tools import Tool
 from haystack_integrations.components.generators.llama_stack import LlamaStackChatGenerator
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -11,11 +11,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🛠️🦙 Build with Llama Stack and Haystack Agent
@@ -41,7 +43,7 @@ Before running this example, you need to:
 
 For a quick start on how to setup server with Ollama, see the [Llama Stack documentation](https://llama-stack.readthedocs.io/en/latest/getting_started/index.html).
 
-Once you have the server running, it will typically be available at `http://localhost:8321/v1/openai/v1`.
+Once you have the server running, it will typically be available at `http://localhost:8321/v1/ollama/v1`.
 
 ## Defining a Tool
 
@@ -79,7 +81,7 @@ logger.info("## Setting Up Agent")
 
 chat_generator = LlamaStackChatGenerator(
     model="ollama/llama3.2:3b",  # model name varies depending on the inference provider used for the Llama Stack Server
-    api_base_url="http://localhost:8321/v1/openai/v1",
+    api_base_url="http://localhost:8321/v1/ollama/v1",
 )
 agent = Agent(
     chat_generator=chat_generator,

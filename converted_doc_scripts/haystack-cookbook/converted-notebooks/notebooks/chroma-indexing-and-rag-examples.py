@@ -1,12 +1,12 @@
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.converters import TextFileToDocument
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.writers import DocumentWriter
 from haystack.dataclasses.chat_message import ChatMessage
 from haystack_integrations.components.retrievers.chroma import ChromaQueryTextRetriever
 from haystack_integrations.document_stores.chroma import ChromaDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 from pathlib import Path
 import os
 import shutil
@@ -15,11 +15,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Use ChromaDocumentStore with Haystack
@@ -65,7 +67,7 @@ You can change the indexing pipeline and query pipelines here for embedding sear
 
 
 In this example we are using:
-- The [`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) with `llama3.2`. (You will need a OllamaFunctionCalling API key to use this model). You can replace this with any of the other [`Generators`](https://docs.haystack.deepset.ai/docs/generators)
+- The [`OpenAIChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) with `llama3.2`. (You will need a Ollama API key to use this model). You can replace this with any of the other [`Generators`](https://docs.haystack.deepset.ai/docs/generators)
 - The [`ChatPromptBuilder`](https://docs.haystack.deepset.ai/docs/chatpromptbuilder) which holds the prompt template. You can adjust this to a prompt of your choice
 - The [`ChromaQueryTextRetriver`](https://docs.haystack.deepset.ai/docs/chromaqueryretriever) which expects a list of queries and retieves the `top_k` most relevant documents from your Chroma collection.
 """
@@ -73,7 +75,7 @@ logger.info("## Query Pipeline: build retrieval-augmented generation (RAG) pipel
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+# os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 
 prompt = """
@@ -90,7 +92,7 @@ Answer:
 template = [ChatMessage.from_user(prompt)]
 prompt_builder = ChatPromptBuilder(template=template)
 
-llm = OllamaFunctionCallingAdapterChatGenerator()
+llm = OpenAIChatGenerator()
 retriever = ChromaQueryTextRetriever(document_store)
 
 querying = Pipeline()

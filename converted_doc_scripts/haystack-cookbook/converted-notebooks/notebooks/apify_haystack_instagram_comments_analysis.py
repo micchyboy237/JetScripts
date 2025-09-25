@@ -2,9 +2,9 @@ from apify_haystack import ApifyDatasetFromActorCall
 from haystack import Document
 from haystack import Pipeline
 from haystack.components.builders import PromptBuilder
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators import OpenAIGenerator
 from haystack.components.preprocessors import DocumentCleaner
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -12,11 +12,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Analyze Your Instagram Comments’ Vibe with Apify and Haystack
@@ -27,7 +29,7 @@ Idea: Bilge Yücel ([deepset.ai](https://github.com/bilgeyucel))
 Ever wondered if your Instagram posts are truly vibrating among your audience?
 In this cookbook, we'll show you how to use the [Instagram Comment Scraper](https://apify.com/apify/instagram-comment-scraper) Actor to download comments from your instagram post and analyze them using a large language model. All performed within the Haystack ecosystem using the [apify-haystack](https://github.com/apify/apify-haystack/tree/main) integration.
 
-We'll start by using the Actor to download the comments, clean the data with the [DocumentCleaner](https://docs.haystack.deepset.ai/docs/documentcleaner) and then use the [OllamaFunctionCallingAdapterGenerator](https://docs.haystack.deepset.ai/docs/openaigenerator) to discover the vibe of the Instagram posts.
+We'll start by using the Actor to download the comments, clean the data with the [DocumentCleaner](https://docs.haystack.deepset.ai/docs/documentcleaner) and then use the [OpenAIGenerator](https://docs.haystack.deepset.ai/docs/openaigenerator) to discover the vibe of the Instagram posts.
 
 # Install dependencies
 """
@@ -40,7 +42,7 @@ logger.info("# Analyze Your Instagram Comments’ Vibe with Apify and Haystack")
 
 You need to have an Apify account and obtain [APIFY_API_TOKEN](https://docs.apify.com/platform/integrations/api).
 
-# You also need an OllamaFunctionCalling account and [OPENAI_API_KEY](https://platform.openai.com/docs/quickstart)
+# You also need an Ollama account and [OPENAI_API_KEY](https://platform.ollama.com/docs/quickstart)
 """
 logger.info("## Set up the API keys")
 
@@ -130,7 +132,7 @@ Analysis:
 
 cleaner = DocumentCleaner(remove_empty_lines=True, remove_extra_whitespaces=True, remove_repeated_substrings=True)
 prompt_builder = PromptBuilder(template=prompt)
-generator = OllamaFunctionCallingAdapterGenerator(model="llama3.2")
+generator = OpenAIGenerator(model="llama3.2")
 
 
 pipe = Pipeline()

@@ -1,13 +1,13 @@
 from email.mime.text import MIMEText
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.tools import ToolInvoker
 from haystack.dataclasses import ChatMessage
 from haystack.tools import Tool
 from haystack.tools import create_tool_from_function
 from haystack.tools.from_function import _remove_title_from_schema
-from jet.logger import CustomLogger
+from jet.logger import logger
 from langchain_community.agent_toolkits import FileManagementToolkit
 from pprint import pp
 from pydantic import create_model
@@ -23,11 +23,13 @@ import smtplib, ssl
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🗞️ Newsletter Sending Agent with Haystack Tools
@@ -57,7 +59,7 @@ logger.info("# 🗞️ Newsletter Sending Agent with Haystack Tools")
 """
 #### **Importing Features**
 
-In this demo, we are using Haystack's latest features: [`Tool`](https://docs.haystack.deepset.ai/docs/tool), [`ToolInvoker`](https://docs.haystack.deepset.ai/docs/toolinvoker) with extended [`ChatMessage`](https://docs.haystack.deepset.ai/docs/chatmessage) and [`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
+In this demo, we are using Haystack's latest features: [`Tool`](https://docs.haystack.deepset.ai/docs/tool), [`ToolInvoker`](https://docs.haystack.deepset.ai/docs/toolinvoker) with extended [`ChatMessage`](https://docs.haystack.deepset.ai/docs/chatmessage) and [`OpenAIChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
 """
 logger.info("#### **Importing Features**")
 
@@ -127,7 +129,7 @@ Our tool will expect the following inputs:
 logger.info("## Newsletter generation Pipeline and Tool")
 
 # if not "OPENAI_API_KEY" in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key: ")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter your Ollama API key: ")
 
 template = [ChatMessage.from_user("""
 Create a entertaining newsletter for {{target_people}} based on the following articles.
@@ -142,7 +144,7 @@ Articles:
 
 newsletter_pipe = Pipeline()
 newsletter_pipe.add_component("prompt_builder", ChatPromptBuilder(template=template))
-newsletter_pipe.add_component("llm", OllamaFunctionCallingAdapterChatGenerator(model="llama3.2"))
+newsletter_pipe.add_component("llm", OpenAIChatGenerator(model="llama3.2"))
 newsletter_pipe.connect("prompt_builder", "llm")
 
 def newsletter_pipeline_func(articles: List[str], target_people: str = "programmers", n_words: int = 100):
@@ -246,7 +248,7 @@ Now, we build a Newsletter creating chat agent which we can use to ask for newsl
 """
 logger.info("## Newsletter Sending Chat Agent")
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(tools=[hacker_news_fetcher_tool, newsletter_tool, email_tool])
+chat_generator = OpenAIChatGenerator(tools=[hacker_news_fetcher_tool, newsletter_tool, email_tool])
 
 tool_invoker = ToolInvoker(tools=[hacker_news_fetcher_tool, newsletter_tool, email_tool])
 
@@ -401,7 +403,7 @@ langchain_listdir_tool = toolkit.get_tools()[-1]
 haystack_listdir_tool = convert_langchain_tool_to_haystack_tool(langchain_listdir_tool)
 
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", tools=[haystack_listdir_tool])
+chat_generator = OpenAIChatGenerator(model="llama3.2", tools=[haystack_listdir_tool])
 tool_invoker = ToolInvoker(tools=[haystack_listdir_tool])
 
 user_message = ChatMessage.from_user("List the files in /content/sample_data")

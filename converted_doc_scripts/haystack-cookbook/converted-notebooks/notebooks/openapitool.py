@@ -1,13 +1,13 @@
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.builders import PromptBuilder, ChatPromptBuilder
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators import OpenAIGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.routers import ConditionalRouter
 from haystack.dataclasses import ChatMessage
 from haystack.utils import Secret
 from haystack_experimental.components.tools.openapi import OpenAPITool, LLMProvider
-from jet.logger import CustomLogger
+from jet.logger import logger
 import json
 import os
 import shutil
@@ -16,11 +16,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🧪 Invoking APIs with `OpenAPITool`
@@ -89,7 +91,7 @@ builder = ChatPromptBuilder(template=messages)
 pipe = Pipeline()
 pipe.add_component("meteo", tool)
 pipe.add_component("builder", builder)
-pipe.add_component("llm", OllamaFunctionCallingAdapterChatGenerator(generation_kwargs={"max_tokens": 1024}))
+pipe.add_component("llm", OpenAIChatGenerator(generation_kwargs={"max_tokens": 1024}))
 
 pipe.connect("meteo", "builder.service_response")
 pipe.connect("builder", "llm.messages")
@@ -117,7 +119,7 @@ pipe.add_component("firecrawl", OpenAPITool(generator_api=LLMProvider.OPENAI,
                                             spec="https://raw.githubusercontent.com/mendableai/firecrawl/main/apps/api/openapi.json",
                                             credentials=Secret.from_env_var("FIRECRAWL_API_KEY")))
 pipe.add_component("builder", builder)
-pipe.add_component("llm", OllamaFunctionCallingAdapterChatGenerator(generation_kwargs={"max_tokens": 1024}))
+pipe.add_component("llm", OpenAIChatGenerator(generation_kwargs={"max_tokens": 1024}))
 
 pipe.connect("firecrawl", "builder.service_response")
 pipe.connect("builder", "llm.messages")
@@ -153,7 +155,7 @@ Here are some examples:
 
 ```json
 {
-  "query": "Why did Elon Musk recently sue OllamaFunctionCalling?",
+  "query": "Why did Elon Musk recently sue Ollama?",
   "response": "search_web"
 }
 {
@@ -223,7 +225,7 @@ scrape_page_tool = OpenAPITool(generator_api=LLMProvider.OPENAI,
 
 pipe = Pipeline()
 pipe.add_component("prompt_builder", PromptBuilder(template=decision_prompt_template))
-pipe.add_component("llm", OllamaFunctionCallingAdapterGenerator())
+pipe.add_component("llm", OpenAIGenerator())
 pipe.add_component("router", ConditionalRouter(routes, custom_filters={"get_tool_name": get_tool_name}))
 pipe.add_component("search_web_chat_builder", search_web_chat_builder)
 pipe.add_component("scrape_page_chat_builder", scrape_page_chat_builder)

@@ -2,12 +2,12 @@ from apify_haystack import ApifyDatasetFromActorCall
 from haystack import Document
 from haystack import Pipeline
 from haystack.components.builders import PromptBuilder
-from haystack.components.embedders import OllamaFunctionCallingAdapterDocumentEmbedder
-from haystack.components.embedders import OllamaFunctionCallingAdapterTextEmbedder
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.embedders import OpenAIDocumentEmbedder
+from haystack.components.embedders import OpenAITextEmbedder
+from haystack.components.generators import OpenAIGenerator
 from haystack.components.retrievers.in_memory import InMemoryEmbeddingRetriever
 from haystack.document_stores.in_memory import InMemoryDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -15,18 +15,20 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # RAG: Extract and use website content for question answering with Apify-Haystack integration
 
 Author: Jiri Spilka ([Apify](https://apify.com/jiri.spilka))
 
-In this tutorial, we'll use the [apify-haystack](https://github.com/apify/apify-haystack/tree/main) integration to call [Website Content Crawler](https://apify.com/apify/website-content-crawler) and crawl and scrape text content from the [Haystack website](https://haystack.deepset.ai). Then, we'll use the [OllamaFunctionCallingAdapterDocumentEmbedder](https://docs.haystack.deepset.ai/docs/openaidocumentembedder) to compute text embeddings and the [InMemoryDocumentStore](https://docs.haystack.deepset.ai/docs/inmemorydocumentstore) to store documents in a temporary in-memory database. The last step will be a retrieval augmented generation pipeline to answer users' questions from the scraped data.
+In this tutorial, we'll use the [apify-haystack](https://github.com/apify/apify-haystack/tree/main) integration to call [Website Content Crawler](https://apify.com/apify/website-content-crawler) and crawl and scrape text content from the [Haystack website](https://haystack.deepset.ai). Then, we'll use the [OpenAIDocumentEmbedder](https://docs.haystack.deepset.ai/docs/openaidocumentembedder) to compute text embeddings and the [InMemoryDocumentStore](https://docs.haystack.deepset.ai/docs/inmemorydocumentstore) to store documents in a temporary in-memory database. The last step will be a retrieval augmented generation pipeline to answer users' questions from the scraped data.
 
 
 ## Install dependencies
@@ -40,7 +42,7 @@ logger.info("# RAG: Extract and use website content for question answering with 
 
 You need to have an Apify account and obtain [APIFY_API_TOKEN](https://docs.apify.com/platform/integrations/api).
 
-# You also need an OllamaFunctionCalling account and [OPENAI_API_KEY](https://platform.openai.com/docs/quickstart)
+# You also need an Ollama account and [OPENAI_API_KEY](https://platform.ollama.com/docs/quickstart)
 """
 logger.info("## Set up the API keys")
 
@@ -109,7 +111,7 @@ logger.info("Before actually running the Website Content Crawler, we need to def
 
 
 document_store = InMemoryDocumentStore()
-docs_embedder = OllamaFunctionCallingAdapterDocumentEmbedder()
+docs_embedder = OpenAIDocumentEmbedder()
 
 """
 After that, we can call the Website Content Crawler and print the scraped data:
@@ -135,9 +137,9 @@ Once we have the crawled data in the database, we can set up the classical retri
 logger.info("## Retrieval and LLM generative pipeline")
 
 
-text_embedder = OllamaFunctionCallingAdapterTextEmbedder()
+text_embedder = OpenAITextEmbedder()
 retriever = InMemoryEmbeddingRetriever(document_store)
-generator = OllamaFunctionCallingAdapterGenerator(model="llama3.2")
+generator = OpenAIGenerator(model="llama3.2")
 
 template = """
 Given the following information, answer the question.

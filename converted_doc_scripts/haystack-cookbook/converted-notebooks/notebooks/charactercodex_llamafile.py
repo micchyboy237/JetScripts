@@ -1,11 +1,11 @@
 from datasets import load_dataset
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.dataclasses import ChatMessage
 from haystack.dataclasses import ChatMessage, ChatRole
 from haystack.utils import Secret
-from jet.logger import CustomLogger
+from jet.logger import logger
 from rich import print
 from typing import List
 import os
@@ -16,11 +16,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🧩 Quizzes and Adventures 🏰 with Character Codex and llamafile
@@ -78,9 +80,9 @@ logger.info("### llamafile: download and run the model")
 
 """
 **Running the model - relevant parameters**:
-- `--server`: start an OllamaFunctionCalling-compatible server
+- `--server`: start an Ollama-compatible server
 - `--nobrowser`: do not open the interactive interface in the browser
-- `--port`: port of the OllamaFunctionCalling-compatible server (in Colab, 8080 is already taken)
+- `--port`: port of the Ollama-compatible server (in Colab, 8080 is already taken)
 - `--n-gpu-layers`: offload some layers to GPU for increased performance
 - `--ctx-size`: size of the prompt context
 """
@@ -98,13 +100,13 @@ logger.info("### llamafile: download and run the model")
 """
 Let's try to interact with the model.
 
-Since the server is OllamaFunctionCalling-compatible, we can use an [OllamaFunctionCallingAdapterChatGenerator](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
+Since the server is Ollama-compatible, we can use an [OpenAIChatGenerator](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
 """
 logger.info("Let's try to interact with the model.")
 
 
-generator = OllamaFunctionCallingAdapterChatGenerator(
-    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCalling API, a placeholder api_key is needed
+generator = OpenAIChatGenerator(
+    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the Ollama API, a placeholder api_key is needed
     model="LLaMA_CPP",
     api_base_url="http://localhost:8081/v1",
     generation_kwargs = {"max_tokens": 50}
@@ -119,7 +121,7 @@ Now that everything is in place, we can build a simple game in which a random ch
 
 ### Hint generation pipeline
 
-This simple pipeline includes a [`ChatPromptBuilder`](https://docs.haystack.deepset.ai/docs/chatpromptbuilder) and a [`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
+This simple pipeline includes a [`ChatPromptBuilder`](https://docs.haystack.deepset.ai/docs/chatpromptbuilder) and a [`OpenAIChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
 
 Thanks to the template messages, we can include the character information in the prompt and also previous hints to avoid duplicate hints.
 """
@@ -143,8 +145,8 @@ template_messages = [
 
 chat_prompt_builder = ChatPromptBuilder(template=template_messages, required_variables=["character"])
 
-generator = OllamaFunctionCallingAdapterChatGenerator(
-    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCalling API, a placeholder api_key is needed
+generator = OpenAIChatGenerator(
+    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the Ollama API, a placeholder api_key is needed
     model="LLaMA_CPP",
     api_base_url="http://localhost:8081/v1",
     generation_kwargs = {"max_tokens": 100}
@@ -207,7 +209,7 @@ We can try to combine them to simulate a dialogue and perhaps an adventure invol
 
 ### Character pipeline
 
-Let's create a character pipeline: [`ChatPromptBuilder`](https://docs.haystack.deepset.ai/docs/chatpromptbuilder) +[`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
+Let's create a character pipeline: [`ChatPromptBuilder`](https://docs.haystack.deepset.ai/docs/chatpromptbuilder) +[`OpenAIChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator).
 
 This represents the core of our conversational system and will be invoked multiple times with different messages to simulate conversation.
 """
@@ -217,8 +219,8 @@ logger.info("## 💬 🤠 Chat Adventures")
 
 character_pipeline = Pipeline()
 character_pipeline.add_component("chat_prompt_builder", ChatPromptBuilder(required_variables=["character_data"]))
-character_pipeline.add_component("generator", OllamaFunctionCallingAdapterChatGenerator(
-    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the OllamaFunctionCalling API, a placeholder api_key is needed
+character_pipeline.add_component("generator", OpenAIChatGenerator(
+    api_key=Secret.from_token("sk-no-key-required"),  # for compatibility with the Ollama API, a placeholder api_key is needed
     model="LLaMA_CPP",
     api_base_url="http://localhost:8081/v1",
     generation_kwargs = {"temperature": 1.5}
@@ -313,7 +315,7 @@ The implementation is pretty basic and could be improved in many ways.
 - [llamafile-Haystack integration page](https://haystack.deepset.ai/integrations/llamafile): contains examples on how to run Generative and Embedding models and build indexing and RAG pipelines.
 - Haystack components used in this notebook:
   - [ChatPromptBuilder](https://docs.haystack.deepset.ai/docs/chatpromptbuilder)
-  - [OllamaFunctionCallingAdapterChatGenerator](https://docs.haystack.deepset.ai/docs/openaichatgenerator)
+  - [OpenAIChatGenerator](https://docs.haystack.deepset.ai/docs/openaichatgenerator)
 
 (*Notebook by [Stefano Fiorucci](https://github.com/anakin87)*)
 """

@@ -1,10 +1,10 @@
 from collections import defaultdict
 from haystack.components.agents import Agent
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.generators.utils import print_streaming_chunk
 from haystack.dataclasses import ChatMessage
 from haystack.tools import tool
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import Annotated, List, Dict, Tuple
 import os
 import os, requests, zipfile, io
@@ -15,11 +15,13 @@ import subprocess
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🛠️ DevOps Support Agent with Human in the Loop
@@ -47,15 +49,15 @@ logger.info("# 🛠️ DevOps Support Agent with Human in the Loop")
 # !pip install "haystack-ai>=2.14.0"
 
 """
-# Next, we configure our variables. We need to set the `OPENAI_API_KEY` for [`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) and 
+# Next, we configure our variables. We need to set the `OPENAI_API_KEY` for [`OpenAIChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) and 
 a `GITHUB_TOKEN` with appropriate permissions to access repository information, CI logs, and commit history. Make sure your GitHub token has sufficient access rights to the repository you want to analyze.
 """
-# logger.info("Next, we configure our variables. We need to set the `OPENAI_API_KEY` for [`OllamaFunctionCallingAdapterChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) and")
+# logger.info("Next, we configure our variables. We need to set the `OPENAI_API_KEY` for [`OpenAIChatGenerator`](https://docs.haystack.deepset.ai/docs/openaichatgenerator) and")
 
 # from getpass import getpass
 
 # if not os.environ.get("OPENAI_API_KEY"):
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter your Ollama API key:")
 
 if not os.environ.get("GITHUB_TOKEN"):
 #     os.environ["GITHUB_TOKEN"] = getpass("Enter your GitHub token:")
@@ -281,7 +283,7 @@ logger.info("## Create and Configure the Agent")
 
 
 agent = Agent(
-    chat_generator=OllamaFunctionCallingAdapterChatGenerator(model="o4-mini"),
+    chat_generator=OpenAIChatGenerator(model="o4-mini"),
     tools=[git_list_commits_tool, git_commit_diff_tool, ci_status_tool, shell_tool, human_in_loop_tool],
     system_prompt=(
         "You are a DevOps support assistant with the following capabilities:\n"

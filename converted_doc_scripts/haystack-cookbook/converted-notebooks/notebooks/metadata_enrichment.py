@@ -2,12 +2,12 @@ from haystack import Document, component, Pipeline
 from haystack.components.builders import PromptBuilder
 from haystack.components.converters import HTMLToDocument
 from haystack.components.fetchers import LinkContentFetcher
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators import OpenAIGenerator
 from haystack.components.preprocessors import DocumentSplitter
 from haystack.dataclasses import ChatMessage, StreamingChunk
-from jet.logger import CustomLogger
-from openai import Stream
-from openai.types.chat import ChatCompletion, ChatCompletionChunk
+from jet.logger import logger
+from ollama import Stream
+from ollama.types.chat import ChatCompletion, ChatCompletionChunk
 from pydantic import BaseModel
 from typing import List, Any, Dict, Optional, Callable, Union
 import os
@@ -17,11 +17,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Advanced RAG: Automated Structured Metadata Enrichment
@@ -60,15 +62,15 @@ logger.info("# Advanced RAG: Automated Structured Metadata Enrichment")
 
 
 """
-## 🧪 Experimental Addition to the OllamaFunctionCallingAdapterGenerator for Structured Output Support
+## 🧪 Experimental Addition to the OpenAIGenerator for Structured Output Support
 
-> 🚀 This is the same extension to the `OllamaFunctionCallingAdapterGenerator` that was used in the [Advanced RAG: Query Decomposition and Reasoning](https://haystack.deepset.ai/cookbook/query_decomposition) example
+> 🚀 This is the same extension to the `OpenAIGenerator` that was used in the [Advanced RAG: Query Decomposition and Reasoning](https://haystack.deepset.ai/cookbook/query_decomposition) example
 
-Let's extend the `OllamaFunctionCallingAdapterGeneraotor` to be able to make use of the [strctured output option by OllamaFunctionCalling](https://platform.openai.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
+Let's extend the `OpenAIGeneraotor` to be able to make use of the [strctured output option by Ollama](https://platform.ollama.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
 """
-logger.info("## 🧪 Experimental Addition to the OllamaFunctionCallingAdapterGenerator for Structured Output Support")
+logger.info("## 🧪 Experimental Addition to the OpenAIGenerator for Structured Output Support")
 
-class OllamaFunctionCallingAdapterGenerator(OllamaFunctionCallingAdapterGenerator):
+class OpenAIGenerator(OpenAIGenerator):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -115,7 +117,7 @@ class OllamaFunctionCallingAdapterGenerator(OllamaFunctionCallingAdapterGenerato
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key:")
+#   os.environ["OPENAI_API_KEY"] = getpass("Ollama API Key:")
 
 """
 ## Custom `MetadataEnricher`
@@ -141,7 +143,7 @@ class MetadataEnricher:
         self.metadata_prompt = prompt
 
         builder = PromptBuilder(self.metadata_prompt)
-        llm = OllamaFunctionCallingAdapterGenerator(generation_kwargs={"response_format": metadata_model})
+        llm = OpenAIGenerator(generation_kwargs={"response_format": metadata_model})
         self.pipeline = Pipeline()
         self.pipeline.add_component(name="builder", instance=builder)
         self.pipeline.add_component(name="llm", instance=llm)

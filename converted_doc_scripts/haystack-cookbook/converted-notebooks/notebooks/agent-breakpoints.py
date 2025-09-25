@@ -3,14 +3,14 @@ from haystack.components.agents.agent import Agent
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.converters import HTMLToDocument
 from haystack.components.fetchers import LinkContentFetcher
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.core.pipeline.breakpoint import load_pipeline_snapshot
 from haystack.dataclasses import ChatMessage
 from haystack.dataclasses import Document
 from haystack.dataclasses.breakpoints import AgentBreakpoint, Breakpoint, ToolBreakpoint
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.tools import tool
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import Optional
 import os
 import shutil
@@ -19,11 +19,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Breakpoints for Agent in a Pipeline
@@ -43,14 +45,14 @@ pip install "transformers[torch,sentencepiece]"
 pip install "sentence-transformers>=3.0.0"
 
 """
-Setup OllamaFunctionCalling API key for the `chat_generator`
+Setup Ollama API key for the `chat_generator`
 """
-logger.info("Setup OllamaFunctionCalling API key for the `chat_generator`")
+logger.info("Setup Ollama API key for the `chat_generator`")
 
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ## Initializations
@@ -66,7 +68,7 @@ logger.info("## Initializations")
 
 
 document_store = InMemoryDocumentStore()
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(
+chat_generator = OpenAIChatGenerator(
     model="llama3.2",
 )
 

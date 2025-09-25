@@ -1,7 +1,7 @@
 from haystack import Document, Pipeline
 from haystack.components.builders import AnswerBuilder, ChatPromptBuilder
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.joiners import DocumentJoiner
 from haystack.components.rankers import TransformersSimilarityRanker
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever, InMemoryEmbeddingRetriever
@@ -11,7 +11,7 @@ from haystack.dataclasses import ChatMessage
 from haystack.dataclasses.breakpoints import Breakpoint
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.document_stores.types import DuplicatePolicy
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -19,11 +19,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Hybrid RAG Pipeline with Breakpoints
@@ -41,14 +43,14 @@ pip install "transformers[torch,sentencepiece]"
 pip install "sentence-transformers>=3.0.0"
 
 """
-## Setup OllamaFunctionCalling API keys
+## Setup Ollama API keys
 """
-logger.info("## Setup OllamaFunctionCalling API keys")
+logger.info("## Setup Ollama API keys")
 
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ## Import Required Libraries
@@ -130,7 +132,7 @@ def hybrid_retrieval(doc_store):
     rag_pipeline.add_component(instance=DocumentJoiner(sort_by_score=False), name="doc_joiner")
     rag_pipeline.add_component(instance=TransformersSimilarityRanker(model="intfloat/simlm-msmarco-reranker", top_k=5), name="ranker")
     rag_pipeline.add_component(instance=ChatPromptBuilder(template=template, required_variables=["question", "documents"]), name="prompt_builder", )
-    rag_pipeline.add_component(instance=OllamaFunctionCallingAdapterChatGenerator(), name="llm")
+    rag_pipeline.add_component(instance=OpenAIChatGenerator(), name="llm")
     rag_pipeline.add_component(instance=AnswerBuilder(), name="answer_builder")
 
     rag_pipeline.connect("query_embedder", "embedding_retriever.query_embedding")

@@ -2,10 +2,10 @@ from haystack import Document
 from haystack import Pipeline
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 from haystack.components.extractors.llm_metadata_extractor import LLMMetadataExtractor
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.writers import DocumentWriter
 from haystack.document_stores.in_memory import InMemoryDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -13,11 +13,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # LLMMetaDataExtractor: seamless metadata extraction from documents with just a prompt
@@ -76,9 +78,9 @@ NER_PROMPT = """
     """
 
 """
-Let's initialise an instance of the `LLMMetadataExtractor` using OllamaFunctionCalling as the LLM provider and the prompt defined above to perform metadata extraction
+Let's initialise an instance of the `LLMMetadataExtractor` using Ollama as the LLM provider and the prompt defined above to perform metadata extraction
 """
-logger.info("Let's initialise an instance of the `LLMMetadataExtractor` using OllamaFunctionCalling as the LLM provider and the prompt defined above to perform metadata extraction")
+logger.info("Let's initialise an instance of the `LLMMetadataExtractor` using Ollama as the LLM provider and the prompt defined above to perform metadata extraction")
 
 
 """
@@ -89,17 +91,17 @@ logger.info("Let's initialise an instance of the `LLMMetadataExtractor` using Ol
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#   os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
-We will instatiate a `LLMMetadataExtractor` instance using the OllamaFunctionCalling as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".
+We will instatiate a `LLMMetadataExtractor` instance using the Ollama as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".
 
 Another important aspect is the `raise_on_failure=False`, if for some document the LLM fails (e.g.: network error, or doesn't return a valid JSON object) we continue the processing of all the documents in the input.
 """
-logger.info("We will instatiate a `LLMMetadataExtractor` instance using the OllamaFunctionCalling as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".")
+logger.info("We will instatiate a `LLMMetadataExtractor` instance using the Ollama as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".")
 
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(
+chat_generator = OpenAIChatGenerator(
     generation_kwargs={
         "max_tokens": 500,
         "temperature": 0.0,

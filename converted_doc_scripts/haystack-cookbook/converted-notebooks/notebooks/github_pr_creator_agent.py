@@ -7,12 +7,12 @@ from haystack.dataclasses import ChatMessage, Document
 from haystack.tools.from_function import tool
 from haystack_integrations.components.connectors.github import GitHubIssueViewer
 from haystack_integrations.components.connectors.github import GitHubRepoForker
-from haystack_integrations.components.generators.anthropic import OllamaFunctionCallingAdapterChatGenerator
+from haystack_integrations.components.generators.anthropic import AnthropicChatGenerator
 from haystack_integrations.prompts.github import FILE_EDITOR_PROMPT, FILE_EDITOR_SCHEMA, PR_CREATOR_PROMPT
 from haystack_integrations.prompts.github import SYSTEM_PROMPT
 from haystack_integrations.tools.github import GitHubFileEditorTool
 from haystack_integrations.tools.github import GitHubRepoViewerTool
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import List
 import os
 import shutil
@@ -21,11 +21,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # GitHub PR Creator Agent
@@ -58,7 +60,7 @@ logger.info("## GitHub Issue Resolver")
 
 
 
-# os.environ["ANTHROPIC_API_KEY"] = getpass("OllamaFunctionCalling Key: ")
+# os.environ["ANTHROPIC_API_KEY"] = getpass("Ollama Key: ")
 
 repo_viewer_tool = GitHubRepoViewerTool()
 
@@ -76,7 +78,7 @@ logger.info("In this recipe, we simulate creating a comment on GitHub with the a
 
 
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="claude-sonnet-4-20250514", generation_kwargs={"max_tokens": 8000})
+chat_generator = AnthropicChatGenerator(model="claude-sonnet-4-20250514", generation_kwargs={"max_tokens": 8000})
 
 agent = Agent(
     chat_generator=chat_generator,
@@ -250,7 +252,7 @@ logger.info("In this recipe, we simulate creating a comment on GitHub with the a
 
 
 
-pr_chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="claude-sonnet-4-20250514", generation_kwargs={"max_tokens": 8000})
+pr_chat_generator = AnthropicChatGenerator(model="claude-sonnet-4-20250514", generation_kwargs={"max_tokens": 8000})
 
 pr_agent = Agent(
     chat_generator=pr_chat_generator,

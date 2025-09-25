@@ -8,13 +8,13 @@ from haystack.components.builders import PromptBuilder
 from haystack.components.converters import OutputAdapter
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 from haystack.components.embedders.sentence_transformers_document_embedder import SentenceTransformersDocumentEmbedder
-from haystack.components.generators.openai import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators.ollama import OpenAIGenerator
 from haystack.components.preprocessors import DocumentCleaner, DocumentSplitter
 from haystack.components.retrievers.in_memory import InMemoryEmbeddingRetriever
 from haystack.components.writers import DocumentWriter
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.utils import Secret
-from jet.logger import CustomLogger
+from jet.logger import logger
 from numpy import array, mean
 from typing import Dict, Any, List
 from typing import List
@@ -25,11 +25,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Using Hypothetical Document Embeddings (HyDE) to Improve Retrieval
@@ -47,9 +49,9 @@ logger.info("# Using Hypothetical Document Embeddings (HyDE) to Improve Retrieva
 # !pip install haystack-ai sentence-transformers datasets
 
 """
-In the following sections, we will be using the `OllamaFunctionCallingAdapterGenerator`, so we need to provide our API key 👇
+In the following sections, we will be using the `OpenAIGenerator`, so we need to provide our API key 👇
 """
-logger.info("In the following sections, we will be using the `OllamaFunctionCallingAdapterGenerator`, so we need to provide our API key 👇")
+logger.info("In the following sections, we will be using the `OpenAIGenerator`, so we need to provide our API key 👇")
 
 # from getpass import getpass
 
@@ -59,12 +61,12 @@ logger.info("In the following sections, we will be using the `OllamaFunctionCall
 ## Building a Pipeline for Hypothetical Document Embeddings
 
 We will build a Haystack pipeline that generates 'fake' documents.
-For this part, we are using the `OllamaFunctionCallingAdapterGenerator` with a `PromptBuilder` that instructs the model to generate paragraphs.
+For this part, we are using the `OpenAIGenerator` with a `PromptBuilder` that instructs the model to generate paragraphs.
 """
 logger.info("## Building a Pipeline for Hypothetical Document Embeddings")
 
 
-generator = OllamaFunctionCallingAdapterGenerator(
+generator = OpenAIGenerator(
     model="llama3.2",
     generation_kwargs={"n": 5, "temperature": 0.75, "max_tokens": 400},
 )
@@ -161,7 +163,7 @@ class HypotheticalDocumentEmbedder:
         self.instruct_llm_api_key = instruct_llm_api_key
         self.nr_completions = nr_completions
         self.embedder_model = embedder_model
-        self.generator = OllamaFunctionCallingAdapterGenerator(
+        self.generator = OpenAIGenerator(
             api_key=self.instruct_llm_api_key,
             model=self.instruct_llm,
             generation_kwargs={"n": self.nr_completions, "temperature": 0.75, "max_tokens": 400},

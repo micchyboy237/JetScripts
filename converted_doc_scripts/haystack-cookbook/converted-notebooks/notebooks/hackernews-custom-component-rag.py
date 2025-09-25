@@ -1,8 +1,8 @@
 from haystack import Pipeline
 from haystack import component, Document
 from haystack.components.builders.prompt_builder import PromptBuilder
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
-from jet.logger import CustomLogger
+from haystack.components.generators import OpenAIGenerator
+from jet.logger import logger
 from newspaper import Article
 from typing import List
 import os
@@ -13,11 +13,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Building a custom component for RAG pipelines with Haystack
@@ -75,7 +77,7 @@ logger.info("## Create a Haystack 2.0 RAG Pipeline")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling Key: ")
+# os.environ["OPENAI_API_KEY"] = getpass("Ollama Key: ")
 
 
 prompt_template = """
@@ -90,7 +92,7 @@ Posts:
 """
 
 prompt_builder = PromptBuilder(template=prompt_template)
-llm = OllamaFunctionCallingAdapterGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+llm = OpenAIGenerator(model="llama3.2")
 fetcher = HackernewsNewestFetcher()
 
 pipe = Pipeline()

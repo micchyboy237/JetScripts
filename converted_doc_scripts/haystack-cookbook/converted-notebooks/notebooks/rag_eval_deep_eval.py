@@ -3,12 +3,12 @@ from haystack import Document
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.builders.answer_builder import AnswerBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.dataclasses import ChatMessage
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack_integrations.components.evaluators.deepeval import DeepEvalEvaluator, DeepEvalMetric
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -16,11 +16,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # RAG pipeline evaluation using DeepEval
@@ -37,14 +39,14 @@ This notebook shows how to use [DeepEval-Haystack](https://haystack.deepset.ai/i
 
 ## Prerequisites:
 
-- [OllamaFunctionCalling](https://openai.com/) key
-    - **DeepEval** uses  for computing some metrics, so we need an OllamaFunctionCalling key.
+- [Ollama](https://ollama.com/) key
+    - **DeepEval** uses  for computing some metrics, so we need an Ollama key.
 """
 logger.info("# RAG pipeline evaluation using DeepEval")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+# os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ## Install dependencies
@@ -90,7 +92,7 @@ Answer:
 """
 )
 chat_prompt_builder = ChatPromptBuilder(template=[chat_message], required_variables="*")
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2")
+chat_generator = OpenAIChatGenerator(model="llama3.2")
 
 """
 **Build the RAG pipeline**

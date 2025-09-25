@@ -2,14 +2,14 @@ from datasets import load_dataset
 from haystack import Document, component
 from haystack import Pipeline
 from haystack.components.builders import PromptBuilder
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators import OpenAIGenerator
 from haystack.components.retrievers import InMemoryEmbeddingRetriever
 from haystack.dataclasses import ChatMessage, StreamingChunk
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack_integrations.components.embedders.cohere import CohereDocumentEmbedder, CohereTextEmbedder
-from jet.logger import CustomLogger
-from openai import OllamaFunctionCalling, Stream
-from openai.types.chat import ChatCompletion, ChatCompletionChunk
+from jet.logger import logger
+from ollama import Ollama, Stream
+from ollama.types.chat import ChatCompletion, ChatCompletionChunk
 from pydantic import BaseModel
 from typing import List, Any, Dict, Optional, Callable, Union
 import os
@@ -19,11 +19,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Advanced RAG: Query Decomposition and Reasoning
@@ -42,7 +44,7 @@ by Tuana Celik ([LI](https://www.linkedin.com/in/tuanacelik/), [Twitter](https:/
 
 Query decomposition is a technique we can use to decompose complex queries into simpler steps, answering each sub-question, and getting an LLM to reason about the final answer based on the answers to the sub-questions.
 
-In this recipe, we're using the structured output functionality (currently in beta) by OllamaFunctionCalling to construct `Questions` which lists the sub-questions based on the original question, as well as keeping track of the intermediate answers to each question.
+In this recipe, we're using the structured output functionality (currently in beta) by Ollama to construct `Questions` which lists the sub-questions based on the original question, as well as keeping track of the intermediate answers to each question.
 
 ## 📺 Code Along
 
@@ -60,7 +62,7 @@ logger.info("# Advanced RAG: Query Decomposition and Reasoning")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key:")
+#   os.environ["OPENAI_API_KEY"] = getpass("Ollama API Key:")
 
 if "COHERE_API_KEY" not in os.environ:
 #   os.environ["COHERE_API_KEY"] = getpass("Cohere API Key:")
@@ -82,15 +84,15 @@ docs_with_embeddings = doc_embedder.run(docs)
 document_store.write_documents(docs_with_embeddings["documents"])
 
 """
-## 🧪 Experimental Addition to the OllamaFunctionCallingAdapterGenerator for Structured Output Support
+## 🧪 Experimental Addition to the OpenAIGenerator for Structured Output Support
 
 > 🚀 This step is a completely optional advanced step
 
-Let's extend the `OllamaFunctionCallingAdapterGeneraotor` to be able to make use of the [strctured output option by OllamaFunctionCalling](https://platform.openai.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
+Let's extend the `OpenAIGeneraotor` to be able to make use of the [strctured output option by Ollama](https://platform.ollama.com/docs/guides/structured-outputs/introduction). Below, we extend the class to call `self.client.beta.chat.completions.parse` if the user has provides a `respose_format` in `generation_kwargs`. This will allow us to provifde a Pydantic Model to the gnerator and request our generator to respond with structured outputs that adhere to this Pydantic schema.
 """
-logger.info("## 🧪 Experimental Addition to the OllamaFunctionCallingAdapterGenerator for Structured Output Support")
+logger.info("## 🧪 Experimental Addition to the OpenAIGenerator for Structured Output Support")
 
-class OllamaFunctionCallingAdapterGenerator(OllamaFunctionCallingAdapterGenerator):
+class OpenAIGenerator(OpenAIGenerator):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
@@ -173,7 +175,7 @@ Examples
 """
 
 builder = PromptBuilder(splitter_prompt)
-llm = OllamaFunctionCallingAdapterGenerator(model="llama3.2", generation_kwargs={"response_format": Questions})
+llm = OpenAIGenerator(model="llama3.2", generation_kwargs={"response_format": Questions})
 
 """
 ## Define a Multi Text Embedder and Retriever
@@ -273,7 +275,7 @@ logger.info("## Final Step: Construct the Pipeline")
 query_decomposition_pipeline = Pipeline()
 
 query_decomposition_pipeline.add_component("prompt", PromptBuilder(splitter_prompt))
-query_decomposition_pipeline.add_component("llm", OllamaFunctionCallingAdapterGenerator(model="llama3.2", generation_kwargs={"response_format": Questions}))
+query_decomposition_pipeline.add_component("llm", OpenAIGenerator(model="llama3.2", generation_kwargs={"response_format": Questions}))
 
 query_decomposition_pipeline.connect("prompt", "llm")
 
@@ -284,13 +286,13 @@ logger.debug(result["llm"]["structured_reply"])
 pipeline = Pipeline()
 
 pipeline.add_component("prompt", PromptBuilder(splitter_prompt))
-pipeline.add_component("llm", OllamaFunctionCallingAdapterGenerator(model="llama3.2", generation_kwargs={"response_format": Questions}))
+pipeline.add_component("llm", OpenAIGenerator(model="llama3.2", generation_kwargs={"response_format": Questions}))
 pipeline.add_component("embedder", CohereMultiTextEmbedder(model="embed-multilingual-v3.0"))
 pipeline.add_component("multi_query_retriever", MultiQueryInMemoryEmbeddingRetriever(InMemoryEmbeddingRetriever(document_store=document_store)))
 pipeline.add_component("multi_query_prompt", PromptBuilder(multi_query_template))
-pipeline.add_component("query_resolver_llm", OllamaFunctionCallingAdapterGenerator(model="llama3.2", generation_kwargs={"response_format": Questions}))
+pipeline.add_component("query_resolver_llm", OpenAIGenerator(model="llama3.2", generation_kwargs={"response_format": Questions}))
 pipeline.add_component("reasoning_prompt", PromptBuilder(reasoning_template))
-pipeline.add_component("reasoning_llm", OllamaFunctionCallingAdapterGenerator(model="llama3.2"))
+pipeline.add_component("reasoning_llm", OpenAIGenerator(model="llama3.2"))
 
 pipeline.connect("prompt", "llm")
 pipeline.connect("llm.structured_reply", "embedder.questions")

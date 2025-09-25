@@ -4,8 +4,8 @@ from haystack import Pipeline
 from haystack import component
 from haystack.components.builders import ChatPromptBuilder, PromptBuilder
 from haystack.components.converters import OutputAdapter
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators import OpenAIGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.core.component.types import Variadic
 from haystack.dataclasses import ChatMessage
@@ -14,7 +14,7 @@ from haystack_experimental.chat_message_stores.in_memory import InMemoryChatMess
 from haystack_experimental.components.retrievers import ChatMessageRetriever
 from haystack_experimental.components.writers import ChatMessageWriter
 from itertools import chain
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import Any
 from typing import List
 import os
@@ -24,11 +24,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🗣️ Conversational RAG using Memory
@@ -49,14 +51,14 @@ logger.info("# 🗣️ Conversational RAG using Memory")
 # !pip install -U haystack-ai datasets
 
 """
-## Enter OllamaFunctionCalling API key
+## Enter Ollama API key
 """
-logger.info("## Enter OllamaFunctionCalling API key")
+logger.info("## Enter Ollama API key")
 
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ## Create DocumentStore and Index Documents
@@ -140,7 +142,7 @@ pipeline = Pipeline()
 
 pipeline.add_component("retriever", InMemoryBM25Retriever(document_store=document_store, top_k=3))
 pipeline.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories"], required_variables=["query", "documents", "memories"]))
-pipeline.add_component("llm", OllamaFunctionCallingAdapterChatGenerator())
+pipeline.add_component("llm", OpenAIChatGenerator())
 
 pipeline.add_component("memory_retriever", memory_retriever)
 pipeline.add_component("memory_writer", memory_writer)
@@ -216,7 +218,7 @@ query_rephrase_template = """
 """
 ## Build the Conversational RAG Pipeline
 
-Now, let's incorporate query rephrasing into our pipeline by adding a new [PromptBuilder](https://docs.haystack.deepset.ai/docs/promptbuilder) with the prompt above, [OllamaFunctionCallingAdapterGenerator](https://docs.haystack.deepset.ai/docs/openaigenerator), and an [OutputAdapter](https://docs.haystack.deepset.ai/docs/outputadapter). The `OllamaFunctionCallingAdapterGenerator` will rephrase the user's query for search, and the `OutputAdapter` will convert the output from the `OllamaFunctionCallingAdapterGenerator` into the input for the `InMemoryBM25Retriever`. The rest of the pipeline will be the same.
+Now, let's incorporate query rephrasing into our pipeline by adding a new [PromptBuilder](https://docs.haystack.deepset.ai/docs/promptbuilder) with the prompt above, [OpenAIGenerator](https://docs.haystack.deepset.ai/docs/openaigenerator), and an [OutputAdapter](https://docs.haystack.deepset.ai/docs/outputadapter). The `OpenAIGenerator` will rephrase the user's query for search, and the `OutputAdapter` will convert the output from the `OpenAIGenerator` into the input for the `InMemoryBM25Retriever`. The rest of the pipeline will be the same.
 """
 logger.info("## Build the Conversational RAG Pipeline")
 
@@ -224,12 +226,12 @@ logger.info("## Build the Conversational RAG Pipeline")
 conversational_rag = Pipeline()
 
 conversational_rag.add_component("query_rephrase_prompt_builder", PromptBuilder(query_rephrase_template))
-conversational_rag.add_component("query_rephrase_llm", OllamaFunctionCallingAdapterGenerator())
+conversational_rag.add_component("query_rephrase_llm", OpenAIGenerator())
 conversational_rag.add_component("list_to_str_adapter", OutputAdapter(template="{{ replies[0] }}", output_type=str))
 
 conversational_rag.add_component("retriever", InMemoryBM25Retriever(document_store=document_store, top_k=3))
 conversational_rag.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories"], required_variables=["query", "documents", "memories"]))
-conversational_rag.add_component("llm", OllamaFunctionCallingAdapterChatGenerator())
+conversational_rag.add_component("llm", OpenAIChatGenerator())
 
 conversational_rag.add_component("memory_retriever", ChatMessageRetriever(memory_store))
 conversational_rag.add_component("memory_writer", ChatMessageWriter(memory_store))

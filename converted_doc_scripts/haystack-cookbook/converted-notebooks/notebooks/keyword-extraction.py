@@ -1,7 +1,7 @@
 from haystack.components.builders import ChatPromptBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.dataclasses import ChatMessage
-from jet.logger import CustomLogger
+from jet.logger import logger
 import json
 import os
 import shutil
@@ -10,15 +10,17 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Keyword Extraction with LLM Chat Generator
-This notebook demonstrates how to extract keywords and key phrases from text using Haystack’s `ChatPromptBuilder` together with an LLM via `OllamaFunctionCallingAdapterChatGenerator`. We will:
+This notebook demonstrates how to extract keywords and key phrases from text using Haystack’s `ChatPromptBuilder` together with an LLM via `OpenAIChatGenerator`. We will:
 
 - Define a prompt that instructs the model to identify single- and multi-word keywords.
 
@@ -28,7 +30,7 @@ This notebook demonstrates how to extract keywords and key phrases from text usi
 
 - Parse and display the results as JSON.
 
-### Install packages and setup OllamaFunctionCalling API key
+### Install packages and setup Ollama API key
 """
 logger.info("# Keyword Extraction with LLM Chat Generator")
 
@@ -37,7 +39,7 @@ logger.info("# Keyword Extraction with LLM Chat Generator")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ### Import Required Libraries
@@ -102,11 +104,11 @@ prompt = builder.run(text=text_to_analyze)
 
 """
 ### Initialize the Generator and Extract Keywords
-We use OllamaFunctionCallingAdapterChatGenerator (e.g., llama3.2) to send our prompt and request a JSON-formatted response.
+We use OpenAIChatGenerator (e.g., llama3.2) to send our prompt and request a JSON-formatted response.
 """
 logger.info("### Initialize the Generator and Extract Keywords")
 
-extractor = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2")
+extractor = OpenAIChatGenerator(model="llama3.2")
 
 results = extractor.run(
     messages=prompt["prompt"],

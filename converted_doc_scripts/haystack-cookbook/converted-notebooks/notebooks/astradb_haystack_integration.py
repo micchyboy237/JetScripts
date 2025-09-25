@@ -2,12 +2,12 @@ from haystack import Document, Pipeline
 from haystack.components.builders.answer_builder import AnswerBuilder
 from haystack.components.builders.prompt_builder import PromptBuilder
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators import OpenAIGenerator
 from haystack.components.writers import DocumentWriter
 from haystack.document_stores.types import DuplicatePolicy
 from haystack_integrations.components.retrievers.astra import AstraEmbeddingRetriever
 from haystack_integrations.document_stores.astra import AstraDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 import logging
 import os
 import shutil
@@ -16,11 +16,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ## Introduction
@@ -29,7 +31,7 @@ In this notebook, you'll learn how to use [AstraDB](https://docs.datastax.com/en
 
 # Prerequisites
 
-You'll need an [OpenAPI key](https://help.openai.com/en/articles/4936850-where-do-i-find-my-api-key) to follow along. (Haystack is model-agnostic so feel free to use a different one if you'd prefer!)
+You'll need an [OpenAPI key](https://help.ollama.com/en/articles/4936850-where-do-i-find-my-api-key) to follow along. (Haystack is model-agnostic so feel free to use a different one if you'd prefer!)
 
 You'll need the following variables in order to use the Haystack extension. The following tutorials will show you how to create an AstraDB database, and save these pieces of information.
 
@@ -129,7 +131,7 @@ rag_pipeline.add_component(
 )
 rag_pipeline.add_component(instance=AstraEmbeddingRetriever(document_store=document_store), name="retriever")
 rag_pipeline.add_component(instance=PromptBuilder(template=prompt_template), name="prompt_builder")
-rag_pipeline.add_component(instance=OllamaFunctionCallingAdapterGenerator(), name="llm")
+rag_pipeline.add_component(instance=OpenAIGenerator(), name="llm")
 rag_pipeline.add_component(instance=AnswerBuilder(), name="answer_builder")
 rag_pipeline.connect("embedder", "retriever")
 rag_pipeline.connect("retriever", "prompt_builder.documents")

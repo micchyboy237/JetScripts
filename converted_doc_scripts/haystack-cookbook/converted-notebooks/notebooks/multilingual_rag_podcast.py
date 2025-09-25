@@ -9,7 +9,7 @@ from haystack.utils import ComponentDevice
 from haystack_integrations.components.generators.mistral import MistralChatGenerator
 from haystack_integrations.components.retrievers.qdrant import QdrantEmbeddingRetriever
 from haystack_integrations.document_stores.qdrant import QdrantDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 from pprint import pprint
 import os
 import random
@@ -19,11 +19,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🇮🇹🇬🇧 Multilingual RAG from a 🎧 podcast
@@ -35,7 +37,7 @@ This notebook shows how to create a multilingual Retrieval Augmented Generation 
 
 🧰 **Stack**:
 - Haystack LLM framework
-- OllamaFunctionCalling Whisper model for audio transcription
+- Ollama Whisper model for audio transcription
 - Qdrant vector database
 - multilingual embedding model: multilingual-e5-large
 - multilingual LLM: Mistral Small
@@ -45,13 +47,13 @@ This notebook shows how to create a multilingual Retrieval Augmented Generation 
 logger.info("# 🇮🇹🇬🇧 Multilingual RAG from a 🎧 podcast")
 
 # %%capture
-# ! pip install -U mistral-haystack haystack-ai qdrant-haystack "openai-whisper>=20231106" pytube "sentence-transformers>=3.0.0" "huggingface_hub>=0.23.0"
+# ! pip install -U mistral-haystack haystack-ai qdrant-haystack "ollama-whisper>=20231106" pytube "sentence-transformers>=3.0.0" "huggingface_hub>=0.23.0"
 
 """
 ## Podcast transcription
 
 - download the audio from Youtube using `pytube`
-- transcribe it locally using Haystack's [`LocalWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/localwhispertranscriber) with the `whisper-small` model. We could use bigger models, which take longer to transcribe. We could also call the paid OllamaFunctionCalling API, using [`RemoteWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/remotewhispertranscriber).
+- transcribe it locally using Haystack's [`LocalWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/localwhispertranscriber) with the `whisper-small` model. We could use bigger models, which take longer to transcribe. We could also call the paid Ollama API, using [`RemoteWhisperTranscriber`](https://docs.haystack.deepset.ai/docs/remotewhispertranscriber).
 
 Since the transcription takes some time (about 10 minutes), I commented out the following code and will provide the transcription.
 """

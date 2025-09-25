@@ -1,17 +1,17 @@
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.dataclasses import ChatMessage, Document
 from haystack.document_stores.in_memory import InMemoryDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 from phoenix.evals import (
 HallucinationEvaluator,
-OllamaFunctionCallingAdapterModel,
+OpenAIModel,
 QAEvaluator,
 run_evals,
 )
-from phoenix.evals import OllamaFunctionCallingAdapterModel, RelevanceEvaluator, run_evals
+from phoenix.evals import OpenAIModel, RelevanceEvaluator, run_evals
 from phoenix.otel import register
 from phoenix.session.evaluation import get_qa_with_reference
 from phoenix.session.evaluation import get_retrieved_documents
@@ -24,11 +24,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Tracing and Evaluating a Haystack RAG Application with Phoenix
@@ -39,7 +41,7 @@ logger.orange(f"Logs: {log_file}")
 2. Q&A Correctness: Whether the answer to the question is correct.
 3. Hallucination: Whether the answer contains hallucinations.
 
-ℹ️ This notebook requires an OllamaFunctionCalling API key.
+ℹ️ This notebook requires an Ollama API key.
 """
 logger.info("# Tracing and Evaluating a Haystack RAG Application with Phoenix")
 
@@ -53,7 +55,7 @@ logger.info("## Set API Keys")
 # from getpass import getpass
 
 # if not (openai_api_key := os.getenv("OPENAI_API_KEY")):
-#     openai_api_key = getpass("🔑 Enter your OllamaFunctionCalling API key: ")
+#     openai_api_key = getpass("🔑 Enter your Ollama API key: ")
 
 # os.environ["OPENAI_API_KEY"] = openai_api_key
 
@@ -114,7 +116,7 @@ Answer:
 rag_pipe = Pipeline()
 rag_pipe.add_component("retriever", InMemoryBM25Retriever(document_store=document_store))
 rag_pipe.add_component("prompt_builder", ChatPromptBuilder(template=template, required_variables="*"))
-rag_pipe.add_component("llm", OllamaFunctionCallingAdapterChatGenerator(model="llama3.2"))
+rag_pipe.add_component("llm", OpenAIChatGenerator(model="llama3.2"))
 
 rag_pipe.connect("retriever", "prompt_builder.documents")
 rag_pipe.connect("prompt_builder.prompt", "llm.messages")
@@ -164,7 +166,7 @@ Next we'll use Phoenix's `RelevanceEvaluator` to evaluate the relevance of the r
 logger.info("Next we'll use Phoenix's `RelevanceEvaluator` to evaluate the relevance of the retrieved documents. This evaluator uses a LLM to determine if the retrieved documents contain the answer to the question.")
 
 
-relevance_evaluator = RelevanceEvaluator(OllamaFunctionCallingAdapterModel(model="llama3.2"))
+relevance_evaluator = RelevanceEvaluator(OpenAIModel(model="llama3.2"))
 
 retrieved_documents_relevance_df = run_evals(
     evaluators=[relevance_evaluator],
@@ -201,8 +203,8 @@ qa_with_reference_df = get_qa_with_reference(px.Client(), project_name=project_n
 qa_with_reference_df
 
 
-qa_evaluator = QAEvaluator(OllamaFunctionCallingAdapterModel(model="llama3.2", log_dir=f"{LOG_DIR}/chats"))
-hallucination_evaluator = HallucinationEvaluator(OllamaFunctionCallingAdapterModel(model="llama3.2", log_dir=f"{LOG_DIR}/chats"))
+qa_evaluator = QAEvaluator(OpenAIModel(model="llama3.2"))
+hallucination_evaluator = HallucinationEvaluator(OpenAIModel(model="llama3.2"))
 
 qa_correctness_eval_df, hallucination_eval_df = run_evals(
     evaluators=[qa_evaluator, hallucination_evaluator],

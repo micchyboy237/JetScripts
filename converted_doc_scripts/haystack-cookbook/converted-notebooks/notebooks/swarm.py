@@ -1,11 +1,11 @@
 from dataclasses import dataclass, field
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.tools import ToolInvoker
 from haystack.dataclasses import ChatMessage, ChatRole
 from haystack.tools import create_tool_from_function
-from haystack_integrations.components.generators.anthropic import OllamaFunctionCallingAdapterChatGenerator
+from haystack_integrations.components.generators.anthropic import AnthropicChatGenerator
 from haystack_integrations.components.generators.ollama import OllamaChatGenerator
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import Annotated, Callable, Tuple
 import os
 import random, re
@@ -15,44 +15,46 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🐝🐝🐝 Create a Swarm of Agents
 
-> As of Haystack 2.9.0, experimental dataclasses (refactored ChatMessage and ChatRole, ToolCall and Tool) and components (refactored OllamaFunctionCallingAdapterChatGenerator, ToolInvoker) are removed from the `haystack-experimental` and merged into Haystack core.
+> As of Haystack 2.9.0, experimental dataclasses (refactored ChatMessage and ChatRole, ToolCall and Tool) and components (refactored OpenAIChatGenerator, ToolInvoker) are removed from the `haystack-experimental` and merged into Haystack core.
 
-OllamaFunctionCalling recently released Swarm: an educational framework that proposes lightweight techniques for creating and orchestrating multi-agent systems.
+Ollama recently released Swarm: an educational framework that proposes lightweight techniques for creating and orchestrating multi-agent systems.
 
 
-In this notebook, we'll explore the core concepts of Swarm ([Routines and Handoffs](https://cookbook.openai.com/examples/orchestrating_agents)) and implement them using Haystack and its tool support.
+In this notebook, we'll explore the core concepts of Swarm ([Routines and Handoffs](https://cookbook.ollama.com/examples/orchestrating_agents)) and implement them using Haystack and its tool support.
 
-This exploration is not only educational: we will unlock features missing in the original implementation, like the ability of using models from various providers. In fact, our final example will include 3 agents: one powered by llama3.2 (OllamaFunctionCalling), one using Claude 3.5 Sonnet (OllamaFunctionCalling) and a third running Llama-3.2-3B locally via Ollama.
+This exploration is not only educational: we will unlock features missing in the original implementation, like the ability of using models from various providers. In fact, our final example will include 3 agents: one powered by llama3.2 (Ollama), one using Claude 3.5 Sonnet (Ollama) and a third running Llama-3.2-3B locally via Ollama.
 
 ## Setup
 
-We install the required dependencies. In addition to Haystack, we also need integrations with OllamaFunctionCalling and Ollama.
+We install the required dependencies. In addition to Haystack, we also need integrations with Ollama and Ollama.
 """
 logger.info("# 🐝🐝🐝 Create a Swarm of Agents")
 
 # ! pip install haystack-ai jsonschema anthropic-haystack ollama-haystack
 
 """
-Next, we configure our API keys for OllamaFunctionCalling and OllamaFunctionCalling.
+Next, we configure our API keys for Ollama and Ollama.
 """
-logger.info("Next, we configure our API keys for OllamaFunctionCalling and OllamaFunctionCalling.")
+logger.info("Next, we configure our API keys for Ollama and Ollama.")
 
 # from getpass import getpass
 
 
 # if not os.environ.get("OPENAI_API_KEY"):
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter your Ollama API key:")
 # if not os.environ.get("ANTHROPIC_API_KEY"):
-#     os.environ["ANTHROPIC_API_KEY"] = getpass("Enter your OllamaFunctionCalling API key:")
+#     os.environ["ANTHROPIC_API_KEY"] = getpass("Enter your Ollama API key:")
 
 
 
@@ -72,7 +74,7 @@ logger.info("## Starting simple: building an Assistant")
 @dataclass
 class Assistant:
     name: str = "Assistant"
-    llm: object = OllamaFunctionCallingAdapterChatGenerator()
+    llm: object = OpenAIChatGenerator()
     instructions: str = "You are a helpful Agent"
 
     def __post_init__(self):
@@ -147,7 +149,7 @@ logger.info("## Tools and Routines")
 @dataclass
 class ToolCallingAgent:
     name: str = "ToolCallingAgent"
-    llm: object = OllamaFunctionCallingAdapterChatGenerator()
+    llm: object = OpenAIChatGenerator()
     instructions: str = "You are a helpful Agent"
     functions: list[Callable] = field(default_factory=list)
 
@@ -230,7 +232,7 @@ HANDOFF_PATTERN = r"Transferred to: (.*?)(?:\.|$)"
 @dataclass
 class SwarmAgent:
     name: str = "SwarmAgent"
-    llm: object = OllamaFunctionCallingAdapterChatGenerator()
+    llm: object = OpenAIChatGenerator()
     instructions: str = "You are a helpful Agent"
     functions: list[Callable] = field(default_factory=list)
 
@@ -320,7 +322,7 @@ Nice ✨
 # A more complex multi-agent system
 
 Now, we move on to a more intricate multi-agent system that simulates a customer service setup for ACME Corporation, a fictional entity from the Road Runner/Wile E. Coyote cartoons, which sells quirky products meant to catch roadrunners.
-(We are reimplementing the example from the original article by OllamaFunctionCalling.)
+(We are reimplementing the example from the original article by Ollama.)
 
 
 This system involves several different agents (each with specific tools):
@@ -328,7 +330,7 @@ This system involves several different agents (each with specific tools):
 - Sales Agent: proposes and sells products to the user, it can execute the order or redirect the user back to the Triage Agent. Tools: `execute_order` and `transfer_back_to_triage`.
 - Issues and Repairs Agent: supports customers with their problems, it can look up item IDs, execute refund or redirect the user back to triage. Tools: `look_up_item`,  `execute_refund`, and `transfer_back_to_triage`.
 
-A nice bonus feature of our implementation is that **we can use different model providers** supported by Haystack. In this case, the Triage Agent is powered by (OllamaFunctionCalling) llama3.2, while we use (OllamaFunctionCalling) Claude 3.5 Sonnet for the other two agents.
+A nice bonus feature of our implementation is that **we can use different model providers** supported by Haystack. In this case, the Triage Agent is powered by (Ollama) llama3.2, while we use (Ollama) Claude 3.5 Sonnet for the other two agents.
 """
 logger.info("# A more complex multi-agent system")
 
@@ -401,7 +403,7 @@ sales_agent = SwarmAgent(
         "tell them a crazy caveat and execute their order.\n"
         ""
     ),
-    llm=OllamaFunctionCallingAdapterChatGenerator(),
+    llm=AnthropicChatGenerator(),
     functions=[execute_order, transfer_back_to_triage],
 )
 
@@ -439,7 +441,7 @@ issues_and_repairs_agent = SwarmAgent(
         ""
     ),
     functions=[look_up_item, execute_refund, transfer_back_to_triage],
-    llm=OllamaFunctionCallingAdapterChatGenerator(),
+    llm=AnthropicChatGenerator(),
 )
 
 agents = {agent.name: agent for agent in [triage_agent, sales_agent, issues_and_repairs_agent]}

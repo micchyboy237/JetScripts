@@ -6,10 +6,10 @@ from haystack.components.generators.utils import print_streaming_chunk
 from haystack.dataclasses import ChatMessage
 from haystack.tools.from_function import tool
 from haystack_integrations.components.connectors.github import GitHubIssueViewer
-from haystack_integrations.components.generators.anthropic.chat.chat_generator import OllamaFunctionCallingAdapterChatGenerator
+from haystack_integrations.components.generators.anthropic.chat.chat_generator import AnthropicChatGenerator
 from haystack_integrations.prompts.github import SYSTEM_PROMPT
 from haystack_integrations.tools.github import GitHubRepoViewerTool
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import List
 import os
 import shutil
@@ -18,16 +18,18 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Build a GitHub Issue Resolver Agent
 
-In this recipe, we'll create a **GitHub Issue Resolver Agent with OllamaFunctionCalling Claude 4 Sonnet**. Given an issue URL, the agent will:  
+In this recipe, we'll create a **GitHub Issue Resolver Agent with Ollama Claude 4 Sonnet**. Given an issue URL, the agent will:  
 
 - Fetch and parse the issue description and comments  
 - Identify the relevant repository, directories, and files  
@@ -99,13 +101,13 @@ To initialize the agent, we need:
 2. A chat generator  
 3. A system prompt
 
-We'll start by creating the `ChatGenerator`. In this example, we'll use the [OllamaFunctionCallingAdapterChatGenerator](https://docs.haystack.deepset.ai/docs/anthropicchatgenerator) with the `claude-sonnet-4-20250514` model.
+We'll start by creating the `ChatGenerator`. In this example, we'll use the [AnthropicChatGenerator](https://docs.haystack.deepset.ai/docs/anthropicchatgenerator) with the `claude-sonnet-4-20250514` model.
 """
 logger.info("## Create the "Issue Resolver Agent" with Tools")
 
-# os.environ["ANTHROPIC_API_KEY"] = getpass("OllamaFunctionCalling Key: ")
+# os.environ["ANTHROPIC_API_KEY"] = getpass("Ollama Key: ")
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="claude-sonnet-4-20250514", generation_kwargs={"max_tokens": 8000})
+chat_generator = AnthropicChatGenerator(model="claude-sonnet-4-20250514", generation_kwargs={"max_tokens": 8000})
 
 """
 In this example, we'll use a pre-defined system prompt, guiding the agent to analyze GitHub issues, explore the repository for relevant files, and generate a detailed comment with resolution steps. Of course, you can use your own custom prompt instead.

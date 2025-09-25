@@ -1,12 +1,12 @@
 from haystack import Pipeline
 from haystack import component
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.routers import ConditionalRouter
 from haystack.components.tools import ToolInvoker
 from haystack.core.component.types import Variadic
 from haystack.dataclasses import ChatMessage, ToolCall
 from haystack.tools import Tool
-from jet.logger import CustomLogger
+from jet.logger import logger
 from rich import print
 from typing import Any, Dict, List
 from typing import List
@@ -18,11 +18,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🛠️ Define & Run Tools
@@ -31,7 +33,7 @@ In this notebook, we introduce the features we've developed for tool/function ca
 
 - We refactored the `ChatMessage` dataclass, to be more flexible and future-proof.
 - We introduced some new dataclasses: `ToolCall`, `ToolCallResult`, and `Tool`.
-- We added support for tools in the `OllamaFunctionCallingAdapterChatGenerator` and other Chat Generators.
+- We added support for tools in the `OpenAIChatGenerator` and other Chat Generators.
 - We introduced the `ToolInvoker` component, to actually execute tool calls prepared by Language Models.
 
 We will first introduce the new features and then show two examples:
@@ -47,7 +49,7 @@ logger.info("# 🛠️ Define & Run Tools")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#   os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ## New experimental features
@@ -160,16 +162,16 @@ logger.debug(add_tool.tool_spec)
 logger.debug(add_tool.invoke(a=15, b=10))
 
 """
-### Support for tools in `OllamaFunctionCallingAdapterChatGenerator`
+### Support for tools in `OpenAIChatGenerator`
 
-The `OllamaFunctionCallingAdapterChatGenerator` now supports tools. You can pass tools during initialization or via the `run` method, and it will use them to prepare tool calls when appropriate.
+The `OpenAIChatGenerator` now supports tools. You can pass tools during initialization or via the `run` method, and it will use them to prepare tool calls when appropriate.
 
 Here are some examples.
 """
-logger.info("### Support for tools in `OllamaFunctionCallingAdapterChatGenerator`")
+logger.info("### Support for tools in `OpenAIChatGenerator`")
 
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", tools=[add_tool])
+chat_generator = OpenAIChatGenerator(model="llama3.2", tools=[add_tool])
 
 res=chat_generator.run([ChatMessage.from_user("10 + 238")])
 logger.debug(res)
@@ -177,7 +179,7 @@ logger.debug(res)
 res=chat_generator.run([ChatMessage.from_user("What is the habitat of a lion?")])
 logger.debug(res)
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2")
+chat_generator = OpenAIChatGenerator(model="llama3.2")
 
 res=chat_generator.run([ChatMessage.from_user("10 + 238")])
 logger.debug(res)
@@ -246,7 +248,7 @@ weather_tool = Tool(
 )
 
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", tools=[weather_tool])
+chat_generator = OpenAIChatGenerator(model="llama3.2", tools=[weather_tool])
 
 tool_invoker = ToolInvoker(tools=[weather_tool])
 
@@ -299,7 +301,7 @@ routes = [
 ]
 
 tools_pipe = Pipeline()
-tools_pipe.add_component("generator", OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", tools=[weather_tool]))
+tools_pipe.add_component("generator", OpenAIChatGenerator(model="llama3.2", tools=[weather_tool]))
 tools_pipe.add_component("router", ConditionalRouter(routes, unsafe=True))
 tools_pipe.add_component("tool_invoker", ToolInvoker(tools=[weather_tool]))
 
@@ -329,7 +331,7 @@ In the next example, we'll pass the tool's response back to the Chat Generator f
 """
 logger.info("### Processing tool results with the Chat Generator")
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", tools=[weather_tool])
+chat_generator = OpenAIChatGenerator(model="llama3.2", tools=[weather_tool])
 tool_invoker = ToolInvoker(tools=[weather_tool])
 
 user_message = ChatMessage.from_user("What is the weather in Berlin?")
@@ -391,7 +393,7 @@ routes = [
 
 tool_agent = Pipeline()
 tool_agent.add_component("message_collector", message_collector)
-tool_agent.add_component("generator", OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", tools=[weather_tool]))
+tool_agent.add_component("generator", OpenAIChatGenerator(model="llama3.2", tools=[weather_tool]))
 tool_agent.add_component("router", ConditionalRouter(routes, unsafe=True))
 tool_agent.add_component("tool_invoker", ToolInvoker(tools=[weather_tool]))
 

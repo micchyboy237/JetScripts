@@ -1,9 +1,9 @@
 from google.colab import userdata
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.generators.utils import print_streaming_chunk
 from haystack.dataclasses import ChatMessage
 from haystack.dataclasses import ChatMessage, ChatRole
-from jet.logger import CustomLogger
+from jet.logger import logger
 import json
 import os
 import shutil
@@ -12,28 +12,30 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
-# Function Calling with OllamaFunctionCallingAdapterChatGenerator 📞
+# Function Calling with OpenAIChatGenerator 📞
 
 > ⚠️ As of Haystack 2.9.0, this recipe has been deprecated. For the same example, follow [Tutorial: Building a Chat Agent with Function Calling](https://haystack.deepset.ai/tutorials/40_building_chat_application_with_function_calling)
 
 *Notebook by Bilge Yucel ([LI](https://www.linkedin.com/in/bilge-yucel/) & [X (Twitter)](https://twitter.com/bilgeycl))*
 
-A guide to understand function calling and how to use OllamaFunctionCalling function calling feature with [Haystack](https://github.com/deepset-ai/haystack).
+A guide to understand function calling and how to use Ollama function calling feature with [Haystack](https://github.com/deepset-ai/haystack).
 
 📚 Useful Sources:
-* [OllamaFunctionCallingAdapterChatGenerator Docs](https://docs.haystack.deepset.ai/v2.0/docs/openaichatgenerator)
-* [OllamaFunctionCallingAdapterChatGenerator API Reference](https://docs.haystack.deepset.ai/v2.0/reference/generator-api#openaichatgenerator)
+* [OpenAIChatGenerator Docs](https://docs.haystack.deepset.ai/v2.0/docs/openaichatgenerator)
+* [OpenAIChatGenerator API Reference](https://docs.haystack.deepset.ai/v2.0/reference/generator-api#openaichatgenerator)
 
 ## Overview
 
-Here are some use cases of function calling from [OllamaFunctionCalling Docs](https://platform.openai.com/docs/guides/function-calling):
+Here are some use cases of function calling from [Ollama Docs](https://platform.ollama.com/docs/guides/function-calling):
 * **Create assistants that answer questions by calling external APIs** (e.g. like ChatGPT Plugins)
 e.g. define functions like send_email(to: string, body: string), or get_current_weather(location: string, unit: 'celsius' | 'fahrenheit')
 * **Convert natural language into API calls**
@@ -43,7 +45,7 @@ e.g. define a function called extract_data(name: string, birthday: string), or s
 
 ## Set up the Development Environment
 """
-logger.info("# Function Calling with OllamaFunctionCallingAdapterChatGenerator 📞")
+logger.info("# Function Calling with OpenAIChatGenerator 📞")
 
 # %%bash
 
@@ -54,16 +56,16 @@ pip install haystack-ai==2.8.1
 # os.environ["OPENAI_API_KEY"] = userdata.get('OPENAI_API_KEY') or getpass("OPENAI_API_KEY: ")
 
 """
-## Learn about the OllamaFunctionCallingAdapterChatGenerator
+## Learn about the OpenAIChatGenerator
 
-`OllamaFunctionCallingAdapterChatGenerator` is a component that supports the function calling feature of OllamaFunctionCalling.
+`OpenAIChatGenerator` is a component that supports the function calling feature of Ollama.
 
-The way to communicate with `OllamaFunctionCallingAdapterChatGenerator` is through [`ChatMessage`](https://docs.haystack.deepset.ai/v2.0/docs/data-classes#chatmessage) list. Therefore, create a `ChatMessage` with "USER" role using `ChatMessage.from_user()` and send it to OllamaFunctionCallingAdapterChatGenerator:
+The way to communicate with `OpenAIChatGenerator` is through [`ChatMessage`](https://docs.haystack.deepset.ai/v2.0/docs/data-classes#chatmessage) list. Therefore, create a `ChatMessage` with "USER" role using `ChatMessage.from_user()` and send it to OpenAIChatGenerator:
 """
-logger.info("## Learn about the OllamaFunctionCallingAdapterChatGenerator")
+logger.info("## Learn about the OpenAIChatGenerator")
 
 
-client = OllamaFunctionCallingAdapterChatGenerator()
+client = OpenAIChatGenerator()
 response = client.run(
     [ChatMessage.from_user("What's Natural Language Processing? Be brief.")]
 )
@@ -72,26 +74,26 @@ logger.debug(response)
 """
 ### Basic Streaming
 
-OllamaFunctionCallingAdapterChatGenerator supports streaming, provide a `streaming_callback` function and run the client again to see the difference.
+OpenAIChatGenerator supports streaming, provide a `streaming_callback` function and run the client again to see the difference.
 """
 logger.info("### Basic Streaming")
 
 
-client = OllamaFunctionCallingAdapterChatGenerator(streaming_callback=print_streaming_chunk)
+client = OpenAIChatGenerator(streaming_callback=print_streaming_chunk)
 response = client.run(
     [ChatMessage.from_user("What's Natural Language Processing? Be brief.")]
 )
 
 """
-## Function Calling with OllamaFunctionCallingAdapterChatGenerator
+## Function Calling with OpenAIChatGenerator
 
-We'll try to recreate the [example on OllamaFunctionCalling docs](https://cookbook.openai.com/examples/how_to_call_functions_with_chat_models).
+We'll try to recreate the [example on Ollama docs](https://cookbook.ollama.com/examples/how_to_call_functions_with_chat_models).
 
 ### Define a Function
 
 We'll define a `get_current_weather` function that mocks a Weather API call in the response:
 """
-logger.info("## Function Calling with OllamaFunctionCallingAdapterChatGenerator")
+logger.info("## Function Calling with OpenAIChatGenerator")
 
 def get_current_weather(location: str, unit: str = "celsius"):
   return {"weather": "sunny", "temperature": 21.8, "unit": unit}
@@ -103,7 +105,7 @@ available_functions = {
 """
 ### Create the `tools`
 
-We'll then add information about this function to our `tools` list by following [OllamaFunctionCalling's tool schema](https://platform.openai.com/docs/api-reference/chat/create#chat-create-tools)
+We'll then add information about this function to our `tools` list by following [Ollama's tool schema](https://platform.ollama.com/docs/api-reference/chat/create#chat-create-tools)
 """
 logger.info("### Create the `tools`")
 
@@ -133,20 +135,20 @@ tools = [
 ]
 
 """
-### Run OllamaFunctionCallingAdapterChatGenerator with tools
+### Run OpenAIChatGenerator with tools
 
 We'll pass the list of tools in the `run()` method as `generation_kwargs`.
 
 Let's define messages and run the generator:
 """
-logger.info("### Run OllamaFunctionCallingAdapterChatGenerator with tools")
+logger.info("### Run OpenAIChatGenerator with tools")
 
 
 messages = []
 messages.append(ChatMessage.from_system("Don't make assumptions about what values to plug into functions. Ask for clarification if a user request is ambiguous."))
 messages.append(ChatMessage.from_user("What's the weather like in Berlin?"))
 
-client = OllamaFunctionCallingAdapterChatGenerator(streaming_callback=print_streaming_chunk)
+client = OpenAIChatGenerator(streaming_callback=print_streaming_chunk)
 response = client.run(
     messages=messages,
     generation_kwargs={"tools":tools}
@@ -181,7 +183,7 @@ logger.debug("function_args:", function_args)
 """
 ### Make a Tool Call
 
-Let's locate the corresponding function for `function_name` in our `available_functions` dictionary and use `function_args` when calling it. Once we receive the response from the tool, we'll append it to our `messages` for later sending to OllamaFunctionCalling.
+Let's locate the corresponding function for `function_name` in our `available_functions` dictionary and use `function_args` when calling it. Once we receive the response from the tool, we'll append it to our `messages` for later sending to Ollama.
 """
 logger.info("### Make a Tool Call")
 
@@ -191,9 +193,9 @@ function_message = ChatMessage.from_function(content=json.dumps(function_respons
 messages.append(function_message)
 
 """
-Make the last call to OllamaFunctionCalling with response coming from the function and see how OllamaFunctionCalling uses the provided information
+Make the last call to Ollama with response coming from the function and see how Ollama uses the provided information
 """
-logger.info("Make the last call to OllamaFunctionCalling with response coming from the function and see how OllamaFunctionCalling uses the provided information")
+logger.info("Make the last call to Ollama with response coming from the function and see how Ollama uses the provided information")
 
 response = client.run(
     messages=messages,
@@ -205,7 +207,7 @@ response = client.run(
 
 Let's add more tool to our example and improve the user experience 👇
 
-We'll add one more tool `use_haystack_pipeline` for OllamaFunctionCalling to use when there's a question about countries and capitals:
+We'll add one more tool `use_haystack_pipeline` for Ollama to use when there's a question about countries and capitals:
 """
 logger.info("## Improve the Example")
 
@@ -265,12 +267,12 @@ available_functions = {
 """
 ### Start the Application
 
-Have fun having a chat with OllamaFunctionCalling 🎉
+Have fun having a chat with Ollama 🎉
 
 Example queries you can try:
 * "***What's the capital of Utopia***", "***Is it sunny there?***": To test the messages are being recorded and sent
 * "***What's the weather like in the capital of Utopia?***": To force two function calls
-* "***What's the weather like today?***": To force OllamaFunctionCalling to ask more clarification
+* "***What's the weather like today?***": To force Ollama to ask more clarification
 """
 logger.info("### Start the Application")
 

@@ -1,12 +1,12 @@
 from haystack import Pipeline
 from haystack import component
 from haystack.components.builders import PromptBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
-from haystack.components.generators.openai import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
+from haystack.components.generators.ollama import OpenAIGenerator
 from haystack.components.generators.utils import print_streaming_chunk
 from haystack.components.routers import ConditionalRouter
 from haystack.dataclasses import ChatMessage
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import List
 from urllib.request import urlretrieve
 from zipfile import ZipFile
@@ -21,11 +21,13 @@ import sqlite3
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Chat With Your SQL Database
@@ -150,7 +152,7 @@ logger.info("## Query A SQL Database with Natural Language")
 
 # from getpass import getpass
 
-# os.environ["OPENAI_API_KEY"] = getpass("OllamaFunctionCalling API Key: ")
+# os.environ["OPENAI_API_KEY"] = getpass("Ollama API Key: ")
 
 
 prompt = PromptBuilder(template="""Please generate an SQL query. The query should answer the following Question: {{question}};
@@ -158,7 +160,7 @@ prompt = PromptBuilder(template="""Please generate an SQL query. The query shoul
             Columns: {{columns}};
             Answer:""")
 sql_query = SQLQuery('absenteeism.db')
-llm = OllamaFunctionCallingAdapterGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+llm = OpenAIGenerator(model="llama3.2")
 
 sql_pipeline = Pipeline()
 sql_pipeline.add_component("prompt", prompt)
@@ -192,7 +194,7 @@ prompt = PromptBuilder(template="""Please generate an SQL query. The query shoul
             Columns: {{columns}};
             Answer:""")
 
-llm = OllamaFunctionCallingAdapterGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+llm = OpenAIGenerator(model="llama3.2")
 sql_query = SQLQuery('absenteeism.db')
 
 routes = [
@@ -215,7 +217,7 @@ router = ConditionalRouter(routes)
 fallback_prompt = PromptBuilder(template="""User entered a query that cannot be answerwed with the given table.
                                             The query was: {{question}} and the table had columns: {{columns}}.
                                             Let the user know why the question cannot be answered""")
-fallback_llm = OllamaFunctionCallingAdapterGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+fallback_llm = OpenAIGenerator(model="llama3.2")
 
 conditional_sql_pipeline = Pipeline()
 conditional_sql_pipeline.add_component("prompt", prompt)
@@ -265,7 +267,7 @@ def sql_query_func(queries: List[str]):
 """
 ### Define Tools
 
-Now, let's provide this function as a tool. Below, we are using OllamaFunctionCalling for demonstration purposes so we abide by their function definition schema 👇
+Now, let's provide this function as a tool. Below, we are using Ollama for demonstration purposes so we abide by their function definition schema 👇
 """
 logger.info("### Define Tools")
 
@@ -305,7 +307,7 @@ messages = [
     ChatMessage.from_user("On which days of the week does the average absenteeism time exceed 4 hours??"),
 ]
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats", streaming_callback=print_streaming_chunk)
+chat_generator = OpenAIChatGenerator(model="llama3.2", streaming_callback=print_streaming_chunk)
 response = chat_generator.run(messages=messages, generation_kwargs={"tools": tools})
 logger.debug(response)
 
@@ -332,7 +334,7 @@ logger.info("## Build a Chat with SQL App")
 
 
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+chat_generator = OpenAIChatGenerator(model="llama3.2")
 response = None
 messages = [
     ChatMessage.from_system(

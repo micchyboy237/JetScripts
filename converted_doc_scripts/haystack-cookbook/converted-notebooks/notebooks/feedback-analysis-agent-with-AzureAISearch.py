@@ -6,9 +6,9 @@ SemanticSearch
 )
 from haystack import Pipeline
 from haystack.components.converters import JSONConverter
-from haystack.components.embedders import AzureOllamaFunctionCallingAdapterDocumentEmbedder
-from haystack.components.embedders import AzureOllamaFunctionCallingAdapterTextEmbedder
-from haystack.components.generators.chat import AzureOllamaFunctionCallingAdapterChatGenerator
+from haystack.components.embedders import AzureOpenAIDocumentEmbedder
+from haystack.components.embedders import AzureOpenAITextEmbedder
+from haystack.components.generators.chat import AzureOpenAIChatGenerator
 from haystack.components.preprocessors import DocumentCleaner
 from haystack.components.tools import ToolInvoker
 from haystack.components.writers import DocumentWriter
@@ -17,7 +17,7 @@ from haystack.dataclasses import ChatMessage
 from haystack.tools import Tool
 from haystack_integrations.components.retrievers.azure_ai_search import AzureAISearchHybridRetriever
 from haystack_integrations.document_stores.azure_ai_search import AzureAISearchDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 from json import loads, dumps
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.parsers.plaintext import PlaintextParser
@@ -35,11 +35,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 
 """
@@ -114,7 +116,7 @@ We set up an indexing pipeline with `AzureAISearchDocumentStore` by following th
 1. Configure semantic search for the index
 2. Initialize the document store with custom metadata fields and semantic search configuration
 3. Create an indexing pipeline that:
-   - Generates embeddings for the documents using `AzureOllamaFunctionCallingAdapterDocumentEmbedder`
+   - Generates embeddings for the documents using `AzureOpenAIDocumentEmbedder`
    - Writes the documents and their embeddings to the search index
 
 The semantic configuration allows for more intelligent searching beyond simple keyword matching. Note, the metadata fields need to be declared while creating the index as the API does not allow modifying them after index creation.
@@ -137,7 +139,7 @@ document_store = AzureAISearchDocumentStore(index_name="customer-reviews-analysi
     embedding_dimension=1536, metadata_fields = {"month": int, "year": int, "rating": int, "store_location": str}, semantic_search=semantic_search)
 
 indexing_pipeline = Pipeline()
-indexing_pipeline.add_component(instance=AzureOllamaFunctionCallingAdapterDocumentEmbedder(), name="document_embedder")
+indexing_pipeline.add_component(instance=AzureOpenAIDocumentEmbedder(), name="document_embedder")
 indexing_pipeline.add_component(instance=DocumentWriter(document_store=document_store), name="doc_writer")
 indexing_pipeline.connect("document_embedder", "doc_writer")
 
@@ -148,7 +150,7 @@ indexing_pipeline.run({"document_embedder": {"documents": cleaned_documents["doc
 
 Here we set up the query pipeline that will retrieve relevant reviews based on user queries. The pipeline consists of:
 
-1. A text embedder (`AzureOllamaFunctionCallingAdapterTextEmbedder`) that converts user queries into embeddings.
+1. A text embedder (`AzureOpenAITextEmbedder`) that converts user queries into embeddings.
 2. A hybrid retriever (`AzureAISearchHybridRetriever`) that uses vector and semantic search to retrieve the most relevant reviews.
 """
 logger.info("## Creating the Query Pipeline")
@@ -156,7 +158,7 @@ logger.info("## Creating the Query Pipeline")
 
 
 query_pipeline = Pipeline()
-query_pipeline.add_component("text_embedder", AzureOllamaFunctionCallingAdapterTextEmbedder())
+query_pipeline.add_component("text_embedder", AzureOpenAITextEmbedder())
 query_pipeline.add_component("retriever", AzureAISearchHybridRetriever(document_store=document_store, query_type="semantic", semantic_configuration_name="my-semantic-config", top_k=10))
 query_pipeline.connect("text_embedder.embedding", "retriever.query_embedding")
 
@@ -375,7 +377,7 @@ summarization_tool = Tool(
 """
 ## Creating an Interactive Feedback Review Agent
 
-We now have the tools to build an interactive agent for customer feedback analysis. The agent dynamically selects the appropriate tool based on user queries, gathers insights based on tool response. The agent then uses the `AzureOllamaFunctionCallingAdapterChatGenerator` to combine the query, retrieved reviews, and tool responses into a comprehensive review analysis.
+We now have the tools to build an interactive agent for customer feedback analysis. The agent dynamically selects the appropriate tool based on user queries, gathers insights based on tool response. The agent then uses the `AzureOpenAIChatGenerator` to combine the query, retrieved reviews, and tool responses into a comprehensive review analysis.
 """
 logger.info("## Creating an Interactive Feedback Review Agent")
 
@@ -383,7 +385,7 @@ logger.info("## Creating an Interactive Feedback Review Agent")
 def create_review_agent():
     """Creates an interactive review analysis agent"""
 
-    chat_generator = AzureOllamaFunctionCallingAdapterChatGenerator(
+    chat_generator = AzureOpenAIChatGenerator(
         tools=[sentiment_tool, summarization_tool]
     )
 

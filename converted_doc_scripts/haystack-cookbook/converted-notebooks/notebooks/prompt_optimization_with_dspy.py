@@ -7,10 +7,10 @@ from haystack import Pipeline
 from haystack.components.builders import PromptBuilder
 from haystack.components.builders import PromptBuilder, AnswerBuilder
 from haystack.components.evaluators import SASEvaluator
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators import OpenAIGenerator
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.document_stores.in_memory import InMemoryDocumentStore
-from jet.logger import CustomLogger
+from jet.logger import logger
 from rich import print
 import dspy
 import os
@@ -20,11 +20,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Prompt Optimization with DSPy
@@ -55,7 +57,7 @@ logger.info("# Prompt Optimization with DSPy")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ## Load data
@@ -91,7 +93,7 @@ logger.info("## Initial Haystack pipeline")
 
 
 retriever = InMemoryBM25Retriever(document_store, top_k=3)
-generator = OllamaFunctionCallingAdapterGenerator(model="llama3.2")
+generator = OpenAIGenerator(model="llama3.2")
 
 template = """
 Given the following information, answer the question.
@@ -154,7 +156,7 @@ logger.info("## DSPy")
 
 
 
-lm = dspy.OllamaFunctionCalling(model='llama3.2')
+lm = dspy.Ollama(model='llama3.2')
 dspy.settings.configure(lm=lm)
 
 """
@@ -338,7 +340,7 @@ Reasoning: Let's think step by step in order to
 new_prompt_builder = PromptBuilder(template=template)
 
 new_retriever = InMemoryBM25Retriever(document_store, top_k=3)
-new_generator = OllamaFunctionCallingAdapterGenerator(model="llama3.2")
+new_generator = OpenAIGenerator(model="llama3.2")
 
 answer_builder = AnswerBuilder(pattern="Answer: (.*)")
 

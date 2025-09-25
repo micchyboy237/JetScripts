@@ -9,7 +9,7 @@ from haystack.components.fetchers import LinkContentFetcher
 from haystack.components.generators import HuggingFaceLocalGenerator
 from haystack.components.preprocessors import DocumentCleaner
 from haystack.components.routers import DocumentJoiner
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import List, Optional
 import ast
 import os
@@ -21,11 +21,13 @@ import torch
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🧪🦍 Needle in a Jungle - Information Extraction via LLMs
@@ -38,9 +40,9 @@ In this experiment, we will use Large Language Models to perform Information Ext
 
 🎯 Goal: create an application that, given a text (or URL) and a specific structure provided by the user, extracts information from the source.
 
-The "**function calling**" capabilities of OllamaFunctionCalling models unlock this task: the user can describe a structure, by defining a fake function with all its typed and specific parameters. The LLM will prepare the data in this specific form and send it back to the user.
+The "**function calling**" capabilities of Ollama models unlock this task: the user can describe a structure, by defining a fake function with all its typed and specific parameters. The LLM will prepare the data in this specific form and send it back to the user.
 
-A nice example of using OllamaFunctionCalling Function Calling for information extraction is this [gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c).
+A nice example of using Ollama Function Calling for information extraction is this [gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c).
 
 **What is changing now is that open models such as Gorilla are emerging, with function calling capabilities...**
 
@@ -64,7 +66,7 @@ We use the `HuggingFaceLocalGenerator`, which allows to locally load a model hos
 We also specify some quantization options to run the model with the limited resources offered by Colab. [An article about the HuggingFaceLocalGenerator on Haystack](https://haystack.deepset.ai/blog/guide-to-using-zephyr-with-haystack2).
 
 A few notes:
-- Although the model would be availaible in a free deployed version, with an OllamaFunctionCalling-compatible API, I decided not to use this option, as I found the server rather unstable.
+- Although the model would be availaible in a free deployed version, with an Ollama-compatible API, I decided not to use this option, as I found the server rather unstable.
 - To load the model on Colab, I sharded it myself and published it on Hugging Face. To understand why you need a sharded version, you can read [this excellent article by Maarten Grootendorst](https://www.maartengrootendorst.com/blog/quantization/#2-sharding).
 """
 logger.info("## Load and try the model")
@@ -362,11 +364,11 @@ extract(function=function, url="https://www.theverge.com/2023/11/22/23967223/sam
 ## 📚 References
 *Related to the experiment*
 - [Haystack LLM framework](https://haystack.deepset.ai/)
-- [Using OllamaFunctionCalling Function Calling for Information Extraction: gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c)
+- [Using Ollama Function Calling for Information Extraction: gist by Kyle McDonald](https://gist.github.com/kylemcdonald/dbac21de2d7855633689f5526225154c)
 - Gorilla OpenFunctions: [release post](https://gorilla.cs.berkeley.edu/blogs/4_open_functions.html) and [GitHub repository](https://github.com/ShishirPatil/gorilla/tree/main/openfunctions)
 
 *Other interesting resources on the topic*
-- [Instructor project: structured extraction in Python, powered by OllamaFunctionCalling's function calling api](https://jxnl.github.io/instructor/)
+- [Instructor project: structured extraction in Python, powered by Ollama's function calling api](https://jxnl.github.io/instructor/)
 - [NexusRaven-V2: Surpassing GPT-4 for Zero-shot Function Calling](https://nexusflow.ai/blogs/ravenv2)
 """
 logger.info("## ⚠️ Caveats and 🔮 future directions")

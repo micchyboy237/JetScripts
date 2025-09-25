@@ -12,7 +12,7 @@ from haystack.dataclasses import ChatMessage
 from haystack.dataclasses import Document
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.utils import ComponentDevice
-from jet.logger import CustomLogger
+from jet.logger import logger
 from pprint import pprint
 import os
 import random
@@ -25,11 +25,13 @@ import wikipedia
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 
 """
@@ -191,7 +193,7 @@ We can improve the RAG Pipeline in several ways, including better preprocessing 
 To use Llama 3 models in Haystack, you also have **other options**:
 - [LlamaCppGenerator](https://docs.haystack.deepset.ai/docs/llamacppgenerator) and [OllamaGenerator](https://docs.haystack.deepset.ai/docs/ollamagenerator): using the GGUF quantized format, these solutions are ideal to run LLMs on standard machines (even without GPUs).
 - [HuggingFaceAPIChatGenerator](https://docs.haystack.deepset.ai/docs/huggingfaceapichatgenerator), which allows you to query a the Hugging Face API, a local TGI container or a (paid) HF Inference Endpoint. TGI is a toolkit for efficiently deploying and serving LLMs in production.
-- [vLLM via OllamaFunctionCallingAdapterChatGenerator](https://haystack.deepset.ai/integrations/vllm): high-throughput and memory-efficient inference and serving engine for LLMs.
+- [vLLM via OpenAIChatGenerator](https://haystack.deepset.ai/integrations/vllm): high-throughput and memory-efficient inference and serving engine for LLMs.
 
 (*Notebook by [Stefano Fiorucci](https://github.com/anakin87)*)
 """

@@ -2,11 +2,11 @@ from haystack import Document
 from haystack import Pipeline, Document
 from haystack import Pipeline, component
 from haystack.components.builders import PromptBuilder
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators import OpenAIGenerator
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.document_stores.types import DuplicatePolicy
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import Dict, List
 import json
 import os
@@ -16,11 +16,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Extract Metadata Filters from a Query
@@ -53,19 +55,19 @@ logger.info("# Extract Metadata Filters from a Query")
 # !pip install sentence-transformers
 
 """
-# Enter your `OPENAI_API_KEY`. Get your OllamaFunctionCalling API key [here](https://platform.openai.com/api-keys):
+# Enter your `OPENAI_API_KEY`. Get your Ollama API key [here](https://platform.ollama.com/api-keys):
 """
-# logger.info("Enter your `OPENAI_API_KEY`. Get your OllamaFunctionCalling API key [here](https://platform.openai.com/api-keys):")
+# logger.info("Enter your `OPENAI_API_KEY`. Get your Ollama API key [here](https://platform.ollama.com/api-keys):")
 
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#     os.environ["OPENAI_API_KEY"] = getpass("Enter OllamaFunctionCalling API key:")
+#     os.environ["OPENAI_API_KEY"] = getpass("Enter Ollama API key:")
 
 """
 ## Implement `QueryMetadataExtractor`
 
-Create a [custom component](https://docs.haystack.deepset.ai/docs/custom-components), `QueryMetadataExtractor`, which takes `query` and `metadata_fields` as inputs and outputs `filters`. This component encapsulates a generative pipeline, made up of [`PromptBuilder`](https://docs.haystack.deepset.ai/docs/promptbuilder) and [`OllamaFunctionCallingAdapterGenerator`](https://docs.haystack.deepset.ai/docs/openaigenerator). The pipeline instructs the LLM to extract keywords, phrases, or entities from a given query which can then be used as metadata filters. In the prompt, we include instructions to ensure the output format is in JSON and provide `metadata_fields` along with the `query` to ensure the correct entities are extracted from the query.
+Create a [custom component](https://docs.haystack.deepset.ai/docs/custom-components), `QueryMetadataExtractor`, which takes `query` and `metadata_fields` as inputs and outputs `filters`. This component encapsulates a generative pipeline, made up of [`PromptBuilder`](https://docs.haystack.deepset.ai/docs/promptbuilder) and [`OpenAIGenerator`](https://docs.haystack.deepset.ai/docs/openaigenerator). The pipeline instructs the LLM to extract keywords, phrases, or entities from a given query which can then be used as metadata filters. In the prompt, we include instructions to ensure the output format is in JSON and provide `metadata_fields` along with the `query` to ensure the correct entities are extracted from the query.
 
 Once the pipeline is initialized in the `init` method of the component, we post-process the LLM output in the `run` method. This step ensures the extracted metadata is correctly formatted to be used as a metadata filter.
 """
@@ -100,7 +102,7 @@ class QueryMetadataExtractor:
         """
         self.pipeline = Pipeline()
         self.pipeline.add_component(name="builder", instance=PromptBuilder(prompt))
-        self.pipeline.add_component(name="llm", instance=OllamaFunctionCallingAdapterGenerator(model="llama3.2"))
+        self.pipeline.add_component(name="llm", instance=OpenAIGenerator(model="llama3.2"))
         self.pipeline.connect("builder", "llm")
 
     @component.output_types(filters=Dict[str, str])

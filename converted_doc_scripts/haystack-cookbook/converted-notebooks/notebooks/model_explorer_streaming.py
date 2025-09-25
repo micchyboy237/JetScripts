@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from google.colab import userdata
 from haystack.components.builders.prompt_builder import PromptBuilder
 from haystack.components.generators import HuggingFaceAPIGenerator
-from haystack.components.generators import OllamaFunctionCallingAdapterGenerator
+from haystack.components.generators import OpenAIGenerator
 from haystack.utils import Secret
 from haystack_integrations.components.generators.cohere import CohereGenerator
-from jet.logger import CustomLogger
+from jet.logger import logger
 import ipywidgets as widgets
 import os
 import shutil
@@ -14,11 +14,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ## Streaming model explorer for Haystack
@@ -35,13 +37,13 @@ This is a very basic demo where you can only compare a few models that support s
 
 ### Models
 
-Haystack's [OllamaFunctionCallingAdapterGenerator](https://docs.haystack.deepset.ai/docs/openaigenerator) and [CohereGenerator](https://docs.haystack.deepset.ai/docs/coheregenerator) support streaming out of the box.
+Haystack's [OpenAIGenerator](https://docs.haystack.deepset.ai/docs/openaigenerator) and [CohereGenerator](https://docs.haystack.deepset.ai/docs/coheregenerator) support streaming out of the box.
 
 The other models use the [HuggingFaceAPIGenerator](https://docs.haystack.deepset.ai/docs/huggingfaceapigenerator).
 
 ### Prerequisites
 
-- You need [HuggingFace](https://huggingface.co/docs/hub/security-tokens), [Cohere](https://docs.cohere.com/docs/connector-authentication), and [OllamaFunctionCalling](https://help.openai.com/en/articles/4936850-where-do-i-find-my-api-key) API keys. Save them as secrets in your Colab. Click on the key icon in the left menu or [see detailed instructions here](https://medium.com/@parthdasawant/how-to-use-secrets-in-google-colab-450c38e3ec75).
+- You need [HuggingFace](https://huggingface.co/docs/hub/security-tokens), [Cohere](https://docs.cohere.com/docs/connector-authentication), and [Ollama](https://help.ollama.com/en/articles/4936850-where-do-i-find-my-api-key) API keys. Save them as secrets in your Colab. Click on the key icon in the left menu or [see detailed instructions here](https://medium.com/@parthdasawant/how-to-use-secrets-in-google-colab-450c38e3ec75).
 - To use Mistral-7B-v0.1, you should also accept Mistral conditions here: https://huggingface.co/mistralai/Mistral-7B-v0.1
 """
 logger.info("## Streaming model explorer for Haystack")
@@ -54,7 +56,7 @@ In order for `userdata.get` to work, these keys need to be saved as secrets in y
 logger.info("In order for `userdata.get` to work, these keys need to be saved as secrets in your Colab. Click on the key icon in the left menu or [see detailed instructions here](https://medium.com/@parthdasawant/how-to-use-secrets-in-google-colab-450c38e3ec75).")
 
 
-# open_ai_generator = OllamaFunctionCallingAdapterGenerator(api_key=Secret.from_token(userdata.get('OPENAI_API_KEY')))
+# open_ai_generator = OpenAIGenerator(api_key=Secret.from_token(userdata.get('OPENAI_API_KEY')))
 
 cohere_generator = CohereGenerator(api_key=Secret.from_token(userdata.get('COHERE_API_KEY')))
 

@@ -5,12 +5,9 @@ from pathlib import Path
 from typing import Coroutine, List, Literal, Optional, TypedDict
 import codecs
 import json
-import shutil
 
-from jet.code.python_code_extractor import remove_comments
 from jet.code.rst_code_extractor import rst_to_code_blocks
 from jet.logger import logger
-from jet.utils.file import search_files
 from jet.utils.file_utils.search import find_files
 
 REPLACE_OLLAMA_MAP = {
@@ -89,7 +86,7 @@ def replace_code_line(line: str):
 
 
 def replace_async_calls(line: str):
-    if not "await" in line and not "async for" in line:
+    if "await" not in line and "async for" not in line:
         return line
     updated_line = line
     for old_line, new_line in REPLACE_ASYNC_MAP.items():
@@ -732,15 +729,15 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/deepeval",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
     ]
     include_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners/lessons/",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners/lessons/",
     ]
     exclude_files = [
         "_*.py",

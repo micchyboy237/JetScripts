@@ -3,8 +3,8 @@ from haystack import Document
 from haystack import Document, Pipeline
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.generators.chat import HuggingFaceAPIChatGenerator
-from haystack.components.generators.chat import HuggingFaceAPIChatGenerator, OllamaFunctionCallingAdapterChatGenerator
-from haystack.components.generators.chat.openai import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import HuggingFaceAPIChatGenerator, OpenAIChatGenerator
+from haystack.components.generators.chat.ollama import OpenAIChatGenerator
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.components.routers import LLMMessagesRouter
 from haystack.components.routers.llm_messages_router import LLMMessagesRouter
@@ -12,7 +12,7 @@ from haystack.dataclasses import ChatMessage
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack_integrations.components.generators.nvidia import NvidiaChatGenerator
 from haystack_integrations.components.generators.ollama import OllamaChatGenerator
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -20,11 +20,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # AI Guardrails: Content Moderation and Safety with Open Language Models
@@ -416,11 +418,11 @@ logger.debug(router.run(messages))
 
 Now that we've covered various models and customization options, let's integrate content moderation into a RAG Pipeline, simulating a real-world application.
 
-For this example, you will need an OllamaFunctionCalling API key.
+For this example, you will need an Ollama API key.
 """
 logger.info("## RAG Pipeline with user input moderation")
 
-# os.environ["OPENAI_API_KEY"] = getpass("🔑 Enter your OllamaFunctionCalling API key: ")
+# os.environ["OPENAI_API_KEY"] = getpass("🔑 Enter your Ollama API key: ")
 
 """
 First, we'll write some documents about the Seven Wonders of the Ancient World into an [InMemoryDocumentStore](https://docs.haystack.deepset.ai/docs/inmemorydocumentstore) instance.
@@ -467,7 +469,7 @@ router = LLMMessagesRouter(
         output_patterns=["unsafe", "safe"],
     )
 
-llm = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+llm = OpenAIChatGenerator(model="llama3.2")
 
 rag_pipeline = Pipeline()
 rag_pipeline.add_component("retriever", retriever)
@@ -531,7 +533,7 @@ system_prompt = """Classify the given message into one of the following labels:
 Respond with the label only, no other text.
 """
 
-chat_generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2", log_dir=f"{LOG_DIR}/chats")
+chat_generator = OpenAIChatGenerator(model="llama3.2")
 
 
 router = LLMMessagesRouter(

@@ -2,7 +2,7 @@ from haystack import Pipeline
 from haystack.document_stores import WeaviateDocumentStore
 from haystack.nodes import EmbeddingRetriever, MarkdownConverter, PreProcessor
 from haystack.nodes import PromptNode, PromptTemplate, AnswerParser
-from jet.logger import CustomLogger
+from jet.logger import logger
 from readmedocs_fetcher_haystack import ReadmeDocsFetcher
 from weaviate.embedded import EmbeddedOptions
 import os
@@ -13,11 +13,13 @@ import weaviate
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 # !pip install farm-haystack[weaviate,inference,file-conversion,preprocessing]
 
@@ -54,7 +56,7 @@ answer_with_references_prompt = PromptTemplate(prompt = "You will be provided so
 
 # from getpass import getpass
 
-# api_key = getpass("Enter OllamaFunctionCalling API key:")
+# api_key = getpass("Enter Ollama API key:")
 
 prompt_node = PromptNode(model_name_or_path="gpt-4", api_key=api_key, default_prompt_template=answer_with_references_prompt, max_length=500)
 

@@ -2,10 +2,10 @@ from apify_haystack import ApifyDatasetFromActorCall
 from haystack import Document
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.preprocessors import DocumentCleaner
 from haystack.dataclasses import ChatMessage
-from jet.logger import CustomLogger
+from jet.logger import logger
 import os
 import shutil
 
@@ -13,11 +13,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Search and browse the web with Apify and Haystack
@@ -27,10 +29,10 @@ Want to give any of your LLM applications the power to search and browse the web
 This cookbook also demonstrates how to leverage the RAG Web Browser Actor with Haystack to create powerful web-aware applications. We'll explore multiple use cases showing how easy it is to:
 
 1. [Search interesting topics](#search-interesting-topics)
-2. [Analyze the results with OllamaFunctionCallingAdapterGenerator](#analyze-the-results-with-openaigenerator)
+2. [Analyze the results with OpenAIGenerator](#analyze-the-results-with-openaigenerator)
 3. [Use the Haystack Pipeline for web search and analysis](#use-the-haystack-pipeline-for-web-search-and-analysis)
    
-**We'll start by using the RAG Web Browser Actor to perform web searches and then use the OllamaFunctionCallingAdapterGenerator to analyze and summarize the web content**
+**We'll start by using the RAG Web Browser Actor to perform web searches and then use the OpenAIGenerator to analyze and summarize the web content**
 
 ## Install dependencies
 """
@@ -43,7 +45,7 @@ logger.info("# Search and browse the web with Apify and Haystack")
 
 You need to have an Apify account and obtain [APIFY_API_TOKEN](https://docs.apify.com/platform/integrations/api).
 
-# You also need an OllamaFunctionCalling account and [OPENAI_API_KEY](https://platform.openai.com/docs/quickstart)
+# You also need an Ollama account and [OPENAI_API_KEY](https://platform.ollama.com/docs/quickstart)
 """
 logger.info("## Set up the API keys")
 
@@ -145,14 +147,14 @@ for doc in documents:
     logger.debug("---")
 
 """
-## Analyze the results with OllamaFunctionCallingAdapterChatGenerator
+## Analyze the results with OpenAIChatGenerator
 
-Use the OllamaFunctionCallingAdapterChatGenerator to analyze and summarize the web content.
+Use the OpenAIChatGenerator to analyze and summarize the web content.
 """
-logger.info("## Analyze the results with OllamaFunctionCallingAdapterChatGenerator")
+logger.info("## Analyze the results with OpenAIChatGenerator")
 
 
-generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2")
+generator = OpenAIChatGenerator(model="llama3.2")
 
 for doc in documents:
     result = generator.run(messages=[ChatMessage.from_user(doc.content)])
@@ -219,7 +221,7 @@ def create_pipeline(query: str) -> Pipeline:
 
     prompt_builder = ChatPromptBuilder(template=[ChatMessage.from_user(prompt_template)], required_variables="*")
 
-    generator = OllamaFunctionCallingAdapterChatGenerator(model="llama3.2")
+    generator = OpenAIChatGenerator(model="llama3.2")
 
     pipe = Pipeline()
     pipe.add_component("loader", document_loader)

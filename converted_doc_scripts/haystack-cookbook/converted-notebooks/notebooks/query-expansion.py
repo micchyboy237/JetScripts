@@ -1,6 +1,6 @@
 from haystack import Pipeline, component
 from haystack.components.builders import ChatPromptBuilder
-from haystack.components.generators.chat import OllamaFunctionCallingAdapterChatGenerator
+from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.preprocessors import DocumentCleaner, DocumentSplitter
 from haystack.components.retrievers import InMemoryBM25Retriever
 from haystack.components.writers import DocumentWriter
@@ -8,7 +8,7 @@ from haystack.dataclasses import ChatMessage, Document
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.document_stores.types import DuplicatePolicy
 from haystack_experimental.components.query.query_expander import QueryExpander
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import List, Optional
 import json
 import os
@@ -19,11 +19,13 @@ import wikipedia
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-LOG_DIR = f"{OUTPUT_DIR}/logs"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-log_file = os.path.join(LOG_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
-logger.orange(f"Logs: {log_file}")
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Advanced RAG: Query Expansion
@@ -55,7 +57,7 @@ logger.info("# Advanced RAG: Query Expansion")
 # from getpass import getpass
 
 # if "OPENAI_API_KEY" not in os.environ:
-#   os.environ['OPENAI_API_KEY'] = getpass("Your OllamaFunctionCalling API Key: ")
+#   os.environ['OPENAI_API_KEY'] = getpass("Your Ollama API Key: ")
 
 """
 ## The Process of Query Expansion
@@ -188,7 +190,7 @@ Summary Answer:
 )
 retriever = InMemoryBM25Retriever(document_store=doc_store)
 chat_prompt_builder = ChatPromptBuilder(template=[chat_message], required_variables="*")
-llm = OllamaFunctionCallingAdapterChatGenerator()
+llm = OpenAIChatGenerator()
 
 keyword_rag_pipeline = Pipeline()
 keyword_rag_pipeline.add_component("keyword_retriever", retriever)
@@ -219,7 +221,7 @@ Summary Answer:
 query_expander = QueryExpander()
 retriever = MultiQueryInMemoryBM25Retriever(InMemoryBM25Retriever(document_store=doc_store))
 chat_prompt_builder = ChatPromptBuilder(template=[chat_message], required_variables="*")
-llm = OllamaFunctionCallingAdapterChatGenerator()
+llm = OpenAIChatGenerator()
 
 query_expanded_rag_pipeline = Pipeline()
 query_expanded_rag_pipeline.add_component("expander", query_expander)
