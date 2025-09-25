@@ -31,7 +31,7 @@ logger.info("# 🛠️🦙 Build with Llama Stack and Haystack Agent")
 
 # %%bash
 
-pip install llama-stack-haystack
+# pip install llama-stack-haystack
 
 """
 ## Setup

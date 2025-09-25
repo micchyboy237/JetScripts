@@ -5,7 +5,6 @@ import threading
 import time
 import traceback
 from collections.abc import Iterable
-from datetime import datetime
 from jet.llm.models import OLLAMA_MODEL_CONTEXTS
 from jet._token.token_utils import get_model_max_tokens, token_counter
 from jet.transformers.formatters import format_json
@@ -79,47 +78,27 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     Generates a formatted log entry with metadata, prompt, and response.
     """
     global chunks
-
     local_chunks = chunks.copy()
-
-    response_info = {}
-    if local_chunks:  # Check if local_chunks is not empty
-        response_info = local_chunks.pop()
-        if "context" in response_info:
-            response_info.pop("context")
-    else:
-        # Fallback to response data if available
-        response_dict = make_serializable(flow.response.data)
-        if isinstance(response_dict, dict) and "response" in response_dict:
-            response_info = {"response": response_dict["response"]}
-        elif isinstance(response_dict, dict) and "content" in response_dict:
-            response_info = {"content": response_dict["content"]}
-        logger.warning(
-            "No chunks available for log entry; using fallback response info")
 
     request_dict = make_serializable(flow.request.data)
     request_content: dict = request_dict["content"].copy()
+    response_dict: OllamaChatResponse = make_serializable(flow.response.data)
 
     timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime())
     url = f"{flow.request.scheme}://{flow.request.host}{flow.request.path}"
-    # Header values
     content_length = next(
-        (field[1] for field in request_dict["headers"]
-         ["fields"] if field[0].lower() == "content-length"),
+        (field[1] for field in request_dict["headers"]["fields"] if field[0].lower() == "content-length"),
         None
     )
     log_filename = next(
-        (field[1] for field in request_dict["headers"]
-         ["fields"] if field[0].lower() == "log-filename"),
+        (field[1] for field in request_dict["headers"]["fields"] if field[0].lower() == "log-filename"),
         None
     )
 
-    # Get last user prompt
     prompt_log = flow.request.data.content.decode('utf-8')
     prompt_log_dict = json.loads(prompt_log)
     model = prompt_log_dict['model']
-    messages = prompt_log_dict.get(
-        'messages', prompt_log_dict.get('prompt', None))
+    messages = prompt_log_dict.get('messages', prompt_log_dict.get('prompt', None))
     tools = request_content.get("tools")
     system = request_content.get("system")
 
@@ -127,73 +106,50 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     has_tools = bool(tools)
 
     system = system or next(
-        (field[1] for field in request_dict["headers"]
-         ["fields"] if field[0].lower() == "system"),
+        (field[1] for field in request_dict["headers"]["fields"] if field[0].lower() == "system"),
         None
     )
 
-    # Apply update_system_roles if messages is a list
     if is_chat:
-        # Convert messages to list of tuples for update_system_roles
-        messages_tuples = [(msg.get('role', ''), msg.get('content', ''))
-                           for msg in messages]
+        messages_tuples = [(msg.get('role', ''), msg.get('content', '')) for msg in messages]
         updated_messages_tuples = update_system_roles(messages_tuples)
-        # Convert back to list of dictionaries
-        messages = [{'role': role, 'content': content}
-                    for role, content in updated_messages_tuples]
+        messages = [{'role': role, 'content': content} for role, content in updated_messages_tuples]
 
-    # Chat history
     if is_chat:
-        prompts = [
-            message for message in messages
-            if message.get('role', '').lower() != "system"
-        ]
-
-    system_msg = (
-        f"### System\n\n"
-        f"{system}\n"
-    ).strip()
-    chat_msgs = []
-    if is_chat:
-        if system:
-            chat_msgs.append(system_msg)
-
-        for item_idx, item in enumerate(prompts):
-            prompt_msg = (
-                f"### {item.get('role', '')}\n\n"
-                f"{item.get('content')}"
-            ).strip()
+        prompts = [message for message in messages if message.get('role', '').lower() != "system"]
+        system_msg = (f"### System\n\n{system}\n").strip() if system else ""
+        chat_msgs = [system_msg] if system else []
+        for item in prompts:
+            prompt_msg = (f"### {item.get('role', '')}\n\n{item.get('content')}").strip()
             chat_msgs.append(prompt_msg)
         prompt_log = "\n\n".join(chat_msgs)
-        prompt = messages[-1]['content']
+        prompt = messages[-1]['content'] if messages else ""
     else:
         prompt_log = messages
         prompt = messages
 
-    # Get last assistant response
-    final_response_content = "".join(
-        [chunk.get("content", "") for chunk in local_chunks])
-    final_response_tool_calls = "".join(
-        [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in local_chunks])
-    final_response_tool_calls = final_response_tool_calls.strip('"')
-    if final_response_tool_calls:
-        final_response_content += f"\n{final_response_tool_calls}".strip()
-    if response_info.get("response"):
-        final_response_content = response_info.get("response")
-    if response_info.get("content"):
-        final_response_content = response_info.get("content")
+    # Extract response content
+    if request_content.get("stream", request_dict.get("stream", False)):
+        final_response_content = "".join([chunk.get("content", "") for chunk in local_chunks])
+        final_response_tool_calls = "".join(
+            [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in local_chunks])
+        final_response_tool_calls = final_response_tool_calls.strip('"')
+        if final_response_tool_calls:
+            final_response_content += f"\n{final_response_tool_calls}".strip()
+    else:
+        final_response_content = response_dict.get("response", "") if "/generate" in flow.request.path else \
+                                 response_dict.get("message", {}).get("content", "")
+        if not final_response_content and isinstance(response_dict, dict):
+            final_response_content = response_dict.get("content", "") or json.dumps(response_dict, indent=1)
 
     response = final_response_content
-
     final_dict_prompt = {
         **prompt_log_dict,
-        'messages': messages if is_chat else None,  # Update with modified messages
+        'messages': messages if is_chat else None,
         'prompt': prompt if not is_chat else None,
     }
-    final_dict_response = {
-        "response": response,
-    }
-    # Move 'messages', 'tools' 'response' to the end
+    final_dict_response = {"response": response}
+
     if final_dict_prompt.get("messages"):
         final_dict_prompt['messages'] = final_dict_prompt.pop('messages')
     if final_dict_prompt.get("prompt"):
@@ -204,49 +160,34 @@ def generate_log_entry(flow: http.HTTPFlow) -> str:
     if response:
         response = extract_block_content(response)
         response = parse_json(response)
-        if isinstance(response, str):
-            response_type = "markdown"
-        else:
-            response_type = "json"
-            response = format_json(response)
-        response = f"```{response_type}\n{response}\n```"
+        response_type = "json" if isinstance(response, (dict, list)) else "markdown"
+        response = f"```{response_type}\n{response if isinstance(response, str) else format_json(response)}\n```"
 
     response_str = f"## Response\n\n{response}\n\n" if response else ""
     if has_tools:
-        formatted_tools = ""
-        for idx, tool in enumerate(tools, 1):
-            tool_name = tool.get("function", {}).get(
-                "name") if isinstance(tool, dict) else str(tool)
-            formatted_tools += f"{idx}. {tool_name}\n"
+        formatted_tools = "".join(f"{idx}. {tool.get('function', {}).get('name', str(tool))}\n"
+                                 for idx, tool in enumerate(tools, 1))
         tools_str = f"## Tools\n\n```text\n{formatted_tools.strip()}\n```\n\n"
     else:
         tools_str = ""
-    prompt_log_str = (
-        f"## Prompts\n\n{prompt_log}\n\n" if is_chat else f"## Prompt\n\n{prompt}\n\n")
+    prompt_log_str = f"## Prompts\n\n{prompt_log}\n\n" if is_chat else f"## Prompt\n\n{prompt}\n\n"
 
     prompt_token_count = next(
-        (field[1] for field in request_dict["headers"]
-            ["fields"] if field[0].lower() == "tokens"),
+        (field[1] for field in request_dict["headers"]["fields"] if field[0].lower() == "tokens"),
         None
-    )
-    if not prompt_token_count:
-        prompt_token_count = token_counter(messages, request_content.get(
-            "model", request_dict.get("model", None)))
+    ) or token_counter(messages, request_content.get("model", request_dict.get("model", None)))
     prompt_token_count = int(prompt_token_count)
-    response_token_count = token_counter(
-        final_response_content, request_content.get("model", request_dict.get("model", None)))
-    tools_token_count = token_counter(tools, request_content.get(
-        "tools", request_dict.get("tools", None)))
+    response_token_count = token_counter(final_response_content, request_content.get("model", request_dict.get("model", None)))
+    tools_token_count = token_counter(tools, request_content.get("tools", request_dict.get("tools", None)))
     total_tokens = prompt_token_count + tools_token_count + response_token_count
-
     model_max_length = OLLAMA_MODEL_CONTEXTS[model]
 
     log_entry = (
         f"## Request Info\n\n"
         f"- **Log Filename**: {log_filename}\n"
-        f"- **Is Chat:**: {"True" if is_chat else "False"}\n"
-        f"- **Has Tools:**: {"True" if has_tools else "False"}\n"
-        f"- **Stream**: {request_content.get("stream", request_dict.get("stream", False))}\n"
+        f"- **Is Chat:**: {'True' if is_chat else 'False'}\n"
+        f"- **Has Tools:**: {'True' if has_tools else 'False'}\n"
+        f"- **Stream**: {request_content.get('stream', request_dict.get('stream', False))}\n"
         f"- **Timestamp**: {timestamp}\n"
         f"- **Flow ID**: {flow.id}\n"
         f"- **URL**: {url}\n"
@@ -429,9 +370,9 @@ def request(flow: http.HTTPFlow):
                 input_texts, request_content.get("model"))
 
         logger.debug(f"EMBEDDING REQUEST: {flow.request.path}")
-        logger.log(f"  Model: ", request_content.get("model"), colors=["GRAY", "TEAL"])
-        logger.log(f"  Tokens: ", token_count, colors=["GRAY", "TEAL"])
-        logger.log(f"  Max Tokens: ", get_model_max_tokens(request_content.get("model")), colors=["GRAY", "TEAL"])
+        logger.log("  Model: ", request_content.get("model"), colors=["GRAY", "TEAL"])
+        logger.log("  Tokens: ", token_count, colors=["GRAY", "TEAL"])
+        logger.log("  Max Tokens: ", get_model_max_tokens(request_content.get("model")), colors=["GRAY", "TEAL"])
 
         logger.newline()
         logger.log("REQUEST KEYS:")
@@ -653,38 +594,54 @@ def response(flow: http.HTTPFlow):
         logger.error(
             f"Response Error: {error_type} - Status Code: {flow.response.status_code} - Reason: {reason}")
         logger.debug(f"Error Response Content: {flow.response.text}")
-
-        chunks = []  # Clean up chunks to avoid memory issues
+        chunks = []
         if flow.id in start_times:
-            del start_times[flow.id]  # Clean up start_times
+            del start_times[flow.id]
         return
 
     if stop_event.is_set():
         logger.warning("Response - Cancelled stream")
-    elif any(path in flow.request.path for path in ["/chat", "/generate"]):
-        logger.log("\n")
-        # Get response info
-        response_info = {}
-        if local_chunks:  # Check if local_chunks is not empty
-            response_info = local_chunks.pop()
-            if "context" in response_info:
-                response_info.pop("context")
-        else:
-            logger.warning("No chunks available for response processing")
-            # Fallback to response data if available
-            response_dict = make_serializable(flow.response.data)
-            if isinstance(response_dict, dict) and "response" in response_dict:
-                response_info = {"response": response_dict["response"]}
-            elif isinstance(response_dict, dict) and "content" in response_dict:
-                response_info = {"content": response_dict["content"]}
+        chunks = []
+        return
 
-        response_dict: OllamaChatResponse = make_serializable(
-            flow.response.data)
+    if any(path in flow.request.path for path in ["/chat", "/generate"]):
+        logger.log("\n")
+        request_dict = make_serializable(flow.request.data)
+        request_content: dict = request_dict["content"].copy()
+        response_dict: OllamaChatResponse = make_serializable(flow.response.data)
+
+        # Extract response content
+        final_response_content = ""
+        if request_content.get("stream", request_dict.get("stream", False)):
+            # Streaming case: Aggregate chunks
+            final_response_content = "".join(
+                [chunk.get("content", "") for chunk in local_chunks])
+            final_response_tool_calls = "".join(
+                [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in local_chunks])
+            final_response_tool_calls = final_response_tool_calls.strip('"')
+            if final_response_tool_calls:
+                final_response_content += f"\n{final_response_tool_calls}".strip()
+        else:
+            # Non-streaming case: Extract directly from response_dict
+            if "/generate" in flow.request.path:
+                final_response_content = response_dict.get("response", "")
+            elif "/chat" in flow.request.path:
+                final_response_content = response_dict.get("message", {}).get("content", "")
+
+        # Fallback if no content is found
+        if not final_response_content and isinstance(response_dict, dict):
+            final_response_content = response_dict.get("content", "") or json.dumps(response_dict, indent=1)
+
+        # Extract response_info for durations
+        response_info = local_chunks[-1] if local_chunks else response_dict
+        if isinstance(response_info, dict) and "context" in response_info:
+            response_info = response_info.copy()
+            response_info.pop("context", None)
 
         if isinstance(response_dict, dict):
-            logger.log(f"RESPONSE KEYS:", list(
+            logger.log("RESPONSE KEYS:", list(
                 response_dict.keys()), colors=["GRAY", "INFO"])
-        logger.log(f"RESPONSE INFO:", format_json(
+        logger.log("RESPONSE INFO:", format_json(
             response_info), colors=["GRAY", "DEBUG"])
 
         durations = get_response_durations(response_info)
@@ -694,44 +651,21 @@ def response(flow: http.HTTPFlow):
                        colors=["WHITE", "DEBUG"])
         if total_duration is not None:
             logger.log("Total Duration:", total_duration, colors=[
-                "DEBUG",
-                "SUCCESS",
-            ])
-
-        final_response_content = "".join(
-            [chunk.get("content", "") for chunk in local_chunks])
-        final_response_tool_calls = "".join(
-            [json.dumps(chunk.get("tool_calls", ""), indent=1) for chunk in local_chunks])
-        final_response_tool_calls = final_response_tool_calls.strip('"')
-        if final_response_tool_calls:
-            final_response_content += f"\n{final_response_tool_calls}".strip()
-        if response_info.get("response"):
-            final_response_content = response_info.get("response")
-        if response_info.get("content"):
-            final_response_content = response_info.get("content")
-        if not final_response_content:
-            final_response_content = json.dumps(
-                response_dict.get('content', {}), indent=1)
+                "DEBUG", "SUCCESS"])
 
         logger.newline()
         logger.log("Response Text Length:", len(final_response_content),
                    colors=["DEBUG", "SUCCESS"])
 
-        request_dict = make_serializable(flow.request.data)
-        request_content: dict = request_dict["content"].copy()
-        content_messages_key = "messages" if "/chat" in flow.request.path else "prompt"
         if not request_content.get("stream", request_dict.get("stream", False)):
-            logger.log("Response:",
-                       final_response_content, colors=["DEBUG", "SUCCESS"])
+            logger.log("Response:", final_response_content, colors=["DEBUG", "SUCCESS"])
 
-        if final_response_tool_calls:
-            logger.log("Tools:",
-                       final_response_tool_calls, colors=["DEBUG", "SUCCESS"])
+        if "/chat" in flow.request.path and response_dict.get("message", {}).get("tool_calls"):
+            logger.log("Tools:", json.dumps(response_dict["message"].get("tool_calls", ""), indent=1),
+                       colors=["DEBUG", "SUCCESS"])
 
         model_max_length = OLLAMA_MODEL_CONTEXTS[request_content['model']]
-
-        messages = request_content.get(
-            'messages', request_content.get('prompt', None))
+        messages = request_content.get('messages', request_content.get('prompt', None))
         tools = request_content.get("tools")
         prompt_token_count = next(
             (field[1] for field in request_dict["headers"]
@@ -747,40 +681,32 @@ def response(flow: http.HTTPFlow):
         tools_token_count = token_counter(tools, request_content.get(
             "tools", request_dict.get("tools", None)))
         total_tokens = prompt_token_count + tools_token_count + response_token_count
+
         logger.newline()
         logger.log("Path:", flow.request.path, colors=["GRAY", "INFO"])
         logger.log("Stream:", request_content.get("stream", request_dict.get("stream", False)), colors=[
                    "GRAY", "INFO"])
         logger.log("Prompt Tokens:", prompt_token_count, colors=[
                    "WHITE", "DEBUG"])
-        logger.log(
-            "Response Tokens:",
-            response_token_count,
-            colors=["WHITE", "DEBUG"],
-        )
-        logger.log(
-            "Total Tokens:", f"{total_tokens} / {model_max_length}", colors=["DEBUG", "SUCCESS"])
+        logger.log("Response Tokens:", response_token_count, colors=["WHITE", "DEBUG"])
+        logger.log("Total Tokens:", f"{total_tokens} / {model_max_length}", colors=["DEBUG", "SUCCESS"])
 
-        end_time = time.time()  # Record the end time
-
+        end_time = time.time()
         if flow.id in start_times:
             time_taken = end_time - start_times[flow.id]
             logger.log("Request Time Took:", f"{time_taken:.2f} seconds", colors=[
-                "SUCCESS",
-                "BRIGHT_SUCCESS",
-            ])
-            del start_times[flow.id]  # Clean up to avoid memory issues
+                "SUCCESS", "BRIGHT_SUCCESS"])
+            del start_times[flow.id]
         else:
             logger.warning(f"Start time for {flow.id} not found!")
 
         logger.newline()
 
         if not stop_event.is_set() and log_file_path:
-            # Log prompt and response with metadata to the log file
             log_entry = generate_log_entry(flow)
             save_file(log_entry, log_file_path)
 
-    chunks = []  # Clean up to avoid memory issues
+    chunks = []
 
 
 def responseheaders(flow):
