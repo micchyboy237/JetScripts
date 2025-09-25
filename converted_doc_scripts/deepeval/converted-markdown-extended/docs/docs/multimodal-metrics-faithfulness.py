@@ -1,0 +1,116 @@
+from deepeval import evaluate
+from deepeval.metrics import MultimodalFaithfulnessMetric
+from deepeval.test_case import MLLMTestCase, MLLMImage
+from jet.logger import logger
+import Equation from "@site/src/components/Equation";
+import MetricTagsDisplayer from "@site/src/components/MetricTagsDisplayer";
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+---
+id: multimodal-metrics-faithfulness
+title: Multimodal Faithfulness
+sidebar_label: Multimodal Faithfulness
+---
+
+<head>
+  <link
+    rel="canonical"
+    href="https://deepeval.com/docs/multimodal-metrics-faithfulness"
+  />
+</head>
+
+
+<MetricTagsDisplayer singleTurn={true} custom={true} multimodal={true} />
+
+The multimodal faithfulness metric measures the quality of your RAG pipeline's generator by evaluating whether the `actual_output` factually aligns with the contents of your `retrieval_context`. `deepeval`'s multimodal faithfulness metric is a self-explaining MLLM-Eval, meaning it outputs a reason for its metric score.
+
+:::info
+The **Multimodal Faithfulness** is the multimodal adaptation of DeepEval's [faithfulness metric](/docs/metrics-faithfulness). It accepts images in addition to text for the `input`, `actual_output`, and `retrieval_context`.
+:::
+
+## Required Arguments
+
+To use the `MultimodalFaithfulnessMetric`, you'll have to provide the following arguments when creating a [`MLLMTestCase`](/docs/evaluation-test-cases#mllm-test-case):
+
+- `input`
+- `actual_output`
+- `retrieval_context`
+
+The `input` and `actual_output` are required to create an `MLLMTestCase` (and hence required by all metrics) even though they might not be used for metric calculation. Read the [How Is It Calculated](#how-is-it-calculated) section below to learn more.
+
+## Usage
+"""
+logger.info("## Required Arguments")
+
+
+metric = MultimodalFaithfulnessMetric()
+m_test_case = MLLMTestCase(
+    input=["Tell me about some landmarks in France"],
+    actual_output=[
+        "France is home to iconic landmarks like the Eiffel Tower in Paris.",
+        MLLMImage(...)
+    ],
+    retrieval_context=[
+        MLLMImage(...),
+        "The Eiffel Tower is a wrought-iron lattice tower built in the late 19th century.",
+        MLLMImage(...)
+    ]
+)
+
+
+evaluate(test_case=[m_test_case], metrics=[metric])
+
+"""
+There are **SEVEN** optional parameters when creating a `MultimodalFaithfulnessMetric`:
+
+- [Optional] `threshold`: a float representing the minimum passing threshold, defaulted to 0.5.
+- [Optional] `model`: a string specifying which of Ollama's Multimodal GPT models to use, **OR** any custom MLLM model of type `DeepEvalBaseMLLM`. Defaulted to 'gpt-4.1'.
+- [Optional] `include_reason`: a boolean which when set to `True`, will include a reason for its evaluation score. Defaulted to `True`.
+- [Optional] `strict_mode`: a boolean which when set to `True`, enforces a binary metric score: 1 for perfection, 0 otherwise. It also overrides the current threshold and sets it to 1. Defaulted to `False`.
+- [Optional] `async_mode`: a boolean which when set to `True`, enables [concurrent execution within the `measure()` method.](/docs/metrics-introduction#measuring-metrics-in-async) Defaulted to `True`.
+- [Optional] `verbose_mode`: a boolean which when set to `True`, prints the intermediate steps used to calculate said metric to the console, as outlined in the [How Is It Calculated](#how-is-it-calculated) section. Defaulted to `False`.
+- [Optional] `truths_extraction_limit`: an int which when set, determines the maximum number of factual truths to extract from the `retrieval_context`. The truths extracted will used to determine the degree of factual alignment, and will be ordered by importance, decided by your evaluation `model`. Defaulted to `None`.
+
+### As a standalone
+
+You can also run the `MultimodalFaithfulnessMetric` on a single test case as a standalone, one-off execution.
+"""
+logger.info("### As a standalone")
+
+...
+
+metric.measure(m_test_case)
+logger.debug(metric.score, metric.reason)
+
+"""
+## How Is It Calculated?
+
+The `MultimodalFaithfulnessMetric` score is calculated according to the following equation:
+
+<Equation formula="\text{Multimodal Faithfulness} = \frac{\text{Number of Truthful Claims}}{\text{Total Number of Claims}}" />
+
+The `MultimodalFaithfulnessMetric` first uses an MLLM to extract all claims made in the `actual_output` (including from images), before using the same MLLM to classify whether each claim is truthful based on the facts presented in the `retrieval_context`.
+
+**A claim is considered truthful if it does not contradict any facts** presented in the `retrieval_context`.
+
+:::note
+Sometimes, you may want to only consider the most important factual truths in the `retrieval_context`. If this is the case, you can choose to set the `truths_extraction_limit` parameter to limit the maximum number of truths to consider during evaluation.
+:::
+"""
+logger.info("## How Is It Calculated?")
+
+logger.info("\n\n[DONE]", bright=True)

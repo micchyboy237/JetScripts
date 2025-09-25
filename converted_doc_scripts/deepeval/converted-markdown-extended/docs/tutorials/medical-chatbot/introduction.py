@@ -1,0 +1,127 @@
+from jet.logger import logger
+import LinkCards from "@site/src/components/LinkCards";
+import TechStackCards from "@site/src/components/TechStackCards";
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+---
+id: introduction
+title: Introduction to Chatbot Evaluation
+sidebar_label: Introduction
+---
+
+
+Learn how to build and evaluate a reliable **LLM-powered medical chatbot** using **Ollama**, **LangChain**, **Qdrant**, and **DeepEval**—from development to deployment.
+
+<TechStackCards
+  techStack={[
+    {
+      name: "DeepEval",
+      logo: "https://pbs.twimg.com/profile_images/1888060560161574912/qbw1-_2g.png",
+    },
+    {
+      name: "Ollama",
+      logo: "https://registry.npmmirror.com/@lobehub/icons-static-png/latest/files/light/ollama.png",
+    },
+    {
+      name: "Qdrant",
+      logo: "https://cdn-avatars.huggingface.co/v1/production/uploads/612689acc64ee1aa6818808a/y7jCVdW48MnIZVmsCefSC.png",
+    },
+    {
+      name: "LangChain",
+      logo: "https://logo.svgcdn.com/s/langchain-dark-8x.png",
+    },
+  ]}
+/>
+
+:::note
+If you are working with **multi-turn chatbots**, this tutorial will be helpful to you. We will go through the entire process of building a reliable _multi-turn chatbot_ and how to evaluate it using `deepeval`
+:::
+
+## Get Started
+
+Jump ahead to any of the sections in the tutorial, or keep reading to go with the flow.
+
+<LinkCards
+  tutorials={[
+    {
+      number: 1,
+      title: "Building your chatbot",
+      icon: "Construction",
+      objectives: [
+        "Build with Ollama",
+        "Use Qdrant as knowledge base",
+        "LangChain for orchestration",
+      ],
+      to: "/tutorials/medical-chatbot/development",
+    },
+    {
+      number: 2,
+      title: "Evaluate multi-turn conversations",
+      icon: "FlaskConical",
+      objectives: [
+        "Learn how to use multi-turn test cases",
+        "Select and create multi-turn metrics",
+        "Use datasets to setup LLM evals pipeline",
+        "Identify weaknesses in your medical chatbot",
+      ],
+      to: "/tutorials/medical-chatbot/evaluation",
+    },
+    {
+      number: 3,
+      title: "Improving prompts, models, etc.",
+      icon: "ArrowBigUpDash",
+      objectives: [
+        "Use metric scores to improve existing system prompt",
+        "Experiment with different models with new prompt",
+        "Run regression tests, and figure out whether you've iterated in the right direction",
+      ],
+      to: "/tutorials/medical-chatbot/improvement",
+    },
+    {
+      number: 4,
+      title: "Setup evals in prod",
+      icon: "Rocket",
+      objectives: [
+        "Trace your first LLM completion call and group them as a conversation",
+        "Decide which metrics you wish to bring to prod, and define them in code",
+        "Get alerted for any high risk completions in prod in an ad-hoc fashion",
+      ],
+      to: "/tutorials/medical-chatbot/evals-in-prod",
+    },
+  ]}
+/>
+
+## What Will You Be Evaluating?
+
+In this tutorial, you'll learn to evaluate and test a **medical chatbot** using DeepEval on its ability to:
+
+- Diagnose symptoms, and
+- Book appointments
+
+It's a **multi-turn conversational agent**—meaning it can remember previous messages, handle follow-up questions, and take action based on the full conversation. Here's a nice looking UI to give you a better idea of what your chatbot could look like in the real world:
+
+![Medical Chatbot Overview](https://deepeval-docs.s3.us-east-1.amazonaws.com/tutorials:medical-chatbot:chatbot-overview.png)
+
+In the next section, we'll begin by going through the chatbot implementation, built with Ollama, Qdrant, and LangChain.
+
+:::tip
+You can also skip straight to the [Evaluation section](/tutorials/medical-chatbot/tutorial-medical-chatbot-evaluation) instead.
+:::
+"""
+logger.info("## Get Started")
+
+logger.info("\n\n[DONE]", bright=True)

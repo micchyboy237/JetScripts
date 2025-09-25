@@ -1,0 +1,104 @@
+from deepeval import evaluate
+from deepeval.metrics import MCPTaskCompletionMetric
+from deepeval.test_case import Turn, ConversationalTestCase, MCPServer
+from jet.logger import logger
+import Equation from "@site/src/components/Equation";
+import MetricTagsDisplayer from "@site/src/components/MetricTagsDisplayer";
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+---
+id: metrics-mcp-task-completion
+title: MCP Task Completion
+sidebar_label: MCP Task Completion
+---
+
+<head>
+  <link
+    rel="canonical"
+    href="https://deepeval.com/docs/metrics-mcp-task-completion"
+  />
+</head>
+
+
+<MetricTagsDisplayer multiTurn={true} chatbot={true} referenceless={true} />
+
+The MCP task completion metric is a conversational metric that uses LLM-as-a-judge to evaluate how effectively an **MCP based LLM agent accomplishes a task**. Task Completion is a self-explaining LLM-Eval, meaning it outputs a reason for its metric score.
+
+## Required Arguments
+
+To use the `MCPTaskCompletionMetric`, you'll have to provide the following arguments when creating a [`ConversationalTestCase`](https://www.deepeval.com/docs/evaluation-multiturn-test-cases):
+
+- `turns`
+- `mcp_servers`
+
+You will also need to provide `mcp_tools_called`, `mcp_resources_called` and `mcp_prompts_called` inside the turns whenever there is an MCP interaction in your agent's workflow. You can learn more about [creating MCP test cases here](https://www.deepeval.com/docs/evaluation-mcp).
+
+You can learn more about how it is calculated [here](#how-is-it-calculated).
+
+## Usage
+
+The `MCPTaskCompletionMetric()` can be used for [end-to-end](/docs/evaluation-end-to-end-llm-evals) multi-turn evaluations of MCP based agents.
+"""
+logger.info("## Required Arguments")
+
+
+convo_test_case = ConversationalTestCase(
+    turns=[Turn(role="...", content="..."), Turn(role="...", content="...")],
+    mcp_servers=[MCPServer(...)]
+)
+metric = MCPTaskCompletionMetric(threshold=0.5)
+
+
+evaluate(test_cases=[convo_test_case], metrics=[metric])
+
+"""
+There are **SIX** optional parameters when creating a `MCPTaskCompletionMetric`:
+
+- [Optional] `threshold`: a float representing the minimum passing threshold, defaulted to 0.5.
+- [Optional] `model`: a string specifying which of Ollama's GPT models to use, **OR** [any custom LLM model](/docs/metrics-introduction#using-a-custom-llm) of type `DeepEvalBaseLLM`. Defaulted to 'gpt-4o'.
+- [Optional] `include_reason`: a boolean which when set to `True`, will include a reason for its evaluation score. Defaulted to `True`.
+- [Optional] `strict_mode`: a boolean which when set to `True`, enforces a binary metric score: 1 for perfection, 0 otherwise. It also overrides the current threshold and sets it to 1. Defaulted to `False`.
+- [Optional] `async_mode`: a boolean which when set to `True`, enables [concurrent execution within the `measure()` method.](/docs/metrics-introduction#measuring-a-metric-in-async) Defaulted to `True`.
+- [Optional] `verbose_mode`: a boolean which when set to `True`, prints the intermediate steps used to calculate said metric to the console, as outlined in the [How Is It Calculated](#how-is-it-calculated) section. Defaulted to `False`.
+
+### As a standalone
+
+You can also run the `MCPTaskCompletionMetric` on a single test case as a standalone, one-off execution.
+"""
+logger.info("### As a standalone")
+
+...
+
+metric.measure(convo_test_case)
+logger.debug(metric.score, metric.reason)
+
+"""
+:::caution
+This is great for debugging or if you wish to build your own evaluation pipeline, but you will **NOT** get the benefits (testing reports, Confident AI platform) and all the optimizations (speed, caching, computation) the `evaluate()` function or `deepeval test run` offers.
+:::
+
+## How Is It Calculated
+
+The `MCPTaskCompletionMetric` score is calculated according to the following equation:
+
+<Equation formula="\text{MCP Task Completeness} = \frac{\text{Number of Tasks Satisfied in Each Interaction}}{\text{Total Number of Interactions}}" />
+
+The `MCPTaskCompletionMetric` converts turns into individual unit interactions and iterates over each interaction to evaluate whether the agent finished the task given by user for that interaction using an LLM.
+"""
+logger.info("## How Is It Calculated")
+
+logger.info("\n\n[DONE]", bright=True)

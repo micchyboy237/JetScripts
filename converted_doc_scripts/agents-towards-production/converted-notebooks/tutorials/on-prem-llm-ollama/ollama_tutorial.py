@@ -1,7 +1,7 @@
-from jet.llm.mlx.base_langchain import ChatMLX
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain_community.chat_models import ChatOllama
-from openai import MLX
+from ollama import Ollama
 import os
 import requests
 import shutil
@@ -10,9 +10,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--on-prem-llm-ollama--ollama-tutorial)
@@ -23,7 +27,7 @@ Welcome! This tutorial shows how to **run state‑of‑the‑art language models
 
 **Replace External LLM APIs with Ollama!**
 
-Learn how to replace cloud-based LLMs (MLX, Anthropic, etc.) with local Ollama models in your AI agents. This tutorial covers everything from basic API calls to complete agent migration.
+Learn how to replace cloud-based LLMs (Ollama, Ollama, etc.) with local Ollama models in your AI agents. This tutorial covers everything from basic API calls to complete agent migration.
 
 Ollama is perfect for getting started with local LLMs, though advanced users may later explore alternatives like vLLM, TensorRT-LLM, or custom inference servers for maximum performance.
 
@@ -157,17 +161,17 @@ curl -X POST http://localhost:11434/api/chat  -H "Content-Type: application/json
 
 # 4. Python API
 
-### Replace MLX API Calls
+### Replace Ollama API Calls
 
-**Before (MLX):**
+**Before (Ollama):**
 """
 logger.info("# On‑Prem Large Language Models with **Ollama**")
 
 
 prompt = "Hello!"
-client = MLX(api_key="your-key")
+client = Ollama()
 response = client.chat.completions.create(
-    model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2",
     messages=[{"role": "user", "content": prompt}]
 )
 logger.debug(response.choices[0].message.content)
@@ -189,12 +193,12 @@ logger.debug(data["message"]["content"])
 """
 ### Replace LangChain Models
 
-**Before (MLX):**
+**Before (Ollama):**
 """
 logger.info("### Replace LangChain Models")
 
 
-llm = ChatMLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats")
+llm = ChatOllama(model="llama3.2")
 response = llm.invoke("Hello!")
 
 """
@@ -202,7 +206,7 @@ response = llm.invoke("Hello!")
 """
 
 
-llm = ChatOllama(model="qwen3-1.7b-4bit")
+llm = ChatOllama(model="llama3.2")
 response = llm.invoke("Hello!")
 logger.debug(response.content)
 

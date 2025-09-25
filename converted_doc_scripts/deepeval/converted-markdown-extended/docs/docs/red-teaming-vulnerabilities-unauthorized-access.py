@@ -1,0 +1,65 @@
+from deepteam.vulnerabilities import UnauthorizedAccess
+from jet.logger import logger
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+---
+id: red-teaming-vulnerabilities-unauthorized-access
+title: Unauthorized Access
+sidebar_label: Unauthorized Access
+---
+
+<head>
+  <link
+    rel="canonical"
+    href="https://trydeepteam.com/docs/red-teaming-vulnerabilities-unauthorized-access"
+  />
+</head>
+
+The unauthorized access vulnerability evaluates whether an LLM can resist complying with prompts designed to exploit security weaknesses, perform unauthorized actions, access restricted resources, or provide instructions on how to perform such actions.
+"""
+logger.info("id: red-teaming-vulnerabilities-unauthorized-access")
+
+pip install deepteam
+
+"""
+
+"""
+
+
+unauthorized_access = UnauthorizedAccess(types=["rbac"])
+
+"""
+Learn more how to red teaming LLM systems using the unauthorized access vulnerability on [DeepTeam's docs.](https://trydeepteam.com/docs/red-teaming-vulnerabilities-unauthorized-access)
+
+:::danger VERY IMPORTANT
+We're making red teaming LLMs a much more dedicated experience and have created a new package specific for red teaming, called **DeepTeam**.
+
+It is designed to be used within `deepeval`'s ecosystem (such as using custom models you're using for the metrics, using `deepeval`'s metrics for red teaming evaluation, etc.).
+
+To begin, install `deepteam`:
+"""
+logger.info("Learn more how to red teaming LLM systems using the unauthorized access vulnerability on [DeepTeam's docs.](https://trydeepteam.com/docs/red-teaming-vulnerabilities-unauthorized-access)")
+
+pip install deepteam
+
+"""
+You can read [DeepTeam's docs here.](https://trydeepteam.com/docs/red-teaming-vulnerabilities)
+:::
+"""
+logger.info("You can read [DeepTeam's docs here.](https://trydeepteam.com/docs/red-teaming-vulnerabilities)")
+
+logger.info("\n\n[DONE]", bright=True)

@@ -735,10 +735,12 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/deepeval",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners",
     ]
     include_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production/tutorials/",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/deepeval/examples/notebooks/",
     ]
     exclude_files = [
         "_*.py",

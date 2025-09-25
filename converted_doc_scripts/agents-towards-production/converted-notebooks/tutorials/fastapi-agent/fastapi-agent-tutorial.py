@@ -1,10 +1,9 @@
-import asyncio
 from fastapi import Depends, HTTPException, Header
 from fastapi import FastAPI
 from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse
 from fastapi.testclient import TestClient
-from jet.logger import CustomLogger
+from jet.logger import logger
 from pydantic import BaseModel
 from scripts.fastapi_agent import app
 from sse_starlette.sse import EventSourceResponse
@@ -19,9 +18,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--fastapi-agent--fastapi-agent-tutorial)
@@ -87,9 +90,7 @@ class SimpleAgent:
         yield prefix
 
         for token in response.split():
-            async def run_async_code_69016fd9():
-                await asyncio.sleep(0.1)  # Simulate thinking time
-            asyncio.run(run_async_code_69016fd9())
+            await asyncio.sleep(0.1)  # Simulate thinking time
             yield token + " "
 
 agent = SimpleAgent()
@@ -225,9 +226,7 @@ class SimpleAgent:
         yield prefix
 
         for token in response.split():
-            async def run_async_code_69016fd9():
-                await asyncio.sleep(0.1)  # Simulate thinking time
-            asyncio.run(run_async_code_69016fd9())
+            await asyncio.sleep(0.1)  # Simulate thinking time
             yield token + " "
 
 class QueryRequest(BaseModel):

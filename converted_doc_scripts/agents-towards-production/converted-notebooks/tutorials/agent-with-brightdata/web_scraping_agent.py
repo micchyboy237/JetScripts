@@ -1,8 +1,7 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from dotenv import load_dotenv
-from jet.llm.mlx.base_langchain import ChatMLX
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langgraph.prebuilt import create_react_agent
 from mcp_use.adapters.langchain_adapter import LangChainAdapter
 from mcp_use.client import MCPClient
@@ -15,9 +14,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-with-brightdata--web-scraping-agent)
@@ -103,11 +106,11 @@ logger.info("# Building an Intelligent Web Scraping Agent with LangGraph and Bri
 """
 ### Package Installation
 
-This cell installs the core dependencies required for the web scraping agent. The packages include LangGraph for agent orchestration, MLX client for language model interaction, MCP client for Bright Data integration, and supporting utilities.
+This cell installs the core dependencies required for the web scraping agent. The packages include LangGraph for agent orchestration, Ollama client for language model interaction, MCP client for Bright Data integration, and supporting utilities.
 """
 logger.info("### Package Installation")
 
-# %pip install langgraph langchain-openai mcp-use python-dotenv asyncio --quiet
+# %pip install langgraph langchain-ollama mcp-use python-dotenv asyncio --quiet
 # %load_ext autoreload
 # %autoreload 2
 
@@ -194,10 +197,7 @@ async def setup_bright_data_tools():
     client = MCPClient.from_dict(bright_data_config)
     adapter = LangChainAdapter()
 
-    async def run_async_code_07538bd5():
-        tools = await adapter.create_tools(client)
-        return tools
-    tools = asyncio.run(run_async_code_07538bd5())
+    tools = await adapter.create_tools(client)
     logger.success(format_json(tools))
 
     logger.debug(f"✅ Connected to Bright Data MCP server")
@@ -205,10 +205,7 @@ async def setup_bright_data_tools():
 
     return tools
 
-async def run_async_code_b11ebf37():
-    tools = await setup_bright_data_tools()
-    return tools
-tools = asyncio.run(run_async_code_b11ebf37())
+tools = await setup_bright_data_tools()
 logger.success(format_json(tools))
 
 """
@@ -242,15 +239,12 @@ async def create_web_scraper_agent():
     Create a ReAct agent configured for intelligent web scraping
     """
 
-    async def run_async_code_ce5495cc():
-        tools = await setup_bright_data_tools()
-        return tools
-    tools = asyncio.run(run_async_code_ce5495cc())
+    tools = await setup_bright_data_tools()
     logger.success(format_json(tools))
 
     current_date = datetime.datetime.now().strftime("%B %d, %Y")
 
-    llm = ChatMLX(
+    llm = ChatOllama(
         openai_api_key=os.getenv("OPENROUTER_API_KEY"),
         openai_api_base="https://openrouter.ai/api/v1",
         model_name="google/gemini-2.5-flash-lite-preview-06-17",  # Fast and capable model for reasoning
@@ -284,10 +278,7 @@ Always use tools for current/live data requests."""
     logger.debug("🤖 ReAct Web Scraper Agent created successfully!")
     return agent
 
-async def run_async_code_aa040f2b():
-    agent = await create_web_scraper_agent()
-    return agent
-agent = asyncio.run(run_async_code_aa040f2b())
+agent = await create_web_scraper_agent()
 logger.success(format_json(agent))
 
 """
@@ -327,23 +318,17 @@ async def test_basic_search():
     logger.debug("Testing Basic Search Functionality...")
     logger.debug("="*50)
 
-    async def run_async_code_075ce0af():
-        search_result = await agent.ainvoke({
-        return search_result
-    search_result = asyncio.run(run_async_code_075ce0af())
+    search_result = await agent.ainvoke({
+            "messages": [("human", "Give me the latest AI news from this week, Include full URLs to source.")],
+        })
     logger.success(format_json(search_result))
-        "messages": [("human", "Give me the latest AI news from this week, Include full URLs to source.")],
-    })
 
     logger.debug("\n🔍 Search Results:")
     logger.debug(search_result["messages"][-1].content)
 
     return search_result
 
-async def run_async_code_5dccae1b():
-    basic_search_result = await test_basic_search()
-    return basic_search_result
-basic_search_result = asyncio.run(run_async_code_5dccae1b())
+basic_search_result = await test_basic_search()
 logger.success(format_json(basic_search_result))
 
 """
@@ -383,23 +368,17 @@ async def test_ecommerce_scraping():
     logger.debug("Testing E-commerce Data Extraction...")
     logger.debug("="*50)
 
-    async def run_async_code_2dd37d01():
-        ecommerce_result = await agent.ainvoke({
-        return ecommerce_result
-    ecommerce_result = asyncio.run(run_async_code_2dd37d01())
+    ecommerce_result = await agent.ainvoke({
+            "messages": [("human", "Find information about the top-rated wireless headphones on Amazon and compare their features and prices")]
+        })
     logger.success(format_json(ecommerce_result))
-        "messages": [("human", "Find information about the top-rated wireless headphones on Amazon and compare their features and prices")]
-    })
 
     logger.debug("\n🛒 E-commerce Analysis:")
     logger.debug(ecommerce_result["messages"][-1].content)
 
     return ecommerce_result
 
-async def run_async_code_e46c75c8():
-    ecommerce_result = await test_ecommerce_scraping()
-    return ecommerce_result
-ecommerce_result = asyncio.run(run_async_code_e46c75c8())
+ecommerce_result = await test_ecommerce_scraping()
 logger.success(format_json(ecommerce_result))
 
 """
@@ -438,22 +417,16 @@ async def test_social_media_simple():
     logger.debug("Testing Reddit Extraction...")
     logger.debug("="*50)
 
-    async def run_async_code_c2a80d46():
-        result = await agent.ainvoke({
-        return result
-    result = asyncio.run(run_async_code_c2a80d46())
+    result = await agent.ainvoke({
+            "messages": [("human", "Search for 'electric vehicles reddit' and then scrape one of the Reddit discussion pages you find. Show me what people are discussing.")]
+        })
     logger.success(format_json(result))
-        "messages": [("human", "Search for 'electric vehicles reddit' and then scrape one of the Reddit discussion pages you find. Show me what people are discussing.")]
-    })
 
     logger.debug("\n📱 Reddit Analysis:")
     logger.debug(result["messages"][-1].content)
     return result
 
-async def run_async_code_73a220af():
-    social_simple = await test_social_media_simple()
-    return social_simple
-social_simple = asyncio.run(run_async_code_73a220af())
+social_simple = await test_social_media_simple()
 logger.success(format_json(social_simple))
 
 """
@@ -501,29 +474,23 @@ async def test_complex_research():
     logger.debug("Testing Complex Multi-Step Research...")
     logger.debug("="*50)
 
-    async def run_async_code_25c967a2():
-        research_result = await agent.ainvoke({
-        return research_result
-    research_result = asyncio.run(run_async_code_25c967a2())
+    research_result = await agent.ainvoke({
+            "messages": [("human", """
+            I need to research the current state of the renewable energy market. Please:
+            1. Find recent news about renewable energy developments
+            2. Look up major renewable energy companies and their stock performance
+            3. Analyze social media sentiment about renewable energy
+            4. Provide a comprehensive market overview with key insights
+            """)]
+        })
     logger.success(format_json(research_result))
-        "messages": [("human", """
-        I need to research the current state of the renewable energy market. Please:
-        1. Find recent news about renewable energy developments
-        2. Look up major renewable energy companies and their stock performance
-        3. Analyze social media sentiment about renewable energy
-        4. Provide a comprehensive market overview with key insights
-        """)]
-    })
 
     logger.debug("\n🔬 Complex Research Results:")
     logger.debug(research_result["messages"][-1].content)
 
     return research_result
 
-async def run_async_code_a9318661():
-    research_result = await test_complex_research()
-    return research_result
-research_result = asyncio.run(run_async_code_a9318661())
+research_result = await test_complex_research()
 logger.success(format_json(research_result))
 
 """
@@ -594,23 +561,17 @@ async def research_assistant(query: str, max_sources: int = 5):
     Limit your research to {max_sources} high-quality sources.
     """
 
-    async def run_async_code_c2a80d46():
-        result = await agent.ainvoke({
-        return result
-    result = asyncio.run(run_async_code_c2a80d46())
+    result = await agent.ainvoke({
+            "messages": [("human", research_prompt)]
+        })
     logger.success(format_json(result))
-        "messages": [("human", research_prompt)]
-    })
 
     logger.debug(f"\n📊 Research Complete!")
     logger.debug(result["messages"][-1].content)
 
     return result
 
-async def run_async_code_f5c199dc():
-    research_result = await research_assistant("Impact of artificial intelligence on job markets in 2025",5)
-    return research_result
-research_result = asyncio.run(run_async_code_f5c199dc())
+research_result = await research_assistant("Impact of artificial intelligence on job markets in 2025",5)
 logger.success(format_json(research_result))
 
 """

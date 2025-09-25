@@ -1,0 +1,205 @@
+from deepeval.test_case import ConversationalTestCase
+from deepeval.test_case import ConversationalTestCase, Turn
+from deepeval.test_case import Turn, ConversationalTestCase
+from jet.logger import logger
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+---
+id: evaluation-multiturn-test-cases
+title: Multi-Turn Test Case
+sidebar_label: Multi-Turn
+---
+
+## Quick Summary
+
+A **multi-turn test case** is a blueprint provided by `deepeval` to unit test a series of LLM interactions. A multi-turn test case in `deepeval` is represented by a `ConversationalTestCase`, and has **SIX** parameters:
+
+- `turns`
+- [Optional] `scenario`
+- [Optional] `expected_outcome`
+- [Optional] `user_description`
+- [Optional] `context`
+- [Optional] `chatbot_role`
+
+:::note
+`deepeval` makes the assumption that a multi-turn use case are mainly conversational chatbots. Agents on the other hand, should be evaluated via [component-level evaluation](/docs/evaluation-component-level-llm-evals) instead, where each component in your agentic workflow is assessed individually.
+:::
+
+Here's an example implementation of a `ConversationalTestCase`:
+"""
+logger.info("## Quick Summary")
+
+
+test_case = ConversationalTestCase(
+    scenario="User chit-chatting randomly with AI.",
+    expected_outcome="AI should respond in friendly manner.",
+    turns=[
+        Turn(role="user", content="How are you doing?"),
+        Turn(role="assistant", content="Why do you care?")
+    ]
+)
+
+"""
+## Multi-Turn LLM Interaction
+
+Different from a [single-turn LLM interaction](/docs/evaluation-test-cases#what-is-an-llm-interaction), a multi-turn LLM interaction encapsulates exchanges between a user and a conversational agent/chatbot, which is represented by a `ConversationalTestCase` in `deepeval`.
+
+![Conversational Test Case](https://deepeval-docs.s3.amazonaws.com/docs:conversational-test-case.png)
+
+The `turns` parameter in a conversational test case is vital to specifying the roles and content of a conversation (in Ollama API format), and allows you to supply any optional `tools_called` and `retrieval_context`. Additional optional parameters such as `scenario` and `expected outcome` is best suited for users converting [`ConversationalGolden`s](/docs/evaluation-datasets#goldens-data-model) to test cases at evaluation time.
+
+## Conversational Test Case
+
+While a [single-turn test case](/docs/evaluation-test-cases) represents an individual LLM system interaction, a `ConversationalTestCase` encapsulates a series of `Turn`s that make up an LLM-based conversation. This is particular useful if you're looking to for example evaluate a conversation between a user and an LLM-based chatbot.
+
+A `ConversationalTestCase` can only be evaluated using **conversational metrics.**
+"""
+logger.info("## Multi-Turn LLM Interaction")
+
+
+turns = [
+    Turn(role="user", content="Why did the chicken cross the road?"),
+    Turn(role="assistant", content="Are you trying to be funny?"),
+]
+
+test_case = ConversationalTestCase(turns=turns)
+
+"""
+:::note
+Similar to how the term 'test case' refers to an `LLMTestCase` if not explicitly specified, the term 'metrics' also refer to non-conversational metrics throughout `deepeval`.
+:::
+
+### Turns
+
+The `turns` parameter is a list of `Turn`s and is basically a list of messages/exchanges in a user-LLM conversation. If you're using [`ConversationalGEval`](/docs/metrics-conversational-g-eval), you might also want to supply different parameteres to a `Turn`. A `Turn` is made up of the following parameters:
+"""
+logger.info("### Turns")
+
+class Turn:
+    role: Literal["user", "assistant"]
+    content: str
+    user_id: Optional[str] = None
+    retrieval_context: Optional[List[str]] = None
+    tools_called: Optional[List[ToolCall]] = None
+
+"""
+:::info
+You should only provide the `retrieval_context` and `tools_called` parameter if the `role` is `"assistant"`.
+:::
+
+The `role` parameter specifies whether a particular turn is by the `"user"` (end user) or `"assistant"` (LLM). This is similar to Ollama's API.
+
+### Scenario
+
+The `scenario` parameter is an **optional** parameter that specifies the circumstances of which a conversation is taking place in.
+"""
+logger.info("### Scenario")
+
+
+test_case = ConversationalTestCase(scenario="Frustrated user asking for a refund.", turns=[Turn(...)])
+
+"""
+### Expected Outcome
+
+The `expected_outcome` parameter is an **optional** parameter that specifies the expected outcome of a given `scenario`.
+"""
+logger.info("### Expected Outcome")
+
+
+test_case = ConversationalTestCase(
+    scenario="Frustrated user asking for a refund.",
+    expected_outcome="AI routes to a real human agent.",
+    turns=[Turn(...)]
+)
+
+"""
+### Chatbot Role
+
+The `chatbot_role` parameter is an **optional** parameter that specifies what role the chatbot is supposed to play. This is currently only required for the `RoleAdherenceMetric`, where it is particularly useful for a role-playing evaluation use case.
+"""
+logger.info("### Chatbot Role")
+
+
+test_case = ConversationalTestCase(chatbot_role="A happy jolly wizard.", turns=[Turn(...)])
+
+"""
+### User Description
+
+The `user_description` parameter is an **optional** parameter that specifies the profile of the user for a given conversation.
+"""
+logger.info("### User Description")
+
+
+test_case = ConversationalTestCase(
+    user_description="John Smith, lives in NYC, has a dog, divorced.",
+    turns=[Turn(...)]
+)
+
+"""
+### Context
+
+The `context` is an **optional** parameter that represents additional data received by your LLM application as supplementary sources of golden truth. You can view it as the ideal segment of your knowledge base relevant as support information to a specific input. Context is **static** and should not be generated dynamically.
+"""
+logger.info("### Context")
+
+
+test_case = ConversationalTestCase(
+    context=["Customers must be over 50 to be eligible for a refund."],
+    turns=[Turn(...)]
+)
+
+"""
+:::info
+A single-turn `LLMTestCase` also contains `context`.
+:::
+
+## Label Test Cases For Confident AI
+
+If you're using Confident AI, these are some additional parameters to help manage your test cases.
+
+### Name
+
+The optional `name` parameter allows you to provide a string identifier to label `LLMTestCase`s and `ConversationalTestCase`s for you to easily search and filter for on Confident AI. This is particularly useful if you're importing test cases from an external datasource.
+"""
+logger.info("## Label Test Cases For Confident AI")
+
+
+test_case = ConversationalTestCase(name="my-external-unique-id", ...)
+
+"""
+### Tags
+
+Alternatively, you can also tag test cases for filtering and searching on Confident AI:
+"""
+logger.info("### Tags")
+
+
+test_case = ConversationalTestCase(tags=["Topic 1", "Topic 3"], ...)
+
+"""
+## Using Test Cases For Evals
+
+You can create test cases for two types of evaluation:
+
+- [End-to-end](/docs/evaluation-end-to-end-llm-evals) - Treats your multi-turn LLM app as a black-box, and evaluates the overall conversation by considering each turn's inputs and outputs.
+- One-Off Standalone - Executes individual metrics on single test cases for debugging or custom evaluation pipelines
+
+Unlike for single-turn test cases, the concept of component-level evaluation does not exist for multi-turn use cases.
+"""
+logger.info("## Using Test Cases For Evals")
+
+logger.info("\n\n[DONE]", bright=True)

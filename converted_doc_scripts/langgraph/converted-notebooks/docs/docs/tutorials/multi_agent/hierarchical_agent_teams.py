@@ -267,8 +267,7 @@ The research team will have a search agent and a web scraping "research_agent" a
 logger.info("## Define Agent Teams")
 
 
-llm = ChatOllama(model="llama3.2")
-
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="react_agent")
 search_agent = create_react_agent(llm, tools=[tavily_tool])
 
 
@@ -285,6 +284,7 @@ def search_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="web_scraper_agent")
 web_scraper_agent = create_react_agent(llm, tools=[scrape_webpages])
 
 
@@ -340,8 +340,7 @@ Note that we are giving file-system access to our agent here, which is not safe 
 """
 logger.info("### Document Writing Team")
 
-llm = ChatOllama(model="llama3.2")
-
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="doc_writer_agent")
 doc_writer_agent = create_react_agent(
     llm,
     tools=[write_document, edit_document, read_document],
@@ -365,6 +364,7 @@ def doc_writing_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="note_taking_agent")
 note_taking_agent = create_react_agent(
     llm,
     tools=[create_outline, read_document],
@@ -388,6 +388,7 @@ def note_taking_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="chart_generating_agent")
 chart_generating_agent = create_react_agent(
     llm, tools=[read_document, python_repl_tool]
 )
@@ -407,6 +408,7 @@ def chart_generating_node(state: State) -> Command[Literal["supervisor"]]:
     )
 
 
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="doc_writing_supervisor_agent")
 doc_writing_supervisor_node = make_supervisor_node(
     llm, ["doc_writer", "note_taker", "chart_generator"]
 )
@@ -453,8 +455,7 @@ We'll create a _third_ graph to orchestrate the previous two, and add some conne
 logger.info("## Add Layers")
 
 
-llm = ChatOllama(model="llama3.2")
-
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="teams_supervisor_agent")
 teams_supervisor_node = make_supervisor_node(
     llm, ["research_team", "writing_team"])
 

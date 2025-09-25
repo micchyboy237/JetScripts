@@ -1,4 +1,3 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from a2a.client import A2ACardResolver
 from a2a.client import A2ACardResolver, A2AClient
@@ -19,7 +18,7 @@ SendStreamingMessageRequest,
 from a2a.utils import new_agent_text_message # For agent executor's response
 from abc import ABC, abstractmethod
 from datetime import datetime
-from jet.logger import CustomLogger
+from jet.logger import logger
 from typing import Dict, Any, Optional
 from typing import Optional
 from uuid import uuid4
@@ -36,9 +35,13 @@ import uuid
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--a2a--a2a-tutorial)
@@ -224,10 +227,7 @@ class NewsInfoAgentExecutor(AgentExecutor):
                     break
 
         try:
-            async def run_async_code_1370d522():
-                news_result = await self.agent.get_latest_news(query_text)
-                return news_result
-            news_result = asyncio.run(run_async_code_1370d522())
+            news_result = await self.agent.get_latest_news(query_text)
             logger.success(format_json(news_result))
             event_queue.enqueue_event(new_agent_text_message(news_result))
             logger.info(f"NewsInfoAgentExecutor successfully sent news: {news_result}")
@@ -307,6 +307,7 @@ logger.debug("News Agent server configuration is ready. ",
       "See comments above on how to create a separate Python script to run it using uvicorn. ",
       f"It should listen on port 9001 as per NEWS_AGENT_BASE_URL ({NEWS_AGENT_BASE_URL}).")
 
+
 """
 ### Step 2.3: Define the `EventsInfoAgent` and its `AgentExecutor`
 
@@ -346,10 +347,7 @@ class EventsInfoAgentExecutor(AgentExecutor):
                     break
 
         try:
-            async def run_async_code_e213b3aa():
-                event_result = await self.agent.get_current_events(query_text)
-                return event_result
-            event_result = asyncio.run(run_async_code_e213b3aa())
+            event_result = await self.agent.get_current_events(query_text)
             logger.success(format_json(event_result))
             event_queue.enqueue_event(new_agent_text_message(event_result))
             logger.info(f"EventsInfoAgentExecutor successfully sent event info: {event_result}")
@@ -437,40 +435,31 @@ logger.info("### Part 3: Client-Side Interaction with Agents")
 
 async def resolve_agent_cards():
     async with httpx.AsyncClient() as http_client:
-        resolver = A2ACardResolver(http_client=http_client)
-
-        logger.debug(f"Attempting to resolve News Agent card from: {NEWS_AGENT_BASE_URL}")
-        try:
-            async def run_async_code_3124b9fb():
+            resolver = A2ACardResolver(http_client=http_client)
+        
+            logger.debug(f"Attempting to resolve News Agent card from: {NEWS_AGENT_BASE_URL}")
+            try:
                 news_card = await resolver.get_public_card(NEWS_AGENT_BASE_URL)
-                return news_card
-            news_card = asyncio.run(run_async_code_3124b9fb())
-            logger.success(format_json(news_card))
-            logger.debug("--- News Agent Card ---")
-            logger.debug(news_card.model_dump_json(indent=2))
-        except Exception as e:
-            logger.debug(f"Could not resolve News Agent card: {e}")
-            logger.debug("Please ensure the News Agent server is running on port 9001.")
-
-        logger.debug("\n---\n")
-
-        logger.debug(f"Attempting to resolve Events Agent card from: {EVENTS_AGENT_BASE_URL}")
-        try:
-            async def run_async_code_fdf68904():
+                logger.debug("--- News Agent Card ---")
+                logger.debug(news_card.model_dump_json(indent=2))
+            except Exception as e:
+                logger.debug(f"Could not resolve News Agent card: {e}")
+                logger.debug("Please ensure the News Agent server is running on port 9001.")
+        
+            logger.debug("\n---\n")
+        
+            logger.debug(f"Attempting to resolve Events Agent card from: {EVENTS_AGENT_BASE_URL}")
+            try:
                 events_card = await resolver.get_public_card(EVENTS_AGENT_BASE_URL)
-                return events_card
-            events_card = asyncio.run(run_async_code_fdf68904())
-            logger.success(format_json(events_card))
-            logger.debug("--- Events Agent Card ---")
-            logger.debug(events_card.model_dump_json(indent=2))
-        except Exception as e:
-            logger.debug(f"Could not resolve Events Agent card: {e}")
-            logger.debug("Please ensure the Events Agent server is running on port 9002.")
-
-
-async def run_async_code_d9b5bf72():
-    logger.debug("Define resolve_agent_cards() function. To execute, call 'await resolve_agent_cards()' in a new cell if your notebook supports it, or 'asyncio.run(resolve_agent_cards())' otherwise.")
-asyncio.run(run_async_code_d9b5bf72())
+                logger.debug("--- Events Agent Card ---")
+                logger.debug(events_card.model_dump_json(indent=2))
+            except Exception as e:
+                logger.debug(f"Could not resolve Events Agent card: {e}")
+                logger.debug("Please ensure the Events Agent server is running on port 9002.")
+        
+        
+    logger.success(format_json(result))
+logger.debug("Define resolve_agent_cards() function. To execute, call 'await resolve_agent_cards()' in a new cell if your notebook supports it, or 'asyncio.run(resolve_agent_cards())' otherwise.")
 logger.debug("IMPORTANT: Make sure your NewsInfoAgent (port 9001) and EventsInfoAgent (port 9002) servers are running before executing this.")
 
 """
@@ -487,30 +476,29 @@ logger.info("#### Step 3.2: Sending Messages with `A2AClient`")
 
 async def send_to_news_agent():
 
-    async def async_func_11():
-        async with httpx.AsyncClient() as http_client:
-            
+    async with httpx.AsyncClient() as http_client:
+        
             a2a_client = A2AClient(http_client=http_client)
-            
-            
-            
+        
+        
+        
             task_id = f"client-task-{uuid4()}"
-            
+        
             message_parts = [new_text_message_content_part("What's the latest news headline?")]
-            
-            
-            
+        
+        
+        
             logger.debug(f"Sending message to News Agent ({NEWS_AGENT_BASE_URL}) with task ID: {task_id}")
-            
+        
             try:
-            
-            
+        
+        
                 async for response_part in a2a_client.send(
                     task_id=task_id,
                     agent_url=NEWS_AGENT_BASE_URL,
                     message_parts=message_parts
                 ):
-            
+        
                     if response_part:
                         logger.debug("--- News Agent Response ---")
                         logger.debug(response_part.model_dump_json(indent=2))
@@ -519,47 +507,44 @@ async def send_to_news_agent():
             except Exception as e:
                 logger.debug(f"Error sending message to News Agent: {e}")
                 logger.debug("Please ensure the News Agent server is running on port 9001.")
-            
-            
-    asyncio.run(async_func_11())
-async def run_async_code_6cfd443a():
-    logger.debug("Define send_to_news_agent() function. To execute, call 'await send_to_news_agent()' or 'asyncio.run(send_to_news_agent())'.")
-asyncio.run(run_async_code_6cfd443a())
+        
+        
+    logger.success(format_json(result))
+logger.debug("Define send_to_news_agent() function. To execute, call 'await send_to_news_agent()' or 'asyncio.run(send_to_news_agent())'.")
 logger.debug(f"IMPORTANT: Make sure your NewsInfoAgent server is running on {NEWS_AGENT_BASE_URL} before executing this.")
 
 
 async def stream_from_events_agent():
     async with httpx.AsyncClient() as http_client:
-        a2a_client = A2AClient(http_client=http_client)
-
-        task_id = f"client-task-{uuid4()}"
-        message_parts = [new_text_message_content_part("Any updates on ongoing events?")]
-
-        logger.debug(f"Streaming from Events Agent ({EVENTS_AGENT_BASE_URL}) with task ID: {task_id}")
-        try:
-            message_count = 0
-            async for response_part in a2a_client.send(
-                task_id=task_id,
-                agent_url=EVENTS_AGENT_BASE_URL,
-                message_parts=message_parts
-            ):
-
-                if response_part:
-                    message_count += 1
-                    logger.debug(f"--- Events Agent Response Part {message_count} ---")
-                    logger.debug(response_part.model_dump_json(indent=2))
-                else:
-                    logger.debug("Events Agent stream finished (received None signal).")
-            if message_count == 0:
-                 logger.debug("No messages received from Events Agent before stream finished.")
-        except Exception as e:
-            logger.debug(f"Error streaming from Events Agent: {e}")
-            logger.debug("Please ensure the Events Agent server is running on port 9002.")
-
-
-async def run_async_code_f971b2f0():
-    logger.debug("Define stream_from_events_agent() function. To execute, call 'await stream_from_events_agent()' or 'asyncio.run(stream_from_events_agent())'.")
-asyncio.run(run_async_code_f971b2f0())
+            a2a_client = A2AClient(http_client=http_client)
+        
+            task_id = f"client-task-{uuid4()}"
+            message_parts = [new_text_message_content_part("Any updates on ongoing events?")]
+        
+            logger.debug(f"Streaming from Events Agent ({EVENTS_AGENT_BASE_URL}) with task ID: {task_id}")
+            try:
+                message_count = 0
+                async for response_part in a2a_client.send(
+                    task_id=task_id,
+                    agent_url=EVENTS_AGENT_BASE_URL,
+                    message_parts=message_parts
+                ):
+        
+                    if response_part:
+                        message_count += 1
+                        logger.debug(f"--- Events Agent Response Part {message_count} ---")
+                        logger.debug(response_part.model_dump_json(indent=2))
+                    else:
+                        logger.debug("Events Agent stream finished (received None signal).")
+                if message_count == 0:
+                     logger.debug("No messages received from Events Agent before stream finished.")
+            except Exception as e:
+                logger.debug(f"Error streaming from Events Agent: {e}")
+                logger.debug("Please ensure the Events Agent server is running on port 9002.")
+        
+        
+    logger.success(format_json(result))
+logger.debug("Define stream_from_events_agent() function. To execute, call 'await stream_from_events_agent()' or 'asyncio.run(stream_from_events_agent())'.")
 logger.debug(f"IMPORTANT: Make sure your EventsInfoAgent server is running on {EVENTS_AGENT_BASE_URL} before executing this.")
 
 """

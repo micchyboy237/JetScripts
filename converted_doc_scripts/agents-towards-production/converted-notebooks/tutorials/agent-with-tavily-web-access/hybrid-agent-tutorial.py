@@ -1,8 +1,7 @@
 from IPython.display import Markdown
 from dotenv import load_dotenv
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
-from jet.file.utils import save_file
+from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
 from jet.logger import logger
 from langchain.schema import HumanMessage
 from langchain_chroma import Chroma
@@ -94,7 +93,7 @@ logger.info("### Setting Up Your Tavily API Client")
 
 load_dotenv()
 
-# if not os.environ.get("TAVILY_API_KEY"):
+if not os.environ.get("TAVILY_API_KEY"):
 #     os.environ["TAVILY_API_KEY"] = getpass.getpass("TAVILY_API_KEY:\n")
 
 # if not os.environ.get("OPENAI_API_KEY"):
@@ -119,7 +118,7 @@ embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vector_store = Chroma(
     collection_name="crm",  # replace with "my_custom_index" for custom documents option
     embedding_function=embeddings,
-    persist_directory=PERSIST_DIR,
+    persist_directory="supplemental/db",
 )
 
 """
@@ -174,10 +173,9 @@ We'll set up several Ollama foundation models, such as o3-mini and the gpt-4.1 m
 logger.info("We'll set up several Ollama foundation models, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat model.")
 
 
-# o3_mini = ChatOllama(model="llama3.2")
+# o3_mini = ChatOllama(model="llama3.2"))
 
-# gpt_4_1 = ChatOllama(model="llama3.2")
-model_client = ChatOllama(model="qwen3:4b-q4_K_M")
+# gpt_4_1 = ChatOllama(model="llama3.2"))
 
 """
 ## Hybrid Agent
@@ -200,7 +198,7 @@ logger.info("## Hybrid Agent")
 today = datetime.datetime.today().strftime("%A, %B %d, %Y")
 
 hybrid_agent = create_react_agent(
-    model=model_client,
+    model=gpt_4_1,
     tools=[search, crawl, extract, vector_search_tool],
     prompt=ChatPromptTemplate.from_messages(
         [
@@ -314,7 +312,7 @@ for s in hybrid_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        logger.success(message)
+        message.pretty_logger.debug()
 
 """
 Check out the intermediary agent traces above to see how the agent combined the vector search and web search together.
@@ -323,17 +321,8 @@ Let's view the final output.
 """
 logger.info("Check out the intermediary agent traces above to see how the agent combined the vector search and web search together.")
 
-# Markdown(message.content)
-prompt_response_md1 = f"""\
-## Prompt
 
-{inputs["messages"][-1].content}
-
-## Response
-
-{message.content}
-"""
-save_file(prompt_response_md1, f"{OUTPUT_DIR}/agent_chat_1.md")
+Markdown(message.content)
 
 """
 As shown, the final report integrates relevant web insights with our existing CRM data on Google Cloud ML Ops.
@@ -355,24 +344,14 @@ for s in hybrid_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        logger.success(message)
+        message.pretty_logger.debug()
 
 """
 Let's view the final output.
 """
 logger.info("Let's view the final output.")
 
-# Markdown(message.content)
-prompt_response_md1 = f"""\
-## Prompt
-
-{inputs["messages"][-1].content}
-
-## Response
-
-{message.content}
-"""
-save_file(prompt_response_md1, f"{OUTPUT_DIR}/agent_chat_2.md")
+Markdown(message.content)
 
 """
 # Conclusion

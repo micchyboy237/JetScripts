@@ -1,8 +1,8 @@
 from IPython.display import Image, display
 from IPython.display import display, Image
 from dotenv import load_dotenv
-from jet.llm.mlx.base_langchain import ChatMLX
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain.prompts import PromptTemplate
 from langchain.schema import HumanMessage
 from langchain_core.runnables.graph import MermaidDrawMethod
@@ -15,9 +15,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--langgraph-agent--langgraph-tutorial)
@@ -55,12 +59,12 @@ Before diving into the code, let's set up our development environment.
 """
 logger.info("# LangGraph Tutorial: Building a Text Analysis Pipeline")
 
-# !pip install langgraph langchain langchain-openai python-dotenv
+# !pip install langgraph langchain langchain-ollama python-dotenv
 
 """
 ### Setting Up API Keys
 
-We'll need an MLX API key to use their models. If you haven't already, you can get one from [https://platform.openai.com/signup](https://platform.openai.com/signup).
+We'll need an Ollama API key to use their models. If you haven't already, you can get one from [https://platform.ollama.com/signup](https://platform.ollama.com/signup).
 
 Let's load our environment variables:
 """
@@ -74,12 +78,12 @@ load_dotenv()
 """
 ### Testing Our Setup
 
-Let's make sure our environment is working correctly by creating a simple test with the MLX model:
+Let's make sure our environment is working correctly by creating a simple test with the Ollama model:
 """
 logger.info("### Testing Our Setup")
 
 
-llm = ChatMLX(model="qwen3-1.7b-4bit-mini")
+llm = ChatOllama(model="llama3.2")
 
 response = llm.invoke("Hello! Are you working?")
 logger.debug(response.content)
@@ -105,7 +109,7 @@ class State(TypedDict):
     entities: List[str]
     summary: str
 
-llm = ChatMLX(model="qwen3-1.7b-4bit-mini", temperature=0)
+llm = ChatOllama(model="llama3.2")
 
 """
 ### Creating Our Agent's Core Capabilities
@@ -203,7 +207,7 @@ Now that we've built our agent, let's see how it performs with a real-world text
 logger.info("## Testing Our Agent")
 
 sample_text = """
-MLX has announced the GPT-4 model, which is a large multimodal model that exhibits human-level performance on various professional benchmarks. It is developed to improve the alignment and safety of AI systems.
+Ollama has announced the GPT-4 model, which is a large multimodal model that exhibits human-level performance on various professional benchmarks. It is developed to improve the alignment and safety of AI systems.
 Additionally, the model is designed to be more efficient and scalable than its predecessor, GPT-3. The GPT-4 model is expected to be released in the coming months and will be available to the public for research and development purposes.
 """
 
@@ -381,7 +385,7 @@ except:
 logger.info("### 5. Test the Conditional Pipeline")
 
 test_text = """
-MLX released the GPT-4 model with enhanced performance on academic and professional tasks. It's seen as a major breakthrough in alignment and reasoning capabilities.
+Ollama released the GPT-4 model with enhanced performance on academic and professional tasks. It's seen as a major breakthrough in alignment and reasoning capabilities.
 """
 
 result = conditional_app.invoke({"text": test_text})

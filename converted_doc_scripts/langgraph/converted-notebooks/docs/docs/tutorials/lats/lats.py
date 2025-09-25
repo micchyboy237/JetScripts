@@ -6,9 +6,9 @@ from jet.logger import logger
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
-from langchain_core.output_parsers.ollama_tools import (
-JsonOutputToolsParser,
-PydanticToolsParser,
+from langchain_core.output_parsers.openai_tools import (
+    JsonOutputToolsParser,
+    PydanticToolsParser,
 )
 from langchain_core.prompt_values import ChatPromptValue
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder

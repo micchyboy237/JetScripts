@@ -611,7 +611,7 @@ logger.info("#### Retrieve Memories Tool")
 @tool
 def retrieve_memories_tool(
     query: str,
-    memory_type: List[MemoryType],
+    memory_type: Union[str, List[MemoryType]],
     limit: int = 5,
     config: Optional[RunnableConfig] = None,
 ) -> str:
@@ -623,6 +623,14 @@ def retrieve_memories_tool(
     """
     config = config or RunnableConfig()
     user_id = config.get("user_id", SYSTEM_USER_ID)
+
+    # Convert string memory_type to list of MemoryType if necessary
+    if isinstance(memory_type, str):
+        try:
+            memory_type = [MemoryType(memory_type.lower())]
+        except ValueError:
+            logger.error(f"Invalid memory_type: {memory_type}")
+            return f"Error: Invalid memory_type '{memory_type}'. Must be 'episodic' or 'semantic'."
 
     try:
         stored_memories = retrieve_memories(
@@ -643,6 +651,7 @@ def retrieve_memories_tool(
         return "\n".join(response) if response else "No relevant memories found."
 
     except Exception as e:
+        logger.error(f"Error retrieving memories: {str(e)}")
         return f"Error retrieving memories: {str(e)}"
 
 """
@@ -686,7 +695,7 @@ Configure the LLM from Ollama.
 """
 logger.info("Configure the LLM from Ollama.")
 
-llm = ChatOllama(model="llama3.2").bind_tools(tools)
+llm = ChatOllama(model="llama3.2", agent_name="assistant_agent").bind_tools(tools)
 
 """
 Assemble the ReAct agent combining the LLM, tools, checkpointer, and system prompt!
@@ -847,7 +856,7 @@ The summary becomes part of the conversation history, allowing the agent to refe
 logger.info("## Node 3: Conversation Summarization")
 
 
-summarizer = ChatOllama(model="llama3.2")
+summarizer = ChatOllama(model="llama3.2", agent_name="summarizer_agent")
 
 MESSAGE_SUMMARIZATION_THRESHOLD = 6
 

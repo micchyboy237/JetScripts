@@ -1,7 +1,7 @@
 from IPython.display import HTML
 from dotenv import load_dotenv
-from jet.logger import CustomLogger
-import openai
+from jet.logger import logger
+import ollama
 import os
 import shutil
 import streamlit as st
@@ -11,18 +11,22 @@ import streamlit as st  # Import Streamlit for the UI
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-with-streamlit-ui--building-chatbot-notebook)
 
-# Building a Chatbot AI Agent with MLX and Streamlit
+# Building a Chatbot AI Agent with Ollama and Streamlit
 
 ## Introduction
 
-Have you ever wanted to create your own chatbot like ChatGPT? In this tutorial, we will build a simple AI chatbot from scratch using MLX's API (which provides powerful language models like GPT-3.5) and Streamlit (a Python library for creating web apps).
+Have you ever wanted to create your own chatbot like ChatGPT? In this tutorial, we will build a simple AI chatbot from scratch using Ollama's API (which provides powerful language models like GPT-3.5) and Streamlit (a Python library for creating web apps).
 
 By the end, you'll have a beginner-friendly chatbot that runs in your browser, with a chat interface for conversations and a file uploader for sharing files with the bot. We'll go step-by-step, explaining every part of the code so even absolute beginners can follow along.
 
@@ -31,36 +35,36 @@ By the end, you'll have a beginner-friendly chatbot that runs in your browser, w
 - The interface will resemble a chat window (like messaging apps)
 - An option to upload a file (for example, a text file) that your chatbot could potentially use
 
-The focus of this guide is on using Streamlit to create a clean and simple UI and integrating it with MLX's API to handle the chatbot's intelligence. Let's get started!
+The focus of this guide is on using Streamlit to create a clean and simple UI and integrating it with Ollama's API to handle the chatbot's intelligence. Let's get started!
 
 ## Requirements
 
 Before coding, make sure you have the following:
 
 - Python 3.x installed on your system
-- An MLX API key (required to access MLX's language model). You can get one by creating an account on MLX's website and generating an API key
+- An Ollama API key (required to access Ollama's language model). You can get one by creating an account on Ollama's website and generating an API key
 - Basic knowledge of Python (functions, variables) – we will explain everything, but it helps to understand simple Python syntax
-- Libraries: We'll use the `openai` library to communicate with MLX's API, and `streamlit` to build the web interface
+- Libraries: We'll use the `ollama` library to communicate with Ollama's API, and `streamlit` to build the web interface
 
 ## Installing the Required Libraries
 
 We can install the necessary libraries using pip. Run the following in a terminal/command prompt:
 """
-logger.info("# Building a Chatbot AI Agent with MLX and Streamlit")
+logger.info("# Building a Chatbot AI Agent with Ollama and Streamlit")
 
-# !pip install openai streamlit
+# !pip install ollama streamlit
 
 """
 Alternatively, if you need additional libraries for file processing:
 """
 logger.info("Alternatively, if you need additional libraries for file processing:")
 
-# !pip install streamlit openai requests PyPDF2
+# !pip install streamlit ollama requests PyPDF2
 
 """
-## Setup: MLX API Key
+## Setup: Ollama API Key
 
-To use MLX's API, you need to provide your API key so that the library can authenticate. There are a couple of ways to do this:
+To use Ollama's API, you need to provide your API key so that the library can authenticate. There are a couple of ways to do this:
 
 # 1. **Option 1 (Recommended)**: Set the API key as an environment variable on your system (e.g., `OPENAI_API_KEY`). This keeps the key out of your code.
 #    - On Linux/Mac: `export OPENAI_API_KEY='your_key_here'` in your terminal
@@ -72,25 +76,25 @@ In this tutorial, we'll assume you saved your key as an environment variable for
 
 to support option #1 we should install the python-dotenv package
 """
-logger.info("## Setup: MLX API Key")
+logger.info("## Setup: Ollama API Key")
 
 # !pip install python-dotenv
 
 """
-## Building the AI Agent (MLX Integration)
+## Building the AI Agent (Ollama Integration)
 
-First, let's write a small Python snippet to interact with MLX's API. This will form the brain of our chatbot – it sends the user's message to MLX and gets a response.
+First, let's write a small Python snippet to interact with Ollama's API. This will form the brain of our chatbot – it sends the user's message to Ollama and gets a response.
 """
-logger.info("## Building the AI Agent (MLX Integration)")
+logger.info("## Building the AI Agent (Ollama Integration)")
 
 
 load_dotenv()  # Load environment variables from .env
 
-# client = openai.MLX(api_key=os.getenv("OPENAI_API_KEY"))
+# client = ollama.Ollama(api_key=os.getenv("OPENAI_API_KEY"))
 
 def generate_response(user_prompt):
     """
-    Sends the user prompt to MLX and returns the AI's response.
+    Sends the user prompt to Ollama and returns the AI's response.
 
     Parameters:
     -----------
@@ -103,7 +107,7 @@ def generate_response(user_prompt):
         The AI-generated response as plain text.
     """
     response = client.chat.completions.create(
-        model="qwen3-1.7b-4bit",  # The AI model to use
+        model="llama3.2",  # The AI model to use
         messages=[{"role": "user", "content": user_prompt}]  # The conversation context
     )
     message_text = response.choices[0].message.content
@@ -115,12 +119,12 @@ logger.debug(test_reply)  # This should print an AI-generated response, e.g., "H
 """
 Let's break down what's happening in `generate_response`:
 
-- We call `openai.Chat.completion.create(...)` with the model and a list of messages. The `messages` parameter expects a conversation history. We provide one message – the user's prompt – and specify its role as "user". You can also include a "system" message to prime the AI's behavior (for example, telling it to act as a friendly assistant), but we'll keep it simple for now.
-- We chose the model "qwen3-1.7b-4bit" which is the same model behind ChatGPT and is suitable for chat interactions.
-- The MLX API returns a response object that contains the AI's reply. The actual text of the reply is nested inside `response["choices"][0]["message"]["content"]`. We extract that and return it.
+- We call `ollama.Chat.completion.create(...)` with the model and a list of messages. The `messages` parameter expects a conversation history. We provide one message – the user's prompt – and specify its role as "user". You can also include a "system" message to prime the AI's behavior (for example, telling it to act as a friendly assistant), but we'll keep it simple for now.
+- We chose the model "gpt-4o" which is the same model behind ChatGPT and is suitable for chat interactions.
+- The Ollama API returns a response object that contains the AI's reply. The actual text of the reply is nested inside `response["choices"][0]["message"]["content"]`. We extract that and return it.
 - The `logger.debug(test_reply)` line is just to verify that everything is working. It will print the AI's answer to "Hello, how are you?" in the console. When running as a Streamlit app, we won't use print; this is just a sanity check.
 
-At this point, if you run this code in a regular Python environment (replacing the test prompt as needed and ensuring your API key is set), you should see a text response from the AI. This confirms our MLX integration works. Now that the AI agent part is ready, let's build the web interface using Streamlit.
+At this point, if you run this code in a regular Python environment (replacing the test prompt as needed and ensuring your API key is set), you should see a text response from the AI. This confirms our Ollama integration works. Now that the AI agent part is ready, let's build the web interface using Streamlit.
 
 ## Building the Streamlit UI
 
@@ -229,7 +233,7 @@ Finally, we need an input box for the user to type new messages. Streamlit's `st
 
 1. Capture that message
 2. Add it to the session state history
-3. Send it to the MLX API (using our `generate_response` function from earlier)
+3. Send it to the Ollama API (using our `generate_response` function from earlier)
 4. Get the AI's reply and add that to the history
 
 The app will then rerun and display the updated conversation (including the new messages) in the loop we wrote above.
@@ -267,11 +271,11 @@ Here's the full code combining all the snippets above into a single script:
 logger.info("## Complete Code")
 
 
-# openai.api_key = os.getenv("OPENAI_API_KEY")
+# ollama.api_key = os.getenv("OPENAI_API_KEY")
 
 def generate_response(user_prompt):
-    response = openai.ChatCompletion.create(
-        model="qwen3-1.7b-4bit-turbo",
+    response = ollama.ChatCompletion.create(
+        model="llama3.2",
         messages=[{"role": "user", "content": user_prompt}]
     )
     message_text = response["choices"][0]["message"]["content"]
@@ -318,7 +322,7 @@ This command will launch the Streamlit development server and open a web browser
 
 Try it out: type a question into the chat box (for example, "What is the capital of France?") and hit Enter. You should see your message appear on the right, and after a moment, the AI's response will appear on the left (the app might show "Thinking..." while waiting for the response).
 
-Note: Ensure your MLX API key is valid and you have internet access when running the app, because the app needs to call MLX's servers to get responses.
+Note: Ensure your Ollama API key is valid and you have internet access when running the app, because the app needs to call Ollama's servers to get responses.
 
 ## Streamlit Chatbot Interface
 # 
@@ -345,11 +349,11 @@ HTML("""
 
 ## Conclusion
 
-Congratulations on building your first AI chatbot with Streamlit and MLX! 🎉 In this tutorial, we covered:
+Congratulations on building your first AI chatbot with Streamlit and Ollama! 🎉 In this tutorial, we covered:
 
-- Installing and setting up the necessary libraries (streamlit and openai)
-- Obtaining and using an MLX API key to access a GPT-4o model
-- Writing a function to communicate with the MLX API and get responses
+- Installing and setting up the necessary libraries (streamlit and ollama)
+- Obtaining and using an Ollama API key to access a GPT-4o model
+- Writing a function to communicate with the Ollama API and get responses
 - Using Streamlit to create a web interface, including a chat message display and input box, as well as a file uploader in the sidebar
 - Maintaining state (conversation history) across interactions using st.session_state, enabling a multi-turn conversation
 - Running the Streamlit app and interacting with the chatbot through your browser

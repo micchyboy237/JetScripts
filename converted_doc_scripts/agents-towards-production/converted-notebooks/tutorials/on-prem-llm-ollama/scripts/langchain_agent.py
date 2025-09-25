@@ -1,4 +1,4 @@
-from jet.logger import CustomLogger
+from jet.logger import logger
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import HumanMessage, SystemMessage
 from langchain_community.chat_models import ChatOllama
@@ -12,9 +12,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # LangChain Agent with Ollama
@@ -22,7 +26,7 @@ logger.info(f"Logs: {log_file}")
 ## 💡 This agent shows how to:
 • Build a simple but complete agent using LangChain and Ollama
 
-• Replace MLX models with Ollama in LangChain
+• Replace Ollama models with Ollama in LangChain
 
 • Chain multiple LLM calls together
 
@@ -43,7 +47,7 @@ class SimpleAnalysisAgent:
             logger.debug(f"❌ Model {model_name} not found. Try: ollama pull {model_name}")
             raise ValueError(f"Model {model_name} not available")
 
-        self.llm = ChatOllama(model="qwen3-1.7b-4bit")
+        self.llm = ChatOllama(model="llama3.2")
         self.conversation_history = []
 
     def classify_text(self, text: str) -> str:

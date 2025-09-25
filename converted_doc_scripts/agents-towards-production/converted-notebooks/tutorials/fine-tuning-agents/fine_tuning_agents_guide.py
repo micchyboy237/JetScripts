@@ -1,13 +1,13 @@
 from dotenv import load_dotenv
-from jet.llm.mlx.base_langchain import ChatMLX
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain.tools import tool
 from langchain_core.messages import HumanMessage
 from langgraph.prebuilt import create_react_agent
-from openai import MLX
+from ollama import Ollama
 from pathlib import Path
 import json
-import openai
+import ollama
 import os
 import os, json, time
 import pandas as pd
@@ -20,9 +20,13 @@ import time
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--fine-tunning-agents--fine-tuning-agents-guide)
@@ -106,18 +110,18 @@ Install and import necessary libraries
 """
 logger.info("# Enhancing AI Agents Through Fine-Tuning Guide")
 
-# %pip install --upgrade openai langchain langgraph==0.3.1 tiktoken pandas scikit-learn
+# %pip install --upgrade ollama langchain langgraph==0.3.1 tiktoken pandas scikit-learn
 
 
 load_dotenv()
 # os.environ["OPENAI_API_KEY"] = os.getenv('OPENAI_API_KEY')
 
-client = MLX()
+client = Ollama()
 
 """
 ## 2. Prepare Training & Validation Files for Fine-tuning
 
-MLX expects **UTF‑8 encoded JSONL** files for fine-tuning, with one JSON object per line.
+Ollama expects **UTF‑8 encoded JSONL** files for fine-tuning, with one JSON object per line.
 Each example should follow the chat format with system, user, and assistant messages.
 
 ### Understanding the Training Data Format
@@ -273,7 +277,7 @@ df
 """
 ### Validating the JSONL format
 
-Before uploading, let's validate our files to ensure they meet MLX's requirements:
+Before uploading, let's validate our files to ensure they meet Ollama's requirements:
 """
 logger.info("### Validating the JSONL format")
 
@@ -303,17 +307,17 @@ logger.debug(f"Training file: {'✅' if train_valid else '❌'} {train_msg}")
 logger.debug(f"Validation file: {'✅' if val_valid else '❌'} {val_msg}")
 
 """
-## 3. Upload your JSONL files to MLX and Launch Fine-tuning
+## 3. Upload your JSONL files to Ollama and Launch Fine-tuning
 
-We'll upload our files programmatically using the MLX Python client:
+We'll upload our files programmatically using the Ollama Python client:
 """
-logger.info("## 3. Upload your JSONL files to MLX and Launch Fine-tuning")
+logger.info("## 3. Upload your JSONL files to Ollama and Launch Fine-tuning")
 
 
-# client = MLX(api_key=os.environ["OPENAI_API_KEY"])
+# client = Ollama(api_key=os.environ["OPENAI_API_KEY"])
 
 def upload(path):
-    """Upload a file to MLX for fine-tuning"""
+    """Upload a file to Ollama for fine-tuning"""
     with open(path, "rb") as file:
         resp = client.files.create(
             file=file,
@@ -328,7 +332,7 @@ validation_file_id = upload(validation_file)
 """
 You can also upload them through the UI: 
 
-1. Navigate to the dashboard > [fine-tuning](https://platform.openai.com/finetune).
+1. Navigate to the dashboard > [fine-tuning](https://platform.ollama.com/finetune).
 
 2. Click + Create.
 
@@ -342,12 +346,12 @@ logger.info("## 4.  Launch the fine‑tuning job")
 job = client.fine_tuning.jobs.create(
     training_file=train_file_id,
     validation_file=validation_file_id,
-    model="qwen3-1.7b-4bit-mini-2024-07-18",  # base model
+    model="llama3.2-2024-07-18",  # base model
     suffix="banking-support"  # custom suffix for the fine-tuned model
 )
 logger.debug(f"Fine-tuning job created with ID: {job.id}")
 logger.debug(f"Job status: {job.status}")
-logger.debug(f"Monitor progress at: https://platform.openai.com/finetune")
+logger.debug(f"Monitor progress at: https://platform.ollama.com/finetune")
 
 """
 ## 5.  Monitor job status
@@ -362,13 +366,13 @@ while True:
         break      # Exit loop if job reaches a terminal state
     time.sleep(30)
 
-fine_tuned_model = openai.fine_tuning.jobs.retrieve(job.id).fine_tuned_model  # e.g. 'ft:gpt‑4o-mini:banking-support:2025-05-12-10-30-02'
+fine_tuned_model = ollama.fine_tuning.jobs.retrieve(job.id).fine_tuned_model  # e.g. 'ft:gpt‑4o-mini:banking-support:2025-05-12-10-30-02'
 logger.debug("✅ Fine‑tuned model:", fine_tuned_model)
 
 """
 ### Understanding Fine-Tuning Metrics
 
-You can watch progress and loss curves in the [fine-tuning](https://platform.openai.com/finetune) tab of the MLX dashboard. The fine-tuning process typically takes a few minutes to several hours depending on dataset size and model complexity.
+You can watch progress and loss curves in the [fine-tuning](https://platform.ollama.com/finetune) tab of the Ollama dashboard. The fine-tuning process typically takes a few minutes to several hours depending on dataset size and model complexity.
 
 
 When fine-tuning, you'll see two key graphs:
@@ -429,7 +433,7 @@ def transfer_payment(source_account: str, destination_account: str, amount: floa
     return f"Payment of {amount} from {source_account} to {destination_account} has been initiated."
 
 
-domain_expert = ChatMLX(model=fine_tuned_model, temperature=0.0)
+domain_expert = ChatOllama(model="llama3.2")
 
 agent = create_react_agent(
     model=domain_expert,  # Use our fine-tuned model
@@ -507,7 +511,7 @@ These improvements would be difficult to achieve through prompt engineering alon
 | **Train/Validation Split** | Always reserve at least 10% of your data (ideally ≥40 examples) for validation. This helps you monitor overfitting and ensures your model generalizes well to new queries. |
 | **Early Stopping**         | Enabled by default. Training will automatically stop if the validation loss stops improving, preventing overfitting and saving compute costs. |
 | **Example Truncation**     | Any sample longer than the model’s context window is auto‑truncated. Keep messages concise and relevant for best results. |
-| **Evaluation Metrics**     | The MLX dashboard shows token‑level accuracy. For deeper analysis, consider running BLEU or exact-match metrics on your own test set. |
+| **Evaluation Metrics**     | The Ollama dashboard shows token‑level accuracy. For deeper analysis, consider running BLEU or exact-match metrics on your own test set. |
 
 ## 9. Next Steps
 

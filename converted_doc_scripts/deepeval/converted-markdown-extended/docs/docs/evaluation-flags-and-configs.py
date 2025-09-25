@@ -1,0 +1,247 @@
+from deepeval import evaluate
+from deepeval.evaluate import AsyncConfig
+from deepeval.evaluate import CacheConfig
+from deepeval.evaluate import DisplayConfig
+from deepeval.evaluate import ErrorConfig
+from jet.logger import logger
+import os
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
+
+"""
+---
+id: evaluation-flags-and-configs
+title: Flags and Configs
+sidebar_label: Flags and Configs
+---
+
+Sometimes you might want to customize the behavior of different settings for `evaluate()` and `assert_test()`, and this can be done using "configs" (short for configurations) and "flags".
+
+:::note
+For example, if you're using a [custom LLM judge for evaluation](/guides/guides-using-custom-llms), you may wish to `ignore_errors` to not interrupt evaluations whenever your model fails to produce a valid JSON, or avoid rate limit errors entirely by lowering the `max_concurrent` value.
+:::
+
+## Environment Flags
+
+### General / Project Setup
+
+| Variable                  | Values      | Effect                                  |
+| ------------------------- | ----------- | --------------------------------------- |
+| `DEEPEVAL_DISABLE_DOTENV` | `1` / unset | Disable .env autoload at import         |
+| `DEEPEVAL_GRPC_LOGGING`   | `1` / unset | Enable extra gRPC logging               |
+| `DEEPEVAL_RESULTS_FOLDER` | path        | Change local results output folder      |
+| `DEEPEVAL_FILE_SYSTEM`    | `READ_ONLY` | Restrict file writes in constrained env |
+
+DeepEval autoloads `.env.local`, then `.env`, from the current working directory at import time.
+
+#### Persisting CLI settings with `--save`
+
+The `deepeval set-*` and `unset-*` commands accept an optional `--save` flag:
+"""
+logger.info("## Environment Flags")
+
+deepeval set-ollama --model llama3.2 --save=dotenv:.env.local
+deepeval unset-ollama --save=dotenv:.env.local
+
+"""
+**Behavior:**
+
+- Without `--save`: non-secret settings are stored in `.deepeval/.deepeval` (JSON). Secrets are never written there.
+
+- With `--save=dotenv[:path]`: both secrets and non-secrets are written to the specified dotenv (default: `.env.local`).
+
+- Dotenv files should be git ignored.
+
+- When unsetting a provider with `--save`, only that provider’s keys are removed from the dotenv file.
+
+Project default (optional): set a default so you don’t have to pass `--save` every time:
+"""
+logger.info("Project default (optional): set a default so you don’t have to pass `--save` every time:")
+
+export DEEPEVAL_DEFAULT_SAVE="dotenv:.env.local"
+
+"""
+If `DEEPEVAL_DEFAULT_SAVE` is set, it is used whenever `--save` is omitted.
+
+> Roadmap: future versions may support secure stores, such as keyring. The `--save` flag is designed to be pluggable.
+
+### Retry / Backoff Tuning
+
+These flags control retry and backoff behavior for API calls.
+
+| Variable                         | Type  | Default | Notes                         |
+| -------------------------------- | ----- | ------- | ----------------------------- |
+| `DEEPEVAL_RETRY_MAX_ATTEMPTS`    | int   | `2`     | Total attempts (1 retry)      |
+| `DEEPEVAL_RETRY_INITIAL_SECONDS` | float | `1.0`   | Initial backoff               |
+| `DEEPEVAL_RETRY_EXP_BASE`        | float | `2.0`   | Exponential base (≥ 1)        |
+| `DEEPEVAL_RETRY_JITTER`          | float | `2.0`   | Random jitter added per retry |
+| `DEEPEVAL_RETRY_CAP_SECONDS`     | float | `5.0`   | Max sleep between retries     |
+
+
+## Configs for `evaluate()`
+
+### Async Configs
+
+The `AsyncConfig` controls how concurrently `metrics`, `observed_callback`, and `test_cases` will be evaluated during `evaluate()`.
+"""
+logger.info("### Retry / Backoff Tuning")
+
+
+evaluate(async_config=AsyncConfig(), ...)
+
+"""
+There are **THREE** optional parameters when creating an `AsyncConfig`:
+
+- [Optional] `run_async`: a boolean which when set to `True`, enables concurrent evaluation of test cases **AND** metrics. Defaulted to `True`.
+- [Optional] `throttle_value`: an integer that determines how long (in seconds) to throttle the evaluation of each test case. You can increase this value if your evaluation model is running into rate limit errors. Defaulted to 0.
+- [Optional] `max_concurrent`: an integer that determines the maximum number of test cases that can be ran in parallel at any point in time. You can decrease this value if your evaluation model is running into rate limit errors. Defaulted to `20`.
+
+The `throttle_value` and `max_concurrent` parameter is only used when `run_async` is set to `True`. A combination of a `throttle_value` and `max_concurrent` is the best way to handle rate limiting errors, either in your LLM judge or LLM application, when running evaluations.
+
+### Display Configs
+
+The `DisplayConfig` controls how results and intermediate execution steps are displayed during `evaluate()`.
+"""
+logger.info("### Display Configs")
+
+
+evaluate(display_config=DisplayConfig(), ...)
+
+"""
+There are **FOUR** optional parameters when creating an `DisplayConfig`:
+
+- [Optional] `verbose_mode`: a optional boolean which when **IS NOT** `None`, overrides each [metric's `verbose_mode` value](/docs/metrics-introduction#debugging-a-metric). Defaulted to `None`.
+- [Optional] `display`: a str of either `"all"`, `"failing"` or `"passing"`, which allows you to selectively decide which type of test cases to display as the final result. Defaulted to `"all"`.
+- [Optional] `show_indicator`: a boolean which when set to `True`, shows the evaluation progress indicator for each individual metric. Defaulted to `True`.
+- [Optional] `print_results`: a boolean which when set to `True`, prints the result of each evaluation. Defaulted to `True`.
+- [Optional] `file_output_dir`: a string which when set, will write the results of the evaluation to the specified directory. Defaulted to `None`.
+
+### Error Configs
+
+The `ErrorConfig` controls how error is handled in `evaluate()`.
+"""
+logger.info("### Error Configs")
+
+
+evaluate(error_config=ErrorConfig(), ...)
+
+"""
+There are **TWO** optional parameters when creating an `ErrorConfig`:
+
+- [Optional] `skip_on_missing_params`: a boolean which when set to `True`, skips all metric executions for test cases with missing parameters. Defaulted to `False`.
+- [Optional] `ignore_errors`: a boolean which when set to `True`, ignores all exceptions raised during metrics execution for each test case. Defaulted to `False`.
+
+If both `skip_on_missing_params` and `ignore_errors` are set to `True`, `skip_on_missing_params` takes precedence. This means that if a metric is missing required test case parameters, it will be skipped (and the result will be missing) rather than appearing as an ignored error in the final test run.
+
+### Cache Configs
+
+The `CacheConfig` controls the caching behavior of `evaluate()`.
+"""
+logger.info("### Cache Configs")
+
+
+evaluate(cache_config=CacheConfig(), ...)
+
+"""
+There are **TWO** optional parameters when creating an `CacheConfig`:
+
+- [Optional] `use_cache`: a boolean which when set to `True`, uses cached test run results instead. Defaulted to `False`.
+- [Optional] `write_cache`: a boolean which when set to `True`, uses writes test run results to **DISK**. Defaulted to `True`.
+
+The `write_cache` parameter writes to disk and so you should disable it if that is causing any errors in your environment.
+
+## Flags for `deepeval test run`:
+
+### Parallelization
+
+Evaluate each test case in parallel by providing a number to the `-n` flag to specify how many processes to use.
+
+deepeval test run test_example.py -n 4
+
+### Cache
+
+Provide the `-c` flag (with no arguments) to read from the local `deepeval` cache instead of re-evaluating test cases on the same metrics.
+
+deepeval test run test_example.py -c
+
+:::info
+This is extremely useful if you're running large amounts of test cases. For example, lets say you're running 1000 test cases using `deepeval test run`, but you encounter an error on the 999th test case. The cache functionality would allow you to skip all the previously evaluated 999 test cases, and just evaluate the remaining one.
+:::
+
+### Ignore Errors
+
+The `-i` flag (with no arguments) allows you to ignore errors for metrics executions during a test run. An example of where this is helpful is if you're using a custom LLM and often find it generating invalid JSONs that will stop the execution of the entire test run.
+
+deepeval test run test_example.py -i
+
+:::tip
+You can combine different flags, such as the `-i`, `-c`, and `-n` flag to execute any uncached test cases in parallel while ignoring any errors along the way:
+"""
+logger.info("## Flags for `deepeval test run`:")
+
+deepeval test run test_example.py -i -c -n 2
+
+"""
+:::
+
+### Verbose Mode
+
+The `-v` flag (with no arguments) allows you to turn on [`verbose_mode` for all metrics](/docs/metrics-introduction#debugging-a-metric) ran using `deepeval test run`. Not supplying the `-v` flag will default each metric's `verbose_mode` to its value at instantiation.
+"""
+logger.info("### Verbose Mode")
+
+deepeval test run test_example.py -v
+
+"""
+:::note
+When a metric's `verbose_mode` is `True`, it prints the intermediate steps used to calculate said metric to the console during evaluation.
+:::
+
+### Skip Test Cases
+
+The `-s` flag (with no arguments) allows you to skip metric executions where the test case has missing//insufficient parameters (such as `retrieval_context`) that is required for evaluation. An example of where this is helpful is if you're using a metric such as the `ContextualPrecisionMetric` but don't want to apply it when the `retrieval_context` is `None`.
+
+deepeval test run test_example.py -s
+
+### Identifier
+
+The `-id` flag followed by a string allows you to name test runs and better identify them on [Confident AI](https://confident-ai.com). An example of where this is helpful is if you're running automated deployment pipelines, have deployment IDs, or just want a way to identify which test run is which for comparison purposes.
+
+deepeval test run test_example.py -id "My Latest Test Run"
+
+### Display Mode
+
+The `-d` flag followed by a string of "all", "passing", or "failing" allows you to display only certain test cases in the terminal. For example, you can display "failing" only if you only care about the failing test cases.
+
+deepeval test run test_example.py -d "failing"
+
+### Repeats
+
+Repeat each test case by providing a number to the `-r` flag to specify how many times to rerun each test case.
+
+deepeval test run test_example.py -r 2
+
+### Hooks
+
+`deepeval`'s Pytest integration allows you to run custom code at the end of each evaluation via the `@deepeval.on_test_run_end` decorator:
+"""
+logger.info("### Skip Test Cases")
+
+...
+
+@deepeval.on_test_run_end
+def function_to_be_called_after_test_run():
+    logger.debug("Test finished!")
+
+logger.info("\n\n[DONE]", bright=True)

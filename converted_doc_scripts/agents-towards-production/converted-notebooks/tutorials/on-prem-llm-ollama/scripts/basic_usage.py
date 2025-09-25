@@ -1,4 +1,4 @@
-from jet.logger import CustomLogger
+from jet.logger import logger
 from langchain_community.chat_models import ChatOllama
 import os
 import requests
@@ -9,14 +9,18 @@ import time
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Basic Ollama Usage Examples
 
-This shows the simplest ways to replace MLX/other API calls with Ollama.
+This shows the simplest ways to replace Ollama/other API calls with Ollama.
 Perfect for understanding the core concepts before moving to agents.
 
 1) Direct API call
@@ -144,7 +148,7 @@ logger.info("# LangChain Integration")
 def example_3_langchain_basic(usr_promt):
     try:
 
-        llm = ChatOllama(model="qwen3-1.7b-4bit")
+        llm = ChatOllama(model="llama3.2")
 
         response = llm.invoke(usr_promt)
         logger.debug(f"LangChain response: {response.content}")
@@ -210,11 +214,11 @@ logger.debug(f"\n\nFollow-up:\n{answer}")
 
 💡 Key Points:
 
-• Replace MLX URLs with http://localhost:11434
+• Replace Ollama URLs with http://localhost:11434
 
 • No API keys needed!
 
-• ChatOllama replaces ChatMLX in LangChain
+• ChatOllama replaces ChatOllama in LangChain
 """
 
 logger.info("\n\n[DONE]", bright=True)

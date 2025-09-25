@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from jet.logger import CustomLogger
+from jet.logger import logger
 from tavily import TavilyClient
 import os
 import shutil
@@ -8,9 +8,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-with-tavily-web-access--search-extract-crawl)
@@ -68,7 +72,7 @@ logger.info("### Setting Up Your Tavily API Client")
 
 load_dotenv()
 
-# if not os.environ.get("TAVILY_API_KEY"):
+if not os.environ.get("TAVILY_API_KEY"):
 #     os.environ["TAVILY_API_KEY"] = getpass.getpass("TAVILY_API_KEY:\n")
 
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
@@ -102,7 +106,7 @@ Let's experiment with different API parameter configurations to see Tavily in ac
 logger.info("Let's experiment with different API parameter configurations to see Tavily in action. Try everything from broad topics to specific questions! You can adjust parameters such as the number of results, time range, and domain filters to tailor your search. For more information, read the search [API reference](https://docs.tavily.com/documentation/api-reference/endpoint/search?utm_source=github&utm_medium=referral&utm_campaign=nir_diamant) and [best practices guide](https://docs.tavily.com/documentation/best-practices/best-practices-search?utm_source=github&utm_medium=referral&utm_campaign=nir_diamant). Let's apply a time range filter, domain filter, and use the `news` search topic.")
 
 search_results = tavily_client.search(
-    query="Anthropic model release?",
+    query="Ollama model release?",
     max_results=5,
     time_range="month",
     include_domains=["techcrunch.com"],
@@ -147,7 +151,7 @@ Rather than using the Extract endpoint to return raw page content, we can combin
 logger.info("Rather than using the Extract endpoint to return raw page content, we can combine the search and extract endpoints into a API call by using the search endpoint with the `include_raw_content=True` parameter.")
 
 search_results = tavily_client.search(
-    query="Anthropic model release?",
+    query="Ollama model release?",
     max_results=1,
     include_raw_content=True,
 )

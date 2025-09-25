@@ -1,5 +1,5 @@
-from jet.llm.mlx.base_langchain import ChatMLX
-from jet.logger import CustomLogger
+from jet.adapters.langchain.chat_ollama import ChatOllama
+from jet.logger import logger
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 from langchain_core.tools import tool
 from langgraph.graph import StateGraph, END
@@ -14,9 +14,13 @@ import time
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--tracing-with-langsmith--langsmith-basics)
@@ -41,18 +45,18 @@ We'll build a simple research assistant using LangGraph that demonstrates key ob
 
 ## Prerequisites and Initial Setup
 
-Before we begin building, we need to set up our development environment. This involves installing the necessary packages and configuring API keys for both MLX(which powers our AI) and LangSmith (which provides observability).
+Before we begin building, we need to set up our development environment. This involves installing the necessary packages and configuring API keys for both Ollama(which powers our AI) and LangSmith (which provides observability).
 
 Understanding this setup is crucial because LangSmith works by automatically intercepting and logging all LangGraph operations. Once configured, every LLM call, tool execution, and workflow step will be captured without requiring additional code changes. 
 
 Requirements:
 - Python 3.9+ 
-- MLX API key ([get one here](https://platform.openai.com/api-keys))
+- Ollama API key ([get one here](https://platform.ollama.com/api-keys))
 - LangSmith account ([free signup](https://smith.langchain.com)) - This provides the observability dashboard where you'll see all the insights
 """
 logger.info("# LangSmith Tutorial: Adding Observability to AI Systems with LangGraph")
 
-# !pip install -U langchain-core langchain-openai langgraph langsmith requests
+# !pip install -U langchain-core langchain-ollama langgraph langsmith requests
 
 """
 ## API Configuration
@@ -90,7 +94,7 @@ Let's start by setting up our basic components:
 logger.info("## Building a Simple Observable Agent")
 
 
-llm = ChatMLX(model="qwen3-1.7b-4bit-mini", temperature=0)
+llm = ChatOllama(model="llama3.2")
 
 logger.debug("Language model initialized with temperature=0 for consistent behavior")
 logger.debug("All LLM calls will be automatically traced in LangSmith")

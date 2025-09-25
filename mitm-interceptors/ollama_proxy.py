@@ -420,7 +420,7 @@ def request(flow: http.HTTPFlow):
         flow.response = http.Response.make(400, b"Cancelled stream")
     elif any(path in flow.request.path for path in ["/embed", "/embeddings"]):
         request_content: dict = request_dict["content"].copy()
-        input_texts = request_content["input"]
+        input_texts = request_content.get("input", request_content.get("prompt", None))
         if isinstance(input_texts, list):
             token_count = sum(token_counter(item, request_content.get("model"))
                               for item in input_texts if isinstance(item, str))
@@ -432,6 +432,25 @@ def request(flow: http.HTTPFlow):
         logger.log(f"  Model: ", request_content.get("model"), colors=["GRAY", "TEAL"])
         logger.log(f"  Tokens: ", token_count, colors=["GRAY", "TEAL"])
         logger.log(f"  Max Tokens: ", get_model_max_tokens(request_content.get("model")), colors=["GRAY", "TEAL"])
+
+        logger.newline()
+        logger.log("REQUEST KEYS:")
+        for k, v in request_dict.items():
+            if isinstance(v, (str, int, float, bool, type(None))):
+                logger.log(f"  {k}: {v}", colors=["GRAY", "TEAL"])
+            else:
+                logger.log(f"  {k}: <{type(v).__name__}>",
+                           colors=["GRAY", "TEAL"])
+        for key, value in request_dict["content"].items():
+            logger.log(f"REQUEST CONTENT {key}:",
+                       value, colors=["GRAY", "TEAL"])
+        logger.log("REQUEST HEADERS:")
+        headers = request_dict["headers"]
+        if isinstance(headers, dict) and "fields" in headers:
+            for k, v in headers["fields"]:
+                logger.log(f"  {k}: {v}", colors=["GRAY", "TEAL"])
+        else:
+            logger.log(f"  {headers}", colors=["GRAY", "TEAL"])
 
     elif any(path in flow.request.path for path in ["/chat"]):
         header_log_filename = next(

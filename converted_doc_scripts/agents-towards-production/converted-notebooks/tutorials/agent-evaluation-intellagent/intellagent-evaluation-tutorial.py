@@ -1,5 +1,5 @@
 from IPython.display import IFrame
-from jet.logger import CustomLogger
+from jet.logger import logger
 from simulator.simulator_executor import SimulatorExecutor
 from simulator.utils.file_reading import override_config
 import importlib
@@ -16,9 +16,13 @@ import yaml
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-evaluation-intellagent--intellagent-evaluation-tutorial)
@@ -100,7 +104,7 @@ logger.info("# Evaluating LLM Agents with IntellAgent: A Complete Tutorial")
 """
 ## Step 2: Configure LLM API Credentials
 
-IntellAgent needs access to Large Language Models to generate scenarios, simulate users, and run your agent. The framework supports all major LLM providers including MLX, Anthropic, Azure, Google, Bedrock, and NVIDIA.
+IntellAgent needs access to Large Language Models to generate scenarios, simulate users, and run your agent. The framework supports all major LLM providers including Ollama, Ollama, Azure, Google, Bedrock, and NVIDIA.
 
 We'll create a configuration file that securely stores your API credentials. Make sure to replace the placeholder with your actual API key.
 """
@@ -110,7 +114,7 @@ logger.info("## Step 2: Configure LLM API Credentials")
 # OPENAI_API_KEY = "your-api-key-here"  # Replace with your actual API key
 
 llm_config = {
-    "openai": {
+    "ollama": {
 #         "OPENAI_API_KEY": OPENAI_API_KEY
     }
 }
@@ -183,12 +187,12 @@ config = {
         "prompt_path": "examples/my_education_agent/input/wiki.md",  # Path to our agent's prompt
     },
     "llm_intellagent": {
-        "type": "openai",  # Using MLX for the IntellAgent system
-        "name": "qwen3-1.7b-4bit"   # You can adjust this to another model if needed
+        "type": "ollama",  # Using Ollama for the IntellAgent system
+        "name": "gpt-4o"   # You can adjust this to another model if needed
     },
     "llm_chat": {
-        "type": "openai",  # Using MLX for the chatbot agent
-        "name": "qwen3-1.7b-4bit-mini"   # You can adjust this to another model if needed
+        "type": "ollama",  # Using Ollama for the chatbot agent
+        "name": "llama3.2"   # You can adjust this to another model if needed
     },
     "dataset": {
         "num_samples": 10   # Number of test scenarios to generate (reduced for faster execution)

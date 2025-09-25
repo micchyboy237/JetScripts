@@ -2,7 +2,7 @@ from IPython.display import Markdown
 from dotenv import load_dotenv
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.file.utils import save_file
-from jet.logger import CustomLogger
+from jet.logger import logger
 from langchain.schema import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_tavily import TavilyCrawl
@@ -18,9 +18,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-with-tavily-web-access--web-agent-tutorial)
@@ -64,24 +68,24 @@ Follow these steps to set up:
    - ![Screenshot: Tavily API Keys Dashboard](assets/api-key.png)
 
 
-2. **Sign up** for MLX to get your API key. By default, we’ll use MLX—but you can substitute any other LLM provider.
+2. **Sign up** for Ollama to get your API key. By default, we’ll use Ollama—but you can substitute any other LLM provider.
    
 
-2. **Copy your API keys** from your Tavily and MLX account dashboard.
+2. **Copy your API keys** from your Tavily and Ollama account dashboard.
 
 3. **Paste your API keys** into the cell below and execute the cell.
 """
 logger.info("# 2. Build a Web Research Agent 🧙")
 
 # !echo "TAVILY_API_KEY=<your-tavily-api-key>" >> .env
-# !echo "OPENAI_API_KEY=<your-openai-api-key>" >> .env
+# !echo "OPENAI_API_KEY=<your-ollama-api-key>" >> .env
 
 """
 Install dependencies in the cell below.
 """
 logger.info("Install dependencies in the cell below.")
 
-# %pip install -U tavily-python langchain-openai langchain langchain-tavily langgraph --quiet
+# %pip install -U tavily-python langchain-ollama langchain langchain-tavily langgraph --quiet
 
 """
 ### Setting Up Your Tavily API Client
@@ -98,7 +102,7 @@ load_dotenv()
 #     os.environ["TAVILY_API_KEY"] = getpass.getpass("TAVILY_API_KEY:\n")
 
 # if not os.environ.get("OPENAI_API_KEY"):
-#     os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for MLX: ")
+#     os.environ["OPENAI_API_KEY"] = getpass.getpass("Enter API key for Ollama: ")
 
 tavily_client = TavilyClient(api_key=os.getenv("TAVILY_API_KEY"))
 
@@ -110,8 +114,7 @@ Let's define the following modular tools with the Tavily-LangChain integration:
 
 3. **Crawl** entire websites
 """
-logger.info(
-    "Let's define the following modular tools with the Tavily-LangChain integration:")
+logger.info("Let's define the following modular tools with the Tavily-LangChain integration:")
 
 
 search = TavilySearch(max_results=10, topic="general")
@@ -121,15 +124,14 @@ extract = TavilyExtract(extract_depth="advanced")
 crawl = TavilyCrawl()
 
 """
-Now let's set up several MLX foundation models to power our agent, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat Model.
+Now let's set up several Ollama foundation models to power our agent, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat Model.
 """
-logger.info("Now let's set up several MLX foundation models to power our agent, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat Model.")
+logger.info("Now let's set up several Ollama foundation models to power our agent, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat Model.")
 
 
-# o3_mini = ChatMLX(model="o3-mini-2025-01-31", api_key=os.getenv("OPENAI_API_KEY"))
+# o3_mini = ChatOllama(model="llama3.2"))
 
-# gpt_4_1 = ChatMLX(model="qwen3-1.7b-4bit", log_dir=f"{OUTPUT_DIR}/chats", api_key=os.getenv("OPENAI_API_KEY"))
-model_client = ChatOllama(model="qwen3:4b-q4_K_M")
+# gpt_4_1 = ChatOllama(model="llama3.2"))
 
 """
 ## Web Agent
@@ -144,12 +146,14 @@ You are encouraged to experiment with the system prompt or try different languag
 """
 logger.info("## Web Agent")
 
+web_agent_tools = [search, extract, crawl]
+web_agent_llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="web_agent").bind_tools(web_agent_tools)
 
 today = datetime.datetime.today().strftime("%A, %B %d, %Y")
 
 web_agent = create_react_agent(
-    model=model_client,
-    tools=[search, extract, crawl],
+    model=web_agent_llm,
+    tools=web_agent_tools,
     prompt=ChatPromptTemplate.from_messages(
         [
             (
@@ -270,7 +274,7 @@ for s in web_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        logger.success(message)
+        logger.pretty(message)
 
 """
 Examine the agent's intermediate steps printed above, including how it chooses and configures different tool parameters. Then, display the agent's final answer in markdown format.

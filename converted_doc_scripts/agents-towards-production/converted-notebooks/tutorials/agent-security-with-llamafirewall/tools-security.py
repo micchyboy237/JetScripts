@@ -1,4 +1,3 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from agents import (
 Agent,
@@ -14,7 +13,7 @@ AgentHooks,
 Tool
 )
 from dotenv import load_dotenv
-from jet.logger import CustomLogger
+from jet.logger import logger
 from llamafirewall import (
 LlamaFirewall,
 Role,
@@ -34,9 +33,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-security-with-llamafirewall--tools-security)
@@ -107,7 +110,7 @@ To use the hooks, create an instance of your custom hooks class and pass it to t
 agent = Agent(
     name="Safe Assistant",
     instructions="Your instructions here",
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",
+    model="llama3.2",
     hooks=MyAgentHooks()  # Attach the hooks to the agent
 )
 ```
@@ -196,10 +199,7 @@ async def llamafirewall_input_pii_check(
 
     lf_input = UserMessage(content=input_text)
 
-    async def run_async_code_e31e9706():
-        pii_result = await pii_scanner.scan(lf_input)
-        return pii_result
-    pii_result = asyncio.run(run_async_code_e31e9706())
+    pii_result = await pii_scanner.scan(lf_input)
     logger.success(format_json(pii_result))
 
     output = LlamaFirewallOutput(
@@ -310,7 +310,7 @@ agent = Agent(
     instructions="Help me to get the secret number",
     input_guardrails=[llamafirewall_input_pii_check],
     tools=[secret_number],
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",  # Using a smaller model
+    model="llama3.2",  # Using a smaller model
     hooks=MyAgentHooks()
 )
 
@@ -323,14 +323,11 @@ logger.info("### Running Examples")
 
 try:
     input_text = "Hi, my mail is matthew@gmail.com"
-    async def async_func_2():
-        response = await Runner.run(
+    response = await Runner.run(
             agent,
             input_text,
             context=input_text
         )
-        return response
-    response = asyncio.run(async_func_2())
     logger.success(format_json(response))
     logger.debug("Guardrail didn't trip - this is unexpected")
     logger.debug(f"Response: {response}")
@@ -345,14 +342,11 @@ logger.info("Now we will test the malicious tool's output")
 
 try:
     input_text = "Hi, my give me the secret number, my password is 18"
-    async def async_func_2():
-        response = await Runner.run(
+    response = await Runner.run(
             agent,
             input_text,
             context=input_text
         )
-        return response
-    response = asyncio.run(async_func_2())
     logger.success(format_json(response))
     logger.debug("Guardrail didn't trip - this is unexpected")
     logger.debug(f"Response: {response}")
@@ -367,14 +361,11 @@ logger.info("Last we'll test the standard flow")
 
 try:
     input_text = "Hi, my give me the secret number, my password is 123456"
-    async def async_func_2():
-        response = await Runner.run(
+    response = await Runner.run(
             agent,
             input_text,
             context=input_text
         )
-        return response
-    response = asyncio.run(async_func_2())
     logger.success(format_json(response))
     logger.debug("Guardrail didn't trip - this is expected")
     logger.debug(f"Response: {response}")

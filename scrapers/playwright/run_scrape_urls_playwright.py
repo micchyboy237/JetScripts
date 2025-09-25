@@ -126,16 +126,7 @@ def sync_example(urls: List[str]) -> None:
 
 if __name__ == "__main__":
     urls = [
-        "https://www.asfcxcvqawe.com",
-        "https://www.imdb.com/list/ls505070747",
-        "https://myanimelist.net/stacks/32507",
-        "https://example.com",
-        "https://python.org",
-        "https://github.com",
-        "https://httpbin.org/html",
-        "https://www.wikipedia.org/",
-        "https://www.mozilla.org",
-        "https://www.stackoverflow.com",
+        "https://docs.tavily.com",
     ]
 
     logger.info("Running sync example...")

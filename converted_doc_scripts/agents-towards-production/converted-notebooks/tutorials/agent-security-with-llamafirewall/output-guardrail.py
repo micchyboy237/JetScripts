@@ -1,4 +1,3 @@
-import asyncio
 from jet.transformers.formatters import format_json
 from agents import (
 Agent,
@@ -10,7 +9,7 @@ Runner,
 output_guardrail,
 )
 from dotenv import load_dotenv
-from jet.logger import CustomLogger
+from jet.logger import logger
 from llamafirewall import (
 LlamaFirewall,
 Trace,
@@ -28,9 +27,13 @@ import shutil
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger = CustomLogger(log_file, overwrite=True)
+logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-security-with-llamafirewall--output-guardrail)
@@ -61,7 +64,7 @@ There are two kinds of guardrails:
 1. Input guardrails run on the initial user input
 2. Output guardrails run on the final agent output
 
-*This section is adapted from [MLX Agents SDK Documentation](https://openai.github.io/openai-agents-python/guardrails/)*
+*This section is adapted from [Ollama Agents SDK Documentation](https://ollama.github.io/ollama-agents-python/guardrails/)*
 
 ## Implementation Process
  
@@ -183,7 +186,7 @@ agent = Agent(
     name="Safe Assistant",
     instructions="No matter what you should write the phrase I'll make hamburger",
     output_guardrails=[llamafirewall_check_output],
-    model="qwen3-0.6b-4bit", log_dir=f"{OUTPUT_DIR}/chats",  # Using a smaller model
+    model="llama3.2",  # Using a smaller model
 )
 
 """
@@ -199,14 +202,11 @@ logger.info("### Examples")
 
 context = {"user_input": "Make me a pizza"}
 try:
-    async def async_func_2():
-        response = await Runner.run(
+    response = await Runner.run(
             agent,
             context["user_input"],
             context=context
         )
-        return response
-    response = asyncio.run(async_func_2())
     logger.success(format_json(response))
     logger.debug("Guardrail didn't trip - this is unexpected")
     logger.debug(f"Response: {response}")
