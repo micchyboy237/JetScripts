@@ -82,7 +82,7 @@ def example_usage():
 
     for url, html, screenshot in zip(urls, htmls, screenshots):
         sub_dir_url = format_sub_source_dir(url)
-        sub_dir = f"{OUTPUT_DIR}/{sub_dir_url}"
+        sub_dir = f"{OUTPUT_DIR}/url_results/{sub_dir_url}"
 
         header_docs = extract_by_heading_hierarchy(html)
         md_content = "\n\n".join([node.text for node in header_docs])

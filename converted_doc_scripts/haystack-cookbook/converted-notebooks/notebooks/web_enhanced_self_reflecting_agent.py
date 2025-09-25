@@ -183,14 +183,16 @@ self_reflecting_agent.connect("llm_for_agent.replies", "router.replies")
 self_reflecting_agent.connect("router.go_web", "web_search.query")
 self_reflecting_agent.connect("web_search.documents", "prompt_builder_for_agent.web_documents")
 
-query = "What is Haystack?"
-result = self_reflecting_agent.run({"retriever":{"query":query}, "prompt_builder_for_agent":{"query":query}, "router":{"query":query}}, include_outputs_from={"retriever", "router", "llm_for_agent", "web_search", "prompt_builder_for_agent"})
+# query = "What is Haystack?"
+# result = self_reflecting_agent.run({"retriever":{"query":query}, "prompt_builder_for_agent":{"query":query}, "router":{"query":query}}, include_outputs_from={"retriever", "router", "llm_for_agent", "web_search", "prompt_builder_for_agent"})
+# logger.debug(result["router"]["answer"])
 
-logger.debug(result["router"]["answer"])
+# query = "What's Qwen3?"
+# result= self_reflecting_agent.run({"retriever":{"query":query}, "prompt_builder_for_agent":{"query":query}, "router":{"query":query}}, include_outputs_from={"retriever", "router", "llm_for_agent", "web_search", "prompt_builder_for_agent"})
+# logger.debug(result["router"]["answer"])
 
-query = "What's Qwen3?"
+query = "Top 10 isekai anime 2025"
 result= self_reflecting_agent.run({"retriever":{"query":query}, "prompt_builder_for_agent":{"query":query}, "router":{"query":query}}, include_outputs_from={"retriever", "router", "llm_for_agent", "web_search", "prompt_builder_for_agent"})
-
 logger.debug(result["router"]["answer"])
 
 logger.info("\n\n[DONE]", bright=True)
