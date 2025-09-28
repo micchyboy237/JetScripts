@@ -1,4 +1,4 @@
-from google.colab import auth
+# from google.colab import auth
 from haystack import Pipeline
 from haystack.components.builders.chat_prompt_builder import ChatPromptBuilder
 from haystack.components.converters import HTMLToDocument
@@ -9,7 +9,8 @@ from haystack.components.tools import ToolInvoker
 from haystack.dataclasses import ChatMessage
 from haystack.dataclasses import ImageContent
 from haystack.tools import tool
-from haystack_integrations.components.generators.google_genai import GoogleGenAIChatGenerator
+# from haystack_integrations.components.generators.google_genai import GoogleGenAIChatGenerator
+from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
 from jet.logger import logger
 from typing import Annotated
 import os
@@ -62,7 +63,7 @@ Let's login using Application Default Credentials (ADCs). For more info see the 
 logger.info("Let's login using Application Default Credentials (ADCs). For more info see the [official documentation](https://cloud.google.com/docs/authentication/provide-credentials-adc).")
 
 
-auth.authenticate_user()
+# auth.authenticate_user()
 
 """
 Remember to set the `project_id` variable to a valid project ID that you have enough authorization to use for Gemini.
@@ -84,7 +85,7 @@ Now that we setup everything we can create an instance of our [`GoogleGenAIChatG
 logger.info("## Use `gemini-2.5-flash`")
 
 
-gemini = GoogleGenAIChatGenerator(model="gemini-2.5-flash", api="vertex", vertex_ai_project=project_id, vertex_ai_location="europe-west1")
+gemini = OllamaChatGenerator(model="qwen3:4b-q4_K_M")
 
 """
 Let's start by asking something simple.
