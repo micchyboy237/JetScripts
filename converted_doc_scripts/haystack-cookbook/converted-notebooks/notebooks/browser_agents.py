@@ -115,7 +115,7 @@ We also specify some optional parameters:
 logger.info("## Our first Browser Agent with URL navigation")
 
 
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_1")
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_1", verbose=False)
 
 system_message = """
 You are an intelligent assistant equipped with tools for navigating the web.
@@ -174,7 +174,7 @@ logger.info("## Browser Agent with URL navigation + accessibility snapshot")
 
 toolset = MCPToolset(server_info=server_info, tool_names=["browser_navigate", "browser_snapshot"])
 
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_2")
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_2", verbose=False)
 
 agent = Agent(
         chat_generator=chat_generator,
@@ -236,7 +236,7 @@ toolset = MCPToolset(server_info=server_info,
                                  "browser_navigate_back","browser_wait_for",
                                 ])
 
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_3")
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_3", verbose=False)
 
 agent = Agent(
         chat_generator=chat_generator,
