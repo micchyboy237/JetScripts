@@ -271,9 +271,13 @@ except BreakpointException as e:
     # Update the prompt_builder template in the snapshot (if needed)
     snapshot = load_pipeline_snapshot(latest_snapshot)
     result = pipeline.run(data={}, pipeline_snapshot=snapshot)
-    logger.debug(result['answer_builder']['answers'][0].data)
-    save_file(result, f"{OUTPUT_DIR}/result.json")
-    save_file(result['answer_builder']['answers'][0].data, f"{OUTPUT_DIR}/results/answers.json")
+    answers = result['answer_builder']['answers']
+    answers_str = "\n\n".join(
+        f"## Answer {i+1}\n{answer['data']}" for i, answer in enumerate(answers)
+    )
+    logger.debug(answers_str)
+    save_file(result, f"{OUTPUT_DIR}/result1.json")
+    save_file(answers_str, f"{OUTPUT_DIR}/results/answers1.md")
 
 """
 Now we can manually insert a different template into the `prompt_builder` and inspect the results. To do this, we update the template input within the `prompt_builder` component in the state file.
@@ -311,7 +315,7 @@ answers_str = "\n\n".join(
     f"## Answer {i+1}\n{answer['data']}" for i, answer in enumerate(answers)
 )
 logger.debug(answers_str)
-save_file(result, f"{OUTPUT_DIR}/result.json")
-save_file(answers_str, f"{OUTPUT_DIR}/results/answers.md")
+save_file(result, f"{OUTPUT_DIR}/result2.json")
+save_file(answers_str, f"{OUTPUT_DIR}/results/answers2.md")
 
 logger.info("\n\n[DONE]", bright=True)
