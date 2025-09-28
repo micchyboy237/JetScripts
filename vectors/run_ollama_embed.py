@@ -1,15 +1,14 @@
 import numpy as np
-from jet.llm.ollama.base import OllamaEmbedding
 from jet.llm.ollama.config import OLLAMA_BASE_URL
-from jet.llm.utils.embeddings import get_embedding_function, get_ollama_embedding_function
-from jet.logger import logger, time_it
-from jet._token.token_utils import get_token_counts_info, token_counter
+from jet.llm.utils.embeddings import get_ollama_embedding_function
+from jet.logger import logger
+from jet._token.token_utils import get_token_counts_info
 from jet.transformers.formatters import format_json
 from jet.utils.commands import copy_to_clipboard
 from jet.utils.object import extract_values_by_paths
 from tqdm import tqdm
-from jet.file.utils import load_file, save_file
-from shared.data_types.job import JobData, JobEntities
+from jet.file.utils import load_file
+from shared.data_types.job import JobData
 
 
 def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLAMA_BASE_URL) -> np.ndarray:
@@ -29,9 +28,9 @@ def embed_texts(texts: list[str], model: str = "embeddinggemma", url: str = OLLA
 
 
 if __name__ == '__main__':
-    embed_url = "http://localhost:11435"
-    model = "embeddinggemma"
-    # model = "nomic-embed-text"
+    embed_url = "http://localhost:11434"
+    # model = "embeddinggemma"
+    model = "nomic-embed-text"
     # model = "llama3.2"
 
     data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
