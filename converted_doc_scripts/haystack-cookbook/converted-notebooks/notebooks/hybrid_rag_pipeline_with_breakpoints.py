@@ -217,7 +217,15 @@ We can then resume a pipeline from its saved `pipeline_snapshot` by passing it t
 logger.info("## Resuming from a break point")
 
 
-snapshot = load_pipeline_snapshot(f"{OUTPUT_DIR}/snapshots/query_embedder_2025_07_26_12_58_26.json")
+# Replace the snapshot loading and pipeline resumption section
+logger.info("\n\n## Resuming from a break point")
+snapshot_files = glob.glob(f"{OUTPUT_DIR}/snapshots/query_embedder_*.json")
+if not snapshot_files:
+    logger.error("No snapshot files found in snapshots directory")
+    raise FileNotFoundError("No snapshot files found")
+latest_snapshot = max(snapshot_files, key=os.path.getctime)
+logger.info(f"Loading snapshot from: {latest_snapshot}")
+snapshot = load_pipeline_snapshot(latest_snapshot)
 result = pipeline.run(data={}, pipeline_snapshot=snapshot)
 
 logger.debug(result['answer_builder']['answers'][0].data)
