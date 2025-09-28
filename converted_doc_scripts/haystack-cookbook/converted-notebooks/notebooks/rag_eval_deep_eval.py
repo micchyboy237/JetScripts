@@ -3,11 +3,13 @@ from haystack import Document
 from haystack import Pipeline
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.builders.answer_builder import AnswerBuilder
-from haystack.components.generators.chat import OpenAIChatGenerator
+# from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.dataclasses import ChatMessage
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack_integrations.components.evaluators.deepeval import DeepEvalEvaluator, DeepEvalMetric
+from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
+from deepeval.models import OllamaModel
 from jet.logger import logger
 import os
 import shutil
@@ -89,7 +91,7 @@ Answer:
 """
 )
 chat_prompt_builder = ChatPromptBuilder(template=[chat_message], required_variables="*")
-chat_generator = OpenAIChatGenerator(model="llama3.2")
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M")
 
 """
 **Build the RAG pipeline**
@@ -205,7 +207,12 @@ logger.info("## Evaluate the RAG pipeline")
 
 
 context_precision_pipeline = Pipeline()
-evaluator = DeepEvalEvaluator(metric=DeepEvalMetric.CONTEXTUAL_PRECISION, metric_params={"model":"llama3.2"})
+evaluator = DeepEvalEvaluator(
+    metric=DeepEvalMetric.CONTEXTUAL_PRECISION,
+    metric_params={
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0),
+    },
+)
 context_precision_pipeline.add_component("evaluator", evaluator)
 
 evaluation_results = context_precision_pipeline.run(
@@ -222,7 +229,12 @@ logger.info("### Contextual Recall")
 
 
 context_recall_pipeline = Pipeline()
-evaluator = DeepEvalEvaluator(metric=DeepEvalMetric.CONTEXTUAL_RECALL, metric_params={"model":"llama3.2"})
+evaluator = DeepEvalEvaluator(
+    metric=DeepEvalMetric.CONTEXTUAL_RECALL,
+    metric_params={
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0),
+    },
+)
 context_recall_pipeline.add_component("evaluator", evaluator)
 
 evaluation_results = context_recall_pipeline.run(
@@ -239,7 +251,12 @@ logger.info("### Contextual Relevancy")
 
 
 context_relevancy_pipeline = Pipeline()
-evaluator = DeepEvalEvaluator(metric=DeepEvalMetric.CONTEXTUAL_RELEVANCE, metric_params={"model":"llama3.2"})
+evaluator = DeepEvalEvaluator(
+    metric=DeepEvalMetric.CONTEXTUAL_RELEVANCE,
+    metric_params={
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0),
+    },
+)
 context_relevancy_pipeline.add_component("evaluator", evaluator)
 
 evaluation_results = context_relevancy_pipeline.run(
@@ -256,7 +273,12 @@ logger.info("### Answer relevancy")
 
 
 answer_relevancy_pipeline = Pipeline()
-evaluator = DeepEvalEvaluator(metric=DeepEvalMetric.ANSWER_RELEVANCY, metric_params={"model":"llama3.2"})
+evaluator = DeepEvalEvaluator(
+    metric=DeepEvalMetric.ANSWER_RELEVANCY,
+    metric_params={
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0),
+    },
+)
 answer_relevancy_pipeline.add_component("evaluator", evaluator)
 
 evaluation_results = answer_relevancy_pipeline.run(
@@ -273,7 +295,12 @@ logger.info("### Faithfulness")
 
 
 faithfulness_pipeline = Pipeline()
-evaluator = DeepEvalEvaluator(metric=DeepEvalMetric.FAITHFULNESS, metric_params={"model":"llama3.2"} )
+evaluator = DeepEvalEvaluator(
+    metric=DeepEvalMetric.FAITHFULNESS,
+    metric_params={
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0),
+    },
+ )
 faithfulness_pipeline.add_component("evaluator", evaluator)
 
 evaluation_results = faithfulness_pipeline.run(
