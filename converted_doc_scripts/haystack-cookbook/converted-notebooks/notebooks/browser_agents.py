@@ -1,6 +1,6 @@
 # from codecs import ignore_errors
 # from IPython.display import display
-from IPython.display import Markdown
+# from IPython.display import Markdown
 from PIL import Image
 from haystack.components.agents import Agent
 from haystack.components.generators.utils import print_streaming_chunk
@@ -14,8 +14,9 @@ from jet.file.utils import save_file
 from jet.logger import logger
 import gdown
 import os
-import requests
 import shutil
+
+from jet.transformers.formatters import format_json
 
 
 OUTPUT_DIR = os.path.join(
@@ -25,6 +26,9 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+# SCREENSHOT_DIR = os.path.join(OUTPUT_DIR, "screenshots")
+# os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 """
 # 🕵️🌐 Build Browser Agents with Gemini + Playwright MCP
@@ -94,9 +98,32 @@ logger.info("We then create a [`MCPToolset`](https://docs.haystack.deepset.ai/do
 
 server_info = StreamableHttpServerInfo(url="http://localhost:8931/mcp")
 
-toolset = MCPToolset(server_info=server_info, tool_names=["browser_navigate"])
+system_message = """
+You are an intelligent assistant equipped with tools for navigating the web.
 
-logger.debug(toolset.tools)
+You can use tools when appropriate, but not every task requires them — you also have strong reasoning and language capabilities.
+If a request seems challenging, don't default to refusal due to perceived tool limitations. Instead, think creatively and attempt a solution using the skills you do have.
+You are more capable than you might assume. Trust your abilities.
+"""
+
+def create_agent(agent_name: str, tool_names: list[str]) -> Agent:
+    toolset = MCPToolset(server_info=server_info, tool_names=tool_names)
+    logger.debug("Toolset:")
+    logger.debug(format_json(toolset.tools))
+    chat_generator = OllamaChatGenerator(model="llama3.2", agent_name=agent_name, verbose=False, generation_kwargs={"temperature": 0.1})
+
+    agent = Agent(
+        chat_generator=chat_generator,
+        tools=toolset,
+        system_prompt=system_message,
+        exit_conditions=["text"],
+        streaming_callback=print_streaming_chunk
+    )
+
+    return agent
+
+# 1st agent toolset
+tool_names1 = ["browser_navigate"]
 
 """
 ## Our first Browser Agent with URL navigation
@@ -112,148 +139,71 @@ We also specify some optional parameters:
 - `exit_conditions=["text"]`. The Agent will exit as soon as the LLM replies only with a text response and no tool calls.
 - `streaming_callback=print_streaming_chunk`. Using the utility function, text and Tool Calls coming from the LLM will be streamed, along with Tool Call Results from Tools.
 """
-logger.info("## Our first Browser Agent with URL navigation")
+def example1_find_us_news_from_guardian():
+    logger.info("## Our first Browser Agent with URL navigation")
 
+    """
+    ### 📰 Find US-related news
 
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_1", verbose=False)
+    Let's start with a simple task: navigate to a website and filter US-related news.
+    """
+    logger.info("### 📰 Find US-related news")
 
-system_message = """
-You are an intelligent assistant equipped with tools for navigating the web.
+    # Update Agent 1 task with screenshot
+    messages = [
+        ChatMessage.from_user("navigate to https://www.theguardian.com/world and list all US-related news")
+    ]
+    agent = create_agent("Agent1_News", tool_names=tool_names1)
+    result = agent.run(messages=messages)
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_1.md")
 
-You can use tools when appropriate, but not every task requires them — you also have strong reasoning and language capabilities.
-If a request seems challenging, don't default to refusal due to perceived tool limitations. Instead, think creatively and attempt a solution using the skills you do have.
-You are more capable than you might assume. Trust your abilities.
-"""
+def example2_find_notable_people_born_on_october_17():
+    logger.info("### 📅 Who was born on this day?")
 
-agent = Agent(
-        chat_generator=chat_generator,
-        tools=toolset,
-        system_prompt=system_message,
-        exit_conditions=["text"],
-        streaming_callback=print_streaming_chunk
-)
+    messages = [
+        ChatMessage.from_user("I was born on October 17th. Find five notable people born on the same day using Wikipedia.")
+    ]
+    agent = create_agent("Agent2_Birthday", tool_names=tool_names1)
+    result = agent.run(messages=messages)
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_2.md")
 
-"""
-### 📰 Find US-related news
+# 2nd agent toolset
+tool_names2 = ["browser_navigate", "browser_snapshot"]
 
-Let's start with a simple task: navigate to a website and filter US-related news.
-"""
-logger.info("### 📰 Find US-related news")
+def example3_compare_news_websites_nbc_bbc():
+    logger.info("### 🗞️🗞️ Compare online news websites")
+    # Update Agent 3 tasks with snapshots
+    messages = [ChatMessage.from_user("""
+    1. Navigate to https://www.nbcnews.com and capture an accessibility snapshot of the page.
+    2. Navigate to https://www.bbc.com and capture an accessibility snapshot of the page.
+    3. Identify news stories that appear on both sites.
+    4. Your final response must contain only a Markdown table listing the shared news stories and their respective links from each site.
+    """)]
+    agent = create_agent("Agent3_Compare", tool_names=tool_names2)
+    result = agent.run(messages=messages)
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_3.md")
 
-messages = [
-    ChatMessage.from_user("navigate to https://www.theguardian.com/world and list all US-related news")
-]
-result = agent.run(messages=messages)
-
-"""
-Nice.
-
-### 📅 Who was born on this day?
-
-Another simple task. Let's see how our agent behaves.
-"""
-logger.info("### 📅 Who was born on this day?")
-
-messages = [
-    ChatMessage.from_user("I was born on October 17th. Find five notable people born on the same day using Wikipedia.")
-]
-result = agent.run(messages=messages)
-
-save_file(Markdown(result["last_message"].text), f"{OUTPUT_DIR}/results/last_message_agent_1.md")
-
-"""
-## Browser Agent with URL navigation + accessibility snapshot
-
-Sometimes the raw version of a web page is not easily interpretable or misses relevant information. In these cases, a textual accessibility snapshot can help the LLM.
-
-According to the Playwright MCP server maintainers, this approach often works better than providing screenshots.
-
-Let's rebuild our agent.
-"""
-logger.info("## Browser Agent with URL navigation + accessibility snapshot")
-
-toolset = MCPToolset(server_info=server_info, tool_names=["browser_navigate", "browser_snapshot"])
-
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_2", verbose=False)
-
-agent = Agent(
-        chat_generator=chat_generator,
-        tools=toolset,
-        system_prompt=system_message,
-        exit_conditions=["text"],
-        streaming_callback=print_streaming_chunk
-)
-
-"""
-### 🗞️🗞️ Compare online news websites
-
-Let's now use our agent to find similar news stories appearing on different web sites.
-"""
-logger.info("### 🗞️🗞️ Compare online news websites")
-
-messages = [ChatMessage.from_user("""
-1. Visit www.nbcnews.com
-2. Visit www.bbc.com
-3. Identify news stories that appear on both sites.
-4. Your final response must contain only a Markdown table listing the shared news stories and their respective links from each site.
-""")
-]
-result = agent.run(messages=messages)
-
-# display(Markdown(result["last_message"].text))
-save_file(Markdown(result["last_message"].text), f"{OUTPUT_DIR}/results/last_message_agent_2.md")
-
-"""
-Definitely not bad!
-
-If you look at streamed tool calls, you can also notice that the agent is sometimes able to correct its own actions leading to errors.
-
-### 👨🏻‍💻 Find information about a GitHub contributor
-
-This example is not original: I took it from a [Hugging Face tutorial](https://huggingface.co/docs/smolagents/en/examples/web_browser), but it's nice.
-"""
-logger.info("### 👨🏻‍💻 Find information about a GitHub contributor")
-
-messages = [ChatMessage.from_user("""
-I'm trying to find how hard I have to work to get a repo in github.com/trending.
+def example4_find_github_contributor_contributions():
+    logger.info("### 👨🏻‍💻 Find information about a GitHub contributor")
+    messages = [ChatMessage.from_user("""
+I'm trying to find how hard I have to work to get a repo in https://github.com/trending.
 Can you navigate to the profile for the top author of the top trending repo,
 and give me their total number of contributions over the last year?
 """)
+    ]
+    agent = create_agent("Agent4_GitHub", tool_names=tool_names2)
+    result = agent.run(messages=messages)
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_4.md")
+
+tool_names3 = [
+    "browser_navigate", "browser_snapshot", "browser_click",
+    "browser_type", "browser_navigate_back", "browser_wait_for"
 ]
 
-result = agent.run(messages=messages)
-
-"""
-## More tools for more advanced Browser Agents!
-
-To unlock advanced use cases, we need more tools: the ability to click, type something, navigate back and wait.
-"""
-logger.info("## More tools for more advanced Browser Agents!")
-
-toolset = MCPToolset(server_info=server_info,
-                     tool_names=["browser_navigate", "browser_snapshot",
-                                "browser_click", "browser_type",
-                                 "browser_navigate_back","browser_wait_for",
-                                ])
-
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_3", verbose=False)
-
-agent = Agent(
-        chat_generator=chat_generator,
-        tools=toolset,
-        system_prompt=system_message,
-        exit_conditions=["text"],
-        streaming_callback=print_streaming_chunk
-)
-
-"""
-### 🖱️ Find a product's price range on Amazon
-
-I want to buy a new mouse. Let's use our agent to discover price ranges on Amazon for this product.
-"""
-logger.info("### 🖱️ Find a product's price range on Amazon")
-
-prompt="""
+def example5_amazon_price():
+    logger.info("### 🖱️ Find a product's price range on Amazon")
+    agent = create_agent("Agent5_Amazon", tool_names=tool_names3)
+    prompt = """
 1. Go to Amazon Italy and find all available prices for the Logitech MX Master 3S mouse.
 2. Exclude any items that:
 - are not computer mice;
@@ -262,111 +212,94 @@ prompt="""
 - are bundled with other products or accessories.
 3. Your final message must only contain a Markdown table with two columns: Name and Price.
 """
+    result = agent.run(messages=[ChatMessage.from_user(prompt)])
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_5.md")
 
-result = agent.run(messages=[ChatMessage.from_user(prompt)])
+def example6_github_prs():
+    logger.info("### 🖥️ GitHub exploration")
+    agent = create_agent("Agent6_Prs", tool_names=tool_names3)
+    prompt = "List some recent PRs merged by anakin87 on the deepset-ai/haystack repo on GitHub. Max 5."
+    result = agent.run(messages=[ChatMessage.from_user(prompt)])
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_6.md")
 
-
-# display(Markdown(result["last_message"].text))
-save_file(Markdown(result["last_message"].text), f"{OUTPUT_DIR}/results/last_message_agent_3.md")
-
-"""
-### 🖥️ GitHub exploration
-"""
-logger.info("### 🖥️ GitHub exploration")
-
-prompt = "List some recent PRs merged by anakin87 on the deepset-ai/haystack repo on GitHub. Max 5."
-result = agent.run(messages=[ChatMessage.from_user(prompt)])
-
-"""
-### ▶️ Find content creator social profiles from YouTube
-
-Starting from a YouTube video, look for the social profiles of a creator.
-Since sometimes search engines block automation tools, we ask the model to find intelligent alternative ways to look for information.
-"""
-logger.info("### ▶️ Find content creator social profiles from YouTube")
-
-prompt="""
+def example7_youtube_socials():
+    logger.info("### ▶️ Find content creator social profiles from YouTube")
+    agent = create_agent("Agent7_YouTube", tool_names=tool_names3)
+    prompt = """
 1. Open this YouTube video: https://www.youtube.com/watch?v=axmaslLO4-4 and extract the channel author’s username.
 2. Then, try to find all their social media profiles by searching the web using the username.
 If you cannot perform a web search, try other available methods to find the profiles.
 3. Return only the links to their social media accounts along with the platform names.
 """
+    result = agent.run(messages=[ChatMessage.from_user(prompt)])
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_7.md")
 
-result = agent.run(messages=[ChatMessage.from_user(prompt)])
+def example8_google_maps_location():
+    logger.info("### 🗺️ Use Google Maps to find a location")
+    agent = create_agent("Agent8_Maps", tool_names=tool_names3)
+    result = agent.run(messages=[ChatMessage.from_user("Use Google Maps to find the deepset HQ in Berlin")])
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_8.md")
 
-"""
-### 🗺️ Use Google Maps to find a location
-"""
-logger.info("### 🗺️ Use Google Maps to find a location")
-
-result = agent.run(messages=[ChatMessage.from_user("Use Google Maps to find the deepset HQ in Berlin")])
-
-"""
-### 🚂 🚌 Find public transportation travel options
-
-Using Google Maps, let's ask a harder question, which requires more navigation.
-"""
-logger.info("### 🚂 🚌 Find public transportation travel options")
-
-prompt = """
+def example9_public_transport():
+    logger.info("### 🚂 🚌 Find public transportation travel options")
+    agent = create_agent("Agent9_Transport", tool_names=tool_names3)
+    prompt = """
 1. Using Google Maps, find the next 3 available public transportation travel options from Paris to Berlin departing today.
 2. For each option, provide a detailed description of the route (e.g., transfers, stations, duration).
 3. Include a direct link to the corresponding Google Maps route for each travel option.
 """
+    result = agent.run(messages=[ChatMessage.from_user(prompt)])
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_9.md")
 
-result = agent.run(messages=[ChatMessage.from_user(prompt)])
-
-"""
-Ready to go!
-
-### 🖼️ 🤗 Image generation via Hugging Face spaces
-
-Let's now try something more advanced: access a Hugging Face space to generate an image; note that our agent is also asked to create a good prompt for the image generation model.
-"""
-logger.info("### 🖼️ 🤗 Image generation via Hugging Face spaces")
-
-prompt="""
+def example10_hf_image_generation():
+    logger.info("### 🖼️ 🤗 Image generation via Hugging Face spaces")
+    agent = create_agent("Agent10_Image", tool_names=tool_names3)
+    prompt = """
 1. Visit Hugging Face Spaces, search the Space named exactly "FLUX.1 [schnell]" and enter it.
 2. Craft a detailed, descriptive prompt using your language skills to depict: "my holiday on Lake Como".
 3. Use this prompt to generate an image within the Space.
 4. After prompting, wait 5 seconds to allow the image to fully generate. Repeat until the image is generated.
 5. Your final response must contain only the direct link to the generated image — no additional text.
 """
+    result = agent.run(messages=[ChatMessage.from_user(prompt)])
+    save_file(result["last_message"].text, f"{OUTPUT_DIR}/results/last_message_agent_10.md")
 
-result = agent.run(messages=[ChatMessage.from_user(prompt)])
+    # Try to download and save the image if possible
+    response = result["last_message"].text
+    try:
+        # If the response is a URL, try to download the image
+        import requests
+        img_resp = requests.get(response)
+        img_resp.raise_for_status()
+        image = Image.open(BytesIO(img_resp.content))
+        os.makedirs(f"{OUTPUT_DIR}/images", exist_ok=True)
+        save_file(image, f"{OUTPUT_DIR}/images/image.png")
+    except Exception as e:
+        logger.error(f"Could not download or save image: {e}")
 
+def example11_demo_video():
+    logger.info("The video below demonstrates a similar local setup. It's fascinating to watch the Agent navigate the web similarly to a human.")
 
-response = requests.get(result["last_message"].text)
-image = Image.open(BytesIO(response.content))
-save_file(image, f"{OUTPUT_DIR}/images/image.png")
+    url = "https://drive.google.com/drive/folders/1HyPdNxpzi3svmPVYGXak7mqAjVWztwsH"
+    downloads_dir = f"{OUTPUT_DIR}/downloads"
+    os.makedirs(downloads_dir, exist_ok=True)
+    gdown.download_folder(url, quiet=True, output=downloads_dir)
+    # Video.from_file('/content/browser_agent.mp4', autoplay=False, loop=False)
 
-"""
-🏞️ Impressive!
+def main():
+    example1_find_us_news_from_guardian()
+    example2_find_notable_people_born_on_october_17()
+    example3_compare_news_websites_nbc_bbc()
+    example4_find_github_contributor_contributions()
+    example5_amazon_price()
+    example6_github_prs()
+    example7_youtube_socials()
+    example8_google_maps_location()
+    example9_public_transport()
+    example10_hf_image_generation()
+    example11_demo_video()
+    logger.info("## What's next?")
+    logger.info("\n\n[DONE]", bright=True)
 
-The video below demonstrates a similar local setup. It's fascinating to watch the Agent navigate the web similarly to a human.
-"""
-logger.info("The video below demonstrates a similar local setup. It's fascinating to watch the Agent navigate the web similarly to a human.")
-
-
-url = "https://drive.google.com/drive/folders/1HyPdNxpzi3svmPVYGXak7mqAjVWztwsH"
-
-downloads_dir = f"{OUTPUT_DIR}/downloads"
-os.makedirs(downloads_dir, ignore_errors=True)
-gdown.download_folder(url, quiet=True, output=downloads_dir)
-
-# Video.from_file('/content/browser_agent.mp4', autoplay=False, loop=False)
-
-"""
-## What's next?
-
-When I first started exploring Browser Agents, I expected to hit roadblocks  quickly. But with the right framework, a solid LLM, and the Playwright MCP server (even without screenshot capabilities), you can actually get quite far. This notebook shows some fun and sometimes impressive demos that emerged from that process.
-
-We also want to explore how to move these agents from notebooks to production: deploying in Docker environment, exposing via an API, and integrating into a simple UI. More material on this will come in the future.
-
-Of course, there are use cases where vision capabilities or authentication handling are essential. If you are interested in support for those features, feel free to open a [discussion on GitHub](https://github.com/deepset-ai/haystack/discussions).
-
-*Notebook by [Stefano Fiorucci](https://github.com/anakin87)*
-"""
-logger.info("## What's next?")
-
-logger.info("\n\n[DONE]", bright=True)
+if __name__ == "__main__":
+    main()
