@@ -1,0 +1,102 @@
+from jet.search.playwright import PlaywrightMap
+from jet.file.utils import save_file
+import asyncio
+import os
+import shutil
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(
+        os.path.basename(__file__))[0]
+)
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+def sync_example(url):
+    """Demonstrate synchronous usage of PlaywrightMap."""
+    # Initialize the tool
+    mapper = PlaywrightMap()
+
+    # Example 1: Basic crawl of a website
+    try:
+        result = mapper._run(
+            url=url,
+            max_depth=2,
+            max_breadth=10,
+            limit=20
+        )
+        print("Basic crawl results:")
+        print(f"Base URL: {result['base_url']}")
+        print(f"Found {len(result['results'])} URLs:")
+        for item in result['results']:
+            print(f"- {item['url']}")
+        print(f"Response time: {result['response_time']:.2f} seconds")
+    except Exception as e:
+        print(f"Error in basic crawl: {e}")
+    save_file(result, f"{OUTPUT_DIR}/example_1_result.json")
+
+    # Example 2: Crawl with specific path and category
+    try:
+        result = mapper._run(
+            url=url,
+            max_depth=1,
+            # select_paths=["/blog/.*"],
+            # categories=["Blogs"]
+        )
+        print("\nBlog-specific crawl results:")
+        print(f"Base URL: {result['base_url']}")
+        print(f"Found {len(result['results'])} blog URLs:")
+        for item in result['results']:
+            print(f"- {item['url']}")
+    except Exception as e:
+        print(f"Error in blog crawl: {e}")
+    save_file(result, f"{OUTPUT_DIR}/example_2_result.json")
+
+async def async_example(url):
+    """Demonstrate asynchronous usage of PlaywrightMap."""
+    mapper = PlaywrightMap()
+
+    # Example 3: Async crawl with domain restrictions
+    try:
+        result = await mapper._arun(
+            url=url,
+            max_depth=2,
+            # select_domains=["^example\\.com$"],
+            # exclude_paths=["/admin/.*"],
+            allow_external=False
+        )
+        print("\nAsync crawl results:")
+        print(f"Base URL: {result['base_url']}")
+        print(f"Found {len(result['results'])} URLs:")
+        for item in result['results']:
+            print(f"- {item['url']}")
+        print(f"Response time: {result['response_time']:.2f} seconds")
+    except Exception as e:
+        print(f"Error in async crawl: {e}")
+    save_file(result, f"{OUTPUT_DIR}/example_3_result.json")
+
+    # Example 4: Async crawl with instructions
+    try:
+        result = await mapper._arun(
+            url=url,
+            instructions="API documentation",
+            categories=["Documentation"],
+            limit=15
+        )
+        print("\nAPI documentation crawl results:")
+        print(f"Base URL: {result['base_url']}")
+        print(f"Found {len(result['results'])} documentation URLs:")
+        for item in result['results']:
+            print(f"- {item['url']}")
+    except Exception as e:
+        print(f"Error in documentation crawl: {e}")
+    save_file(result, f"{OUTPUT_DIR}/example_4_result.json")
+
+if __name__ == "__main__":
+    url = "https://docs.tavily.com/documentation/api-reference/endpoint/crawl"
+
+    # Run synchronous examples
+    print("Running synchronous examples...")
+    sync_example(url)
+
+    # Run asynchronous examples
+    print("\nRunning asynchronous examples...")
+    asyncio.run(async_example(url))
