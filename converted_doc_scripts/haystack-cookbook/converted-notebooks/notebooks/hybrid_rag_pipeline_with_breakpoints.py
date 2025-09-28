@@ -12,6 +12,7 @@ from haystack.dataclasses.breakpoints import Breakpoint
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.document_stores.types import DuplicatePolicy
 from haystack.core.errors import BreakpointException
+from haystack.utils.device import ComponentDevice, Device
 from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
 from jet.file.utils import save_file
 from jet.logger import logger
@@ -83,7 +84,11 @@ def indexing():
 
     document_store = InMemoryDocumentStore()
     doc_writer = DocumentWriter(document_store=document_store, policy=DuplicatePolicy.SKIP)
-    doc_embedder = SentenceTransformersDocumentEmbedder(model="intfloat/e5-base-v2", progress_bar=False)
+    doc_embedder = SentenceTransformersDocumentEmbedder(
+        model="intfloat/e5-base-v2",
+        progress_bar=False,
+        device=ComponentDevice.from_single(Device.mps())
+    )
 
     ingestion_pipe = Pipeline()
     ingestion_pipe.add_component(instance=doc_embedder, name="doc_embedder")
@@ -106,7 +111,11 @@ def hybrid_retrieval(doc_store):
     A simple pipeline for hybrid retrieval using BM25 and embeddings.
     """
 
-    query_embedder = SentenceTransformersTextEmbedder(model="intfloat/e5-base-v2", progress_bar=False)
+    query_embedder = SentenceTransformersTextEmbedder(
+        model="intfloat/e5-base-v2",
+        progress_bar=False,
+        device=ComponentDevice.from_single(Device.mps())
+    )
 
     template = [
         ChatMessage.from_system(
@@ -131,7 +140,14 @@ def hybrid_retrieval(doc_store):
     rag_pipeline.add_component(instance=query_embedder, name="query_embedder")
     rag_pipeline.add_component(instance=InMemoryEmbeddingRetriever(document_store=doc_store), name="embedding_retriever")
     rag_pipeline.add_component(instance=DocumentJoiner(sort_by_score=False), name="doc_joiner")
-    rag_pipeline.add_component(instance=TransformersSimilarityRanker(model="intfloat/simlm-msmarco-reranker", top_k=5), name="ranker")
+    rag_pipeline.add_component(
+        instance=TransformersSimilarityRanker(
+            model="intfloat/simlm-msmarco-reranker",
+            top_k=5,
+            device=ComponentDevice.from_single(Device.mps())
+        ),
+        name="ranker"
+    )
     rag_pipeline.add_component(instance=ChatPromptBuilder(template=template, required_variables=["question", "documents"]), name="prompt_builder", )
     rag_pipeline.add_component(instance=OllamaChatGenerator(model="qwen3:4b-q4_K_M"), name="llm")
     rag_pipeline.add_component(instance=AnswerBuilder(), name="answer_builder")
