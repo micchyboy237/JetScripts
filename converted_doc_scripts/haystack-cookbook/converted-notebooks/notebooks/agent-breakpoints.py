@@ -3,15 +3,19 @@ from haystack.components.agents.agent import Agent
 from haystack.components.builders import ChatPromptBuilder
 from haystack.components.converters import HTMLToDocument
 from haystack.components.fetchers import LinkContentFetcher
-from haystack.components.generators.chat import OpenAIChatGenerator
+# from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.core.pipeline.breakpoint import load_pipeline_snapshot
 from haystack.dataclasses import ChatMessage
 from haystack.dataclasses import Document
-from haystack.dataclasses.breakpoints import AgentBreakpoint, Breakpoint, ToolBreakpoint
+from haystack.dataclasses.breakpoints import AgentBreakpoint, Breakpoint
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.tools import tool
+from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
+from jet.file.utils import save_file
 from jet.logger import logger
 from typing import Optional
+from haystack.core.errors import BreakpointException
+import glob
 import os
 import shutil
 
@@ -23,9 +27,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
-
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Breakpoints for Agent in a Pipeline
@@ -40,9 +41,9 @@ logger.info("# Breakpoints for Agent in a Pipeline")
 
 # %%bash
 
-pip install "haystack-ai>=2.16.1"
-pip install "transformers[torch,sentencepiece]"
-pip install "sentence-transformers>=3.0.0"
+# pip install "haystack-ai>=2.16.1"
+# pip install "transformers[torch,sentencepiece]"
+# pip install "sentence-transformers>=3.0.0"
 
 """
 Setup Ollama API key for the `chat_generator`
@@ -68,9 +69,7 @@ logger.info("## Initializations")
 
 
 document_store = InMemoryDocumentStore()
-chat_generator = OpenAIChatGenerator(
-    model="llama3.2",
-)
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M")
 
 @tool
 def add_database_tool(name: str, surname: str, job_title: Optional[str], other: Optional[str]):
@@ -134,17 +133,42 @@ Set the `snapshot_file_path` to indicate where you want to save the file.
 logger.info("## Set up Breakpoints")
 
 
-agent_generator_breakpoint = Breakpoint(component_name="chat_generator", visit_count=0, snapshot_file_path="snapshots/")
+agent_generator_breakpoint = Breakpoint(component_name="chat_generator", visit_count=0, snapshot_file_path=f"{OUTPUT_DIR}/snapshots/")
 agent_breakpoint = AgentBreakpoint(break_point=agent_generator_breakpoint, agent_name='database_agent')
-pipeline_with_agent.run(
-    data={"fetcher": {"urls": ["https://en.wikipedia.org/wiki/Deepset"]}},
-    break_point=agent_breakpoint,
-)
+# pipeline_with_agent.run(
+#     data={"fetcher": {"urls": ["https://en.wikipedia.org/wiki/Deepset"]}},
+#     break_point=agent_breakpoint,
+# )
+logger.info("Warming up component database_agent...")
+try:
+    pipeline_with_agent.run(
+        data={"fetcher": {"urls": ["https://en.wikipedia.org/wiki/Deepset"]}},
+        break_point=agent_breakpoint,
+    )
+except BreakpointException as e:
+    logger.info(f"Breakpoint triggered: {e}")
+    # Find the latest snapshot file
+    snapshot_files = glob.glob(f"{OUTPUT_DIR}/snapshots/database_agent_chat_generator_*.json")
+    if not snapshot_files:
+        logger.error("No snapshot files found in snapshots directory")
+        raise FileNotFoundError("No snapshot files found")
+    latest_snapshot = max(snapshot_files, key=os.path.getctime)
+    logger.info(f"Loading snapshot from: {latest_snapshot}")
+    
+    # Resume pipeline from the snapshot
+    snapshot = load_pipeline_snapshot(latest_snapshot)
+    result = pipeline_with_agent.run(
+        data={},
+        pipeline_snapshot=snapshot
+    )
+    logger.success(result['database_agent']['last_message'].text)
+    save_file(result, f"{OUTPUT_DIR}/result.json")
+    save_file(result["database_agent"]["last_message"].text, f"{OUTPUT_DIR}/results/last_message_database_agent.md")
 
 """
 This will generate a JSON file, named after the agent and component associated with the breakpoint, in the "snapshosts" directory containing a snapshot of the Pipeline where the Agent is running as well as a snapshot of the Agent state at the time of breakpoint.
 """
-logger.info("This will generate a JSON file, named after the agent and component associated with the breakpoint, in the "snapshosts" directory containing a snapshot of the Pipeline where the Agent is running as well as a snapshot of the Agent state at the time of breakpoint.")
+logger.info("This will generate a JSON file, named after the agent and component associated with the breakpoint, in the \"snapshosts\" directory containing a snapshot of the Pipeline where the Agent is running as well as a snapshot of the Agent state at the time of breakpoint.")
 
 # !ls snapshots/database_agent_chat*
 
@@ -153,20 +177,20 @@ We can also place a breakpoint on the `tool` used by the `Agent`. This allows us
 
 To achieve this, we initialize a `ToolBreakpoint` with the name of the target tool, wrap it with an `AgentBreakpoint`, and then run the pipeline with the configured breakpoint.
 """
-logger.info("We can also place a breakpoint on the `tool` used by the `Agent`. This allows us to interrupt the pipeline execution at the point where the `tool` is invoked by the `tool_invoker`.")
+# logger.info("We can also place a breakpoint on the `tool` used by the `Agent`. This allows us to interrupt the pipeline execution at the point where the `tool` is invoked by the `tool_invoker`.")
 
-agent_tool_breakpoint = ToolBreakpoint(component_name="tool_invoker", visit_count=0, tool_name="add_database_tool", snapshot_file_path="snapshots")
-agent_breakpoint = AgentBreakpoint(break_point=agent_tool_breakpoint, agent_name = 'database_agent')
+# agent_tool_breakpoint = ToolBreakpoint(component_name="tool_invoker", visit_count=0, tool_name="add_database_tool", snapshot_file_path=f"{OUTPUT_DIR}/snapshots")
+# agent_breakpoint = AgentBreakpoint(break_point=agent_tool_breakpoint, agent_name = 'database_agent')
 
-pipeline_with_agent.run(
-    data={"fetcher": {"urls": ["https://en.wikipedia.org/wiki/Deepset"]}},
-    break_point=agent_breakpoint,
-)
+# pipeline_with_agent.run(
+#     data={"fetcher": {"urls": ["https://en.wikipedia.org/wiki/Deepset"]}},
+#     break_point=agent_breakpoint,
+# )
 
 """
 Similarly this will also generate a JSON file in the "snapshosts" directory named after the agent's name and the the "tool_invoker" component which handled the tools used by the Agent.
 """
-logger.info("Similarly this will also generate a JSON file in the "snapshosts" directory named after the agent's name and the the "tool_invoker" component which handled the tools used by the Agent.")
+# logger.info("Similarly this will also generate a JSON file in the \"snapshosts\" directory named after the agent's name and the the \"tool_invoker\" component which handled the tools used by the Agent.")
 
 # !ls snapshots/database_agent_tool_invoker*
 
@@ -183,16 +207,22 @@ To do this:
 
 The pipeline will resume execution from where it left off and continue until completion.
 """
-logger.info("## Resuming from a break point")
 
-
-snapshot = load_pipeline_snapshot("snapshots/database_agent_chat_generator_2025_07_26_12_22_11.json")
-
+# Replace the snapshot loading and pipeline resumption section
+logger.info("\n\n## Resuming from a break point")
+snapshot_files = glob.glob(f"{OUTPUT_DIR}/snapshots/database_agent_chat_generator_*.json")
+if not snapshot_files:
+    logger.error("No snapshot files found in snapshots directory")
+    raise FileNotFoundError("No snapshot files found")
+latest_snapshot = max(snapshot_files, key=os.path.getctime)
+logger.info(f"Loading snapshot from: {latest_snapshot}")
+snapshot = load_pipeline_snapshot(latest_snapshot)
 result = pipeline_with_agent.run(
     data={},
     pipeline_snapshot=snapshot
 )
-
-logger.debug(result['database_agent']['last_message'].text)
+logger.success(result['database_agent']['last_message'].text)
+save_file(result, f"{OUTPUT_DIR}/result.json")
+save_file(result["database_agent"]["last_message"].text, f"{OUTPUT_DIR}/results/last_message_database_agent.md")
 
 logger.info("\n\n[DONE]", bright=True)
