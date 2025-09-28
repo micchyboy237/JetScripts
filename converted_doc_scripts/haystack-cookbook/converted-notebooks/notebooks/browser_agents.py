@@ -1,13 +1,16 @@
+# from codecs import ignore_errors
 from IPython.display import display
-from IPython.display import display, Markdown
+from IPython.display import Markdown
 from PIL import Image
 from haystack.components.agents import Agent
 from haystack.components.generators.utils import print_streaming_chunk
 from haystack.dataclasses import ChatMessage
-from haystack_integrations.components.generators.google_genai import GoogleGenAIChatGenerator
+# from haystack_integrations.components.generators.google_genai import GoogleGenAIChatGenerator
 from haystack_integrations.tools.mcp import MCPToolset, StreamableHttpServerInfo
 from io import BytesIO
-from ipywidgets import Video
+# from ipywidgets import Video
+from jet.adapters.haystack.ollama_generator import OllamaGenerator
+from jet.file.utils import save_file
 from jet.logger import logger
 import gdown
 import os
@@ -22,9 +25,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
-
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # 🕵️🌐 Build Browser Agents with Gemini + Playwright MCP
@@ -115,9 +115,7 @@ We also specify some optional parameters:
 logger.info("## Our first Browser Agent with URL navigation")
 
 
-chat_generator = GoogleGenAIChatGenerator(
-    model="gemini-2.5-flash",
-)
+chat_generator = OllamaGenerator(model="qwen3:4b-q4_K_M")
 
 system_message = """
 You are an intelligent assistant equipped with tools for navigating the web.
@@ -333,7 +331,7 @@ result = agent.run(messages=[ChatMessage.from_user(prompt)])
 
 response = requests.get(result["last_message"].text)
 image = Image.open(BytesIO(response.content))
-display(image)
+save_file(image, f"{OUTPUT_DIR}/images/image.png")
 
 """
 🏞️ Impressive!
@@ -345,9 +343,11 @@ logger.info("The video below demonstrates a similar local setup. It's fascinatin
 
 url = "https://drive.google.com/drive/folders/1HyPdNxpzi3svmPVYGXak7mqAjVWztwsH"
 
-gdown.download_folder(url, quiet=True, output=".")
+downloads_dir = f"{OUTPUT_DIR}/downloads"
+os.makedirs(downloads_dir, ignore_errors=True)
+gdown.download_folder(url, quiet=True, output=downloads_dir)
 
-Video.from_file('/content/browser_agent.mp4', autoplay=False, loop=False)
+# Video.from_file('/content/browser_agent.mp4', autoplay=False, loop=False)
 
 """
 ## What's next?
