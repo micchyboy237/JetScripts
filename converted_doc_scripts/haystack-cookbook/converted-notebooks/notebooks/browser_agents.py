@@ -1,5 +1,5 @@
 # from codecs import ignore_errors
-from IPython.display import display
+# from IPython.display import display
 from IPython.display import Markdown
 from PIL import Image
 from haystack.components.agents import Agent
@@ -115,7 +115,7 @@ We also specify some optional parameters:
 logger.info("## Our first Browser Agent with URL navigation")
 
 
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M")
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_1")
 
 system_message = """
 You are an intelligent assistant equipped with tools for navigating the web.
@@ -159,6 +159,8 @@ messages = [
 ]
 result = agent.run(messages=messages)
 
+save_file(Markdown(result["last_message"].text), f"{OUTPUT_DIR}/results/last_message_agent_1.md")
+
 """
 ## Browser Agent with URL navigation + accessibility snapshot
 
@@ -171,6 +173,8 @@ Let's rebuild our agent.
 logger.info("## Browser Agent with URL navigation + accessibility snapshot")
 
 toolset = MCPToolset(server_info=server_info, tool_names=["browser_navigate", "browser_snapshot"])
+
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_2")
 
 agent = Agent(
         chat_generator=chat_generator,
@@ -196,8 +200,8 @@ messages = [ChatMessage.from_user("""
 ]
 result = agent.run(messages=messages)
 
-
-display(Markdown(result["last_message"].text))
+# display(Markdown(result["last_message"].text))
+save_file(Markdown(result["last_message"].text), f"{OUTPUT_DIR}/results/last_message_agent_2.md")
 
 """
 Definitely not bad!
@@ -232,6 +236,8 @@ toolset = MCPToolset(server_info=server_info,
                                  "browser_navigate_back","browser_wait_for",
                                 ])
 
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_3")
+
 agent = Agent(
         chat_generator=chat_generator,
         tools=toolset,
@@ -260,7 +266,8 @@ prompt="""
 result = agent.run(messages=[ChatMessage.from_user(prompt)])
 
 
-display(Markdown(result["last_message"].text))
+# display(Markdown(result["last_message"].text))
+save_file(Markdown(result["last_message"].text), f"{OUTPUT_DIR}/results/last_message_agent_3.md")
 
 """
 ### 🖥️ GitHub exploration
