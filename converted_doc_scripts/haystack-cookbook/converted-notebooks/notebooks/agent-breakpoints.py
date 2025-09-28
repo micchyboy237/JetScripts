@@ -221,7 +221,7 @@ result = pipeline_with_agent.run(
     data={},
     pipeline_snapshot=snapshot
 )
-logger.success(result['database_agent']['last_message'].text)
+logger.debug(result['database_agent']['last_message'].text)
 save_file(result, f"{OUTPUT_DIR}/result.json")
 save_file(result["database_agent"]["last_message"].text, f"{OUTPUT_DIR}/results/last_message_database_agent.md")
 

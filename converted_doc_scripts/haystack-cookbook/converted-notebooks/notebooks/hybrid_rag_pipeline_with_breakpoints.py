@@ -1,7 +1,7 @@
 from haystack import Document, Pipeline
 from haystack.components.builders import AnswerBuilder, ChatPromptBuilder
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
-from haystack.components.generators.chat import OpenAIChatGenerator
+# from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.joiners import DocumentJoiner
 from haystack.components.rankers import TransformersSimilarityRanker
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever, InMemoryEmbeddingRetriever
@@ -11,6 +11,8 @@ from haystack.dataclasses import ChatMessage
 from haystack.dataclasses.breakpoints import Breakpoint
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.document_stores.types import DuplicatePolicy
+from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
+from jet.file.utils import save_file
 from jet.logger import logger
 import os
 import shutil
@@ -23,9 +25,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
-
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # Hybrid RAG Pipeline with Breakpoints
@@ -132,7 +131,7 @@ def hybrid_retrieval(doc_store):
     rag_pipeline.add_component(instance=DocumentJoiner(sort_by_score=False), name="doc_joiner")
     rag_pipeline.add_component(instance=TransformersSimilarityRanker(model="intfloat/simlm-msmarco-reranker", top_k=5), name="ranker")
     rag_pipeline.add_component(instance=ChatPromptBuilder(template=template, required_variables=["question", "documents"]), name="prompt_builder", )
-    rag_pipeline.add_component(instance=OpenAIChatGenerator(), name="llm")
+    rag_pipeline.add_component(instance=OllamaChatGenerator(model="qwen3:4b-q4_K_M"), name="llm")
     rag_pipeline.add_component(instance=AnswerBuilder(), name="answer_builder")
 
     rag_pipeline.connect("query_embedder", "embedding_retriever.query_embedding")
@@ -250,5 +249,7 @@ logger.info("Now we just load the snapshot file and resume the pipeline with the
 snapshot = load_pipeline_snapshot("snapshots/prompt_builder_2025_07_26_13_01_23.json")
 result = pipeline.run(data={}, pipeline_snapshot=snapshot)
 logger.debug(result['answer_builder']['answers'][0].data)
+save_file(result, f"{OUTPUT_DIR}/result.json")
+save_file(result['answer_builder']['answers'][0].data, f"{OUTPUT_DIR}/results/answers.json")
 
 logger.info("\n\n[DONE]", bright=True)
