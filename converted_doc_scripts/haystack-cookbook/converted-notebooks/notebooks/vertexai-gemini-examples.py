@@ -73,7 +73,7 @@ To find your project ID you can find it in the [GCP resource manager](https://co
 """
 logger.info("Remember to set the `project_id` variable to a valid project ID that you have enough authorization to use for Gemini.")
 
-project_id = input("Enter your project ID:")
+# project_id = input("Enter your project ID:")
 
 """
 ## Use `gemini-2.5-flash`
@@ -85,7 +85,7 @@ Now that we setup everything we can create an instance of our [`GoogleGenAIChatG
 logger.info("## Use `gemini-2.5-flash`")
 
 
-gemini = OllamaChatGenerator(model="qwen3:4b-q4_K_M")
+gemini = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_1")
 
 """
 Let's start by asking something simple.
@@ -180,7 +180,7 @@ fetcher = LinkContentFetcher()
 converter = HTMLToDocument()
 document_splitter = DocumentSplitter(split_by="word", split_length=50)
 similarity_ranker = SentenceTransformersSimilarityRanker(top_k=3)
-gemini = GoogleGenAIChatGenerator(model="gemini-2.5-flash", api="vertex", vertex_ai_project=project_id, vertex_ai_location="europe-west1")
+gemini = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="Agent_2")
 
 prompt_template = [ChatMessage.from_user("""
 According to these documents:
