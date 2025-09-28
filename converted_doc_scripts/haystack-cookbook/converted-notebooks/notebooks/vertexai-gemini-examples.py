@@ -25,9 +25,6 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
-
 """
 # Haystack 💙 Google Gemini
 
