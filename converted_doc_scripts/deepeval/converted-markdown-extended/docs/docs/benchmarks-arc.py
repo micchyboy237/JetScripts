@@ -1,6 +1,6 @@
 from deepeval.benchmarks import ARC
 from deepeval.benchmarks.modes import ARCMode
-from deepeval.models import OllamaModel
+from jet.adapters.haystack.deepeval.ollama_model import OllamaModel
 from jet.logger import logger
 import os
 import shutil
