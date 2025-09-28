@@ -4,8 +4,9 @@ from haystack.components.builders import ChatPromptBuilder
 from haystack.components.retrievers.in_memory import InMemoryBM25Retriever
 from haystack.dataclasses import ChatMessage
 from haystack.document_stores.in_memory import InMemoryDocumentStore
-from haystack_experimental.components.generators.chat.openai import OpenAIChatGenerator
+# from haystack_experimental.components.generators.chat.openai import OpenAIChatGenerator
 from haystack_experimental.utils.hallucination_risk_calculator.dataclasses import HallucinationScoreConfig
+from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
 from jet.logger import logger
 import os
 import shutil
@@ -54,7 +55,7 @@ logger.info("## Closed Book Example")
 
 
 
-llm = OpenAIChatGenerator(model="llama3.2")
+llm = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="closed_book_agent")
 
 closed_book_result = llm.run(
     messages=[ChatMessage.from_user(text="Who won the 2019 Nobel Prize in Physics?")],
@@ -75,7 +76,7 @@ logger.info("## Evidence-based Example")
 
 
 
-llm = OpenAIChatGenerator(model="llama3.2")
+llm = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="rag_agent")
 
 rag_result = llm.run(
     messages=[
@@ -134,7 +135,7 @@ pipe.add_component(
     "prompt_builder",
     ChatPromptBuilder(template=[ChatMessage.from_user(user_template)], required_variables="*")
 )
-pipe.add_component("llm", OpenAIChatGenerator(model="llama3.2"))
+pipe.add_component("llm", OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="hallucination_eval_agent"))
 
 pipe.connect("retriever.documents", "prompt_builder.documents")
 pipe.connect("prompt_builder.prompt", "llm.messages")
