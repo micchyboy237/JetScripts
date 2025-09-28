@@ -273,7 +273,7 @@ except BreakpointException as e:
     result = pipeline.run(data={}, pipeline_snapshot=snapshot)
     answers = result['answer_builder']['answers']
     answers_str = "\n\n".join(
-        f"## Answer {i+1}\n{answer['data']}" for i, answer in enumerate(answers)
+        f"## Answer {i+1}\n{answer.data}" for i, answer in enumerate(answers)
     )
     logger.debug(answers_str)
     save_file(result, f"{OUTPUT_DIR}/result1.json")
@@ -312,7 +312,7 @@ snapshot = load_pipeline_snapshot(latest_snapshot)
 result = pipeline.run(data={}, pipeline_snapshot=snapshot)
 answers = result['answer_builder']['answers']
 answers_str = "\n\n".join(
-    f"## Answer {i+1}\n{answer['data']}" for i, answer in enumerate(answers)
+    f"## Answer {i+1}\n{answer.data}" for i, answer in enumerate(answers)
 )
 logger.debug(answers_str)
 save_file(result, f"{OUTPUT_DIR}/result2.json")
