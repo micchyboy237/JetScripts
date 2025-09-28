@@ -9,7 +9,7 @@ from haystack.dataclasses import ChatMessage
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack_integrations.components.evaluators.deepeval import DeepEvalEvaluator, DeepEvalMetric
 from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
-from jet.adapters.haystack.deepeval.ollama_model import OllamaModel
+from deepeval.models import OllamaModel
 from jet.logger import logger
 import os
 import shutil

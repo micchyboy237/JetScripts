@@ -3,7 +3,7 @@ import shutil
 
 from deepeval.metrics import ContextualRelevancyMetric
 from deepeval.test_case import LLMTestCase
-from jet.adapters.haystack.deepeval.ollama_model import OllamaModel
+from deepeval.models import OllamaModel
 from jet.file.utils import save_file
 
 OUTPUT_DIR = os.path.join(
