@@ -1,100 +1,133 @@
-from jet.search.playwright import PlaywrightSearch
+from jet.logger import logger
+from jet.transformers.formatters import format_json
+from jet.search.playwright.playwright_search import PlaywrightSearch
+from typing import Dict, Any
 from jet.file.utils import save_file
 import asyncio
 import os
 import shutil
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(
-        os.path.basename(__file__))[0]
-)
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
 
-def sync_example(query):
-    """Demonstrate synchronous usage of PlaywrightSearch."""
-    searcher = PlaywrightSearch()
-    try:
-        result = searcher._run(
-            query=query,
-            max_results=5,
-            search_depth="basic",
-            include_images=False,
-            topic="general",
-            include_favicon=False
-        )
-        print("Basic search results:")
-        print(f"Query: {result['query']}")
-        print(f"Found {len(result['results'])} results:")
-        for item in result['results']:
-            print(f"- {item['title']} ({item['url']})")
-        print(f"Response time: {result['response_time']:.2f} seconds")
-        save_file(result, f"{OUTPUT_DIR}/example_1_result.json")
-    except Exception as e:
-        print(f"Error in basic search: {e}")
+async def search_ai_news(query: str) -> Dict[str, Any]:
+    """
+    Search for recent AI news from trusted domains.
+    Args:
+        query: The search query to execute.
+    Returns:
+        Dictionary containing search results, images, and response time.
+    """
+    searcher = PlaywrightSearch(
+        max_results=5,
+        search_depth="advanced",
+        include_domains=["arstechnica.com", "techcrunch.com"],
+        exclude_domains=["twitter.com"],
+        time_range="month",
+        include_images=True,
+        topic="general",
+        include_answer=True,
+        include_raw_content="markdown"
+    )
+    return await searcher._arun(query=query)
 
-    try:
-        result = searcher._run(
-            query=query,
-            max_results=3,
-            search_depth="advanced",
-            include_images=True,
-            topic="news",
-            include_favicon=True
-        )
-        print("\nAdvanced search results:")
-        print(f"Query: {result['query']}")
-        print(f"Found {len(result['results'])} results:")
-        for item in result['results']:
-            print(f"- {item['title']} ({item['url']}, Images: {len(item['images'])}, Favicon: {item['favicon']})")
-        save_file(result, f"{OUTPUT_DIR}/example_2_result.json")
-    except Exception as e:
-        print(f"Error in advanced search: {e}")
+async def search_finance_updates(query: str) -> Dict[str, Any]:
+    """
+    Search for recent finance updates with date range.
+    Args:
+        query: The search query to execute.
+    Returns:
+        Dictionary containing search results, images, and response time.
+    """
+    searcher = PlaywrightSearch(
+        max_results=3,
+        search_depth="basic",
+        include_domains=["bloomberg.com", "wsj.com"],
+        time_range="week",
+        topic="finance",
+        include_images=False,
+        include_answer="basic",
+        include_raw_content="text",
+        start_date="2025-09-01",
+        end_date="2025-09-28"
+    )
+    return await searcher._arun(query=query)
 
-async def async_example(query):
-    """Demonstrate asynchronous usage of PlaywrightSearch."""
-    searcher = PlaywrightSearch()
-    try:
-        result = await searcher._arun(
-            query=query,
-            max_results=5,
-            search_depth="basic",
-            include_domains=["example.com"],
-            include_images=False,
-            topic="general",
-            include_favicon=True
-        )
-        print("\nAsync basic search results:")
-        print(f"Query: {result['query']}")
-        print(f"Found {len(result['results'])} results:")
-        for item in result['results']:
-            print(f"- {item['title']} ({item['url']}, Favicon: {item['favicon']})")
-        print(f"Response time: {result['response_time']:.2f} seconds")
-        save_file(result, f"{OUTPUT_DIR}/example_3_result.json")
-    except Exception as e:
-        print(f"Error in async basic search: {e}")
+def sync_search_example(query: str) -> Dict[str, Any]:
+    """
+    Demonstrate synchronous usage of PlaywrightSearch.
+    Args:
+        query: The search query to execute.
+    Returns:
+        Dictionary containing search results, images, and response time.
+    """
+    searcher = PlaywrightSearch(
+        max_results=4,
+        search_depth="basic",
+        include_images=True,
+        include_favicon=True,
+        topic="news"
+    )
+    result = searcher._run(query=query)
+    logger.gray("Synchronous search result:")
+    logger.success(format_json(result))
+    save_file(result, f"{OUTPUT_DIR}/sync_result.json")
+    return result
 
-    try:
-        result = await searcher._arun(
-            query=query,
-            max_results=3,
-            search_depth="advanced",
-            exclude_domains=["wikipedia.org"],
-            include_images=True,
-            topic="finance",
-            include_favicon=False
-        )
-        print("\nAsync advanced search results:")
-        print(f"Query: {result['query']}")
-        print(f"Found {len(result['results'])} results:")
-        for item in result['results']:
-            print(f"- {item['title']} ({item['url']}, Images: {len(item['images'])})")
-        save_file(result, f"{OUTPUT_DIR}/example_4_result.json")
-    except Exception as e:
-        print(f"Error in async advanced search: {e}")
+async def async_search_example(query: str) -> Dict[str, Any]:
+    """
+    Demonstrate asynchronous usage of PlaywrightSearch.
+    Args:
+        query: The search query to execute.
+    Returns:
+        Dictionary containing search results, images, and response time.
+    """
+    searcher = PlaywrightSearch(
+        max_results=5,
+        search_depth="advanced",
+        include_domains=["theverge.com"],
+        include_images=True,
+        include_favicon=False,
+        topic="general",
+        include_answer="advanced",
+        include_raw_content="markdown"
+    )
+    result = await searcher._arun(query=query)
+    logger.gray("Asynchronous search result:")
+    logger.success(format_json(result))
+    save_file(result, f"{OUTPUT_DIR}/async_result.json")
+    return result
 
 if __name__ == "__main__":
     query = "recent advancements in AI 2025"
-    print("Running synchronous examples...")
-    sync_example(query)
-    print("\nRunning asynchronous examples...")
-    asyncio.run(async_example(query))
+    
+    # Synchronous example
+    print("Running synchronous search example...")
+    sync_search_result = sync_search_example(query)
+    print(f"Found {len(sync_search_result['results'])} results")
+    print(f"Response time: {sync_search_result['response_time']:.2f} seconds")
+    
+    # Asynchronous examples
+    print("\nRunning asynchronous search examples...")
+    async def run_async_examples():
+        ai_news_result = await search_ai_news(query)
+        print(f"AI news search found {len(ai_news_result['results'])} results")
+        print(f"Response time: {ai_news_result['response_time']:.2f} seconds")
+        save_file(ai_news_result, f"{OUTPUT_DIR}/ai_news_result.json")
+        
+        finance_query = "stock market trends 2025"
+        finance_result = await search_finance_updates(finance_query)
+        print(f"Finance search found {len(finance_result['results'])} results")
+        print(f"Response time: {finance_result['response_time']:.2f} seconds")
+        save_file(finance_result, f"{OUTPUT_DIR}/finance_result.json")
+        
+        async_result = await async_search_example(query)
+        print(f"Async example search found {len(async_result['results'])} results")
+        print(f"Response time: {async_result['response_time']:.2f} seconds")
+    
+    asyncio.run(run_async_examples())
