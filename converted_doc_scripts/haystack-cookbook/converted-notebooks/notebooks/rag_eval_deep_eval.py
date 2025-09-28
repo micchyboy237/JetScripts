@@ -91,7 +91,7 @@ Answer:
 """
 )
 chat_prompt_builder = ChatPromptBuilder(template=[chat_message], required_variables="*")
-chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M")
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M", agent_name="rag_agent")
 
 """
 **Build the RAG pipeline**
@@ -210,7 +210,7 @@ context_precision_pipeline = Pipeline()
 evaluator = DeepEvalEvaluator(
     metric=DeepEvalMetric.CONTEXTUAL_PRECISION,
     metric_params={
-        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False),
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False, agent_name="context_precision_agent"),
     },
 )
 context_precision_pipeline.add_component("evaluator", evaluator)
@@ -232,7 +232,7 @@ context_recall_pipeline = Pipeline()
 evaluator = DeepEvalEvaluator(
     metric=DeepEvalMetric.CONTEXTUAL_RECALL,
     metric_params={
-        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False),
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False, agent_name="context_recall_agent"),
     },
 )
 context_recall_pipeline.add_component("evaluator", evaluator)
@@ -254,7 +254,7 @@ context_relevancy_pipeline = Pipeline()
 evaluator = DeepEvalEvaluator(
     metric=DeepEvalMetric.CONTEXTUAL_RELEVANCE,
     metric_params={
-        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False),
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False, agent_name="context_relevancy_agent"),
     },
 )
 context_relevancy_pipeline.add_component("evaluator", evaluator)
@@ -276,7 +276,7 @@ answer_relevancy_pipeline = Pipeline()
 evaluator = DeepEvalEvaluator(
     metric=DeepEvalMetric.ANSWER_RELEVANCY,
     metric_params={
-        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False),
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False, agent_name="answer_relevancy_agent"),
     },
 )
 answer_relevancy_pipeline.add_component("evaluator", evaluator)
@@ -298,7 +298,7 @@ faithfulness_pipeline = Pipeline()
 evaluator = DeepEvalEvaluator(
     metric=DeepEvalMetric.FAITHFULNESS,
     metric_params={
-        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False),
+        "model": OllamaModel(model="qwen3:4b-q4_K_M", temperature=0.0, verbose=False, agent_name="faithfulness_agent"),
     },
  )
 faithfulness_pipeline.add_component("evaluator", evaluator)
