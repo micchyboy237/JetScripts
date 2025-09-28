@@ -2,9 +2,10 @@ from haystack import Document
 from haystack import Pipeline
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 from haystack.components.extractors.llm_metadata_extractor import LLMMetadataExtractor
-from haystack.components.generators.chat import OpenAIChatGenerator
+# from haystack.components.generators.chat import OpenAIChatGenerator
 from haystack.components.writers import DocumentWriter
 from haystack.document_stores.in_memory import InMemoryDocumentStore
+from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
 from jet.logger import logger
 import os
 import shutil
@@ -17,9 +18,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
-
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
 # LLMMetaDataExtractor: seamless metadata extraction from documents with just a prompt
@@ -98,17 +96,18 @@ We will instatiate a `LLMMetadataExtractor` instance using the Ollama as LLM pro
 
 Another important aspect is the `raise_on_failure=False`, if for some document the LLM fails (e.g.: network error, or doesn't return a valid JSON object) we continue the processing of all the documents in the input.
 """
-logger.info("We will instatiate a `LLMMetadataExtractor` instance using the Ollama as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case "entities".")
+logger.info("We will instatiate a `LLMMetadataExtractor` instance using the Ollama as LLM provider. Notice that the parameter `prompt` is set to the prompt we defined above, and that we also need to set which keys should be present in the JSON ouput, in this case \"entities\".")
 
 
-chat_generator = OpenAIChatGenerator(
+chat_generator = OllamaChatGenerator(
+    model="qwen3:4b-q4_K_M",
     generation_kwargs={
         "max_tokens": 500,
         "temperature": 0.0,
         "seed": 0,
         "response_format": {"type": "json_object"},
     },
-    max_retries=1,
+    # max_retries=1,
     timeout=60.0,
 )
 
