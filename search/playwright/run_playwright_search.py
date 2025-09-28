@@ -93,7 +93,7 @@ async def async_example(query):
         print(f"Error in async advanced search: {e}")
 
 if __name__ == "__main__":
-    query = "latest AI developments"
+    query = "recent advancements in AI 2025"
     print("Running synchronous examples...")
     sync_example(query)
     print("\nRunning asynchronous examples...")

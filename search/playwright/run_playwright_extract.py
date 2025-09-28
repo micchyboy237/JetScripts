@@ -84,8 +84,7 @@ async def async_example(urls):
 
 if __name__ == "__main__":
     urls = [
-        "https://docs.tavily.com/documentation/api-reference/endpoint/extract",
-        "https://example.com"
+        "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
     print("Running synchronous examples...")
     sync_example(urls)
