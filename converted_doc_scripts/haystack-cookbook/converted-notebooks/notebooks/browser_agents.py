@@ -9,7 +9,7 @@ from haystack.dataclasses import ChatMessage
 from haystack_integrations.tools.mcp import MCPToolset, StreamableHttpServerInfo
 from io import BytesIO
 # from ipywidgets import Video
-from jet.adapters.haystack.ollama_generator import OllamaGenerator
+from jet.adapters.haystack.ollama_chat_generator import OllamaChatGenerator
 from jet.file.utils import save_file
 from jet.logger import logger
 import gdown
@@ -115,7 +115,7 @@ We also specify some optional parameters:
 logger.info("## Our first Browser Agent with URL navigation")
 
 
-chat_generator = OllamaGenerator(model="qwen3:4b-q4_K_M")
+chat_generator = OllamaChatGenerator(model="qwen3:4b-q4_K_M")
 
 system_message = """
 You are an intelligent assistant equipped with tools for navigating the web.
