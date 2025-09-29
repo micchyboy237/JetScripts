@@ -25,7 +25,7 @@ load_dotenv()
 
 logger.info("### Setting Up Your Playwright Tools")
 
-search = PlaywrightSearch(max_results=10, topic="general")
+search = PlaywrightSearch(max_results=5, topic="general")
 extract = PlaywrightExtract(extract_depth="advanced")
 crawl = PlaywrightCrawl()
 map = PlaywrightMap()
