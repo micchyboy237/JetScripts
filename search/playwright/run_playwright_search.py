@@ -112,22 +112,22 @@ if __name__ == "__main__":
     print(f"Found {len(sync_search_result['results'])} results")
     print(f"Response time: {sync_search_result['response_time']:.2f} seconds")
     
-    # Asynchronous examples
-    print("\nRunning asynchronous search examples...")
-    async def run_async_examples():
-        ai_news_result = await search_ai_news(query)
-        print(f"AI news search found {len(ai_news_result['results'])} results")
-        print(f"Response time: {ai_news_result['response_time']:.2f} seconds")
-        save_file(ai_news_result, f"{OUTPUT_DIR}/ai_news_result.json")
+    # # Asynchronous examples
+    # print("\nRunning asynchronous search examples...")
+    # async def run_async_examples():
+    #     ai_news_result = await search_ai_news(query)
+    #     print(f"AI news search found {len(ai_news_result['results'])} results")
+    #     print(f"Response time: {ai_news_result['response_time']:.2f} seconds")
+    #     save_file(ai_news_result, f"{OUTPUT_DIR}/ai_news_result.json")
         
-        finance_query = "stock market trends 2025"
-        finance_result = await search_finance_updates(finance_query)
-        print(f"Finance search found {len(finance_result['results'])} results")
-        print(f"Response time: {finance_result['response_time']:.2f} seconds")
-        save_file(finance_result, f"{OUTPUT_DIR}/finance_result.json")
+    #     finance_query = "stock market trends 2025"
+    #     finance_result = await search_finance_updates(finance_query)
+    #     print(f"Finance search found {len(finance_result['results'])} results")
+    #     print(f"Response time: {finance_result['response_time']:.2f} seconds")
+    #     save_file(finance_result, f"{OUTPUT_DIR}/finance_result.json")
         
-        async_result = await async_search_example(query)
-        print(f"Async example search found {len(async_result['results'])} results")
-        print(f"Response time: {async_result['response_time']:.2f} seconds")
+    #     async_result = await async_search_example(query)
+    #     print(f"Async example search found {len(async_result['results'])} results")
+    #     print(f"Response time: {async_result['response_time']:.2f} seconds")
     
-    asyncio.run(run_async_examples())
+    # asyncio.run(run_async_examples())
