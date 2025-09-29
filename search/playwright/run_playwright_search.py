@@ -29,7 +29,8 @@ async def search_ai_news(query: str) -> Dict[str, Any]:
         include_domains=["arstechnica.com", "techcrunch.com"],
         exclude_domains=["twitter.com"],
         time_range="month",
-        include_images=True,
+        include_images=False,
+        include_image_descriptions=True,
         topic="general",
         include_answer=True,
         include_raw_content="markdown"
@@ -51,6 +52,7 @@ async def search_finance_updates(query: str) -> Dict[str, Any]:
         time_range="week",
         topic="finance",
         include_images=False,
+        include_image_descriptions=True,
         include_answer="basic",
         include_raw_content="text",
         start_date="2025-09-01",
@@ -69,7 +71,8 @@ def sync_search_example(query: str) -> Dict[str, Any]:
     searcher = PlaywrightSearch(
         max_results=4,
         search_depth="basic",
-        include_images=True,
+        include_images=False,
+        include_image_descriptions=True,
         include_favicon=True,
         topic="news"
     )
@@ -91,7 +94,8 @@ async def async_search_example(query: str) -> Dict[str, Any]:
         max_results=5,
         search_depth="advanced",
         include_domains=["theverge.com"],
-        include_images=True,
+        include_images=False,
+        include_image_descriptions=True,
         include_favicon=False,
         topic="general",
         include_answer="advanced",
