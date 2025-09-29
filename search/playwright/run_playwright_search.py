@@ -70,7 +70,7 @@ def sync_search_example(query: str) -> Dict[str, Any]:
         max_results=4,
         search_depth="basic",
         include_images=False,
-        include_favicon=True,
+        include_favicon=False,
         topic="news"
     )
     result = searcher._run(query=query)
