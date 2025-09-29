@@ -23,7 +23,7 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
+PERSIST_DIR = f"{OUTPUT_DIR}/supplemental/db"
 os.makedirs(PERSIST_DIR, exist_ok=True)
 
 """
@@ -117,7 +117,7 @@ embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vector_store = Chroma(
     collection_name="crm",  # replace with "my_custom_index" for custom documents option
     embedding_function=embeddings,
-    persist_directory="supplemental/db",
+    persist_directory=PERSIST_DIR,
 )
 
 """

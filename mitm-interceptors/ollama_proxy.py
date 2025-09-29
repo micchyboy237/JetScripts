@@ -428,6 +428,8 @@ def request(flow: http.HTTPFlow):
         tools = request_content.get("tools", None)
         options = request_content.pop("options", {})
 
+        model_max_length = OLLAMA_MODEL_CONTEXTS[request_content['model']]
+
         logger.newline()
         logger.gray("REQUEST MESSAGES:")
         logger.info(format_json(messages) if not isinstance(
@@ -486,6 +488,7 @@ def request(flow: http.HTTPFlow):
         logger.log("MODEL:", request_content.get(
             "model", request_dict.get("model", None)), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
+        logger.log("MAX TOKENS:", model_max_length, colors=["GRAY", "INFO"])
         logger.newline()
 
     elif any(path in flow.request.path for path in ["/generate"]):
@@ -522,6 +525,8 @@ def request(flow: http.HTTPFlow):
         request_content: dict = request_dict["content"].copy()
         prompt = request_content.pop("prompt", None)
         options = request_content.pop("options", {})
+
+        model_max_length = OLLAMA_MODEL_CONTEXTS[request_content['model']]
 
         logger.gray("REQUEST PROMPT:")
         logger.info(prompt)
@@ -565,6 +570,7 @@ def request(flow: http.HTTPFlow):
         logger.log("MODEL:", request_content.get(
             "model", request_dict.get("model", None)), colors=["GRAY", "INFO"])
         logger.log("PROMPT TOKENS:", token_count, colors=["GRAY", "INFO"])
+        logger.log("MAX TOKENS:", model_max_length, colors=["GRAY", "INFO"])
         logger.newline()
 
     else:
