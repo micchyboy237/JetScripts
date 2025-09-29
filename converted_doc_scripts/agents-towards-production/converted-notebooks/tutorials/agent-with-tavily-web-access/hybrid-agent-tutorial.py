@@ -159,7 +159,7 @@ vector_search_tool = retriever.as_tool(
     """,
 )
 
-search = PlaywrightSearch(max_results=10, topic="general")
+search = PlaywrightSearch(max_results=5, topic="general")
 extract = PlaywrightExtract(extract_depth="advanced")
 crawl = PlaywrightCrawl()
 map = PlaywrightMap()

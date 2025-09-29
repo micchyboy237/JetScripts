@@ -21,45 +21,45 @@ if __name__ == "__main__":
     # model_name: EmbedModelType = "static-retrieval-mrl-en-v1"
     # Same example queries
     queries = [
-        "robotics use case",
+        "Top 10 isekai anime 2025 with release date, synopsis, number of episode, airing status",
     ]
 
     search_engine = VectorSearch(model_name, truncate_dim=dimensions)
 
     # Same sample documents
     sample_docs = [
-        "Developers can now use Toolbox from their preferred IDE, such as Cursor, Windsurf, Claude Desktop, more and leverage our new pre-built tools such as execute\\_sql and list\\_tables for AI-assisted development with Cloud SQL for PostgreSQL, AlloyDB and self-managed PostgreSQL.",
-        "+ Get Started with [MCP Toolbox for Databases](https://googleapis.github.io/genai-toolbox/getting-started/mcp_quickstart/)\n\n### Apr 28 - May 2\n\n* **Itching to build AI agents?",
-        "Join the Agent Development Kit Hackathon with Google Cloud!",
-        "** Use ADK to build multi-agent systems to solve challenges around complex processes, customer engagement, content creation, and more.",
-        "Compete for over $50,000 in prizes and demonstrate the power of multi-agent systems with ADK and Google Cloud.",
-        "+ Submissions are open from May 12, 2025 to June 23, 2025.",
-        "+ Learn more and register [here](http://googlecloudmultiagents.devpost.com/).",
-        "### Apr 21 - Apr 25\n\n* **Iceland's Magic: Reliving Solo Adventure through Gemini**Embark on a journey through Iceland's stunning landscapes, as experienced on Gauti's Icelandic solo trip.",
-        "From majestic waterfalls to the enchanting Northern Lights, Gautami then takes these cherished memories a step further, using Google's multi-modal AI, specifically Veo2, to bring static photos to life.",
-        "Discover how technology can enhance and dynamically relive travel experiences, turning precious moments into immersive short videos.",
-        "This innovative approach showcases the power of AI in preserving and enriching our memories from Gauti's unforgettable Icelandic travels.",
-        "[Read more](https://medium.com/@gautami_nadkarni_cloud/icelands-magic-reliving-my-solo-adventure-through-gemini-ai-d61470b9945c).",
-        "* **Introducing ETLC - A Context-First Approach to Data Processing in the Generative AI Era:** As organizations adopt generative AI, data pipelines often lack the dynamic context needed.",
-        "This paper introduces ETLC (Extract, Transform, Load, Contextualize), adding semantic, relational, operational, environmental, and behavioral context.",
-        "ETLC enables Dynamic Context Engines for context-aware RAG, AI co-pilots, and agentic systems.",
-        "It works with standards like the Model Context Protocol (MCP) for effective context delivery, ensuring business-specific AI outputs.",
-        "[Read the full paper](https://services.google.com/fh/files/blogs/etlc_full_paper.pdf).",
-        "### Apr 14 - Apr 18\n\n* **What's new in Database Center**  \n  With general availability, [Database Center](https://cloud.google.com/database-center/docs/overview) now provides enhanced performance and health monitoring for all Google Cloud databases, including Cloud SQL, AlloyDB, Spanner, Bigtable, Memorystore, and Firestore.",
-        "It delivers richer metrics and actionable recommendations, helps you to optimize database performance and reliability, and customize your experience.",
-        "Database Center also leverages Gemini to deliver assistive performance troubleshooting experience.",
-        "Finally, you can track the weekly progress of your database inventory and health issues.",
-        "Get started with Database Center today\n\n  + [Access Database Center in Google Cloud console](https://console.cloud.google.com/database-center)\n  + [Review the documentation to learn more](https://cloud.google.com/database-center/docs/overview)\n\n### Apr 7 - Apr 11\n\n* This week, at Google Cloud Next, we announced an expansion of Bigtable's SQL capabilities and introduced continuous materialized views.",
-        "Bigtable SQL and continuous materialized views empower users to build fully-managed, real-time application backends using familiar SQL syntax, including specialized features that preserve Bigtable's flexible schema -- a vital aspect of real-time applications.",
-        "Read more in this [blog](https://cloud.google.com/blog/products/databases/accelerate-your-analytics-with-new-bigtable-sql-capabilities).",
-        "* **DORA Report Goes Global: Now Available in 9 Languages!",
-        "**Unlock the power of DevOps insights with the DORA report, now available in 9 languages, including Chinese, French, Japanese, Korean, Portuguese, and Spanish.",
-        "Global teams can now optimize their practices, benchmark performance, and gain localized insights to accelerate software delivery.",
-        "The report highlights the significant impact of AI on software development, explores platform engineering's promises and challenges, and emphasizes user-centricity and stable priorities for organizational success.",
-        "[Download the DORA Report Now](https://cloud.google.com/devops/state-of-devops)\n* **New Google Cloud State of AI Infrastructure Report Released**Is your infrastructure ready for AI?",
-        "The 2025 State of AI Infrastructure Report is here, packed with insights from 500+ global tech leaders.",
-        "Discover the strategies and challenges shaping the future of AI and learn how to build a robust, secure, and cost-effective AI-ready cloud.",
-        "Download the report and enhance your AI investments today."
+        "[Mushoku Tensei Jobless reincarnation season 3 Rudeus](https://static0.srcdn.com/wordpress/wp-content/uploads/2025/09/mushoku-tensei-jobless-reincarnation-season-3-rudeus.jpg?q=70&fit=crop&w=825&dpr=1)\n\nMushoku Tensei Jobless reincarnation season 3 Rudeus\n\n*Mushoku Tensei: Jobless Reincarnation* has become one of the most popular isekai, and deservedly so.",
+        "While *Mushoku Tensei: Jobless Reincarnation*'s protagonist has sparked criticism, the anime features one of the most fascinating fantasy worlds and character development of a flawed man.",
+        "Luckily, *[Mushoku Tensei: Jobless Reincarnation Season 3](https://screenrant.com/mushoku-tensei-jobless-reincarnation-season-3-anime-announced/)* will release soon featuring the Turning Point 4 arc in 2026.",
+        "The recent trailer for *Mushoku Tensei: Jobless Reincarnation Season 3*, released at Anime Expo 2025, teases Eris's return and her meeting with Rudeus.",
+        "Additionally, recent reports from Toho point to a spring 2026 premiere, so fans won't have to wait as much to see how the relationship between Rudeus, Sylphiette, and Roxy develops.",
+        "!",
+        "[\n\n](https://static0.srcdn.com/wordpress/wp-content/uploads/2024/04/kq5zfgpirwc-hd.jpg?q=49&fit=crop&w=450&h=225)](https://video.srcdn.com/2024/04/2-op-2-ii-2-1713895387.mp4)\n\n\n\n### Cast\n\n[See All](https://screenrant.com/db/tv-show/mushoku-tensei-jobless-reincarnation/#cast-cand-crew)\n\n* !",
+        "[Cast Placeholder Image](https://static0.srcdn.com/wordpress/wp-content/uploads/sharedimages/2024/07/screen-hub-cast-placeholder-1.png?q=49&fit=crop&w=50&h=65&dpr=2)\n\n  Yumi Uchiyama\n\n  Rudeus Greyrat's Former Self(voice)\n* !",
+        "[Cast Placeholder Image](https://static0.srcdn.com/wordpress/wp-content/uploads/sharedimages/2024/07/screen-hub-cast-placeholder-1.png?q=49&fit=crop&w=50&h=65&dpr=2)\n\n  Tomokazu Sugita\n\n  Pilemon Notos Greyrat (voice)\n\n \n\nMushoku Tensei: Jobless Reincarnation follows a man who, after being reincarnated in a magical world, sets out to live his life without regrets.",
+        "Adopting the name Rudeus Greyrat, he embarks on a journey of personal growth and adventure, armed with both his past life's knowledge and newfound magical abilities.",
+        "The series explores themes of redemption, self-discovery, and the quest to overcome personal failures.",
+        "**Main Genre**\n:   [Anime](/tag/anime/)\n\n**Creator(s)**\n:   Rifujin Na Magonote\n\n**Producers**\n:   Takahiro Yamanaka, Tomoyuki Ohwada, Sho Osuga, Takurou Hatakeyama, Ryousuke Imai, Mitsuteru Hishiyama, Nobuhiro Oosawa, Fuminori Yamazaki, Sou Yurugi, Takumi Morii\n\n**Seasons**\n:   2\n\n[Powered by\n\n###### ScreenRant logo](https://screenrant.com/db/)\n\nExpand\nCollapse\n\n* [!",
+        "[Anime](https://static0.srcdn.com/wordpress/wp-content/uploads/2024/01/chihiro-sad-in-spirited-away-1.jpg?q=50&fit=crop&w=32&h=32&dpr=1.5)\n\n  Anime](/anime/ \"Anime\")\n* [!",
+        "[Mushoku Tensei: Jobless Reincarnation](https://static0.srcdn.com/wordpress/wp-content/uploads/2024/04/mushoku-tensei-jobless-reincarnation.jpg?q=50&fit=crop&w=32&h=32&dpr=1.5)\n\n  Mushoku Tensei: Jobless Reincarnation](/db/tv-show/mushoku-tensei-jobless-reincarnation/ \"Mushoku Tensei: Jobless Reincarnation\")\n* [!",
+        "[Reddit](https://www.reddit.com/submit?url=https%3A%2F%2Fscreenrant.com%2Fmost-anticipated-isekai-anime%2F)\n[Flipboard](http://share.flipboard.com/bookmarklet/popout?v=2&title=10%20Upcoming%20Isekai%20Anime%20We%20Guarantee%20Fans%20Will%20Obsess%20Over&url=https%3A%2F%2Fscreenrant.com%2Fmost-anticipated-isekai-anime%2F&utm_campaign=tools&utm_medium=article-share&utm_source=screenrant.com)\n[Copy link](javascript:;)\n[Email](mailto:?Subject=10 Upcoming Isekai Anime We Guarantee Fans Will Obsess Over&Body=Check%20this%20out%21%0Ahttps://screenrant.com/most-anticipated-isekai-anime/)\n\nClose\n\nThread\n\nSign in to your ScreenRant account\n\nWe want to hear from you!",
+        "Share your opinions in the thread below and remember to keep it respectful.",
+        "Be the first to post\n\nImages\n\nAttachment(s)\n\nPlease respect our [community guidelines](https://www.valnetinc.com/en/terms-of-use#community-guidelines).",
+        "No links, inappropriate language, or spam.",
+        "Your comment has not been saved\n\n[Send confirmation email](javascript:void(0))\n\nThis thread is open for discussion.",
+        "Be the first to post your thoughts.",
+        "* [Terms](https://www.valnetinc.com/en/terms-of-use)\n* [Privacy](/page/our-privacy-policy/)\n* [Feedback](/contact)\n\nRecommended\n\n[!",
+        "[Netflix featured image - collage of Netflix tv series and movies behind the logo](https://static0.srcdn.com/wordpress/wp-content/uploads/2025/09/netflix-featured-image-collage-of-netflix-tv-series-and-movies-behind-the-logo.jpeg?q=49&fit=crop&w=266&h=350&dpr=2 \"Netflix's Movie Based On 48-Year-Old Children's Classic Has Cast Its Lead\")](/miss-nelson-is-missing-netflix-melissa-mccarthy-cast/)\n\n7 days ago\n\n### [Netflix's Movie Based On 48-Year-Old Children's Classic Has Cast Its Lead](/miss-nelson-is-missing-netflix-melissa-mccarthy-cast/ \"Netflix's Movie Based On 48-Year-Old Children's Classic Has Cast Its Lead\")\n\n[!",
+        "[Superman and Lex Luthor squaring off in Superman (2025)](https://static0.srcdn.com/wordpress/wp-content/uploads/2025/09/superman-lex-luthor.jpg?q=49&fit=crop&w=266&h=350&dpr=2 \"James Gunn All But Confirms Man Of Tomorrow Villain With DCU Script Tease\")](/man-of-tomorrow-james-gunn-dcu-script-image-brainiac/)\n\n7 days ago\n\n### [James Gunn All But Confirms Man Of Tomorrow Villain With DCU Script Tease](/man-of-tomorrow-james-gunn-dcu-script-image-brainiac/ \"James Gunn All But Confirms Man Of Tomorrow Villain With DCU Script Tease\")\n\n[!",
+        "[Emma-Watson](https://static0.srcdn.com/wordpress/wp-content/uploads/2025/09/emma-watson.jpg?q=49&fit=crop&w=266&h=350&dpr=2 \"Emma Watson Explains 7-Year Acting Hiatus\")](/emma-watson-acting-hiatus-explained/)\n\n6 days ago\n\n### [Emma Watson Explains 7-Year Acting Hiatus](/emma-watson-acting-hiatus-explained/ \"Emma Watson Explains 7-Year Acting Hiatus\")\n\n[!",
+        "[AT-AT Walkers march forward on Hoth shooting blasts in The Empire Strikes Back](https://static0.srcdn.com/wordpress/wp-content/uploads/2023/01/battle-of-hoth-the-empire-strikes-back.jpg?q=49&fit=crop&w=266&h=350&dpr=2 \"Star Wars Built A Life-Size AT-AT For The Mandalorian and Grogu\")](/star-wars-the-mandalorian-and-grogu-life-size-at-at/)\n\n6 days ago\n\n### [Star Wars Built A Life-Size AT-AT For The Mandalorian and Grogu](/star-wars-the-mandalorian-and-grogu-life-size-at-at/ \"Star Wars Built A Life-Size AT-AT For The Mandalorian and Grogu\")\n\nMore from our brands\n\n!",
+        "[CBR logo](./public/build/images/cbr-crossbrands-logo-black.svg?v=3.0 \"CBR\")\n\n[### The 40 Best Isekai Of All Time, Ranked](https://www.cbr.com/best-isekai-anime-ranked/)\n\n!",
+        "[GameRant logo](./public/build/images/gr-crossbrands-logo-black.svg?v=3.0 \"GameRant\")\n\n[### Every New Isekai Anime Announced For 2024](https://gamerant.com/new-isekai-anime-2024-upcoming/)\n\n!",
+        "[CBR logo](./public/build/images/cbr-crossbrands-logo-black.svg?v=3.0 \"CBR\")\n\n[### The 40 Best Isekai Anime Streaming on Crunchyroll](https://www.cbr.com/best-isekai-on-crunchyroll/)\n\n!",
+        "[CBR logo](./public/build/images/cbr-crossbrands-logo-black.svg?v=3.0 \"CBR\")\n\n[### The Best Isekai Anime on Streaming (March 2025)](https://www.cbr.com/best-isekai-anime-streaming-now/)\n\n[!",
+        "[new 2025 isekai anime](https://static0.gamerantimages.com/wordpress/wp-content/uploads/2025/03/new-2025-isekai-anime.jpg?q=50&fit=crop&w=680&h=511&dpr=1.5 \"Every New Isekai Anime Announced For 2025 (So Far)\")](https://gamerant.com/new-isekai-anime-2025/)\n\n!",
+        "[GameRant logo](./public/build/images/gr-crossbrands-logo-black.svg?v=3.0 \"GameRant\")\n\n### [Every New Isekai Anime Announced For 2025 (So Far)](https://gamerant.com/new-isekai-anime-2025/ \"Every New Isekai Anime Announced For 2025 (So Far)\")\n\n[!",
+        "[The-Greatest-Isekai-Anime-Of-All-Time-(November-2024)-B](https://static0.gamerantimages.com/wordpress/wp-content/uploads/2024/12/the-greatest-isekai-anime-of-all-time-november-2024-b.jpg?q=50&fit=crop&w=383&h=247&dpr=1.5 \"The Greatest Isekai Anime Of All Time (April 2025)\")](https://gamerant.com/best-isekai-anime-to-watch-ranked/)\n\n!"
     ]
     search_engine.add_documents(sample_docs)
 
