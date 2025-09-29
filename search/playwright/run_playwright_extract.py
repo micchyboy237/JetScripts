@@ -101,6 +101,7 @@ def stream_example(urls):
         save_file(meta["analysis"], f"{OUTPUT_DIR}/stream_1/analysis.json")
         save_file(meta["text_links"], f"{OUTPUT_DIR}/stream_1/text_links.json")
         save_file(meta["image_links"], f"{OUTPUT_DIR}/stream_1/image_links.json")
+        save_file(meta["html"], f"{OUTPUT_DIR}/stream_1/page.html")
         save_file(meta["markdown"], f"{OUTPUT_DIR}/stream_1/markdown.md")
         save_file(meta["md_tokens"], f"{OUTPUT_DIR}/stream_1/md_tokens.json")
         save_file(meta["screenshot"], f"{OUTPUT_DIR}/stream_1/screenshot.png")
