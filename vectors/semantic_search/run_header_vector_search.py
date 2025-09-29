@@ -2,11 +2,9 @@ import os
 import shutil
 from typing import List
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
-from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.file.utils import load_file, save_file
 from jet.logger.config import colorize_log
-from jet.models.model_types import EmbedModelType, LLMModelType
-from jet.models.tokenizer.base import get_tokenizer_fn
+from jet.llm.models import OLLAMA_EMBED_MODELS
 from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers, merge_results
 
 
@@ -32,13 +30,12 @@ def save_results(query: str, results: List[HeaderSearchResult], merge_chunks: bo
 def main():
     """Main function to demonstrate file search."""
     # Example usage
-    query = "top rag strategies reddit 2025"
-    embed_model: EmbedModelType = "static-retrieval-mrl-en-v1"
-    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+    query = "recent advancements in AI 2025"
+    embed_model: OLLAMA_EMBED_MODELS = "embeddinggemma"
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_rag_strategies_reddit_2025/docs.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/code/generated/run_derive_by_header_hierarchy/results.json"
     # Recursively collect all .html files under docs_file
-    header_docs: List[HeaderDoc] = load_file(docs_file)["documents"]
+    header_docs: List[HeaderDoc] = load_file(docs_file)
 
     top_k = None
     threshold = 0.0  # Using default threshold

@@ -126,7 +126,11 @@ def sync_example(urls: List[str]) -> None:
 
 if __name__ == "__main__":
     urls = [
-        "https://docs.tavily.com",
+        "https://news.microsoft.com/source/features/ai/6-ai-trends-youll-see-more-of-in-2025",
+        "https://www.morganstanley.com/insights/articles/ai-trends-reasoning-frontier-models-2025-tmt",
+        "https://winbuzzer.com/2024/02/14/windows-10-how-to-find-and-clear-the-all-recent-files-list-xcxwbt",
+        "https://cloud.google.com/blog/topics/public-sector/5-ai-trends-shaping-the-future-of-the-public-sector-in-2025",
+        "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-top-trends-in-tech"
     ]
 
     logger.info("Running sync example...")

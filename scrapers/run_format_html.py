@@ -1,28 +1,20 @@
 import os
 import shutil
-from typing import List, Union
 from jet.code.html_utils import clean_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
-from jet.models.model_types import LLMModelType
-from jet.models.utils import resolve_model_value
 from jet.scrapers.text_nodes import extract_text_nodes
-from mlx_lm import load
 from jet.file.utils import load_file, save_file
-from jet.logger import logger
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_common_class, get_significant_nodes, print_html
-from jet.search.formatters import clean_string
+from jet.scrapers.utils import extract_by_heading_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_common_class, print_html
 from jet.transformers.formatters import format_html
-from jet.utils.commands import copy_to_clipboard
 
 
 if __name__ == "__main__":
-    from jet.scrapers.preprocessor import html_to_markdown
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page_preprocessed.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/async_results/html_files/https_cloud_google_com_blog_topics_public_sector_5_ai_trends_shaping_the_future_of_the_public_sector_in_2025.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -32,11 +24,13 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
+    # llm_model: LLMModelType = "qwen3-1.7b-4bit-dwq-053125"
 
     html_str: str = load_file(html_file)
-
     save_file(html_str, f"{output_dir}/doc.html")
+
+    doc_markdown = convert_html_to_markdown(html_str, ignore_links=False)
+    save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
 
     # Texts
     texts = extract_text_elements(html_str)
@@ -49,7 +43,7 @@ if __name__ == "__main__":
     headings = extract_by_heading_hierarchy(html_str)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings2 = derive_by_header_hierarchy(html_str, ignore_links=True)
+    headings2 = derive_by_header_hierarchy(doc_markdown, ignore_links=True)
     save_file(headings2, f"{output_dir}/headings2.json")
 
     headings3 = get_md_header_contents(html_str, ignore_links=True)
@@ -75,25 +69,22 @@ if __name__ == "__main__":
 
     texts = [item.text for item in headings]
 
-    # Load the model and tokenizer
-    model_id = resolve_model_value(llm_model)
-    model, tokenizer = load(model_id)
+    # # Load the model and tokenizer
+    # model_id = resolve_model_value(llm_model)
+    # model, tokenizer = load(model_id)
 
     # Chunk docs with chunk size
     chunk_size = 150
 
-    def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
-        if isinstance(text, str):
-            token_ids = tokenizer.encode(
-                text, add_special_tokens=False)
-            return tokenizer.convert_ids_to_tokens(token_ids)
-        else:
-            token_ids_list = tokenizer.batch_encode_plus(
-                text, add_special_tokens=False)["input_ids"]
-            return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
-
-    doc_markdown = convert_html_to_markdown(html_str)
-    save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
+    # def _tokenizer(text: Union[str, List[str]]) -> Union[List[str], List[List[str]]]:
+    #     if isinstance(text, str):
+    #         token_ids = tokenizer.encode(
+    #             text, add_special_tokens=False)
+    #         return tokenizer.convert_ids_to_tokens(token_ids)
+    #     else:
+    #         token_ids_list = tokenizer.batch_encode_plus(
+    #             text, add_special_tokens=False)["input_ids"]
+    #         return [tokenizer.convert_ids_to_tokens(ids) for ids in token_ids_list]
 
     doc_analysis = analyze_markdown(doc_markdown)
     save_file(doc_analysis, f"{output_dir}/doc_analysis.json")
@@ -137,8 +128,7 @@ if __name__ == "__main__":
     save_file(clean_html(doc_markdown_tokens_html),
               f"{output_dir}/clean_doc_markdown_tokens.json")
 
-    chunked_docs = chunk_headers_by_hierarchy(
-        doc_markdown, chunk_size, _tokenizer)
+    chunked_docs = chunk_headers_by_hierarchy(doc_markdown, chunk_size)
     save_file(chunked_docs, f"{output_dir}/chunked_docs.json")
 
     # chunked_docs = merge_same_level_chunks(

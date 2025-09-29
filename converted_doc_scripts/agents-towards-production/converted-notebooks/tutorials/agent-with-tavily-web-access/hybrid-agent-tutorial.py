@@ -23,8 +23,7 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
-PERSIST_DIR = f"{OUTPUT_DIR}/supplemental/db"
-os.makedirs(PERSIST_DIR, exist_ok=True)
+MOCK_DB_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/agents-towards-production/converted-notebooks/tutorials/agent-with-tavily-web-access/supplemental/db"
 
 """
 ![](https://europe-west1-atp-views-tracker.cloudfunctions.net/working-analytics?notebook=tutorials--agent-with-tavily-web-access--hybrid-agent-tutorial)
@@ -117,7 +116,7 @@ embeddings = OllamaEmbeddings(model="nomic-embed-text")
 vector_store = Chroma(
     collection_name="crm",  # replace with "my_custom_index" for custom documents option
     embedding_function=embeddings,
-    persist_directory=PERSIST_DIR,
+    persist_directory=MOCK_DB_DIR,
 )
 
 """

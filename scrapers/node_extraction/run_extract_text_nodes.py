@@ -1,6 +1,5 @@
 import os
 import shutil
-import json
 from typing import List
 from jet.file.utils import load_file, save_file
 from jet.scrapers.text_nodes import extract_text_nodes, BaseNode
@@ -11,7 +10,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 def main() -> None:
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/pages/www_ranker_com_list_best_isekai_anime_2025_anna_lindwasser/page_preprocessed.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/async_results/html_files/https_cloud_google_com_blog_topics_public_sector_5_ai_trends_shaping_the_future_of_the_public_sector_in_2025.html"
     html_str: str = load_file(html_file)
 
     save_file(html_str, f"{OUTPUT_DIR}/page.html")
