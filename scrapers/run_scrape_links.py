@@ -1,10 +1,7 @@
 import os
 import shutil
-from jet.scrapers.crawler.web_crawler import WebCrawler, sort_urls_numerically
-from jet.file.utils import load_file, save_data, save_file
-from jet.logger import logger
+from jet.file.utils import load_file, save_file
 from jet.scrapers.utils import extract_title_and_metadata, scrape_links
-from jet.transformers.formatters import format_json
 
 # Example usage
 if __name__ == "__main__":
@@ -13,7 +10,7 @@ if __name__ == "__main__":
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    html_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/generated/_temp_test/searched_html_gamerant_com_new-isekai-anime-2024-upcoming/doc.html"
+    html_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/async_results/html_files/https_cloud_google_com_blog_topics_public_sector_5_ai_trends_shaping_the_future_of_the_public_sector_in_2025.html"
     html_str: str = load_file(html_path)
     url = "https://gamerant.com/new-isekai-anime-2024-upcoming"
 

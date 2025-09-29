@@ -82,10 +82,30 @@ async def async_example(urls):
     except Exception as e:
         print(f"Error in async advanced extract: {e}")
 
+def stream_example(urls):
+    extractor = PlaywrightExtract()
+    result_stream = extractor._stream(
+        urls=urls,
+        extract_depth="advanced",
+        include_images=True,
+        include_favicon=True,
+        format="text"
+    )
+    print("\nAdvanced extract results stream:")
+    count = 0
+    for result in result_stream:
+        count += 1
+        screenshot = result.pop("screenshot")
+        print(f"URL: {result['url']} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
+        save_file(result, f"{OUTPUT_DIR}/stream/results_{count}.json")
+        save_file(screenshot, f"{OUTPUT_DIR}/stream/screenshot_{count}.png")
+
 if __name__ == "__main__":
     urls = [
         "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
+    print("Running stream examples...")
+    stream_example(urls)
     print("Running synchronous examples...")
     sync_example(urls)
     print("\nRunning asynchronous examples...")
