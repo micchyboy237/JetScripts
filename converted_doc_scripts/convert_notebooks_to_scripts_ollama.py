@@ -720,6 +720,7 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs",
         "/Users/jethroestrada/Desktop/External_Projects/AI/examples",
         "/Users/jethroestrada/Desktop/External_Projects/AI/lessons",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/apps",
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
