@@ -1,4 +1,5 @@
 from jet.adapters.langchain.chat_ollama import OllamaEmbeddings
+from jet.file.utils import save_file
 from jet.logger import logger
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import Chroma
@@ -15,8 +16,7 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
+MOCK_DB_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/agents-towards-production/converted-notebooks/tutorials/agent-with-tavily-web-access/supplemental/db"
 
 """
 # Tutorial: Prepare your own documents for vector search
@@ -32,7 +32,7 @@ First, remove the existing files in the `/docs` folder and add your own PDF file
 logger.info("## 1. Upload your documents")
 
 
-docs_dir = "./docs"
+docs_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/agents-towards-production/converted-notebooks/tutorials/agent-with-tavily-web-access/supplemental/docs"
 
 all_files = [os.path.join(docs_dir, f) for f in os.listdir(docs_dir)
              if os.path.isfile(os.path.join(docs_dir, f))]
@@ -90,7 +90,7 @@ logger.info("## 4. Store embeddings in Chroma")
 vectordb = Chroma.from_documents(
     chunks,
     embedding=embeddings,
-    persist_directory="db",
+    persist_directory=MOCK_DB_DIR,
     collection_name="my_custom_index"
 )
 vectordb.persist()
@@ -102,8 +102,21 @@ Perform a similarity search query on your vector store.
 logger.info("## 5. Example similarity search")
 
 query = "robotics"
-results = vectordb.similarity_search(query, k=5)
-for i, doc in enumerate(results):
+results = vectordb.similarity_search_with_score(query, k=5)
+# Sort results by score in descending order (highest score first)
+sorted_results = sorted(results, key=lambda x: x[1], reverse=True)
+final_results = []
+for i, (doc, score) in enumerate(sorted_results):
     logger.debug(f"Result {i+1}: {doc.page_content}...\n")
+    final_results.append({
+        "rank": i + 1,
+        "score": score,
+        "data": doc,
+    })
+save_file({
+    "model": "nomic-embed-text",
+    "query": query,
+    "results": final_results,
+}, f"{OUTPUT_DIR}/search_results.json")
 
 logger.info("\n\n[DONE]", bright=True)

@@ -114,7 +114,8 @@ logger.info("## Vector Database Set Up")
 embeddings = OllamaEmbeddings(model="nomic-embed-text")
 
 vector_store = Chroma(
-    collection_name="crm",  # replace with "my_custom_index" for custom documents option
+    # collection_name="crm",  # replace with "my_custom_index" for custom documents option
+    collection_name="my_custom_index",
     embedding_function=embeddings,
     persist_directory=MOCK_DB_DIR,
 )
