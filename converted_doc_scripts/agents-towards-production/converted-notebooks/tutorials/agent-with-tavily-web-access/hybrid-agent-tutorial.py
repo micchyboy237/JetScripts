@@ -171,9 +171,9 @@ We'll set up several Ollama foundation models, such as o3-mini and the gpt-4.1 m
 logger.info("We'll set up several Ollama foundation models, such as o3-mini and the gpt-4.1 model. If you prefer a different LLM provider, you can easily plug in any LangChain Chat model.")
 
 
-# o3_mini = ChatOllama(model="gemma3:4b-it-q4_K_M"))
+# o3_mini = ChatOllama(model="qwen3:4b-q4_K_M"))
 
-# gpt_4_1 = ChatOllama(model="gemma3:4b-it-q4_K_M"))
+# gpt_4_1 = ChatOllama(model="qwen3:4b-q4_K_M"))
 
 """
 ## Hybrid Agent
@@ -196,7 +196,7 @@ logger.info("## Hybrid Agent")
 today = datetime.datetime.today().strftime("%A, %B %d, %Y")
 
 tools=[search, crawl, extract, map, vector_search_tool]
-llm = ChatOllama(model="gemma3:4b-it-q4_K_M", agent_name="assistant_agent").bind_tools(tools)
+llm = ChatOllama(model="qwen3:4b-q4_K_M", agent_name="assistant_agent").bind_tools(tools)
 
 system_message = f"""
 You are a ReAct-style research agent equipped with the following tools:
