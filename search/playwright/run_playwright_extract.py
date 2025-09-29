@@ -95,10 +95,15 @@ def stream_example(urls):
     count = 0
     for result in result_stream:
         count += 1
-        screenshot = result.pop("screenshot")
+        meta = result.pop("meta")
         print(f"URL: {result['url']} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
-        save_file(result, f"{OUTPUT_DIR}/stream/results_{count}.json")
-        save_file(screenshot, f"{OUTPUT_DIR}/stream/screenshot_{count}.png")
+        save_file(result, f"{OUTPUT_DIR}/stream_1/results.json")
+        save_file(meta["analysis"], f"{OUTPUT_DIR}/stream_1/analysis.json")
+        save_file(meta["text_links"], f"{OUTPUT_DIR}/stream_1/text_links.json")
+        save_file(meta["image_links"], f"{OUTPUT_DIR}/stream_1/image_links.json")
+        save_file(meta["markdown"], f"{OUTPUT_DIR}/stream_1/markdown.md")
+        save_file(meta["md_tokens"], f"{OUTPUT_DIR}/stream_1/md_tokens.json")
+        save_file(meta["screenshot"], f"{OUTPUT_DIR}/stream_1/screenshot.png")
 
 if __name__ == "__main__":
     urls = [
