@@ -1,9 +1,12 @@
+from typing import Optional
 from dotenv import load_dotenv
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
 from langchain.schema import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.prebuilt import create_react_agent
+from langchain_core.callbacks.base import BaseCallbackHandler
+from langchain_core.tracers.log_stream import RunLogPatch
 from jet.search.playwright import PlaywrightCrawl, PlaywrightExtract, PlaywrightSearch, PlaywrightMap
 from jet.file.utils import save_file
 import datetime
@@ -19,6 +22,25 @@ log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
 
+class ToolLoggingCallbackHandler(BaseCallbackHandler):
+    """Callback handler to log tool calls and execution results."""
+
+    def on_tool_start(
+        self, serialized: dict, input_str: str, run_id: Optional[str] = None, **kwargs
+    ) -> None:
+        logger.info(f"TOOL START - Name: {serialized['name']}, Inputs: {input_str}, Run ID: {run_id}")
+
+    def on_tool_end(self, output: str, run_id: Optional[str] = None, **kwargs) -> None:
+        logger.info(f"TOOL END - Output: {output}, Run ID: {run_id}")
+
+    def on_tool_error(self, error: Exception, run_id: Optional[str] = None, **kwargs) -> None:
+        logger.error(f"TOOL ERROR - {str(error)}, Run ID: {run_id}")
+
+    async def astream_log(self, run_log: RunLogPatch, **kwargs) -> None:
+        # Optional: Log streaming events for more granular progress
+        # This can be expanded if real-time streaming logs are needed
+        pass
+
 logger.info("## Web Research Agent 🌐")
 
 load_dotenv()
@@ -29,6 +51,11 @@ search = PlaywrightSearch(max_results=5, topic="general")
 extract = PlaywrightExtract(extract_depth="advanced")
 crawl = PlaywrightCrawl()
 map = PlaywrightMap()
+
+# After defining the tools (after logger.info("### Setting Up Your Playwright Tools"))
+logger.info("### Setting Up Tool Logging Callback")
+
+tool_logger = ToolLoggingCallbackHandler()
 
 logger.info("We'll set up several Ollama foundation models, such as qwen3:4b-q4_K_M. If you prefer a different LLM provider, you can easily plug in any LangChain Chat model.")
 
@@ -139,7 +166,9 @@ inputs = {
     ]
 }
 
-for s in web_agent.stream(inputs, stream_mode="values"):
+# Pass the callback handler in the config
+config = {"callbacks": [tool_logger]}
+for s in web_agent.stream(inputs, config=config, stream_mode="values"):
     message = s["messages"][-1]
     if isinstance(message, tuple):
         logger.debug(message)
