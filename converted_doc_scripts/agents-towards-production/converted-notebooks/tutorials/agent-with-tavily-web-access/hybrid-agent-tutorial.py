@@ -323,7 +323,8 @@ for s in hybrid_agent.stream(inputs, stream_mode="values"):
     if isinstance(message, tuple):
         logger.debug(message)
     else:
-        message.pretty_logger.debug()
+        logger.gray("Result:")
+        logger.success(message)
 
 """
 Check out the intermediary agent traces above to see how the agent combined the vector search and web search together.
