@@ -1,3 +1,5 @@
+from jet.transformers.object import make_serializable
+from jet.utils.class_utils import get_non_empty_attributes
 from jet.file.utils import save_file
 from jet.logger import logger
 import os
@@ -113,7 +115,15 @@ for i, sent in enumerate(en_doc.sentences):
         logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
               word.text, word.lemma, word.pos, word.head, word.deprel))
     logger.debug("")
-save_file(en_doc.sentences, f"{OUTPUT_DIR}/en_sentences.json")
+en_doc_pos = make_serializable(str(en_doc))
+save_file(en_doc_pos, f"{OUTPUT_DIR}/en/doc_pos.json")
+en_doc_dict = get_non_empty_attributes(en_doc)
+for key, value in en_doc_dict.items:
+    ext = "json"
+    if isinstance(value, (int, float, str, bool)):
+        ext = "txt"
+    if value:
+        save_file(value, f"{OUTPUT_DIR}/en/{key}.{ext}")
 
 """
 The following example iterate over all extracted named entity mentions and print out their character spans and types.
@@ -135,7 +145,15 @@ for i, sent in enumerate(zh_doc.sentences):
         logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
               word.text, word.lemma, word.pos, word.head, word.deprel))
     logger.debug("")
-save_file(zh_doc.sentences, f"{OUTPUT_DIR}/zh_sentences.json")
+zh_doc_pos = make_serializable(str(zh_doc))
+save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/doc_pos.json")
+zh_doc_dict = get_non_empty_attributes(zh_doc)
+for key, value in zh_doc_dict.items:
+    ext = "json"
+    if isinstance(value, (int, float, str, bool)):
+        ext = "txt"
+    if value:
+        save_file(value, f"{OUTPUT_DIR}/zh/{key}.{ext}")
 
 """
 Alternatively, you can directly print a `Word` object to view all its annotations as a Python dict:
