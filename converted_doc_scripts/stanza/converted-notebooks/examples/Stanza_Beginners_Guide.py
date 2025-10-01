@@ -92,8 +92,8 @@ logger.info("### More Information")
 logger.debug("Building an English pipeline...")
 en_nlp = stanza.Pipeline('en')
 
-# logger.debug("Building a Chinese pipeline...")
-# zh_nlp = stanza.Pipeline('zh', processors='tokenize,lemma,pos,depparse', verbose=True, use_gpu=False)
+logger.debug("Building a Chinese pipeline...")
+zh_nlp = stanza.Pipeline('zh', processors='tokenize,lemma,pos,depparse', verbose=True, use_gpu=False)
 
 """
 ### Annotating Text
@@ -105,8 +105,8 @@ logger.info("### Annotating Text")
 en_doc = en_nlp("Barack Obama was born in Hawaii.  He was elected president in 2008.")
 logger.debug(type(en_doc))
 
-# zh_doc = zh_nlp("达沃斯世界经济论坛是每年全球政商界领袖聚在一起的年度盛事。")
-# logger.debug(type(zh_doc))
+zh_doc = zh_nlp("达沃斯世界经济论坛是每年全球政商界领袖聚在一起的年度盛事。")
+logger.debug(type(zh_doc))
 
 """
 ### More Information
@@ -152,18 +152,21 @@ for ent in en_doc.ents:
 """
 And similarly for the Chinese text:
 """
-# logger.info("And similarly for the Chinese text:")
+logger.info("And similarly for the Chinese text:")
 
-# for i, sent in enumerate(zh_doc.sentences):
-#     logger.debug("[Sentence {}]".format(i+1))
-#     for word in sent.words:
-#         logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
-#               word.text, word.lemma, word.pos, word.head, word.deprel))
-#     logger.debug("")
-# zh_doc_pos = make_serializable(str(zh_doc))
-# save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/doc_pos.json")
-# zh_doc_dict = serialize_stanza_object(zh_doc)
-# save_file(zh_doc_dict, f"{OUTPUT_DIR}/zh/result.json")
+for i, sent in enumerate(zh_doc.sentences):
+    logger.debug("[Sentence {}]".format(i+1))
+    for word in sent.words:
+        logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
+              word.text, word.lemma, word.pos, word.head, word.deprel))
+    logger.debug("")
+zh_doc_pos = make_serializable(str(zh_doc))
+save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/pos.json")
+zh_doc_info = get_non_empty_primitive_attributes(zh_doc)
+save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/info.json")
+for key, value in get_non_empty_object_attributes(zh_doc).items():
+    if key not in ["ents"]:
+        save_file(serialize_stanza_object(value), f"{OUTPUT_DIR}/zh/{key}.json")
 
 """
 Alternatively, you can directly print a `Word` object to view all its annotations as a Python dict:
