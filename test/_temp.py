@@ -1,9 +1,12 @@
 from typing import List, TypedDict
+from jet.libs.stanza.utils import serialize_stanza_object
 from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.llm.utils.embeddings import generate_embeddings
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 
+from jet.transformers.object import make_serializable
+from jet.utils.class_utils import get_non_empty_primitive_attributes
 import numpy as np
 import os
 import shutil
@@ -79,10 +82,18 @@ if __name__ == "__main__":
     nlp = stanza.Pipeline('en', dir=DEFAULT_MODEL_DIR, processors='tokenize,pos', verbose=True, logging_level="DEBUG")
     doc = nlp(md_content)
 
-    sentences = [sent.text.strip() for sent in doc.sentences]
-    save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
+    doc_pos = make_serializable(str(doc))
+    save_file(doc_pos, f"{OUTPUT_DIR}/pos.json")
 
-    search_results = search(query, sentences, model)
+    doc_info = get_non_empty_primitive_attributes(doc)
+    save_file(doc_info, f"{OUTPUT_DIR}/info.json")
+    
+    doc_data = serialize_stanza_object(doc)
+    for key, value in doc_data.items():
+        save_file(value, f"{OUTPUT_DIR}/{key}.json")
+
+    texts = [sent["text"] for sent in doc_data["sentences"]]
+    search_results = search(query, texts, model)
     save_file({
         "query": query,
         "count": len(search_results),
