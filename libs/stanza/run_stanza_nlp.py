@@ -73,13 +73,13 @@ def search(
 
 if __name__ == "__main__":
     md_content = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md")
-    model: OLLAMA_MODEL_NAMES = "all-minilm:33m"
+    model: OLLAMA_MODEL_NAMES = "embeddinggemma"
 
     # Search
     query = "How to change max depth?"
     # texts = [doc["text"] for doc in all_contexts]
 
-    nlp = stanza.Pipeline('en', dir=DEFAULT_MODEL_DIR, processors='tokenize,pos', verbose=True, logging_level="DEBUG")
+    nlp = stanza.Pipeline('en', dir=DEFAULT_MODEL_DIR, verbose=True, logging_level="DEBUG")
     doc = nlp(md_content)
 
     doc_pos = make_serializable(str(doc))
