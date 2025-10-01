@@ -3,7 +3,8 @@ from jet.file.utils import save_file
 from jet.logger import logger
 import os
 import shutil
-from jet.utils.class_utils import get_non_empty_object_attributes, get_non_empty_primitive_attributes
+from jet.utils.class_utils import get_non_empty_primitive_attributes
+from jet.libs.stanza.utils import serialize_stanza_object
 import stanza
 
 
@@ -14,23 +15,6 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
-
-def serialize_stanza_object(data: any) -> dict[dict, any]:
-    """
-    Recursively serialize stanza object
-    """
-    if isinstance(data, dict):
-        return {
-            key: serialize_stanza_object(value)
-            for key, value in data.items()
-            if value is not None
-            and key not in ["doc", "sent"]
-        }
-    elif isinstance(data, list):
-        return [serialize_stanza_object(item) for item in data]
-    elif isinstance(data, object):
-        return get_non_empty_primitive_attributes(data)
-    return data
 
 """
 # Welcome to Stanza!
@@ -127,9 +111,9 @@ en_doc_pos = make_serializable(str(en_doc))
 save_file(en_doc_pos, f"{OUTPUT_DIR}/en/pos.json")
 en_doc_info = get_non_empty_primitive_attributes(en_doc)
 save_file(en_doc_info, f"{OUTPUT_DIR}/en/info.json")
-for key, value in get_non_empty_object_attributes(en_doc).items():
-    if key not in ["ents"]:
-        save_file(serialize_stanza_object(value), f"{OUTPUT_DIR}/en/{key}.json")
+en_doc_data = serialize_stanza_object(en_doc)
+for key, value in en_doc_data.items():
+    save_file(value, f"{OUTPUT_DIR}/en/{key}.json")
 
 """
 The following example iterate over all extracted named entity mentions and print out their character spans and types.
