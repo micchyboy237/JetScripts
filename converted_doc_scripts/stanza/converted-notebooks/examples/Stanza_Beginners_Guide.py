@@ -1,3 +1,4 @@
+from jet.file.utils import save_file
 from jet.logger import logger
 import os
 import shutil
@@ -112,6 +113,7 @@ for i, sent in enumerate(en_doc.sentences):
         logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
               word.text, word.lemma, word.pos, word.head, word.deprel))
     logger.debug("")
+save_file(en_doc.sentences, f"{OUTPUT_DIR}/en_sentences.json")
 
 """
 The following example iterate over all extracted named entity mentions and print out their character spans and types.
@@ -133,6 +135,7 @@ for i, sent in enumerate(zh_doc.sentences):
         logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
               word.text, word.lemma, word.pos, word.head, word.deprel))
     logger.debug("")
+save_file(zh_doc.sentences, f"{OUTPUT_DIR}/zh_sentences.json")
 
 """
 Alternatively, you can directly print a `Word` object to view all its annotations as a Python dict:
@@ -140,7 +143,7 @@ Alternatively, you can directly print a `Word` object to view all its annotation
 logger.info("Alternatively, you can directly print a `Word` object to view all its annotations as a Python dict:")
 
 word = en_doc.sentences[0].words[0]
-logger.debug(word)
+logger.log("en_doc.sentences[0].words[0] = ", word, colors=["GRAY", "DEBUG"])
 
 """
 ### More Information
@@ -159,6 +162,5 @@ Other resources that you may find helpful include:
 - [Reporting Issues](https://github.com/stanfordnlp/stanza/issues)
 - [Stanza System Description Paper](http://arxiv.org/abs/2003.07082)
 """
-logger.info("### More Information")
 
 logger.info("\n\n[DONE]", bright=True)
