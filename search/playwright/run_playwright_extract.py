@@ -1,11 +1,14 @@
+import os
+import shutil
+from jet.llm.models import OLLAMA_MODEL_NAMES
+from jet.llm.utils.embeddings import generate_embeddings
+from jet.utils.text import format_sub_dir
+import numpy as np
 from typing import List, TypedDict
 from jet._token.token_utils import token_counter
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.search.playwright import PlaywrightExtract
 from jet.file.utils import save_file
-import os
-import shutil
-
 from jet.search.playwright.playwright_extract import convert_html_to_markdown
 
 OUTPUT_DIR = os.path.join(
@@ -17,6 +20,12 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 class ContextItem(TypedDict):
     doc_idx: int
     tokens: int
+    text: str
+
+class SearchResult(TypedDict):
+    rank: int
+    doc_index: int
+    score: float
     text: str
 
 def sync_example(urls):
@@ -105,6 +114,37 @@ def extract_contexts(html: str, url: str, model: str) -> List[ContextItem]:
         })
     return contexts
 
+def search(
+    query: str,
+    documents: List[str],
+    model: str | OLLAMA_MODEL_NAMES = "all-minilm:33m",
+    top_k: int = None
+) -> List[SearchResult]:
+    """Search for documents most similar to the query.
+
+    If top_k is None, return all results sorted by similarity.
+    """
+    if not documents:
+        return []
+    vectors = generate_embeddings([query] + documents, model)
+    query_vector = vectors[0]
+    doc_vectors = vectors[1:]
+    similarities = np.dot(doc_vectors, query_vector) / (
+        np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(query_vector) + 1e-10
+    )
+    sorted_indices = np.argsort(similarities)[::-1]
+    if top_k is not None:
+        sorted_indices = sorted_indices[:top_k]
+    return [
+        {
+            "rank": i + 1,
+            "doc_index": i,
+            "score": float(similarities[i]),
+            "text": documents[i],
+        }
+        for i in sorted_indices
+    ]
+
 def scrape_urls_data(urls: List[str], model: str):
     extractor = PlaywrightExtract()
     result_stream = extractor._stream(
@@ -116,33 +156,50 @@ def scrape_urls_data(urls: List[str], model: str):
     )
     print("\nAdvanced extract results stream:")
     count = 0
+    all_contexts = []
+    # results = []
     for result in result_stream:
         count += 1
-        meta = result.pop("meta")
-        print(f"URL: {result['url']} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
-
+        meta = result.copy().pop("meta")
         contexts = extract_contexts(meta["html"], result['url'], model)
-        save_file(result, f"{OUTPUT_DIR}/stream_1/results.json")
-        save_file(contexts, f"{OUTPUT_DIR}/stream_1/contexts.json")
+        sub_dir_url = format_sub_dir(result['url'])
+        print(f"URL: {sub_dir_url} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
+        # results.extend(result)
+        all_contexts.extend(contexts)
+        save_file(result, f"{OUTPUT_DIR}/{sub_dir_url}/results.json")
+        save_file(contexts, f"{OUTPUT_DIR}/{sub_dir_url}/contexts.json")
         save_file({
             "tokens": meta["tokens"],
-        }, f"{OUTPUT_DIR}/stream_1/info.json")
-        save_file(meta["analysis"], f"{OUTPUT_DIR}/stream_1/analysis.json")
-        save_file(meta["text_links"], f"{OUTPUT_DIR}/stream_1/text_links.json")
-        save_file(meta["image_links"], f"{OUTPUT_DIR}/stream_1/image_links.json")
-        save_file(meta["html"], f"{OUTPUT_DIR}/stream_1/page.html")
-        save_file(meta["markdown"], f"{OUTPUT_DIR}/stream_1/markdown.md")
-        save_file(meta["md_tokens"], f"{OUTPUT_DIR}/stream_1/md_tokens.json")
-        save_file(meta["screenshot"], f"{OUTPUT_DIR}/stream_1/screenshot.png")
+        }, f"{OUTPUT_DIR}/{sub_dir_url}/info.json")
+        save_file(meta["analysis"], f"{OUTPUT_DIR}/{sub_dir_url}/analysis.json")
+        save_file(meta["text_links"], f"{OUTPUT_DIR}/{sub_dir_url}/text_links.json")
+        save_file(meta["image_links"], f"{OUTPUT_DIR}/{sub_dir_url}/image_links.json")
+        save_file(meta["html"], f"{OUTPUT_DIR}/{sub_dir_url}/page.html")
+        save_file(meta["markdown"], f"{OUTPUT_DIR}/{sub_dir_url}/markdown.md")
+        save_file(meta["md_tokens"], f"{OUTPUT_DIR}/{sub_dir_url}/md_tokens.json")
+        save_file(meta["screenshot"], f"{OUTPUT_DIR}/{sub_dir_url}/screenshot.png")
+    return all_contexts
 
 if __name__ == "__main__":
     urls = [
         "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
-    model = "qwen3:4b-q4_K_M"
+    model = "all-minilm:33m"
 
     print("Running stream examples...")
-    scrape_urls_data(urls, model)
+    all_contexts = scrape_urls_data(urls, model)
+    save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
+
+    # Search
+    query = "How to change max depth?"
+    texts = [doc["text"] for doc in all_contexts]
+    search_results = search(query, texts, model)
+    save_file({
+        "query": query,
+        "count": len(search_results),
+        "results": search_results,
+    }, f"{OUTPUT_DIR}/search_results.json")
+
     # print("Running synchronous examples...")
     # sync_example(urls)
     # print("\nRunning asynchronous examples...")
