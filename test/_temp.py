@@ -323,7 +323,7 @@ Use `print("Hello")` for quick debugging.
 
     config = {
         "chunk_size": 100,
-        "chunk_overlap": 50,
+        "chunk_overlap": 0,
         "strip_markdown": True,
         "add_section_summaries": True,
     }

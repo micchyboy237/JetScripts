@@ -1,147 +1,199 @@
-import asyncio
-import os
-import json
+import markdown
+import html2text
 import logging
-from typing import List, Dict, Sequence, TypedDict
+from jet.logger import logger
+from jet.utils.commands import copy_to_clipboard
 
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.base import Response
-from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
-from autogen_agentchat.messages import TextMessage
-from autogen_agentchat.teams import SelectorGroupChat
-from autogen_core import CancellationToken
-from autogen_core.models import LLMMessage
-from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
-from autogen_ext.agents.file_surfer import FileSurfer
-from jet.adapters.autogen.ollama_client import OllamaChatCompletionClient
+# Singleton HTML2Text instance for performance
+_html2text_instance = None
 
-# Debug logging setup
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
+def get_html2text_instance() -> html2text.HTML2Text:
+    """Returns a configured HTML2Text singleton instance."""
+    global _html2text_instance
+    if _html2text_instance is None:
+        _html2text_instance = html2text.HTML2Text()
+        _html2text_instance.ignore_images = True
+        _html2text_instance.ignore_links = True
+        _html2text_instance.body_width = 0
+        _html2text_instance.ignore_tables = False
+        _html2text_instance.skip_internal_links = True
+        _html2text_instance.ignore_emphasis = False
+        _html2text_instance.inline_links = False
+        _html2text_instance.use_automatic_links = False
+        _html2text_instance.unicode_snob = True
+        _html2text_instance.ignore_anchors = True
+        _html2text_instance.default_image_alt = ""
+        _html2text_instance.pad_tables = True
+        _html2text_instance.single_line_break = True
+    return _html2text_instance
 
+def md_to_plain_text(md_content: str, ignore_images: bool = True, ignore_links: bool = True) -> str:
+    """
+    Converts Markdown to plain text.
 
-class ModuleSearchResult(TypedDict):
-    module: str
-    files: List[str]
+    Args:
+        md_content: Input Markdown string.
+        ignore_images: If True, replace images with alt text or empty.
+        ignore_links: If True, show link text only (not URLs).
 
+    Returns:
+        Plain text string.
 
-class CodeSearchWorkflow:
-    """Modular workflow for task-based module search in code files."""
+    Raises:
+        TypeError: If md_content is not a string.
+        ValueError: If md_content is empty or None.
+    """
+    if not isinstance(md_content, str):
+        logging.error("Input must be a string")
+        raise TypeError("Input must be a string")
+    if not md_content or md_content.isspace():
+        logging.warning("Empty or whitespace-only Markdown input")
+        raise ValueError("Markdown content cannot be empty or whitespace")
 
-    def __init__(
-        self,
-        model: str = "llama3.2",
-        max_messages: int = 8
-    ) -> None:
-        self.model_client = OllamaChatCompletionClient(model=model)
-        self.max_messages = max_messages
-        self._setup_agents()
-        self._setup_group_chat()
+    # Step 1: MD → HTML
+    html = markdown.markdown(md_content, extensions=['tables', 'fenced_code', 'footnotes'])
 
-    def _setup_agents(self) -> None:
-        self.task_analyzer = MagenticOneCoderAgent(
-            name="TaskAnalyzer",
-            description="An agent for analyzing tasks to identify necessary Python modules. Start with new tasks.",
-            model_client=self.model_client,
-            system_message="""
-            You are a task analyzer. Analyze the user task to identify necessary REGISTERED Python modules as a comma-separated list (e.g., numpy,pandas).
-            Delegate to FileSurfer for searching files.
-            When complete, output JSON: {'module': ['file1.py', 'file2.py']} and end with TERMINATE.
-            """
-        )
-        self.file_surfer = FileSurfer(
-            name="FileSurfer",
-            description="An agent for searching and reading .py files in a directory for module imports.",
-            model_client=self.model_client,
-            base_path=os.getcwd()  # Will be overridden in run
-        )
+    # Step 2: HTML → Plain text
+    h = get_html2text_instance()
+    # Update instance settings if needed
+    h.ignore_images = ignore_images
+    h.ignore_links = ignore_links
+    plain_text = h.handle(html)
 
-    def _setup_group_chat(self) -> None:
-        termination = TextMentionTermination(
-            "TERMINATE") | MaxMessageTermination(max_messages=self.max_messages)
-        selector_prompt = """Select an agent to perform the next step.
+    # Post-process to clean up footnotes and blockquotes
+    lines = plain_text.splitlines()
+    cleaned_lines = []
+    skip_footnote = False
+    for line in lines:
+        # Skip footnote definitions
+        if line.strip().startswith("[^"):
+            skip_footnote = True
+            continue
+        # Replace footnote references with inline text
+        if "[^" in line:
+            line = line.replace("[^1]:", "[1]").replace("[^1]", "[1]")
+        # Remove blockquote markers
+        if line.startswith("> "):
+            line = line[2:]
+        cleaned_lines.append(line)
+    plain_text = "\n".join(cleaned_lines).strip()
 
-{roles}
+    return plain_text
 
-Current conversation context:
-{history}
+# Usage
+md = """
+Sample title
 
-Read the above conversation, then select an agent from {participants} to perform the next task.
-Start with TaskAnalyzer for new tasks. Only select FileSurfer after modules are identified.
-Only select one agent.
+# Project Overview
+Welcome to our **project**! This is an `introduction` to our work, featuring a [website](https://project.com).
+
+![Project Logo](https://project.com/logo.png)
+
+> **Note**: Always check the [docs](https://docs.project.com) for updates.
+
+## Features
+- [ ] Task 1: Implement login
+- [x] Task 2: Add dashboard
+- Task 3: Optimize performance
+
+### Technical Details
+```python
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+```
+
+#### API Endpoints
+| Endpoint       | Method | Description           |
+|----------------|--------|-----------------------|
+| /api/users     | GET    | Fetch all users       |
+| /api/users/{id}| POST   | Create a new user     |
+
+##### Inline Code
+Use `print("Hello")` for quick debugging.
+
+###### Emphasis
+*Italic*, **bold**, and ***bold italic*** text are supported.
+
+<div class="alert">This is an HTML block.</div>
+<span class="badge">New</span> inline HTML.
+
+[^1]: This is a footnote reference.
+[^1]: Footnote definition here.
+
+## Unordered list
+- List item 1
+    - Nested item
+- List item 2
+- List item 3
+
+## Ordered list
+1. Ordered item 1
+2. Ordered item 2
+3. Ordered item 3
+
+## Inline HTML
+<span class="badge">New</span> inline HTML
 """
-        self.group_chat = SelectorGroupChat(
-            participants=[self.task_analyzer, self.file_surfer],
-            model_client=self.model_client,
-            termination_condition=termination,
-            selector_prompt=selector_prompt,
-            allow_repeated_speaker=True,
-        )
+result = md_to_plain_text(md)
 
-    async def run(self, task: str, directory: str) -> List[ModuleSearchResult]:
-        """Run the workflow for a given task and directory."""
-        # Set FileSurfer base_path to user-provided directory
-        self.file_surfer._browser.base_path = os.path.abspath(directory)
-        full_task = f"""
-User task: {task}
-Directory to search: {directory}
-1. TaskAnalyzer: Identify necessary REGISTERED Python modules as a comma-separated list (e.g., numpy,pandas).
-2. FileSurfer: Use open_path to navigate to {directory}, then use find_on_page_ctrl_f to search .py files for imports matching those modules (e.g., 'import module' or 'from module import'). Collect results as a list of files per module.
-Output final JSON: {{'module': ['file1.py', 'file2.py']}} and end with TERMINATE.
-"""
-        logger.debug(f"Starting run with task: {full_task}")
-        stream = self.group_chat.run_stream(task=full_task)
+expected_result = """Sample title
 
-        # ✅ consume the async generator
-        response: Response | None = None
-        async for event in stream:
-            response = event  # keep last yielded Response
+# Project Overview
 
-        if response is None:
-            logger.error("No response received from stream.")
-            return []
+Welcome to our **project**! This is an `introduction` to our work, featuring a website.
 
-        logger.debug(
-            f"Received response with {len(response.messages)} messages")
+Note: Always check the docs for updates.
 
-        # Parse final JSON from last TextMessage
-        final_content = ""
-        for message in reversed(response.messages):
-            logger.debug(
-                f"Processing message: type={type(message).__name__}, content={getattr(message, 'content', 'None')}")
-            if isinstance(message, TextMessage) and "TERMINATE" in message.content:
-                content_str = message.content
-                logger.debug(f"Found TERMINATE in TextMessage: {content_str}")
-                if "{" in content_str and "}" in content_str:
-                    try:
-                        json_start = content_str.index("{")
-                        json_end = content_str.rindex("}") + 1
-                        final_content = content_str[json_start:json_end]
-                        logger.debug(f"Extracted JSON: {final_content}")
-                        break
-                    except ValueError as e:
-                        logger.error(
-                            f"Failed to extract JSON from content: {e}")
+## Features
 
-        try:
-            results: Dict[str, List[str]] = json.loads(final_content)
-            logger.debug(f"Parsed results: {results}")
-            return [{"module": k, "files": v} for k, v in results.items()]
-        except Exception as e:
-            logger.error(f"JSON parsing failed: {e}")
-            return []
+* [ ] Task 1: Implement login
+* [x] Task 2: Add dashboard
+* Task 3: Optimize performance
 
+## Technical Details
 
-# Example usage
+```
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+```
 
+## API Endpoints
 
-async def example_run() -> None:
-    workflow = CodeSearchWorkflow()
-    results = await workflow.run(
-        task="Write code agents with a teacher and memory usage",
-        directory="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/autogen/examples/base"
-    )
-    print(results)
+Endpoint       Method  Description
+/api/users     GET     Fetch all users
+/api/users/{id} POST   Create a new user
 
-if __name__ == "__main__":
-    asyncio.run(example_run())
+## Inline Code
+
+Use `print("Hello")` for quick debugging.
+
+## Emphasis
+
+*Italic*, **bold**, and ***bold italic*** text are supported.
+
+This is an HTML block.
+
+New inline HTML.
+
+## Unordered list
+
+* List item 1
+
+  * Nested item
+* List item 2
+* List item 3
+
+## Ordered list
+
+1. Ordered item 1
+2. Ordered item 2
+3. Ordered item 3
+
+## Inline HTML
+
+New inline HTML"""
+
+logger.info("EXPECTED:\n" + expected_result)
+logger.success("RESULT:\n" + result)
+logger.debug("MATCH: %s", result == expected_result)
+copy_to_clipboard(result)
