@@ -9,6 +9,18 @@ import os
 import stanza
 from stanza.resources.common import DEFAULT_MODEL_DIR
 
+from jet.logger import logger
+import shutil
+
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = os.path.join(OUTPUT_DIR, "main.log")
+logger.basicConfig(filename=log_file)
+logger.info(f"Logs: {log_file}")
+
 
 if __name__ == '__main__':
     # get arguments
@@ -30,7 +42,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # download the models
-    stanza.download(args.lang, dir=args.models_dir)
+    # stanza.download(args.lang, dir=args.models_dir)
     # set up a pipeline
     print('---')
     print('Building pipeline...')
