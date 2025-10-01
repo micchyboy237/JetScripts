@@ -3,6 +3,7 @@ from jet.file.utils import save_file
 from jet.logger import logger
 import os
 import shutil
+from jet.utils.class_utils import get_non_empty_object_attributes, get_non_empty_primitive_attributes
 import stanza
 
 
@@ -18,17 +19,17 @@ def serialize_stanza_object(data: any) -> dict[dict, any]:
     """
     Recursively serialize stanza object
     """
-    if isinstance(data, object):
-        if hasattr(data, "to_dict"):
-            return data.to_dict()
-    elif isinstance(data, dict):
+    if isinstance(data, dict):
         return {
             key: serialize_stanza_object(value)
             for key, value in data.items()
             if value is not None
+            and key not in ["doc", "sent"]
         }
     elif isinstance(data, list):
         return [serialize_stanza_object(item) for item in data]
+    elif isinstance(data, object):
+        return get_non_empty_primitive_attributes(data)
     return data
 
 """
@@ -91,8 +92,8 @@ logger.info("### More Information")
 logger.debug("Building an English pipeline...")
 en_nlp = stanza.Pipeline('en')
 
-logger.debug("Building a Chinese pipeline...")
-zh_nlp = stanza.Pipeline('zh', processors='tokenize,lemma,pos,depparse', verbose=True, use_gpu=False)
+# logger.debug("Building a Chinese pipeline...")
+# zh_nlp = stanza.Pipeline('zh', processors='tokenize,lemma,pos,depparse', verbose=True, use_gpu=False)
 
 """
 ### Annotating Text
@@ -104,8 +105,8 @@ logger.info("### Annotating Text")
 en_doc = en_nlp("Barack Obama was born in Hawaii.  He was elected president in 2008.")
 logger.debug(type(en_doc))
 
-zh_doc = zh_nlp("达沃斯世界经济论坛是每年全球政商界领袖聚在一起的年度盛事。")
-logger.debug(type(zh_doc))
+# zh_doc = zh_nlp("达沃斯世界经济论坛是每年全球政商界领袖聚在一起的年度盛事。")
+# logger.debug(type(zh_doc))
 
 """
 ### More Information
@@ -132,16 +133,12 @@ for i, sent in enumerate(en_doc.sentences):
               word.text, word.lemma, word.pos, word.head, word.deprel))
     logger.debug("")
 en_doc_pos = make_serializable(str(en_doc))
-save_file(en_doc_pos, f"{OUTPUT_DIR}/en/doc_pos.json")
-en_doc_dict = serialize_stanza_object(en_doc)
-for key, value in en_doc_dict.items():
-    if key.startswith("_"):
-        continue
-    ext = "json"
-    if isinstance(value, (int, float, str, bool)):
-        ext = "txt"
-    if value:
-        save_file(value, f"{OUTPUT_DIR}/en/{key}.{ext}")
+save_file(en_doc_pos, f"{OUTPUT_DIR}/en/pos.json")
+en_doc_info = get_non_empty_primitive_attributes(en_doc)
+save_file(en_doc_pos, f"{OUTPUT_DIR}/en/info.json")
+for key, value in get_non_empty_object_attributes(en_doc).items():
+    if key not in ["ents"]:
+        save_file(serialize_stanza_object(value), f"{OUTPUT_DIR}/en/{key}.json")
 
 """
 The following example iterate over all extracted named entity mentions and print out their character spans and types.
@@ -155,25 +152,18 @@ for ent in en_doc.ents:
 """
 And similarly for the Chinese text:
 """
-logger.info("And similarly for the Chinese text:")
+# logger.info("And similarly for the Chinese text:")
 
-for i, sent in enumerate(zh_doc.sentences):
-    logger.debug("[Sentence {}]".format(i+1))
-    for word in sent.words:
-        logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
-              word.text, word.lemma, word.pos, word.head, word.deprel))
-    logger.debug("")
-zh_doc_pos = make_serializable(str(zh_doc))
-save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/doc_pos.json")
-zh_doc_dict = serialize_stanza_object(zh_doc)
-for key, value in zh_doc_dict.items():
-    if key.startswith("_"):
-        continue
-    ext = "json"
-    if isinstance(value, (int, float, str, bool)):
-        ext = "txt"
-    if value:
-        save_file(value, f"{OUTPUT_DIR}/zh/{key}.{ext}")
+# for i, sent in enumerate(zh_doc.sentences):
+#     logger.debug("[Sentence {}]".format(i+1))
+#     for word in sent.words:
+#         logger.debug("{:12s}\t{:12s}\t{:6s}\t{:d}\t{:12s}".format(\
+#               word.text, word.lemma, word.pos, word.head, word.deprel))
+#     logger.debug("")
+# zh_doc_pos = make_serializable(str(zh_doc))
+# save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/doc_pos.json")
+# zh_doc_dict = serialize_stanza_object(zh_doc)
+# save_file(zh_doc_dict, f"{OUTPUT_DIR}/zh/result.json")
 
 """
 Alternatively, you can directly print a `Word` object to view all its annotations as a Python dict:
