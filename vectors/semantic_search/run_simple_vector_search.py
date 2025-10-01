@@ -1,6 +1,6 @@
 import os
 import shutil
-from jet.file.utils import save_file
+from jet.file.utils import load_file, save_file
 from jet.logger.config import colorize_log
 from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.vectors.semantic_search.vector_search_simple import VectorSearch
@@ -25,13 +25,17 @@ if __name__ == "__main__":
     doc = nlp(long_text)
     sentences = [sent.text.strip() for sent in doc.sentences]
     # sentences = split_sentences(long_text)
+
+    initial_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/libs/stanza/generated/run_stanza_nlp/sentences.json"
+    initial_sentences = [sentence["text"] for header_sentences in load_file(initial_file) for sentence in header_sentences]
     sample_docs = [
-        "##### Help\n\n- Help Center",
-        "##### Legal\n\n- Security & Compliance\n- Privacy Policy",
-        "##### Partnerships\n\n- IBM",
-        "##### Tavily MCP Server\n\n- Tavily MCP Server",
-        "# Tavily Crawl - Tavily Docs",
-        "- About\n- Quickstart\n- Credits & Pricing\n- Rate Limits",
+        *initial_sentences[:64],
+        # "##### Help\n\n- Help Center",
+        # "##### Legal\n\n- Security & Compliance\n- Privacy Policy",
+        # "##### Partnerships\n\n- IBM",
+        # "##### Tavily MCP Server\n\n- Tavily MCP Server",
+        # "# Tavily Crawl - Tavily Docs",
+        # "- About\n- Quickstart\n- Credits & Pricing\n- Rate Limits",
         *sentences,
     ]
 
