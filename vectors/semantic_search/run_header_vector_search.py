@@ -5,6 +5,7 @@ from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.file.utils import load_file, save_file
 from jet.logger.config import colorize_log
 from jet.llm.models import OLLAMA_EMBED_MODELS
+from jet.search.playwright.playwright_extract import derive_by_header_hierarchy
 from jet.vectors.semantic_search.header_vector_search import HeaderSearchResult, search_headers, merge_results
 
 
@@ -33,9 +34,11 @@ def main():
     query = "recent advancements in AI 2025"
     embed_model: OLLAMA_EMBED_MODELS = "embeddinggemma"
 
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/code/generated/run_derive_by_header_hierarchy/results.json"
-    # Recursively collect all .html files under docs_file
-    header_docs: List[HeaderDoc] = load_file(docs_file)
+    # docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/code/generated/run_derive_by_header_hierarchy/results.json"
+    # header_docs: List[HeaderDoc] = load_file(docs_file)
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/stream_1/markdown.md"
+    md_content: str = load_file(md_file)
+    header_docs: List[HeaderDoc] = derive_by_header_hierarchy(md_content, ignore_links=True)
 
     top_k = None
     threshold = 0.0  # Using default threshold

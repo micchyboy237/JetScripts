@@ -98,6 +98,9 @@ def stream_example(urls):
         meta = result.pop("meta")
         print(f"URL: {result['url']} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
         save_file(result, f"{OUTPUT_DIR}/stream_1/results.json")
+        save_file({
+            "tokens": meta["tokens"],
+        }, f"{OUTPUT_DIR}/stream_1/info.json")
         save_file(meta["analysis"], f"{OUTPUT_DIR}/stream_1/analysis.json")
         save_file(meta["text_links"], f"{OUTPUT_DIR}/stream_1/text_links.json")
         save_file(meta["image_links"], f"{OUTPUT_DIR}/stream_1/image_links.json")
