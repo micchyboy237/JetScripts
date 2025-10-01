@@ -1,7 +1,7 @@
-from typing import List, TypedDict
+from typing import Iterator, List, TypedDict
 from jet.libs.stanza.utils import serialize_stanza_object
 from jet.llm.models import OLLAMA_MODEL_NAMES
-from jet.llm.utils.embeddings import generate_embeddings
+from jet.llm.utils.embeddings import generate_embeddings_stream
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.transformers.object import make_serializable
@@ -39,37 +39,61 @@ class SearchResult(TypedDict):
     score: float
     text: str
 
+def compute_similarities(
+    query_vector: np.ndarray,
+    doc_vectors: np.ndarray
+) -> np.ndarray:
+    """Compute cosine similarity scores between query and document vectors."""
+    return np.dot(doc_vectors, query_vector) / (
+        np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(query_vector) + 1e-10
+    )
+
 def search(
     query: str,
     documents: List[str],
     model: str | OLLAMA_MODEL_NAMES = "all-minilm:33m",
     top_k: int = None
-) -> List[SearchResult]:
+) -> Iterator[List[SearchResult]]:
     """Search for documents most similar to the query.
 
     If top_k is None, return all results sorted by similarity.
     """
     if not documents:
         return []
-    vectors = generate_embeddings([query] + documents, model, use_cache=True)
-    query_vector = vectors[0]
-    doc_vectors = vectors[1:]
-    similarities = np.dot(doc_vectors, query_vector) / (
-        np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(query_vector) + 1e-10
-    )
-    sorted_indices = np.argsort(similarities)[::-1]
-    if top_k is not None:
-        sorted_indices = sorted_indices[:top_k]
-    return [
-        {
-            "rank": i + 1,
-            "doc_index": int(sorted_indices[i]),
-            "score": float(similarities[sorted_indices[i]]),
-            "text": documents[sorted_indices[i]],
-        }
-        for i in range(len(sorted_indices))
-    ]
 
+    query_vector = None
+    vectors_list: list[np.ndarray] = []
+
+    # Stream embeddings batch by batch
+    for vectors in generate_embeddings_stream([query] + documents, model, use_cache=True, show_progress=True):
+        if not isinstance(vectors, np.ndarray):
+            vectors = np.array(vectors)
+
+        if query_vector is None:
+            # First element of first batch is the query
+            query_vector = vectors[0]
+            vectors_list.extend(vectors[1:])
+        else:
+            vectors_list.extend(vectors)
+
+        # Compute similarity using the separated function
+        similarities = compute_similarities(query_vector, vectors)
+        sorted_indices = np.argsort(similarities)[::-1]
+
+        if top_k is not None:
+            sorted_indices = sorted_indices[:top_k]
+
+        yield [
+            {
+                "rank": i + 1,
+                "doc_index": int(sorted_indices[i]),
+                "score": float(similarities[sorted_indices[i]]),
+                "text": documents[sorted_indices[i]],
+            }
+            for i in range(len(sorted_indices))
+        ]
+
+    # doc_vectors = np.array(vectors_list)
 
 if __name__ == "__main__":
     md_content = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md")
@@ -109,9 +133,11 @@ if __name__ == "__main__":
         save_file(doc_texts, f"{OUTPUT_DIR}/texts.json")
 
     flattened_texts = [text for doc_text in doc_texts for text in doc_text]
-    search_results = search(query, flattened_texts, model)
-    save_file({
-        "query": query,
-        "count": len(search_results),
-        "results": search_results,
-    }, f"{OUTPUT_DIR}/search_results.json")
+    search_results = []
+    for results in search(query, flattened_texts, model):
+        search_results.extend(results)
+        save_file({
+            "query": query,
+            "count": len(search_results),
+            "results": search_results,
+        }, f"{OUTPUT_DIR}/search_results.json")
