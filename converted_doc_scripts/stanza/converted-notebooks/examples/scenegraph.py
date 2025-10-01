@@ -4,8 +4,8 @@ Very short demo for the SceneGraph interface in the CoreNLP server
 Requires CoreNLP >= 4.5.5, Stanza >= 1.5.1
 """
 
-import json
 
+from jet.transformers.formatters import format_json
 from stanza.server import CoreNLPClient
 
 from jet.logger import logger
@@ -27,7 +27,9 @@ logger.info(f"Logs: {log_file}")
 # preload=False avoids having the server unnecessarily load annotators
 # if you don't plan on using them
 with CoreNLPClient(preload=False) as client:
-    result = client.scenegraph("Jennifer's antennae are on her head.")
-    print(json.dumps(result, indent=2))
+    text = "Jennifer's antennae are on her head."
+    result = client.scenegraph(text)
+    logger.debug(f"Text:\n{text}")
+    logger.success(format_json(result))
 
 

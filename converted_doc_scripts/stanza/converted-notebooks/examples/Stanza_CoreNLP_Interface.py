@@ -2,7 +2,7 @@ from jet.logger import logger
 from stanza.server import CoreNLPClient
 import os
 import shutil
-import stanza
+# import stanza
 import time; time.sleep(10)
 
 
@@ -45,12 +45,12 @@ In order for the interface to work, the Stanford CoreNLP library has to be insta
 
 Here we are going to show you how to download and install the CoreNLP library on your machine, with Stanza's installation command:
 """
-logger.info("### Setting up Stanford CoreNLP")
+# logger.info("### Setting up Stanford CoreNLP")
 
-corenlp_dir = './corenlp'
-stanza.install_corenlp(dir=corenlp_dir)
+# corenlp_dir = './corenlp'
+# stanza.install_corenlp(dir=corenlp_dir)
 
-os.environ["CORENLP_HOME"] = corenlp_dir
+# os.environ["CORENLP_HOME"] = corenlp_dir
 
 """
 That's all for the installation! 🎉  We can now double check if the installation is successful by listing files in the CoreNLP directory. You should be able to see a number of `.jar` files by running the following command:
