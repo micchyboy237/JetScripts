@@ -13,27 +13,19 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 if __name__ == "__main__":
     # 1. Specify preffered dimensions
     dimensions = None
-    # dimensions = 512
-    # model_name: OLLAMA_MODEL_NAMES = "mxbai-embed-large"
-    # model_name: OLLAMA_MODEL_NAMES = "nomic-embed-text"
-    # model_name: OLLAMA_MODEL_NAMES = "all-MiniLM-L6-v2"
     model_name: OLLAMA_MODEL_NAMES = "embeddinggemma"
-    # model_name: OLLAMA_MODEL_NAMES = "static-retrieval-mrl-en-v1"
     # Same example queries
     queries = [
-        "How to change max depth?",
+        "Which planet is known as the Red Planet?",
+    ]
+    sample_docs = [
+        "Venus is often called Earth's twin because of its similar size and proximity.",
+        "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
+        "Jupiter, the largest planet in our solar system, has a prominent red spot.",
+        "Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
     ]
 
     search_engine = VectorSearch(model_name, truncate_dim=dimensions)
-
-    # Same sample documents
-    sample_docs = [
-        "##### Help\n\n- Help Center",
-        "##### Legal\n\n- Security & Compliance\n- Privacy Policy",
-        "##### Partnerships\n\n- IBM",
-        "Find all pages about the Python SDK\" `\nmax_depth\ninteger\ndefault: 1\nMax depth of the crawl. Defines how far from the base URL the crawler can explore.\nRequired range: ` x >= 1 `\nmax_breadth\ninteger\ndefault: 20",
-        "How to change max depth?",
-    ]
     search_engine.add_documents(sample_docs)
 
     for query in queries:

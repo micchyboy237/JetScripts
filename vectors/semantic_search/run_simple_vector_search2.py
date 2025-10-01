@@ -36,6 +36,7 @@ class SemanticSearch:
 
 
 if __name__ == "__main__":
+    model = "google/embeddinggemma-300m"
     corpus = [
         "The cat sat on the mat.",
         "Dogs are friendly animals.",
@@ -46,7 +47,7 @@ if __name__ == "__main__":
 
     query = "What do cats do when content?"
 
-    search_engine = SemanticSearch()
+    search_engine = SemanticSearch(model)
     results = search_engine.search(query, corpus, top_k=3)
 
     for result in results:

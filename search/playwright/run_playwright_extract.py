@@ -126,7 +126,7 @@ def search(
     """
     if not documents:
         return []
-    vectors = generate_embeddings([query] + documents, model)
+    vectors = generate_embeddings([query] + documents, model, use_cache=True)
     query_vector = vectors[0]
     doc_vectors = vectors[1:]
     similarities = np.dot(doc_vectors, query_vector) / (
