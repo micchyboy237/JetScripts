@@ -119,6 +119,8 @@ en_doc_pos = make_serializable(str(en_doc))
 save_file(en_doc_pos, f"{OUTPUT_DIR}/en/doc_pos.json")
 en_doc_dict = get_non_empty_attributes(en_doc)
 for key, value in en_doc_dict.items():
+    if key.startswith("_"):
+        continue
     ext = "json"
     if isinstance(value, (int, float, str, bool)):
         ext = "txt"
@@ -149,6 +151,8 @@ zh_doc_pos = make_serializable(str(zh_doc))
 save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/doc_pos.json")
 zh_doc_dict = get_non_empty_attributes(zh_doc)
 for key, value in zh_doc_dict.items():
+    if key.startswith("_"):
+        continue
     ext = "json"
     if isinstance(value, (int, float, str, bool)):
         ext = "txt"
