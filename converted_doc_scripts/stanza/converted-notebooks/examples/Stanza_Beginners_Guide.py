@@ -1,5 +1,4 @@
 from jet.transformers.object import make_serializable
-from jet.utils.class_utils import get_non_empty_attributes
 from jet.file.utils import save_file
 from jet.logger import logger
 import os
@@ -14,6 +13,23 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.info(f"Logs: {log_file}")
+
+def serialize_stanza_object(data: any) -> dict[dict, any]:
+    """
+    Recursively serialize stanza object
+    """
+    if isinstance(data, object):
+        if hasattr(data, "to_dict"):
+            return data.to_dict()
+    elif isinstance(data, dict):
+        return {
+            key: serialize_stanza_object(value)
+            for key, value in data.items()
+            if value is not None
+        }
+    elif isinstance(data, list):
+        return [serialize_stanza_object(item) for item in data]
+    return data
 
 """
 # Welcome to Stanza!
@@ -117,7 +133,7 @@ for i, sent in enumerate(en_doc.sentences):
     logger.debug("")
 en_doc_pos = make_serializable(str(en_doc))
 save_file(en_doc_pos, f"{OUTPUT_DIR}/en/doc_pos.json")
-en_doc_dict = get_non_empty_attributes(en_doc)
+en_doc_dict = serialize_stanza_object(en_doc)
 for key, value in en_doc_dict.items():
     if key.startswith("_"):
         continue
@@ -149,7 +165,7 @@ for i, sent in enumerate(zh_doc.sentences):
     logger.debug("")
 zh_doc_pos = make_serializable(str(zh_doc))
 save_file(zh_doc_pos, f"{OUTPUT_DIR}/zh/doc_pos.json")
-zh_doc_dict = get_non_empty_attributes(zh_doc)
+zh_doc_dict = serialize_stanza_object(zh_doc)
 for key, value in zh_doc_dict.items():
     if key.startswith("_"):
         continue
