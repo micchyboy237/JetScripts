@@ -313,9 +313,7 @@ def main():
     queries = ["{pos:NN}=object <obl {}=action",
                "{cpos:NOUN}=thing <obj {cpos:VERB}=action"]
     res = visualize_search_doc(doc, queries, "en")
-    logger.debug(res[0])  # see the first sentence's deprel visualization HTML
-    logger.debug("---------------------------------------")
-    logger.debug(res[1])  # second sentence's deprel visualization HTML
+    logger.debug(f"HTML Results: {len(res)}")  # see the first sentence's deprel visualization HTML
     return
 
 

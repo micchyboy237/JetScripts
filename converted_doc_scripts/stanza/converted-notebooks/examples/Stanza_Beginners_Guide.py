@@ -44,11 +44,11 @@ By default, models will be saved to your `~/stanza_resources` directory. If you 
 """
 logger.info("### More Information")
 
-logger.debug("Downloading English model...")
-stanza.download('en')
+# logger.debug("Downloading English model...")
+# stanza.download('en')
 
-logger.debug("Downloading Chinese model...")
-stanza.download('zh', verbose=False)
+# logger.debug("Downloading Chinese model...")
+# stanza.download('zh', verbose=True)
 
 """
 ### More Information
@@ -73,7 +73,7 @@ logger.debug("Building an English pipeline...")
 en_nlp = stanza.Pipeline('en')
 
 logger.debug("Building a Chinese pipeline...")
-zh_nlp = stanza.Pipeline('zh', processors='tokenize,lemma,pos,depparse', verbose=False, use_gpu=False)
+zh_nlp = stanza.Pipeline('zh', processors='tokenize,lemma,pos,depparse', verbose=True, use_gpu=False)
 
 """
 ### Annotating Text
