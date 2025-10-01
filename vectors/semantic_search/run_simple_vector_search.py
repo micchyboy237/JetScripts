@@ -30,6 +30,8 @@ if __name__ == "__main__":
         "##### Legal\n\n- Security & Compliance\n- Privacy Policy",
         "##### Partnerships\n\n- IBM",
         "##### Tavily MCP Server\n\n- Tavily MCP Server",
+        "# Tavily Crawl - Tavily Docs",
+        "- About\n- Quickstart\n- Credits & Pricing\n- Rate Limits",
         *sentences,
     ]
 
