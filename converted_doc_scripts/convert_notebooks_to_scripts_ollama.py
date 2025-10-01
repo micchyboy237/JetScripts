@@ -732,7 +732,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/deepeval",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza",
     ]
     include_files = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners/lessons/",

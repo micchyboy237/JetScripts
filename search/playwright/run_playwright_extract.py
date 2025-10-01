@@ -1,14 +1,23 @@
+from typing import List, TypedDict
+from jet._token.token_utils import token_counter
+from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.search.playwright import PlaywrightExtract
 from jet.file.utils import save_file
-import asyncio
 import os
 import shutil
+
+from jet.search.playwright.playwright_extract import convert_html_to_markdown
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(
         os.path.basename(__file__))[0]
 )
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+class ContextItem(TypedDict):
+    doc_idx: int
+    tokens: int
+    text: str
 
 def sync_example(urls):
     """Demonstrate synchronous usage of PlaywrightExtract."""
@@ -82,7 +91,21 @@ async def async_example(urls):
     except Exception as e:
         print(f"Error in async advanced extract: {e}")
 
-def stream_example(urls):
+def extract_contexts(html: str, url: str, model: str) -> List[ContextItem]:
+    md_content = convert_html_to_markdown(html, ignore_links=False)
+    original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
+    contexts: List[ContextItem] = []
+    for idx, doc in enumerate(original_docs):
+        doc["source"] = url
+        text = doc["header"] + "\n\n" + doc["content"]
+        contexts.append({
+            "doc_idx": idx,
+            "tokens": token_counter(text, model),
+            "text": text,
+        })
+    return contexts
+
+def scrape_urls_data(urls: List[str], model: str):
     extractor = PlaywrightExtract()
     result_stream = extractor._stream(
         urls=urls,
@@ -97,7 +120,10 @@ def stream_example(urls):
         count += 1
         meta = result.pop("meta")
         print(f"URL: {result['url']} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
+
+        contexts = extract_contexts(meta["html"], result['url'], model)
         save_file(result, f"{OUTPUT_DIR}/stream_1/results.json")
+        save_file(contexts, f"{OUTPUT_DIR}/stream_1/contexts.json")
         save_file({
             "tokens": meta["tokens"],
         }, f"{OUTPUT_DIR}/stream_1/info.json")
@@ -113,9 +139,11 @@ if __name__ == "__main__":
     urls = [
         "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
+    model = "qwen3:4b-q4_K_M"
+
     print("Running stream examples...")
-    stream_example(urls)
-    print("Running synchronous examples...")
-    sync_example(urls)
-    print("\nRunning asynchronous examples...")
-    asyncio.run(async_example(urls))
+    scrape_urls_data(urls, model)
+    # print("Running synchronous examples...")
+    # sync_example(urls)
+    # print("\nRunning asynchronous examples...")
+    # asyncio.run(async_example(urls))

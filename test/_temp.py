@@ -1,22 +1,39 @@
-from jet.search.playwright.playwright_search import PlaywrightSearch
 from jet.transformers.formatters import format_json
-from jet.file.utils import save_file
+import stanza
+import markdown
+import html2text  # Added for plain text conversion
 from jet.logger import logger
-import os
-import shutil
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger.basicConfig(filename=log_file)
-logger.info(f"Logs: {log_file}")
+# Initialize Stanza pipeline
+nlp = stanza.Pipeline('en', processors='tokenize,pos', verbose=True)
 
-query = "Top 10 isekai anime 2025 with release date, synopsis, number of episode, airing status"
+# Markdown text input
+markdown_text = """
+## Section
+First sentence ends here. Second with noun.
 
-searcher = PlaywrightSearch(max_results=10, topic="general")
-result = searcher._run(query=query)
-logger.gray("Synchronous search result:")
-logger.success(format_json(result))
-save_file(result, f"{OUTPUT_DIR}/sync_result.json")
+Bullet: Action item.
+Next para.
+"""
+
+# Convert Markdown to HTML, then to plain text
+html = markdown.markdown(markdown_text, output_format='html')
+h = html2text.HTML2Text()
+h.body_only = True  # Exclude HTML wrapper tags
+plain_text = h.handle(html).strip()
+
+# Process with Stanza
+doc = nlp(plain_text)
+sentences = [sent.text.strip() for sent in doc.sentences]
+paragraphs = [para.strip() for para in plain_text.split('\n\n') if para.strip()]  # Refined split
+
+# Output results
+logger.gray("Sentences:")
+logger.success(format_json(sentences))
+logger.gray("Paragraphs:")
+logger.success(format_json(paragraphs))
+
+# Optional POS inspection
+for sent in doc.sentences:
+    for word in sent.words:
+        print(word.text, word.xpos)
