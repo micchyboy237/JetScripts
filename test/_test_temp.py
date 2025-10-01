@@ -62,25 +62,29 @@ class TestDocumentPreprocessor:
         assert 'Context:' in first_chunk['content']
         assert 'Original content:' in first_chunk['content']
     
-    def test_markdown_stripping(self, processor, sample_markdown_content):
+    def test_markdown_stripping(self, sample_markdown_content):
+        # Test with explicit markdown stripping config
         stripping_config = {'strip_markdown': True, 'chunk_size': 500}
         stripping_processor = DocumentPreprocessor(stripping_config)
         
         result = stripping_processor.preprocess_document(sample_markdown_content)
         first_chunk_content = result.chunks[0]['content']
         
+        # Check that markdown syntax is removed
         assert '**' not in first_chunk_content
-        assert '[' not in first_chunk_content or ']' not in first_chunk_content
+        assert '##' not in first_chunk_content
     
-    def test_chunk_size_respected(self, processor, sample_plain_text):
+    def test_chunk_size_respected(self, sample_plain_text):
+        # Test with specific chunk size config
         chunk_size = 100
         size_processor = DocumentPreprocessor({'chunk_size': chunk_size})
         
         result = size_processor.preprocess_document(sample_plain_text)
         for chunk in result.chunks:
-            # Approximate word count check
-            words = chunk['content'].split()
-            assert len(words) <= chunk_size + 50  # Allow some flexibility
+            # Approximate word count check (allow for context overhead)
+            content_without_context = chunk['content'].split('Original content:')[-1]
+            words = content_without_context.split()
+            assert len(words) <= chunk_size + 20  # Allow some flexibility for word boundaries
     
     def test_preprocess_query_without_history(self, processor):
         query = "What is RAG?"
@@ -103,6 +107,28 @@ class TestDocumentPreprocessor:
         assert result.metadata['title'] == 'Test Doc'
         assert result.metadata['author'] == 'AI Engineer'
         assert 'version' in result.chunks[0]['metadata']
+    
+    def test_empty_content(self, processor):
+        result = processor.preprocess_document("")
+        assert len(result.chunks) == 0
+        assert result.original_content == ""
+    
+    def test_partial_config_merges_with_defaults(self):
+        # Test that partial config properly merges with defaults
+        partial_config = {'chunk_size': 500}
+        processor = DocumentPreprocessor(partial_config)
+        
+        # Should have custom chunk_size but default for other values
+        assert processor.config['chunk_size'] == 500
+        assert processor.config['chunk_overlap'] == 200  # default
+        assert processor.config['strip_markdown'] == False  # default
+    
+    def test_none_config_uses_all_defaults(self):
+        processor = DocumentPreprocessor()
+        assert processor.config['chunk_size'] == 1000
+        assert processor.config['chunk_overlap'] == 200
+        assert processor.config['add_section_summaries'] == True
+        assert processor.config['strip_markdown'] == False
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

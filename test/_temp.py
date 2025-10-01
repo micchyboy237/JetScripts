@@ -28,13 +28,20 @@ class DocumentPreprocessor:
     """
     
     def __init__(self, config: Optional[PreprocessingConfig] = None):
-        self.config = config or {
+        # Default configuration
+        self.default_config: PreprocessingConfig = {
             'chunk_size': 1000,
             'chunk_overlap': 200,
             'add_section_summaries': True,
             'context_window_tokens': 50,
             'strip_markdown': False
         }
+        
+        # Merge provided config with defaults
+        if config:
+            self.config = {**self.default_config, **config}
+        else:
+            self.config = self.default_config.copy()
     
     def preprocess_document(self, content: str, metadata: Optional[Dict[str, str]] = None) -> ProcessedDocument:
         """
@@ -54,7 +61,7 @@ class DocumentPreprocessor:
         cleaned_content = self._clean_content(content)
         
         # Enhance with section summaries if needed
-        if self.config['add_section_summaries']:
+        if self.config.get('add_section_summaries', True):
             enhanced_content = self._add_section_summaries(cleaned_content)
         else:
             enhanced_content = cleaned_content
@@ -75,7 +82,7 @@ class DocumentPreprocessor:
         cleaned = re.sub(r'\n\s*\n', '\n\n', content.strip())
         
         # Optionally strip markdown but keep semantic structure
-        if self.config['strip_markdown']:
+        if self.config.get('strip_markdown', False):
             cleaned = self._strip_markdown(cleaned)
             
         return cleaned
@@ -88,6 +95,12 @@ class DocumentPreprocessor:
         content = re.sub(r'[\*_]{1,2}(.*?)[\*_]{1,2}', r'\1', content)
         # Remove links but keep anchor text
         content = re.sub(r'\[(.*?)\]\(.*?\)', r'\1', content)
+        # Remove code blocks but keep content
+        content = re.sub(r'`{1,3}(.*?)`{1,3}', r'\1', content)
+        # Remove blockquotes
+        content = re.sub(r'^\s*>+\s*', '', content, flags=re.MULTILINE)
+        # Remove horizontal rules
+        content = re.sub(r'^\s*[*\-_]{3,}\s*$', '', content, flags=re.MULTILINE)
         
         return content
     
@@ -96,62 +109,102 @@ class DocumentPreprocessor:
         lines = content.split('\n')
         enhanced_lines = []
         
-        for i, line in enumerate(lines):
+        i = 0
+        while i < len(lines):
+            line = lines[i]
             enhanced_lines.append(line)
+            
             # Detect section headers (simplified)
-            if line.strip() and (line.startswith('#') or i == 0 or 
-                               (line.endswith(':') and len(line) < 100)):
-                summary = self._generate_section_summary(line, lines[i+1:min(i+10, len(lines))])
+            is_section_header = (
+                line.strip() and 
+                (line.startswith('#') or 
+                 i == 0 or 
+                 (line.endswith(':') and len(line) < 100) or
+                 (line.isupper() and len(line) < 100))  # All caps headers
+            )
+            
+            if is_section_header:
+                # Get next few lines for context
+                next_lines = []
+                j = i + 1
+                while j < len(lines) and j < i + 10 and not lines[j].strip().startswith('#'):
+                    if lines[j].strip():
+                        next_lines.append(lines[j])
+                    j += 1
+                
+                summary = self._generate_section_summary(line, next_lines)
                 if summary:
                     enhanced_lines.append(f"*Summary: {summary}*")
                     enhanced_lines.append("")  # Add spacing
+            
+            i += 1
         
         return '\n'.join(enhanced_lines)
     
     def _generate_section_summary(self, header: str, next_lines: List[str]) -> Optional[str]:
         """Generate a brief summary for a section."""
+        if not next_lines:
+            return None
+            
         sample_text = ' '.join(next_lines[:3])  # Use first few lines
         if len(sample_text) > 50:
             # Simple extraction - in practice, use more sophisticated methods
             sentences = re.split(r'[.!?]', sample_text)
             if sentences and len(sentences[0]) > 10:
                 return sentences[0][:100] + "..."
-        return None
+        return sample_text[:100] + "..." if len(sample_text) > 100 else sample_text
     
     def _split_with_context(self, content: str, metadata: Dict[str, str]) -> List[DocumentChunk]:
         """
         Split document into chunks with contextual information prepended.
         Implements Contextual Retrieval pattern.
         """
+        if not content.strip():
+            return []
+            
         chunks = []
         words = content.split()
+        chunk_size = self.config.get('chunk_size', 1000)
+        chunk_overlap = self.config.get('chunk_overlap', 200)
         
-        for i in range(0, len(words), self.config['chunk_size'] - self.config['chunk_overlap']):
-            chunk_words = words[i:i + self.config['chunk_size']]
+        # Ensure we don't have negative or zero chunk size
+        chunk_size = max(100, chunk_size)
+        chunk_overlap = min(chunk_overlap, chunk_size - 50)  # Ensure reasonable overlap
+        
+        i = 0
+        chunk_index = 0
+        while i < len(words):
+            end_index = min(i + chunk_size, len(words))
+            chunk_words = words[i:end_index]
             chunk_content = ' '.join(chunk_words)
             
             # Add contextual information to chunk
-            contextualized_content = self._add_chunk_context(chunk_content, metadata, i)
+            contextualized_content = self._add_chunk_context(chunk_content, metadata, i, chunk_index)
             
             chunk = DocumentChunk(
                 content=contextualized_content,
                 metadata={
                     'word_count': len(chunk_words),
                     'start_position': i,
-                    'end_position': i + len(chunk_words),
+                    'end_position': end_index,
                     'source': metadata.get('source', 'unknown'),
-                    **metadata
+                    'chunk_index': chunk_index,
+                    **{k: v for k, v in metadata.items() if k != 'source'}  # Avoid duplicate source
                 },
-                chunk_id=f"chunk_{i}_{hash(chunk_content) % 10000:04d}"
+                chunk_id=f"chunk_{chunk_index:04d}_{i:06d}"
             )
             chunks.append(chunk)
             
-            if i + self.config['chunk_size'] >= len(words):
+            # Move to next chunk position
+            if end_index == len(words):
                 break
+                
+            i += chunk_size - chunk_overlap
+            chunk_index += 1
         
         return chunks
     
-    def _add_chunk_context(self, chunk_content: str, metadata: Dict[str, str], position: int) -> str:
+    def _add_chunk_context(self, chunk_content: str, metadata: Dict[str, str], position: int, chunk_index: int) -> str:
         """Prepend contextual information to chunk (Contextual Retrieval pattern)."""
         context_parts = []
         
@@ -162,18 +215,27 @@ class DocumentPreprocessor:
             context_parts.append(f"Document type: {metadata['document_type']}")
         
         # Add chunk-specific context
-        context_parts.append(f"This chunk discusses: {self._extract_chunk_topic(chunk_content)}")
+        context_parts.append(f"This chunk (part {chunk_index + 1}) discusses: {self._extract_chunk_topic(chunk_content)}")
         
         context = ". ".join(context_parts)
         return f"Context: {context}. Original content: {chunk_content}"
 
     def _extract_chunk_topic(self, chunk_content: str) -> str:
         """Extract a brief topic description for contextual information."""
-        sentences = re.split(r'[.!?]', chunk_content)
-        if sentences:
+        # Clean the content for topic extraction
+        clean_content = re.sub(r'Context:.*?Original content:', '', chunk_content)
+        sentences = re.split(r'[.!?]', clean_content)
+        
+        if sentences and sentences[0].strip():
             first_sentence = sentences[0].strip()
             if len(first_sentence) > 20:
                 return first_sentence[:80] + "..."
+        
+        # Fallback: use first 50 characters
+        words = clean_content.split()[:10]
+        if words:
+            return ' '.join(words) + "..."
+        
         return "key concepts from this document section"
 
     def preprocess_query(self, query: str, conversation_history: Optional[List[str]] = None) -> str:
@@ -261,7 +323,7 @@ Use `print("Hello")` for quick debugging.
 
     config = {
         "chunk_size": 100,
-        "chunk_overlap": 20,
+        "chunk_overlap": 50,
         "strip_markdown": True,
         "add_section_summaries": True,
     }
