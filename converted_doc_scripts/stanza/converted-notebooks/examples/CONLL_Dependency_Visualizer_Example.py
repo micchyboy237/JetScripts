@@ -1,5 +1,6 @@
+from jet.adapters.stanza.conll_deprel_visualization import conll_to_visual
+from jet.file.utils import save_file
 from jet.logger import logger
-from stanza.utils.visualization.conll_deprel_visualization import conll_to_visual
 import os
 import shutil
 
@@ -15,15 +16,23 @@ logger.info(f"Logs: {log_file}")
 
 en_file = f"{os.path.dirname(__file__)}/data/en_test.conllu.txt"
 
-conll_to_visual(en_file, "en", sent_count=2)
-conll_to_visual(en_file, "en", sent_count=10)
+html_strings = conll_to_visual(en_file, "en", sent_count=2)
+for i, html in enumerate(html_strings):
+  save_file(html, f"{OUTPUT_DIR}/en/html_sent_count_2.html")
+html_strings = conll_to_visual(en_file, "en", sent_count=10)
+for i, html in enumerate(html_strings):
+  save_file(html, f"{OUTPUT_DIR}/en/html_sent_count_10.html")
 
 
 jp_file = f"{os.path.dirname(__file__)}/data/japanese_test.conllu.txt"
-conll_to_visual(jp_file, "ja")
+html_strings = conll_to_visual(jp_file, "ja")
+for i, html in enumerate(html_strings):
+  save_file(html, f"{OUTPUT_DIR}/ja/html_japanese_test.html")
 
 
 ar_file = f"{os.path.dirname(__file__)}/data/arabic_test.conllu.txt"
-conll_to_visual(ar_file, "ar")
+html_strings = conll_to_visual(ar_file, "ar")
+for i, html in enumerate(html_strings):
+  save_file(html, f"{OUTPUT_DIR}/ar/html_arabic_test.html")
 
 logger.info("\n\n[DONE]", bright=True)
