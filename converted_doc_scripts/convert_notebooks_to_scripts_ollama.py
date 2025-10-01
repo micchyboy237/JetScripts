@@ -733,7 +733,9 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/deepeval",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/BERTopic/docs",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/KeyBERT/docs",
     ]
     include_files = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners/lessons/",
@@ -746,6 +748,7 @@ if __name__ == "__main__":
     case_sensitive = False
     extension_mappings = [
         {"ext": [".ipynb"], "output_base_dir": "converted-notebooks"},
+        {"ext": [".md"], "output_base_dir": "converted-markdown"},
         {"ext": [".mdx"], "output_base_dir": "converted-markdown-extended"},
         # {"ext": [".py"], "output_base_dir": "converted-python"},
     ]
