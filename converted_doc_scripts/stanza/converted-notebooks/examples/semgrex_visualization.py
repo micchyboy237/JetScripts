@@ -1,9 +1,10 @@
-from IPython.display import display, HTML
+# from IPython.display import display, HTML
 from jet.logger import logger
 from spacy import displacy
 from spacy.tokens import Doc
 from stanza.models.common.constant import is_right_to_left
 from stanza.server.semgrex import Semgrex
+from jet.file.utils import save_file
 import os
 import shutil
 import spacy
@@ -160,12 +161,12 @@ def process_sentence_html(orig_html, semgrex_sentence):
     return orig_html
 
 
-def render_html_strings(edited_html_strings):
-    """
-    Renders the HTML to make the edits visible
-    """
-    for html_string in edited_html_strings:
-        display(HTML(html_string))
+# def render_html_strings(edited_html_strings):
+#     """
+#     Renders the HTML to make the edits visible
+#     """
+#     for html_string in edited_html_strings:
+#         display(HTML(html_string))
 
 
 def visualize_search_doc(doc, semgrex_queries, lang_code, start_match=0, end_match=10):
@@ -203,7 +204,9 @@ def visualize_search_doc(doc, semgrex_queries, lang_code, start_match=0, end_mat
                     edited_html_strings.append(edited_string)
                 matches_count += 1
 
-        render_html_strings(edited_html_strings)
+        # render_html_strings(edited_html_strings)
+        for i, html_string in enumerate(edited_html_strings):
+            save_file(html_string, f"{OUTPUT_DIR}/edited_html_{i + 1}.html")
     return edited_html_strings
 
 
