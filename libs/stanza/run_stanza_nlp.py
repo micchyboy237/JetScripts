@@ -4,9 +4,9 @@ from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.llm.utils.embeddings import generate_embeddings
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-
 from jet.transformers.object import make_serializable
 from jet.utils.class_utils import get_non_empty_primitive_attributes
+from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 import numpy as np
 import os
 import shutil
@@ -75,25 +75,41 @@ if __name__ == "__main__":
     md_content = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md")
     model: OLLAMA_MODEL_NAMES = "embeddinggemma"
 
+    headers = derive_by_header_hierarchy(md_content, ignore_links=True)
+    docs = [f"{header["header"]}\n\n{header["content"]}" for header in headers]
+
     # Search
     query = "How to change max depth?"
     # texts = [doc["text"] for doc in all_contexts]
 
-    nlp = stanza.Pipeline('en', dir=DEFAULT_MODEL_DIR, verbose=True, logging_level="DEBUG")
-    doc = nlp(md_content)
+    nlp = stanza.Pipeline('en', dir=DEFAULT_MODEL_DIR, processors='tokenize,pos', verbose=True, logging_level="DEBUG")
+    doc_stream = nlp.stream(docs)
 
-    doc_pos = make_serializable(str(doc))
-    save_file(doc_pos, f"{OUTPUT_DIR}/pos.json")
+    doc_pos = []
+    doc_info = []
+    doc_dict = {}
+    doc_texts = []
+    for doc in doc_stream:
+        pos = make_serializable(str(doc))
+        doc_pos.append(pos)
+        save_file(doc_pos, f"{OUTPUT_DIR}/pos.json")
 
-    doc_info = get_non_empty_primitive_attributes(doc)
-    save_file(doc_info, f"{OUTPUT_DIR}/info.json")
-    
-    doc_data = serialize_stanza_object(doc)
-    for key, value in doc_data.items():
-        save_file(value, f"{OUTPUT_DIR}/{key}.json")
+        info = get_non_empty_primitive_attributes(doc)
+        doc_info.append(info)
+        save_file(doc_info, f"{OUTPUT_DIR}/info.json")
+        
+        data = serialize_stanza_object(doc)
+        for key, value in data.items():
+            doc_dict[key] = doc_dict.get(key, [])
+            doc_dict[key].append(value)
+            save_file(doc_dict[key], f"{OUTPUT_DIR}/{key}.json")
 
-    texts = [sent["text"] for sent in doc_data["sentences"]]
-    search_results = search(query, texts, model)
+        texts = [sent["text"] for sent in data["sentences"]]
+        doc_texts.append(texts)
+        save_file(doc_texts, f"{OUTPUT_DIR}/texts.json")
+
+    flattened_texts = [text for doc_text in doc_texts for text in doc_text]
+    search_results = search(query, flattened_texts, model)
     save_file({
         "query": query,
         "count": len(search_results),
