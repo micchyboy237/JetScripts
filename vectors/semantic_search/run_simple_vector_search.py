@@ -21,17 +21,18 @@ if __name__ == "__main__":
     # model_name: OLLAMA_MODEL_NAMES = "static-retrieval-mrl-en-v1"
     # Same example queries
     queries = [
-        "work from home",
+        "How to change max depth?",
     ]
 
     search_engine = VectorSearch(model_name, truncate_dim=dimensions)
 
     # Same sample documents
     sample_docs = [
-        "Work From Home",
-        "WFH",
-        "Remote",
-        "Office based",
+        "##### Help\n\n- Help Center",
+        "##### Legal\n\n- Security & Compliance\n- Privacy Policy",
+        "##### Partnerships\n\n- IBM",
+        "Find all pages about the Python SDK\" `\nmax_depth\ninteger\ndefault: 1\nMax depth of the crawl. Defines how far from the base URL the crawler can explore.\nRequired range: ` x >= 1 `\nmax_breadth\ninteger\ndefault: 20",
+        "How to change max depth?",
     ]
     search_engine.add_documents(sample_docs)
 

@@ -138,11 +138,11 @@ def search(
     return [
         {
             "rank": i + 1,
-            "doc_index": i,
-            "score": float(similarities[i]),
-            "text": documents[i],
+            "doc_index": int(sorted_indices[i]),
+            "score": float(similarities[sorted_indices[i]]),
+            "text": documents[sorted_indices[i]],
         }
-        for i in sorted_indices
+        for i in range(len(sorted_indices))
     ]
 
 def scrape_urls_data(urls: List[str], model: str):
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     urls = [
         "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
-    model = "all-minilm:33m"
+    model: OLLAMA_MODEL_NAMES = "embeddinggemma"
 
     print("Running stream examples...")
     all_contexts = scrape_urls_data(urls, model)
