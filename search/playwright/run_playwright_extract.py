@@ -105,8 +105,8 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
     top_k = None
     threshold = 0.0
-    chunk_size = 250
-    chunk_overlap = 40
+    chunk_size = 128
+    chunk_overlap = 64
     search_results = list(
         search_headers(
             original_docs,
