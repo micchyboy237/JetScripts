@@ -1,6 +1,8 @@
 import os
 import shutil
+from jet._token.token_utils import token_counter
 from jet.file.utils import load_file, save_file
+from jet.logger import logger
 from jet.logger.config import colorize_log
 from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.vectors.semantic_search.vector_search_simple import VectorSearch
@@ -29,7 +31,7 @@ if __name__ == "__main__":
     initial_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/libs/stanza/generated/run_stanza_nlp/sentences.json"
     initial_sentences = [sentence["text"] for header_sentences in load_file(initial_file) for sentence in header_sentences]
     sample_docs = [
-        # *initial_sentences[:64],
+        *initial_sentences[:64],
         # "##### Help\n\n- Help Center",
         # "##### Legal\n\n- Security & Compliance\n- Privacy Policy",
         # "##### Partnerships\n\n- IBM",
@@ -38,6 +40,19 @@ if __name__ == "__main__":
         # "- About\n- Quickstart\n- Credits & Pricing\n- Rate Limits",
         *sentences,
     ]
+
+    tokens: list[int] = token_counter(sample_docs, "embeddinggemma", prevent_total=True)
+    logger.debug(f"Total tokens: {sum(tokens)}")
+    
+    save_file({
+        "count": len(sample_docs),
+        "tokens": {
+            "max": max(tokens),
+            "min": min(tokens),
+            "total": sum(tokens),
+        },
+        "results": [{"doc_index": idx, "tokens": token_counter(text), "text": text} for idx, text in enumerate(sample_docs)]
+    }, f"{OUTPUT_DIR}/sample_docs.json")
 
     search_engine = VectorSearch(model_name, truncate_dim=dimensions)
     search_engine.add_documents(sample_docs)

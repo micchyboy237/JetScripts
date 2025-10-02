@@ -1,12 +1,13 @@
 from typing import Iterator, List, TypedDict
+from jet.code.markdown_utils._converters import convert_html_to_markdown
+from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
 from jet.libs.stanza.utils import serialize_stanza_object
 from jet.llm.models import OLLAMA_MODEL_NAMES
-from jet.llm.utils.embeddings import generate_embeddings_stream
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 from jet.transformers.object import make_serializable
 from jet.utils.class_utils import get_non_empty_primitive_attributes
-from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
+from jet.wordnet.text_chunker import chunk_texts_with_data
 import numpy as np
 import os
 import shutil
@@ -64,8 +65,11 @@ def search(
     query_vector = None
     vectors_list: list[np.ndarray] = []
 
+    # Initialize the embedding client
+    embedder = LlamacppEmbedding(model=model)
+
     # Stream embeddings batch by batch
-    for vectors in generate_embeddings_stream([query] + documents, model, use_cache=True, show_progress=True):
+    for vectors in embedder.get_embeddings_stream([query] + documents, model, show_progress=True):
         if not isinstance(vectors, np.ndarray):
             vectors = np.array(vectors)
 
@@ -96,15 +100,39 @@ def search(
     # doc_vectors = np.array(vectors_list)
 
 if __name__ == "__main__":
-    md_content = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md")
-    model: OLLAMA_MODEL_NAMES = "embeddinggemma"
-
-    headers = derive_by_header_hierarchy(md_content, ignore_links=True)
-    docs = [f"{header["header"]}\n\n{header["content"]}" for header in headers]
-
-    # Search
+    html_string = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/page.html")
+    model = "embeddinggemma"
     query = "How to change max depth?"
-    # texts = [doc["text"] for doc in all_contexts]
+
+    md_content = convert_html_to_markdown(html_string, ignore_links=True)
+    chunks = chunk_texts_with_data(md_content, chunk_size=150, chunk_overlap=20)
+    chunk_tokens = [chunk["num_tokens"] for chunk in chunks]
+    save_file({
+        "count": len(chunks),
+        "tokens": {
+            "min": min(chunk_tokens),
+            "max": max(chunk_tokens),
+            "sum": sum(chunk_tokens),
+        },
+        "chunks": chunks,
+    }, f"{OUTPUT_DIR}/chunks.json")
+
+    docs = [chunk["content"] for chunk in chunks]
+    save_file(docs, f"{OUTPUT_DIR}/docs.json")
+
+    search_results = []
+    for results in search(query, docs, model):
+        search_results.extend(results)
+        save_file({
+            "query": query,
+            "count": len(search_results),
+            "results": search_results,
+        }, f"{OUTPUT_DIR}/search_chunks_results.json")
+
+    
+    # Stanza NLP
+    
+    # docs = [doc["text"] for doc in all_contexts]
 
     nlp = stanza.Pipeline('en', dir=DEFAULT_MODEL_DIR, processors='tokenize,pos', verbose=True, logging_level="DEBUG")
     doc_stream = nlp.stream(docs)
@@ -128,9 +156,9 @@ if __name__ == "__main__":
             doc_dict[key].append(value)
             save_file(doc_dict[key], f"{OUTPUT_DIR}/{key}.json")
 
-        texts = [sent["text"] for sent in data["sentences"]]
-        doc_texts.append(texts)
-        save_file(doc_texts, f"{OUTPUT_DIR}/texts.json")
+        sentences = [sent["text"] for sent in data["sentences"]]
+        doc_texts.append(sentences)
+        save_file(doc_texts, f"{OUTPUT_DIR}/sentences.json")
 
     flattened_texts = [text for doc_text in doc_texts for text in doc_text]
     search_results = []
@@ -140,4 +168,4 @@ if __name__ == "__main__":
             "query": query,
             "count": len(search_results),
             "results": search_results,
-        }, f"{OUTPUT_DIR}/search_results.json")
+        }, f"{OUTPUT_DIR}/search_sentences_results.json")

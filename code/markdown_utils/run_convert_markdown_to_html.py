@@ -141,28 +141,28 @@ This is a [[WikiLink]].
 """
 
 def md_to_html(md):
-    extension_map = {
-        "extra": "markdown.extensions.extra",
-        "abbr": "markdown.extensions.abbr",
-        "attr_list": "markdown.extensions.attr_list",
-        "def_list": "markdown.extensions.def_list",
-        "fenced_code": "markdown.extensions.fenced_code",
-        "footnotes": "markdown.extensions.footnotes",
-        "md_in_html": "markdown.extensions.md_in_html",
-        "tables": "markdown.extensions.tables",
-        "admonition": "markdown.extensions.admonition",
-        "codehilite": "markdown.extensions.codehilite",
-        "legacy_attrs": "markdown.extensions.legacy_attrs",
-        "legacy_em": "markdown.extensions.legacy_em",
-        "meta": "markdown.extensions.meta",
-        "nl2br": "markdown.extensions.nl2br",
-        "sane_lists": "markdown.extensions.sane_lists",
-        "smarty": "markdown.extensions.smarty",
-        "toc": "markdown.extensions.toc",
-        "wikilinks": "markdown.extensions.wikilinks",
-    }
+    extensions = [
+        "markdown.extensions.extra",
+        "markdown.extensions.abbr",
+        "markdown.extensions.attr_list",
+        "markdown.extensions.def_list",
+        "markdown.extensions.fenced_code",
+        "markdown.extensions.footnotes",
+        "markdown.extensions.md_in_html",
+        "markdown.extensions.tables",
+        "markdown.extensions.admonition",
+        "markdown.extensions.codehilite",
+        "markdown.extensions.legacy_attrs",
+        "markdown.extensions.legacy_em",
+        "markdown.extensions.meta",
+        "markdown.extensions.nl2br",
+        "markdown.extensions.sane_lists",
+        "markdown.extensions.smarty",
+        "markdown.extensions.toc",
+        "markdown.extensions.wikilinks",
+    ]
 
-    html_content = markdown.markdown(md, extensions=extension_map.values())
+    html_content = markdown.markdown(md, extensions=extensions)
     return html_content
 
 if __name__ == "__main__":
