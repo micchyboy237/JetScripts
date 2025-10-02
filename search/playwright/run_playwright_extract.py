@@ -117,7 +117,7 @@ def extract_contexts(html: str, url: str, model: str) -> List[ContextItem]:
 def search(
     query: str,
     documents: List[str],
-    model: str = "embeddinggemma-300M-Q8_0.gguf",
+    model: str = "nomic-embed-text-v2-moe",
     top_k: int = None
 ) -> List[SearchResult]:
     """Search for documents most similar to the query.
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     urls = [
         "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
-    model: OLLAMA_MODEL_NAMES = "embeddinggemma"
+    model: OLLAMA_MODEL_NAMES = "nomic-embed-text-v2-moe"
 
     print("Running stream examples...")
     all_contexts = scrape_urls_data(urls, model)

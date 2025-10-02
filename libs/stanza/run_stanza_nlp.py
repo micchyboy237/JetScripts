@@ -40,6 +40,26 @@ class SearchResult(TypedDict):
     score: float
     text: str
 
+def preprocess_text(text: str) -> str:
+    """
+    Preprocesses a single text by normalizing whitespace, converting to lowercase,
+    and removing special characters.
+
+    Args:
+        text (str): Input text to preprocess.
+
+    Returns:
+        str: Preprocessed text.
+    """
+    # import re
+    # # Convert to lowercase
+    # text = text.lower()
+    # # Remove special characters, keeping alphanumeric and spaces
+    # text = re.sub(r'[^\w\s]', '', text)
+    # # Normalize whitespace (replace multiple spaces with single space, strip)
+    # text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
 def compute_similarities(
     query_vector: np.ndarray,
     doc_vectors: np.ndarray
@@ -101,7 +121,7 @@ def search(
 
 if __name__ == "__main__":
     html_string = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/page.html")
-    model = "embeddinggemma"
+    model = "nomic-embed-text-v2-moe"
     query = "How to change max depth?"
 
     md_content = convert_html_to_markdown(html_string, ignore_links=True)
@@ -114,7 +134,7 @@ if __name__ == "__main__":
             "max": max(chunk_tokens),
             "sum": sum(chunk_tokens),
         },
-        "chunks": chunks,
+        "texts": [{"doc_index": chunk["doc_index"], "tokens": chunk["num_tokens"], "text": chunk["content"]} for chunk in chunks],
     }, f"{OUTPUT_DIR}/chunks.json")
 
     docs = [chunk["content"] for chunk in chunks]

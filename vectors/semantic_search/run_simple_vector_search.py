@@ -16,7 +16,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 if __name__ == "__main__":
     # 1. Specify preffered dimensions
     dimensions = None
-    model_name: OLLAMA_MODEL_NAMES = "embeddinggemma"
+    model_name: OLLAMA_MODEL_NAMES = "nomic-embed-text-v2-moe"
     # Same example queries
     queries = [
         "How to change max depth?",
@@ -41,7 +41,7 @@ if __name__ == "__main__":
         *sentences,
     ]
 
-    tokens: list[int] = token_counter(sample_docs, "embeddinggemma", prevent_total=True)
+    tokens: list[int] = token_counter(sample_docs, "nomic-embed-text-v2-moe", prevent_total=True)
     logger.debug(f"Total tokens: {sum(tokens)}")
     
     save_file({
