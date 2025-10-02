@@ -29,7 +29,7 @@ if __name__ == "__main__":
     initial_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/libs/stanza/generated/run_stanza_nlp/sentences.json"
     initial_sentences = [sentence["text"] for header_sentences in load_file(initial_file) for sentence in header_sentences]
     sample_docs = [
-        *initial_sentences[:64],
+        # *initial_sentences[:64],
         # "##### Help\n\n- Help Center",
         # "##### Legal\n\n- Security & Compliance\n- Privacy Policy",
         # "##### Partnerships\n\n- IBM",

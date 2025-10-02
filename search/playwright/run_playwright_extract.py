@@ -1,7 +1,7 @@
 import os
 import shutil
+from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
 from jet.llm.models import OLLAMA_MODEL_NAMES
-from jet.llm.utils.embeddings import generate_embeddings
 from jet.utils.text import format_sub_dir
 import numpy as np
 from typing import List, TypedDict
@@ -117,7 +117,7 @@ def extract_contexts(html: str, url: str, model: str) -> List[ContextItem]:
 def search(
     query: str,
     documents: List[str],
-    model: str | OLLAMA_MODEL_NAMES = "all-minilm:33m",
+    model: str = "embeddinggemma-300M-Q8_0.gguf",
     top_k: int = None
 ) -> List[SearchResult]:
     """Search for documents most similar to the query.
@@ -126,7 +126,8 @@ def search(
     """
     if not documents:
         return []
-    vectors = generate_embeddings([query] + documents, model, use_cache=True)
+    client = LlamacppEmbedding(model=model)
+    vectors = client.get_embeddings([query] + documents, show_progress=True)
     query_vector = vectors[0]
     doc_vectors = vectors[1:]
     similarities = np.dot(doc_vectors, query_vector) / (
