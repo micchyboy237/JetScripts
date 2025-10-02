@@ -1,11 +1,11 @@
 import os
 import shutil
+from jet.code.markdown_types import HeaderSearchResult
 from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
-from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.utils.text import format_sub_dir
+from jet.vectors.semantic_search.header_vector_search import search_headers
 import numpy as np
 from typing import List, TypedDict
-from jet._token.token_utils import token_counter
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.search.playwright import PlaywrightExtract
 from jet.file.utils import save_file
@@ -100,19 +100,36 @@ async def async_example(urls):
     except Exception as e:
         print(f"Error in async advanced extract: {e}")
 
-def extract_contexts(html: str, url: str, model: str) -> List[ContextItem]:
+def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderSearchResult]:
     md_content = convert_html_to_markdown(html, ignore_links=False)
     original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
-    contexts: List[ContextItem] = []
-    for idx, doc in enumerate(original_docs):
-        doc["source"] = url
-        text = doc["header"] + "\n\n" + doc["content"]
-        contexts.append({
-            "doc_idx": idx,
-            "tokens": token_counter(text, model),
-            "text": text,
-        })
-    return contexts
+    top_k = None
+    threshold = 0.0
+    chunk_size = 250
+    chunk_overlap = 40
+    search_results = list(
+        search_headers(
+            original_docs,
+            query,
+            top_k=top_k,
+            threshold=threshold,
+            embed_model=model,
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_overlap,
+            tokenizer_model=model,
+            # merge_chunks=merge_chunks
+        )
+    )
+    # contexts: List[ContextItem] = []
+    # for idx, doc in enumerate(original_docs):
+    #     doc["source"] = url
+    #     text = doc["header"] + "\n\n" + doc["content"]
+    #     contexts.append({
+    #         "doc_idx": idx,
+    #         "tokens": token_counter(text, model),
+    #         "text": text,
+    #     })
+    return search_results
 
 def search(
     query: str,
@@ -146,7 +163,7 @@ def search(
         for i in range(len(sorted_indices))
     ]
 
-def scrape_urls_data(urls: List[str], model: str):
+def scrape_urls_data(query: str, urls: List[str], model: str):
     extractor = PlaywrightExtract()
     result_stream = extractor._stream(
         urls=urls,
@@ -157,18 +174,18 @@ def scrape_urls_data(urls: List[str], model: str):
     )
     print("\nAdvanced extract results stream:")
     count = 0
-    all_contexts = []
+    # all_contexts = []
     # results = []
     for result in result_stream:
         count += 1
         meta = result.copy().pop("meta")
-        contexts = extract_contexts(meta["html"], result['url'], model)
+        search_results = search_contexts(query, meta["html"], result['url'], model)
         sub_dir_url = format_sub_dir(result['url'])
         print(f"URL: {sub_dir_url} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
         # results.extend(result)
-        all_contexts.extend(contexts)
+        # all_contexts.extend(contexts)
         save_file(result, f"{OUTPUT_DIR}/{sub_dir_url}/results.json")
-        save_file(contexts, f"{OUTPUT_DIR}/{sub_dir_url}/contexts.json")
+        save_file(search_results, f"{OUTPUT_DIR}/{sub_dir_url}/search_results.json")
         save_file({
             "tokens": meta["tokens"],
         }, f"{OUTPUT_DIR}/{sub_dir_url}/info.json")
@@ -179,27 +196,27 @@ def scrape_urls_data(urls: List[str], model: str):
         save_file(meta["markdown"], f"{OUTPUT_DIR}/{sub_dir_url}/markdown.md")
         save_file(meta["md_tokens"], f"{OUTPUT_DIR}/{sub_dir_url}/md_tokens.json")
         save_file(meta["screenshot"], f"{OUTPUT_DIR}/{sub_dir_url}/screenshot.png")
-    return all_contexts
+    # return all_contexts
 
 if __name__ == "__main__":
     urls = [
         "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
-    model: OLLAMA_MODEL_NAMES = "nomic-embed-text-v2-moe"
+    model = "nomic-embed-text-v2-moe"
+    query = "How to change max depth?"
 
     print("Running stream examples...")
-    all_contexts = scrape_urls_data(urls, model)
-    save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
+    all_contexts = scrape_urls_data(query, urls, model)
+    # save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
 
-    # Search
-    query = "How to change max depth?"
-    texts = [doc["text"] for doc in all_contexts]
-    search_results = search(query, texts, model)
-    save_file({
-        "query": query,
-        "count": len(search_results),
-        "results": search_results,
-    }, f"{OUTPUT_DIR}/search_results.json")
+    
+    # texts = [doc["text"] for doc in all_contexts]
+    # search_results = search(query, texts, model)
+    # save_file({
+    #     "query": query,
+    #     "count": len(search_results),
+    #     "results": search_results,
+    # }, f"{OUTPUT_DIR}/search_results.json")
 
     # print("Running synchronous examples...")
     # sync_example(urls)
