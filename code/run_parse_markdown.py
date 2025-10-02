@@ -3,7 +3,6 @@ import os
 from jet.code.markdown_utils import parse_markdown
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.file.utils import save_file
-from jet.utils.print_utils import print_dict_types
 
 md_content = """
 Sample title
@@ -41,8 +40,18 @@ Use `print("Hello")` for quick debugging.
 <div class="alert">This is an HTML block.</div>
 <span class="badge">New</span> inline HTML.
 
-[^1]: This is a footnote reference.
-[^1]: Footnote definition here.
+##### Footnote
+Here's a simple footnote,[^1] and here's a longer one.[^bignote]
+
+[^1]: This is the first footnote.
+
+[^bignote]: Here's one with multiple paragraphs and code.
+
+    Indent paragraphs to include them in the footnote.
+
+    `{ my code }`
+
+    Add as many paragraphs as you like.
 
 ## Unordered list
 - List item 1

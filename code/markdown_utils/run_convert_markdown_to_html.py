@@ -1,10 +1,7 @@
 import os
 
-from jet.code.markdown_utils import base_analyze_markdown
-from jet.code.markdown_utils._converters import convert_markdown_to_html
-from jet.code.markdown_utils._markdown_analyzer import get_summary
 from jet.file.utils import save_file
-from jet.utils.print_utils import print_dict_types
+import markdown
 
 md_content1 = """
 Sample title
@@ -42,8 +39,18 @@ Use `print("Hello")` for quick debugging.
 <div class="alert">This is an HTML block.</div>
 <span class="badge">New</span> inline HTML.
 
-[^1]: This is a footnote reference.
-[^1]: Footnote definition here.
+##### Footnote
+Here's a simple footnote,[^1] and here's a longer one.[^bignote]
+
+[^1]: This is the first footnote.
+
+[^bignote]: Here's one with multiple paragraphs and code.
+
+    Indent paragraphs to include them in the footnote.
+
+    `{ my code }`
+
+    Add as many paragraphs as you like.
 
 ## Unordered list
 - List item 1
@@ -133,12 +140,37 @@ He said, "Hello..." and used -- and --- in text.
 This is a [[WikiLink]].
 """
 
+def md_to_html(md):
+    extension_map = {
+        "extra": "markdown.extensions.extra",
+        "abbr": "markdown.extensions.abbr",
+        "attr_list": "markdown.extensions.attr_list",
+        "def_list": "markdown.extensions.def_list",
+        "fenced_code": "markdown.extensions.fenced_code",
+        "footnotes": "markdown.extensions.footnotes",
+        "md_in_html": "markdown.extensions.md_in_html",
+        "tables": "markdown.extensions.tables",
+        "admonition": "markdown.extensions.admonition",
+        "codehilite": "markdown.extensions.codehilite",
+        "legacy_attrs": "markdown.extensions.legacy_attrs",
+        "legacy_em": "markdown.extensions.legacy_em",
+        "meta": "markdown.extensions.meta",
+        "nl2br": "markdown.extensions.nl2br",
+        "sane_lists": "markdown.extensions.sane_lists",
+        "smarty": "markdown.extensions.smarty",
+        "toc": "markdown.extensions.toc",
+        "wikilinks": "markdown.extensions.wikilinks",
+    }
+
+    html_content = markdown.markdown(md, extensions=extension_map.values())
+    return html_content
+
 if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    converted_html_1 = convert_markdown_to_html(md_content1)
-    converted_html_2 = convert_markdown_to_html(md_content2)
+    converted_html_1 = md_to_html(md_content1)
+    converted_html_2 = md_to_html(md_content2)
 
     save_file(converted_html_1, f"{output_dir}/converted_html_1.html")
     save_file(converted_html_2, f"{output_dir}/converted_html_2.html")

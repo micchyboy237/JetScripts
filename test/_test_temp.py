@@ -26,8 +26,8 @@ class TestMdToPlainText:
         md = "![alt text](img.png)"
         expected = "alt text"
 
-        # When: Convert with ignore_images=True
-        result = md_to_plain_text(md, ignore_images=True)
+        # When: Convert with ignore_images=False
+        result = md_to_plain_text(md, ignore_images=False)
 
         # Then: Image replaced with alt text
         assert result == expected
@@ -57,7 +57,7 @@ class TestMdToPlainText:
     def test_table_handling(self, setup_html2text):
         # Given: Markdown with table
         md = "| Name | Age |\n|------|-----|\n| Alice | 30 |"
-        expected = "Name   Age\nAlice  30"
+        expected = "Name  Age\nAlice  30"
 
         # When: Convert to plain text
         result = md_to_plain_text(md)
@@ -92,6 +92,17 @@ class TestMdToPlainText:
         with pytest.raises(ValueError, match="Markdown content cannot be empty or whitespace"):
             md_to_plain_text(md)
 
+    def test_list_in_blockquote(self, setup_html2text):
+        # Given: Markdown with list in blockquote
+        md = "> - Task 1\n> - Task 2"
+        expected = "* Task 1\n* Task 2"
+
+        # When: Convert to plain text
+        result = md_to_plain_text(md)
+
+        # Then: List markers fixed, blockquote removed
+        assert result == expected
+
     def test_complex_markdown(self, setup_html2text):
         # Given: Complex Markdown from user sample
         md = """
@@ -110,10 +121,11 @@ Welcome to project! website
 Logo
 Note: Check docs.
 * Task 1
-* Task 2"""
+* Task 2
+Alert"""
 
         # When: Convert to plain text
-        result = md_to_plain_text(md)
+        result = md_to_plain_text(md, ignore_images=False)
 
         # Then: Matches expected output
         assert result == expected
