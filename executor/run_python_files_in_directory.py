@@ -1,10 +1,9 @@
-import os
 from typing import Literal
 from jet.executor.python_runner import run_python_files_in_directory
 
 
 if __name__ == "__main__":
-    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/Prompt_Engineering/converted-notebooks/all_prompt_engineering_techniques"
+    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/bertopic/jet_examples/towards_data_science"
     output_dir = f"{target_dir}/generated/runner_status"
     includes = [
         # "file_name.py",
@@ -18,7 +17,7 @@ if __name__ == "__main__":
         "evaluating-prompt-effectiveness.py",
     ]
     rerun_mode: Literal["all", "failed",
-                        "unrun", "failed_and_unrun"] = "failed"
+                        "unrun", "failed_and_unrun"] = "all"
     run_python_files_in_directory(
         target_dir,
         includes=includes,
