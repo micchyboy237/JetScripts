@@ -38,17 +38,17 @@ From the model created above, one of the most frequent topics is the following:
 """
 logger.info("From the model created above, one of the most frequent topics is the following:")
 
->>> topic_model.get_topic(31)[:10]
-[('clipper chip', 0.007240771542316232),
- ('key escrow', 0.004601603973377443),
- ('law enforcement', 0.004277247929596332),
- ('intercon com', 0.0035961920238955824),
- ('amanda walker', 0.003474856425297157),
- ('serial number', 0.0029876119137150358),
- ('com amanda', 0.002789303096817983),
- ('intercon com amanda', 0.0027386688593327084),
- ('amanda intercon', 0.002585262048515583),
- ('amanda intercon com', 0.002585262048515583)]
+topic_model.get_topic(31)[:10]
+# [('clipper chip', 0.007240771542316232),
+#  ('key escrow', 0.004601603973377443),
+#  ('law enforcement', 0.004277247929596332),
+#  ('intercon com', 0.0035961920238955824),
+#  ('amanda walker', 0.003474856425297157),
+#  ('serial number', 0.0029876119137150358),
+#  ('com amanda', 0.002789303096817983),
+#  ('intercon com amanda', 0.0027386688593327084),
+#  ('amanda intercon', 0.002585262048515583),
+#  ('amanda intercon com', 0.002585262048515583)]
 
 """
 Although there does seems to be some relation between words, it is difficult, at least for me, to intuitively understand
@@ -57,18 +57,18 @@ also allow for single words.
 """
 logger.info("Although there does seems to be some relation between words, it is difficult, at least for me, to intuitively understand")
 
->>> topic_model.update_topics(docs, n_gram_range=(1, 3))
->>> topic_model.get_topic(31)[:10]
-[('encryption', 0.008021846079148017),
- ('clipper', 0.00789642647602742),
- ('chip', 0.00637127942464045),
- ('key', 0.006363124787175884),
- ('escrow', 0.005030980365244285),
- ('clipper chip', 0.0048271268437973395),
- ('keys', 0.0043245812747907545),
- ('crypto', 0.004311198708675516),
- ('intercon', 0.0038772934659295076),
- ('amanda', 0.003516026493904586)]
+topic_model.update_topics(docs, n_gram_range=(1, 3))
+topic_model.get_topic(31)[:10]
+# [('encryption', 0.008021846079148017),
+#  ('clipper', 0.00789642647602742),
+#  ('chip', 0.00637127942464045),
+#  ('key', 0.006363124787175884),
+#  ('escrow', 0.005030980365244285),
+#  ('clipper chip', 0.0048271268437973395),
+#  ('keys', 0.0043245812747907545),
+#  ('crypto', 0.004311198708675516),
+#  ('intercon', 0.0038772934659295076),
+#  ('amanda', 0.003516026493904586)]
 
 """
 To me, the combination of the words above seem a bit more intuitive than the words we previously had! You can play

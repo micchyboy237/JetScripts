@@ -178,7 +178,7 @@ freeze() {
 
     local python_path=".venv/bin/python"
     local output_path="requirements-frozen.txt"
-    local default_python="$HOME/.pyenv/shims/python"
+    local default_python="$HOME/.cache/venv/base_venv/bin/python"
 
     while [[ $# -gt 0 ]]; do
     case $1 in
@@ -307,11 +307,11 @@ reinstall_python() {
     python --version
 }
 
-pip() {
-    activate_venv
+# pip() {
+#     activate_venv
 
-    command python -m pip "$@"
-}
+#     command python -m pip "$@"
+# }
 
 # cd() {
 #     echo "Arguments: $@"

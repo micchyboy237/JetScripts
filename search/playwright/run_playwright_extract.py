@@ -22,6 +22,12 @@ class ContextItem(TypedDict):
     tokens: int
     text: str
 
+class Topic(TypedDict):
+    rank: int
+    doc_index: int
+    score: float
+    text: str
+    
 class SearchResult(TypedDict):
     rank: int
     doc_index: int
@@ -130,6 +136,13 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     #         "text": text,
     #     })
     return search_results
+
+def extract_topics(
+    query: str,
+    documents: List[str],
+    model: str = "nomic-embed-text-v2-moe",
+    top_k: int = None
+)
 
 def search(
     query: str,

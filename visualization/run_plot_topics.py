@@ -2,9 +2,8 @@ import json
 import argparse
 import subprocess
 import os
-from jet.file.utils import load_file
+from jet.libs.bertopic.jet_examples.base.plot_topics import process_documents_for_chart
 from jet.logger import logger
-from jet.visualization.plot_topics import process_documents_for_chart
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

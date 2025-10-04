@@ -180,11 +180,11 @@ def main():
 
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/headers.json"
-    documents: List[dict] = load_file(docs_file)
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/docs.json"
+    documents: List[dict] = load_file(docs_file)["documents"]
 
     # text = SAMPLE_DOC
-    text = "\n\n".join(doc["text"] for doc in documents)
+    text = "\n\n".join(f"{doc["header"]}\n\n{doc["content"]}" for doc in documents)
 
     # Basic keyword extraction
     print("Basic Keywords:")
