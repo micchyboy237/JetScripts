@@ -144,7 +144,7 @@ def search(
     if not documents:
         return []
     client = LlamacppEmbedding(model=model)
-    vectors = client.get_embeddings([query] + documents, show_progress=True)
+    vectors = client.get_embeddings([query] + documents, batch_size=1, show_progress=True)
     query_vector = vectors[0]
     doc_vectors = vectors[1:]
     similarities = np.dot(doc_vectors, query_vector) / (
