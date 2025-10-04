@@ -36,6 +36,11 @@ def greet(name: str) -> str:
 ##### Inline Code
 Use `print("Hello")` for quick debugging.
 
+##### Code Block
+[code]
+print("Hello, world!")
+[/code]
+
 ###### Emphasis
 *Italic*, **bold**, and ***bold italic*** text are supported.
 

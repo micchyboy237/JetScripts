@@ -2,7 +2,6 @@ import os
 
 from jet.code.markdown_utils import analyze_markdown
 from jet.file.utils import save_file
-from jet.utils.print_utils import print_dict_types
 
 md_content = """
 Sample title
@@ -33,6 +32,11 @@ def greet(name: str) -> str:
 
 ##### Inline Code
 Use `print("Hello")` for quick debugging.
+
+##### Code Block
+[code]
+print("Hello, world!")
+[/code]
 
 ###### Emphasis
 *Italic*, **bold**, and ***bold italic*** text are supported.
