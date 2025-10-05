@@ -4,7 +4,7 @@ import uuid
 import numpy as np
 from typing import List, Optional, TypedDict
 from jet.file.utils import load_file, save_file
-from jet.wordnet.text_chunker import chunk_texts_with_data
+from jet.wordnet.text_chunker import chunk_texts_sliding_window
 from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
 from jet.search.rag.base import preprocess_texts
 
@@ -61,7 +61,7 @@ def search(
     ]
 
 def main(query: str, md_content: str, chunk_size: int, chunk_overlap: int, model: str = "embeddinggemma"):
-    chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
+    chunks = chunk_texts_sliding_window(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
     print(f"Number of chunks: {len(chunks)}")
     save_file(chunks, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}/chunks.json")
     texts = [chunk["content"] for chunk in chunks]
@@ -105,18 +105,6 @@ if __name__ == '__main__':
     
     chunk_size = 32
     chunk_overlap = 16
-    search_results = main(query, md_content, chunk_size, chunk_overlap, model)
-    save_file({
-        "model": model,
-        "query": query,
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
-        "count": len(search_results),
-        "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}/search_results.json")
-
-    chunk_size = 32
-    chunk_overlap = 0
     search_results = main(query, md_content, chunk_size, chunk_overlap, model)
     save_file({
         "model": model,
