@@ -3,7 +3,7 @@ from jet.executor.python_runner import run_python_files_in_directory
 
 
 if __name__ == "__main__":
-    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/bertopic/jet_examples/more_usage_examples"
+    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/bertopic/jet_examples/usage"
     output_dir = f"{target_dir}/generated/runner_status"
     includes = [
         # "file_name.py",
@@ -19,4 +19,5 @@ if __name__ == "__main__":
         excludes=excludes,
         output_dir=output_dir,
         rerun_mode=rerun_mode,
+        recursive=True,
     )
