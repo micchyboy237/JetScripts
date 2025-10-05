@@ -1,6 +1,6 @@
 import os
-from typing import List
-from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
+from jet.code.markdown_utils._converters import convert_html_to_markdown
+from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from sklearn.feature_extraction.text import CountVectorizer
 from jet.file.utils import load_file, save_file
 from jet.wordnet.keywords.helpers import extract_query_candidates, extract_keywords_with_candidates, extract_keywords_with_custom_vectorizer, extract_keywords_with_embeddings, extract_multi_doc_keywords, extract_single_doc_keywords, setup_keybert
@@ -8,16 +8,22 @@ from jet.wordnet.keywords.helpers import extract_query_candidates, extract_keywo
 
 if __name__ == "__main__":
     """Main function demonstrating KeyBERT usage."""
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/docs.json"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/page.html"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    
     embed_model = "all-MiniLM-L6-v2"
+    query: str = "How to change max depth?"
 
-    # Load HeaderDoc objects
-    docs = load_file(docs_file)
-    query: str = docs["query"]
-    documents: List[HeaderDoc] = docs["documents"]
+    html_str = load_file(html_file)
+    save_file(html_str, f"{output_dir}/formats/page.html")
 
+    doc_markdown = convert_html_to_markdown(html_str, ignore_links=False)
+    save_file(doc_markdown, f"{output_dir}/formats/markdown.md")
+
+    documents = derive_by_header_hierarchy(doc_markdown, ignore_links=True)
+    save_file(documents, f"{output_dir}/documents.json")
+    
     # Map HeaderDoc to texts and ids
     texts = [f"{doc['header']}\n{doc['content']}" for doc in documents]
     ids = [doc['id'] for doc in documents]

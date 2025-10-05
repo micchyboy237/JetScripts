@@ -14,7 +14,7 @@ from jet.transformers.formatters import format_html
 
 if __name__ == "__main__":
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/async_results/html_files/https_cloud_google_com_blog_topics_public_sector_5_ai_trends_shaping_the_future_of_the_public_sector_in_2025.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(

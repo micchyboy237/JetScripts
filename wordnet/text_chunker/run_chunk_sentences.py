@@ -9,5 +9,5 @@ sample = "[ Resources ](/r/LangChain/?f=flair_name%3A%22Resources%22)\nI really 
 
 
 if __name__ == "__main__":
-    result = chunk_sentences(sample, chunk_size=2, sentence_overlap=1)
+    result = chunk_sentences(sample, chunk_size=2, chunk_overlap=1)
     save_file(result, f"{OUTPUT_DIR}/result.json")
