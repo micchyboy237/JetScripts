@@ -60,10 +60,10 @@ def search(
         for i in range(len(sorted_indices))
     ]
 
-def main(query: str, md_content: str, chunk_size: int, chunk_overlap: int, step_size: int, model: str = "embeddinggemma"):
-    chunks = chunk_texts_sliding_window(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, step_size=step_size, model=model)
+def main(query: str, md_content: str, chunk_size: int, step_size: int, model: str = "embeddinggemma"):
+    chunks = chunk_texts_sliding_window(md_content, chunk_size=chunk_size, step_size=step_size, model=model)
     print(f"Number of chunks: {len(chunks)}")
-    save_file(chunks, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/chunks.json")
+    save_file(chunks, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/chunks.json")
     texts = [chunk["content"] for chunk in chunks]
     ids = [chunk["id"] for chunk in chunks]
     search_results = search(query, texts, model, ids=ids)
@@ -80,99 +80,85 @@ if __name__ == '__main__':
     model = "embeddinggemma"
 
     chunk_size = 128
-    chunk_overlap = 0
     step_size = 96
-    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
+    search_results = main(query, md_content, chunk_size, step_size, model)
     save_file({
         "model": model,
         "query": query,
         "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
         "step_size": step_size,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/search_results.json")
 
     chunk_size = 128
-    chunk_overlap = 0
     step_size = 72
-    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
+    search_results = main(query, md_content, chunk_size, step_size, model)
     save_file({
         "model": model,
         "query": query,
         "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
         "step_size": step_size,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
-    
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/search_results.json")
+
     chunk_size = 64
-    chunk_overlap = 0
     step_size = 32
-    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
+    search_results = main(query, md_content, chunk_size, step_size, model)
     save_file({
         "model": model,
         "query": query,
         "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
         "step_size": step_size,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/search_results.json")
 
     chunk_size = 64
-    chunk_overlap = 0
     step_size = 24
-    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
+    search_results = main(query, md_content, chunk_size, step_size, model)
     save_file({
         "model": model,
         "query": query,
         "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
         "step_size": step_size,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
-    
-    chunk_size = 32
-    chunk_overlap = 0
-    step_size = 16
-    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
-    save_file({
-        "model": model,
-        "query": query,
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
-        "step_size": step_size,
-        "count": len(search_results),
-        "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/search_results.json")
 
     chunk_size = 32
-    chunk_overlap = 0
-    step_size = 8
-    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
+    step_size = 16
+    search_results = main(query, md_content, chunk_size, step_size, model)
     save_file({
         "model": model,
         "query": query,
         "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
         "step_size": step_size,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/search_results.json")
+
+    chunk_size = 32
+    step_size = 8
+    search_results = main(query, md_content, chunk_size, step_size, model)
+    save_file({
+        "model": model,
+        "query": query,
+        "chunk_size": chunk_size,
+        "step_size": step_size,
+        "count": len(search_results),
+        "results": search_results,
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/search_results.json")
 
     chunk_size = 16
-    chunk_overlap = 0
     step_size = 8
-    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
+    search_results = main(query, md_content, chunk_size, step_size, model)
     save_file({
         "model": model,
         "query": query,
         "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
         "step_size": step_size,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{step_size}/search_results.json")
