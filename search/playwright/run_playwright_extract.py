@@ -1,6 +1,7 @@
 import os
 import shutil
 from jet.code.markdown_types import HeaderSearchResult
+from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
 from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.header_vector_search import search_headers
@@ -106,9 +107,209 @@ async def async_example(urls):
     except Exception as e:
         print(f"Error in async advanced extract: {e}")
 
-def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderSearchResult]:
+def extract_documents(html: str, url: str) -> List[HeaderDoc]:
     md_content = convert_html_to_markdown(html, ignore_links=False)
     original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
+    return original_docs
+
+def extract_topics(
+    query: str,
+    documents: List[str],
+    model: str = "nomic-embed-text-v2-moe",
+    top_k: int = None
+) -> List[Topic]:
+    """Extract topics from documents using BERTopic.
+    
+    Args:
+        query: Search query to find relevant topics
+        documents: List of documents to analyze
+        model: Embedding model to use
+        top_k: Number of top topics to return (if None, return all)
+        
+    Returns:
+        List of Topic objects with rank, doc_index, score, and text
+    """
+    if not documents:
+        return []
+    
+    try:
+        from bertopic import BERTopic
+        from sentence_transformers import SentenceTransformer
+        import logging
+        
+        # Set up logging
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"Starting topic extraction for {len(documents)} documents")
+        
+        # Create BERTopic model with custom embedding model
+        # Use the specified model for embeddings
+        # embedding_model = SentenceTransformer(model)
+        topic_model = BERTopic(
+            # embedding_model=embedding_model,
+            calculate_probabilities=True,
+            random_state=42
+        )
+        
+        # Fit the model to documents
+        logger.info("Fitting BERTopic model...")
+        topics, probs = topic_model.fit_transform(documents)
+        
+        # Get topic information
+        topic_info = topic_model.get_topic_info()
+        logger.info(f"Found {len(topic_info)} topics")
+        
+        # Find topics similar to the query
+        logger.info(f"Finding topics similar to query: '{query}'")
+        similar_topics, similarities = topic_model.find_topics(query, top_n=len(topic_info))
+        
+        # Create topic results
+        results = []
+        for rank, (topic_id, similarity) in enumerate(zip(similar_topics, similarities)):
+            if topic_id == -1:  # Skip outlier topic
+                continue
+                
+            # Get topic words
+            topic_words = topic_model.get_topic(topic_id)
+            if not topic_words:
+                continue
+                
+            # Create topic text from top words
+            topic_text = " ".join([word[0] for word in topic_words[:5]])
+            
+            # Find the best document for this topic
+            topic_docs = [i for i, t in enumerate(topics) if t == topic_id]
+            if not topic_docs:
+                continue
+                
+            # Get the document with highest probability for this topic
+            best_doc_idx = None
+            best_score = 0.0
+            for doc_idx in topic_docs:
+                if probs is not None and doc_idx < len(probs):
+                    doc_probs = probs[doc_idx]
+                    if topic_id < len(doc_probs):
+                        topic_prob = doc_probs[topic_id]
+                        if topic_prob > best_score:
+                            best_score = topic_prob
+                            best_doc_idx = doc_idx
+            
+            if best_doc_idx is not None:
+                results.append({
+                    "rank": rank + 1,
+                    "doc_index": best_doc_idx,
+                    "score": float(similarity),
+                    "text": topic_text
+                })
+        
+        # Sort by similarity score (descending)
+        results.sort(key=lambda x: x["score"], reverse=True)
+        
+        # Apply top_k filter if specified
+        if top_k is not None:
+            results = results[:top_k]
+            
+        logger.info(f"Returning {len(results)} topics")
+        return results
+        
+    except ImportError as e:
+        logger.error(f"BERTopic not available: {e}")
+        # Fallback to simple keyword-based topic extraction
+        return _fallback_topic_extraction(query, documents, top_k)
+    except Exception as e:
+        logger.error(f"Error in topic extraction: {e}")
+        return _fallback_topic_extraction(query, documents, top_k)
+
+
+def _fallback_topic_extraction(
+    query: str, 
+    documents: List[str], 
+    top_k: int = None
+) -> List[Topic]:
+    """Fallback topic extraction using simple keyword matching."""
+    import re
+    from collections import Counter
+    
+    # Extract query keywords
+    query_words = set(re.findall(r'\b\w+\b', query.lower()))
+    
+    results = []
+    for doc_idx, doc in enumerate(documents):
+        # Extract document words
+        doc_words = re.findall(r'\b\w+\b', doc.lower())
+        word_counts = Counter(doc_words)
+        
+        # Calculate similarity based on common words
+        common_words = query_words.intersection(set(doc_words))
+        if common_words:
+            # Calculate score based on word frequency and commonality
+            score = sum(word_counts[word] for word in common_words) / len(doc_words)
+            
+            # Create topic text from most frequent words
+            top_words = [word for word, _ in word_counts.most_common(5)]
+            topic_text = " ".join(top_words)
+            
+            results.append({
+                "rank": len(results) + 1,
+                "doc_index": doc_idx,
+                "score": float(score),
+                "text": topic_text
+            })
+    
+    # Sort by score and apply top_k
+    results.sort(key=lambda x: x["score"], reverse=True)
+    if top_k is not None:
+        results = results[:top_k]
+        
+    return results
+
+
+def test_extract_topics():
+    """Test the extract_topics function with sample data."""
+    print("Testing extract_topics function...")
+    
+    # Sample documents covering different topics
+    test_documents = [
+        "Machine learning algorithms are revolutionizing data analysis and pattern recognition in various industries.",
+        "Deep learning neural networks require large datasets and significant computational power for training.",
+        "Natural language processing enables computers to understand and generate human language effectively.",
+        "Computer vision applications can identify and classify objects in images and videos with high accuracy.",
+        "Data science combines statistical analysis, programming skills, and domain expertise to extract insights.",
+        "Artificial intelligence is transforming healthcare, finance, and transportation sectors worldwide.",
+        "Reinforcement learning agents learn optimal strategies through trial and error interactions with environments.",
+        "Supervised learning algorithms use labeled training data to make accurate predictions on new examples.",
+        "Unsupervised learning discovers hidden patterns in data without requiring labeled examples.",
+        "Transfer learning allows models trained on one task to be adapted for related tasks efficiently."
+    ]
+    
+    # Test different queries
+    test_queries = [
+        "machine learning algorithms",
+        "neural networks and deep learning", 
+        "data science and analytics",
+        "artificial intelligence applications"
+    ]
+    
+    for query in test_queries:
+        print(f"\nTesting with query: '{query}'")
+        try:
+            topics = extract_topics(
+                query=query,
+                documents=test_documents,
+                model="nomic-embed-text-v2-moe",
+                top_k=3
+            )
+            
+            print(f"Found {len(topics)} topics:")
+            for topic in topics:
+                print(f"  - {topic['text']} (Score: {topic['score']:.3f})")
+                
+        except Exception as e:
+            print(f"Error: {e}")
+
+def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderSearchResult]:
+    original_docs = extract_documents(html, url)
     top_k = None
     threshold = 0.0
     chunk_size = 128
@@ -136,14 +337,6 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     #         "text": text,
     #     })
     return search_results
-
-def extract_topics(
-    query: str,
-    documents: List[str],
-    model: str = "nomic-embed-text-v2-moe",
-    top_k: int = None
-):
-    pass
 
 def search(
     query: str,
@@ -193,6 +386,9 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
     for result in result_stream:
         count += 1
         meta = result.copy().pop("meta")
+        header_docs = extract_documents(meta["html"])
+        documents = [f"{doc["header"]}\n\n{doc["content"]}" for doc in header_docs]
+        topics = extract_topics(query, documents, model, top_k=5)
         search_results = search_contexts(query, meta["html"], result['url'], model)
         sub_dir_url = format_sub_dir(result['url'])
         print(f"URL: {sub_dir_url} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
@@ -219,10 +415,48 @@ if __name__ == "__main__":
     model = "nomic-embed-text-v2-moe"
     query = "How to change max depth?"
 
-    print("Running stream examples...")
-    all_contexts = scrape_urls_data(query, urls, model)
-    # save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
+    # print("Running stream examples...")
+    # all_contexts = scrape_urls_data(query, urls, model)
+    # # save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
 
+    
+    # # Example of using extract_topics function
+    # print("\nRunning topic extraction example...")
+    # sample_documents = [
+    #     "Machine learning algorithms are used for data analysis and pattern recognition.",
+    #     "Deep learning neural networks require large datasets and computational power.",
+    #     "Natural language processing helps computers understand human language.",
+    #     "Computer vision applications can identify objects in images and videos.",
+    #     "Data science combines statistics, programming, and domain expertise.",
+    #     "Artificial intelligence is transforming various industries worldwide.",
+    #     "Reinforcement learning agents learn through trial and error interactions.",
+    #     "Supervised learning uses labeled training data to make predictions."
+    # ]
+    
+    # try:
+    #     topics = extract_topics(
+    #         query="machine learning and AI",
+    #         documents=sample_documents,
+    #         model=model,
+    #         top_k=5
+    #     )
+        
+    #     print(f"Found {len(topics)} topics:")
+    #     for topic in topics:
+    #         print(f"  Rank {topic['rank']}: {topic['text']} (Score: {topic['score']:.3f}, Doc: {topic['doc_index']})")
+        
+    #     save_file({
+    #         "query": "machine learning and AI",
+    #         "topics": topics,
+    #         "document_count": len(sample_documents)
+    #     }, f"{OUTPUT_DIR}/topic_extraction_results.json")
+        
+    # except Exception as e:
+    #     print(f"Error in topic extraction: {e}")
+    
+    # Test the extract_topics function
+    print("\n" + "="*50)
+    test_extract_topics()
     
     # texts = [doc["text"] for doc in all_contexts]
     # search_results = search(query, texts, model)
