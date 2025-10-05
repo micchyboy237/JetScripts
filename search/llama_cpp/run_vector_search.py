@@ -66,7 +66,7 @@ def main(query: str, md_content: str, chunk_size: int, chunk_overlap: int, model
     save_file(md_content, f"{OUTPUT_DIR}/doc.md")
     model = "embeddinggemma"
     query = "How to change max depth?"
-    chunks = chunk_texts_with_data(md_content, chunk_size=128, chunk_overlap=32, model=model)
+    chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
     print(f"Number of chunks: {len(chunks)}")
     save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
     texts = [chunk["content"] for chunk in chunks]
