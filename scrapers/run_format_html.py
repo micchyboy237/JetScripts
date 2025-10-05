@@ -31,6 +31,9 @@ if __name__ == "__main__":
 
     doc_markdown = convert_html_to_markdown(html_str, ignore_links=False)
     save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
+    
+    doc_markdown_no_links = convert_html_to_markdown(html_str, ignore_links=True)
+    save_file(doc_markdown_no_links, f"{output_dir}/doc_markdown_no_links.md")
 
     # Texts
     texts = extract_text_elements(html_str)
