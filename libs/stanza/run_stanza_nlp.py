@@ -121,11 +121,11 @@ def search(
 
 if __name__ == "__main__":
     html_string = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/page.html")
-    model = "nomic-embed-text-v2-moe"
+    model = "embeddinggemma"
     query = "How to change max depth?"
 
     md_content = convert_html_to_markdown(html_string, ignore_links=True)
-    chunks = chunk_texts_with_data(md_content, chunk_size=150, chunk_overlap=20)
+    chunks = chunk_texts_with_data(md_content, chunk_size=150, chunk_overlap=40)
     chunk_tokens = [chunk["num_tokens"] for chunk in chunks]
     save_file({
         "count": len(chunks),
