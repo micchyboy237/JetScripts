@@ -60,7 +60,7 @@ def search(
         for i in range(len(sorted_indices))
     ]
 
-if __name__ == '__main__':
+def main(query: str, md_content: str, chunk_size: int, chunk_overlap: int, model: str = "embeddinggemma"):
     md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md"
     md_content: str = load_file(md_file)
     save_file(md_content, f"{OUTPUT_DIR}/doc.md")
@@ -74,9 +74,41 @@ if __name__ == '__main__':
     search_results = search(query, texts, model, ids=ids)
     for result in search_results:
         result["tokens"] = chunks[result["doc_index"]]["num_tokens"]
+    return search_results
+
+if __name__ == '__main__':
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md"
+    md_content: str = load_file(md_file)
+
+    query = "How to change max depth?"
+    model = "embeddinggemma"
+
+    chunk_size = 128
+    chunk_overlap = 32
+    search_results = main(query, md_content, chunk_size, chunk_overlap, model)
     save_file({
         "model": model,
         "query": query,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/search_results.json")
+    }, f"{OUTPUT_DIR}/search_results_128_32.json")
+    
+    chunk_size = 64
+    chunk_overlap = 32
+    search_results = main(query, md_content, chunk_size, chunk_overlap, model)
+    save_file({
+        "model": model,
+        "query": query,
+        "count": len(search_results),
+        "results": search_results,
+    }, f"{OUTPUT_DIR}/search_results_64_32.json")
+    
+    chunk_size = 32
+    chunk_overlap = 0
+    search_results = main(query, md_content, chunk_size, chunk_overlap, model)
+    save_file({
+        "model": model,
+        "query": query,
+        "count": len(search_results),
+        "results": search_results,
+    }, f"{OUTPUT_DIR}/search_results_32_0.json")
