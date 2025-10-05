@@ -1,6 +1,11 @@
+import openai
 from keybert import KeyBERT, KeyLLM
 from sentence_transformers import SentenceTransformer
-import openai
+from jet.file.utils import load_file, save_file
+import os
+
+OUTPUT_DIR = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 # Sample document for keyword extraction
 SAMPLE_DOC = """
@@ -176,7 +181,6 @@ def main():
     """
     import os
     from typing import List
-    from jet.file.utils import load_file
 
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -189,43 +193,53 @@ def main():
     # Basic keyword extraction
     print("Basic Keywords:")
     print(extract_basic_keywords(text))
+    save_file(extract_basic_keywords(text), f"{OUTPUT_DIR}/extract_basic_keywords.json")
 
     # Single-word keywords
     print("\nSingle-word Keywords:")
     print(extract_ngram_keywords(text, ngram_range=(1, 1), stop_words=None))
+    save_file(extract_ngram_keywords(text, ngram_range=(1, 1), stop_words=None), f"{OUTPUT_DIR}/extract_single_word_keywords.json")
 
     # Bigram keyphrases
     print("\nBigram Keyphrases:")
     print(extract_ngram_keywords(text, ngram_range=(1, 2), stop_words=None))
+    save_file(extract_ngram_keywords(text, ngram_range=(1, 2), stop_words=None), f"{OUTPUT_DIR}/extract_bigram_keyphrases.json")
 
     # Highlight keywords
     print("\nHighlighted Keywords:")
     print(highlight_keywords(text))
+    save_file(highlight_keywords(text), f"{OUTPUT_DIR}/highlighted_keywords.json")
 
     # Max Sum Distance
     print("\nMax Sum Distance Keywords:")
     print(extract_maxsum_keywords(text, ngram_range=(3, 3)))
+    save_file(extract_maxsum_keywords(text, ngram_range=(3, 3)), f"{OUTPUT_DIR}/extract_maxsum_keywords.json")
 
     # MMR with high diversity
     print("\nMMR Keywords (High Diversity):")
     print(extract_mmr_keywords(text, diversity=0.7))
+    save_file(extract_mmr_keywords(text, diversity=0.7), f"{OUTPUT_DIR}/extract_mmr_keywords_high_diversity.json")
 
     # MMR with low diversity
     print("\nMMR Keywords (Low Diversity):")
     print(extract_mmr_keywords(text, diversity=0.2))
+    save_file(extract_mmr_keywords(text, diversity=0.2), f"{OUTPUT_DIR}/extract_mmr_keywords_low_diversity.json")
 
     # Flair-based extraction
     # print("\nFlair-based Keywords:")
     # print(extract_keywords_with_flair(text))
+    # save_file(extract_keywords_with_flair(text), f"{OUTPUT_DIR}/extract_keywords_with_flair.json")
 
     # LLM-based extraction (requires API key)
     # print("\nLLM-based Keywords:")
     # print(extract_keywords_with_llm(text, api_key="MY_API_KEY"))
+    # save_file(extract_keywords_with_llm(text, api_key="MY_API_KEY"), f"{OUTPUT_DIR}/extract_keywords_with_llm.json")
 
     # Similar documents extraction (requires API key and multiple documents)
     # docs = [text, "Another document about machine learning..."]
     # print("\nKeywords for Similar Documents:")
     # print(extract_keywords_for_similar_docs(docs, api_key="MY_API_KEY"))
+    # save_file(extract_keywords_for_similar_docs(docs, api_key="MY_API_KEY"), f"{OUTPUT_DIR}/extract_keywords_for_similar_docs.json")
 
 
 if __name__ == "__main__":

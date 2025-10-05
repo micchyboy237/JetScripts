@@ -1,35 +1,26 @@
 import os
-from typing import List, Optional, TypedDict
+from typing import List
+from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from sklearn.feature_extraction.text import CountVectorizer
 from jet.file.utils import load_file, save_file
 from jet.wordnet.keywords.helpers import extract_query_candidates, extract_keywords_with_candidates, extract_keywords_with_custom_vectorizer, extract_keywords_with_embeddings, extract_multi_doc_keywords, extract_single_doc_keywords, setup_keybert
-from jet.vectors.semantic_search.base import SearchResult
-
-
-class HeaderDoc(TypedDict):
-    doc_id: str
-    header: str
-    content: str
-    level: Optional[int]
-    parent_header: Optional[str]
-    parent_level: Optional[int]
 
 
 if __name__ == "__main__":
     """Main function demonstrating KeyBERT usage."""
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/vectors/semantic_search/generated/run_semantic_search/chunks_with_scores.json"
+    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/docs.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     embed_model = "all-MiniLM-L6-v2"
 
     # Load HeaderDoc objects
     docs = load_file(docs_file)
-    query = docs["query"]
-    results: List[SearchResult] = docs["results"][:20]
+    query: str = docs["query"]
+    documents: List[HeaderDoc] = docs["documents"]
 
     # Map HeaderDoc to texts and ids
-    texts = [f"{doc['header']}\n{doc['content']}" for doc in results]
-    ids = [doc['id'] for doc in results]
+    texts = [f"{doc['header']}\n{doc['content']}" for doc in documents]
+    ids = [doc['id'] for doc in documents]
 
     # Prepare single document for single_doc_keywords
     single_doc = "\n".join(texts)

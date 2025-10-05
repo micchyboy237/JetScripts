@@ -394,6 +394,11 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
         print(f"URL: {sub_dir_url} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
         # results.extend(result)
         # all_contexts.extend(contexts)
+        save_file({
+            "query": query,
+            "count": len(header_docs),
+            "documents": header_docs,
+        }, f"{OUTPUT_DIR}/{sub_dir_url}/docs.json")
         save_file(result, f"{OUTPUT_DIR}/{sub_dir_url}/results.json")
         save_file(topics, f"{OUTPUT_DIR}/{sub_dir_url}/topics.json")
         save_file(search_results, f"{OUTPUT_DIR}/{sub_dir_url}/search_results.json")
