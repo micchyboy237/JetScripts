@@ -1,7 +1,8 @@
 import os
 import shutil
+import uuid
 import numpy as np
-from typing import List, TypedDict
+from typing import List, Optional, TypedDict
 from jet.file.utils import load_file, save_file
 from jet.wordnet.text_chunker import chunk_texts_with_data
 from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
@@ -11,8 +12,8 @@ OUTPUT_DIR = os.path.join(
         os.path.basename(__file__))[0]
 )
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
 class SearchResult(TypedDict):
+    id: str
     rank: int
     doc_index: int
     score: float
@@ -22,12 +23,13 @@ class SearchResult(TypedDict):
 def search(
     query: str,
     documents: List[str],
-    model: str = "nomic-embed-text-v2-moe",
-    top_k: int = None
+    model: str = "embeddinggemma",
+    top_k: int = None,
+    ids: Optional[List[str]] = None
 ) -> List[SearchResult]:
     """Search for documents most similar to the query.
-
     If top_k is None, return all results sorted by similarity.
+    If ids is None, generate UUIDs for each document.
     """
     if not documents:
         return []
@@ -41,8 +43,11 @@ def search(
     sorted_indices = np.argsort(similarities)[::-1]
     if top_k is not None:
         sorted_indices = sorted_indices[:top_k]
+    # Generate UUIDs if ids not provided, else use provided ids
+    doc_ids = [str(uuid.uuid4()) for _ in documents] if ids is None else ids
     return [
         {
+            "id": doc_ids[sorted_indices[i]],
             "rank": i + 1,
             "doc_index": int(sorted_indices[i]),
             "score": float(similarities[sorted_indices[i]]),
@@ -54,20 +59,16 @@ def search(
 if __name__ == '__main__':
     md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md"
     md_content: str = load_file(md_file)
-
-    model = "nomic-embed-text-v2-moe"
+    model = "embeddinggemma"
     query = "How to change max depth?"
-
     chunks = chunk_texts_with_data(md_content, chunk_size=128, chunk_overlap=32, model=model)
     print(f"Number of chunks: {len(chunks)}")
     save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
-
     texts = [chunk["content"] for chunk in chunks]
-    search_results = search(query, texts, model)
-    
+    ids = [chunk["id"] for chunk in chunks]
+    search_results = search(query, texts, model, ids=ids)
     for result in search_results:
         result["tokens"] = chunks[result["doc_index"]]["num_tokens"]
-
     save_file({
         "model": model,
         "query": query,

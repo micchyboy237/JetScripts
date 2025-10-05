@@ -30,9 +30,11 @@ class Topic(TypedDict):
     text: str
     
 class SearchResult(TypedDict):
+    id: str
     rank: int
     doc_index: int
     score: float
+    tokens: int
     text: str
 
 def sync_example(urls):
@@ -115,7 +117,7 @@ def extract_documents(html: str, url: str) -> List[HeaderDoc]:
 def extract_topics(
     query: str,
     documents: List[str],
-    model: str = "nomic-embed-text-v2-moe",
+    model: str = "embeddinggemma",
     top_k: int = None
 ) -> List[Topic]:
     """Extract topics from documents using BERTopic.
@@ -297,7 +299,7 @@ def test_extract_topics():
             topics = extract_topics(
                 query=query,
                 documents=test_documents,
-                model="nomic-embed-text-v2-moe",
+                model="embeddinggemma",
                 top_k=3
             )
             
@@ -341,17 +343,16 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
 def search(
     query: str,
     documents: List[str],
-    model: str = "nomic-embed-text-v2-moe",
+    model: str = "embeddinggemma",
     top_k: int = None
 ) -> List[SearchResult]:
     """Search for documents most similar to the query.
-
     If top_k is None, return all results sorted by similarity.
     """
     if not documents:
         return []
     client = LlamacppEmbedding(model=model)
-    vectors = client.get_embeddings([query] + documents, batch_size=1, show_progress=True)
+    vectors = client.get_embeddings([query] + documents, batch_size=32, show_progress=True)
     query_vector = vectors[0]
     doc_vectors = vectors[1:]
     similarities = np.dot(doc_vectors, query_vector) / (
@@ -362,6 +363,7 @@ def search(
         sorted_indices = sorted_indices[:top_k]
     return [
         {
+            "id": documents[sorted_indices[i]]["id"],
             "rank": i + 1,
             "doc_index": int(sorted_indices[i]),
             "score": float(similarities[sorted_indices[i]]),
@@ -418,7 +420,7 @@ if __name__ == "__main__":
     urls = [
         "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
-    model = "nomic-embed-text-v2-moe"
+    model = "embeddinggemma"
     query = "How to change max depth?"
 
     # print("Running stream examples...")

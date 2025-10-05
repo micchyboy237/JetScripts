@@ -1,6 +1,6 @@
 import os
 from jet.file.utils import save_file
-from jet.wordnet.text_chunker import chunk_texts_with_indices
+from jet.wordnet.text_chunker import chunk_texts_with_data
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -9,6 +9,6 @@ sample = "[ Resources ](/r/LangChain/?f=flair_name%3A%22Resources%22)\nI really 
 
 
 if __name__ == "__main__":
-    result = chunk_texts_with_indices(sample, chunk_size=64,
+    result = chunk_texts_with_data(sample, chunk_size=64,
                                       chunk_overlap=32, model="all-MiniLM-L6-v2")
     save_file(result, f"{OUTPUT_DIR}/result.json")
