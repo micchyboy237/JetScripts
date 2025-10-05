@@ -80,6 +80,18 @@ if __name__ == '__main__':
     model = "embeddinggemma"
 
     chunk_size = 128
+    chunk_overlap = 64
+    search_results = main(query, md_content, chunk_size, chunk_overlap, model)
+    save_file({
+        "model": model,
+        "query": query,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
+        "count": len(search_results),
+        "results": search_results,
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}/search_results.json")
+
+    chunk_size = 128
     chunk_overlap = 32
     search_results = main(query, md_content, chunk_size, chunk_overlap, model)
     save_file({
