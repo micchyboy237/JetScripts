@@ -72,7 +72,7 @@ def main(query: str, md_content: str, chunk_size: int, chunk_overlap: int, model
     return search_results
 
 if __name__ == '__main__':
-    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md"
+    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown_no_links.md"
     md_content: str = load_file(md_file)
     save_file(md_content, f"{OUTPUT_DIR}/doc.md")
 

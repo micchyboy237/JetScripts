@@ -3,6 +3,7 @@ import shutil
 import uuid
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
+from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
 from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.header_vector_search import search_headers
@@ -417,6 +418,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
         save_file(meta["image_links"], f"{OUTPUT_DIR}/{sub_dir_url}/image_links.json")
         save_file(meta["html"], f"{OUTPUT_DIR}/{sub_dir_url}/page.html")
         save_file(meta["markdown"], f"{OUTPUT_DIR}/{sub_dir_url}/markdown.md")
+        save_file(clean_markdown_links(meta["markdown"]), f"{OUTPUT_DIR}/{sub_dir_url}/markdown_no_links.md")
         save_file(meta["md_tokens"], f"{OUTPUT_DIR}/{sub_dir_url}/md_tokens.json")
         save_file(meta["screenshot"], f"{OUTPUT_DIR}/{sub_dir_url}/screenshot.png")
     # return all_contexts
