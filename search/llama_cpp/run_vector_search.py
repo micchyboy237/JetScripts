@@ -42,6 +42,9 @@ if __name__ == '__main__':
 
     for chunk_size in chunk_sizes:
         for chunk_overlap in chunk_overlaps:
+            if chunk_size <= chunk_overlap:
+                print(f"Skipping chunk_size={chunk_size}, chunk_overlap={chunk_overlap} because chunk_size <= chunk_overlap")
+                continue
             print(f"\n--- Searching with chunk_size={chunk_size}, chunk_overlap={chunk_overlap}, threshold={threshold} ---")
             search_results = main(query, md_content, chunk_size, chunk_overlap, model, threshold=threshold)
             save_file({
