@@ -1,6 +1,5 @@
 from keybert import KeyBERT, KeyLLM
 from sentence_transformers import SentenceTransformer
-from flair.embeddings import TransformerDocumentEmbeddings
 import openai
 
 # Sample document for keyword extraction
@@ -126,6 +125,7 @@ def extract_keywords_with_flair(doc: str, model_name: str = 'roberta-base') -> l
     Returns:
         list: A list of tuples containing keywords and their scores.
     """
+    from flair.embeddings import TransformerDocumentEmbeddings
     roberta = TransformerDocumentEmbeddings(model_name)
     kw_model = KeyBERT(model=roberta)
     return kw_model.extract_keywords(doc)
@@ -215,8 +215,8 @@ def main():
     print(extract_mmr_keywords(text, diversity=0.2))
 
     # Flair-based extraction
-    print("\nFlair-based Keywords:")
-    print(extract_keywords_with_flair(text))
+    # print("\nFlair-based Keywords:")
+    # print(extract_keywords_with_flair(text))
 
     # LLM-based extraction (requires API key)
     # print("\nLLM-based Keywords:")

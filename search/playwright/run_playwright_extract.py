@@ -386,7 +386,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
     for result in result_stream:
         count += 1
         meta = result.copy().pop("meta")
-        header_docs = extract_documents(meta["html"])
+        header_docs = extract_documents(meta["html"], result['url'])
         documents = [f"{doc["header"]}\n\n{doc["content"]}" for doc in header_docs]
         topics = extract_topics(query, documents, model, top_k=5)
         search_results = search_contexts(query, meta["html"], result['url'], model)
@@ -395,6 +395,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
         # results.extend(result)
         # all_contexts.extend(contexts)
         save_file(result, f"{OUTPUT_DIR}/{sub_dir_url}/results.json")
+        save_file(topics, f"{OUTPUT_DIR}/{sub_dir_url}/topics.json")
         save_file(search_results, f"{OUTPUT_DIR}/{sub_dir_url}/search_results.json")
         save_file({
             "tokens": meta["tokens"],
@@ -416,8 +417,8 @@ if __name__ == "__main__":
     query = "How to change max depth?"
 
     # print("Running stream examples...")
-    # all_contexts = scrape_urls_data(query, urls, model)
-    # # save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
+    all_contexts = scrape_urls_data(query, urls, model)
+    # save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
 
     
     # # Example of using extract_topics function
