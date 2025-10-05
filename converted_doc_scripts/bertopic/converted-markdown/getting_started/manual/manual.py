@@ -4,6 +4,7 @@ from bertopic.cluster import BaseCluster
 from bertopic.dimensionality import BaseDimensionalityReduction
 from bertopic.vectorizers import ClassTfidfTransformer
 from jet.logger import logger
+from jet.file.utils import save_file
 from sklearn.datasets import fetch_20newsgroups
 import os
 import shutil
@@ -54,9 +55,14 @@ topic_model= BERTopic(
         embedding_model=empty_embedding_model,
         umap_model=empty_dimensionality_model,
         hdbscan_model=empty_cluster_model,
-        ctfidf_model=ctfidf_model
+        ctfidf_model=ctfidf_model,
+        verbose=True
 )
 topics, probs = topic_model.fit_transform(docs, y=y)
+save_file(topics, f"{OUTPUT_DIR}/topics.json")
+save_file(probs, f"{OUTPUT_DIR}/probs.json")
+save_file(topic_model.get_topic_info().to_dict(orient="records"), f"{OUTPUT_DIR}/topic_info.json")
+save_file(topic_model.get_representative_docs(), f"{OUTPUT_DIR}/representative_docs.json")
 
 """
 Let's take a look at a few topics that we get out of training this way by running `topic_model.get_topic_info()`:

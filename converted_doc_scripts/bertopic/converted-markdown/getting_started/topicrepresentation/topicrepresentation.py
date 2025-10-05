@@ -3,6 +3,7 @@ from jet.logger import logger
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
 from transformers import pipeline
+from jet.file.utils import save_file
 import os
 import shutil
 
@@ -30,7 +31,8 @@ logger.info("### **Update Topic Representation after Training**")
 
 
 docs = fetch_20newsgroups(subset='all',  remove=('headers', 'footers', 'quotes'))['data']
-topic_model = BERTopic(n_gram_range=(2, 3))
+docs = docs[:1000]
+topic_model = BERTopic(n_gram_range=(2, 3), verbose=True)
 topics, probs = topic_model.fit_transform(docs)
 
 """
@@ -38,7 +40,7 @@ From the model created above, one of the most frequent topics is the following:
 """
 logger.info("From the model created above, one of the most frequent topics is the following:")
 
-topic_model.get_topic(31)[:10]
+save_file(topic_model.get_topic(31)[:10], f"{OUTPUT_DIR}/frequent_topics.json")
 # [('clipper chip', 0.007240771542316232),
 #  ('key escrow', 0.004601603973377443),
 #  ('law enforcement', 0.004277247929596332),
@@ -58,7 +60,7 @@ also allow for single words.
 logger.info("Although there does seems to be some relation between words, it is difficult, at least for me, to intuitively understand")
 
 topic_model.update_topics(docs, n_gram_range=(1, 3))
-topic_model.get_topic(31)[:10]
+save_file(topic_model.get_topic(31)[:10], f"{OUTPUT_DIR}/n_gram_topics.json")
 # [('encryption', 0.008021846079148017),
 #  ('clipper', 0.00789642647602742),
 #  ('chip', 0.00637127942464045),
@@ -79,6 +81,7 @@ logger.info("To me, the combination of the words above seem a bit more intuitive
 
 vectorizer_model = CountVectorizer(stop_words="english", ngram_range=(1, 5))
 topic_model.update_topics(docs, vectorizer_model=vectorizer_model)
+save_file(topic_model.get_topic(31)[:10], f"{OUTPUT_DIR}/cleaned_stopwords_topics.json")
 
 """
 !!! Tip "Tip!"
@@ -107,9 +110,10 @@ topic_labels = topic_model.generate_topic_labels(nr_words=3,
 
 In the above example, `1_space_nasa_orbit` would turn into `space, nasa, orbit` since we selected 3 words, no topic prefix, and the `, ` separator. We can then either change our `topic_labels` to whatever we want or directly pass them to `.set_topic_labels` so that they can be used across most visualization functions:
 """
-logger.info("If you created [**multiple topic representations**](https://maartengr.github.io/BERTopic/getting_started/multiaspect/multiaspect.html) or aspects, you can choose one of these aspects with `aspect="Aspect1"` or whatever you named the aspect.")
+logger.info("If you created [**multiple topic representations**](https://maartengr.github.io/BERTopic/getting_started/multiaspect/multiaspect.html) or aspects, you can choose one of these aspects with `aspect=\"Aspect1\"` or whatever you named the aspect.")
 
 topic_model.set_topic_labels(topic_labels)
+save_file(topic_model.get_topic(31)[:10], f"{OUTPUT_DIR}/topic_labels_1.json")
 
 """
 It is also possible to only change a few topic labels at a time by passing a dictionary
@@ -118,6 +122,7 @@ where the key represents the *topic ID* and the value is the *topic label*:
 logger.info("It is also possible to only change a few topic labels at a time by passing a dictionary")
 
 topic_model.set_topic_labels({1: "Space Travel", 7: "Religion"})
+save_file(topic_model.get_topic(31)[:10], f"{OUTPUT_DIR}/topic_labels_2.json")
 
 """
 Then, to make use of those custom topic labels across visualizations, such as `.visualize_hierarchy()`,
@@ -126,6 +131,7 @@ we can use the `custom_labels=True` parameter that is found in most visualizatio
 logger.info("Then, to make use of those custom topic labels across visualizations, such as `.visualize_hierarchy()`,")
 
 fig = topic_model.visualize_barchart(custom_labels=True)
+save_file(fig.to_image, f"{OUTPUT_DIR}/fig.png")
 
 """
 #### Optimize labels
@@ -142,6 +148,6 @@ classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnl
 sequence_to_classify =  " ".join([word for word, _ in topic_model.get_topic(1)])
 
 candidate_labels = ['cooking', 'dancing', 'religion']
-classifier(sequence_to_classify, candidate_labels)
+save_file(classifier(sequence_to_classify, candidate_labels), f"{OUTPUT_DIR}/classification.json")
 
 logger.info("\n\n[DONE]", bright=True)
