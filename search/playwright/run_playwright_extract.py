@@ -2,14 +2,12 @@ import os
 import shutil
 import uuid
 from jet.code.markdown_types import HeaderSearchResult
-from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
 from jet.utils.text import format_sub_dir
-from jet.vectors.semantic_search.header_vector_search import search_headers
+from jet.wordnet.text_chunker import ChunkResult, chunk_texts_with_data
 import numpy as np
 from typing import List, Optional, TypedDict
-from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.search.playwright import PlaywrightExtract
 from jet.file.utils import save_file
 from jet.search.playwright.playwright_extract import convert_html_to_markdown
@@ -111,10 +109,11 @@ async def async_example(urls):
     except Exception as e:
         print(f"Error in async advanced extract: {e}")
 
-def extract_documents(html: str, url: str) -> List[HeaderDoc]:
+def extract_doc_chunks(html: str, url: str, chunk_size: int = 200, chunk_overlap: int = 50) -> List[ChunkResult]:
     md_content = convert_html_to_markdown(html, ignore_links=False)
-    original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
-    return original_docs
+    # original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
+    chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
+    return chunks
 
 def extract_topics(
     query: str,
@@ -313,22 +312,22 @@ def test_extract_topics():
             print(f"Error: {e}")
 
 def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderSearchResult]:
-    original_docs = extract_documents(html, url)
+    chunks = extract_doc_chunks(html, url)
+    texts = [chunk["content"] for chunk in chunks]
+    ids = [chunk["id"] for chunk in chunks]
+    
     top_k = None
     threshold = 0.0
     chunk_size = 128
     chunk_overlap = 64
     search_results = list(
-        search_headers(
-            original_docs,
+        search(
             query,
+            texts,
+            model,
             top_k=top_k,
+            ids=ids,
             threshold=threshold,
-            embed_model=model,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            tokenizer_model=model,
-            # merge_chunks=merge_chunks
         )
     )
     # contexts: List[ContextItem] = []
@@ -394,7 +393,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
     for result in result_stream:
         count += 1
         meta = result.copy().pop("meta")
-        header_docs = extract_documents(meta["html"], result['url'])
+        header_docs = extract_doc_chunks(meta["html"], result['url'])
         documents = [f"{doc["header"]}\n\n{doc["content"]}" for doc in header_docs]
         topics = extract_topics(query, documents, model, top_k=5)
         search_results = search_contexts(query, meta["html"], result['url'], model)
