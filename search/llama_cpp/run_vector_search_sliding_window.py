@@ -94,6 +94,20 @@ if __name__ == '__main__':
     }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
 
     chunk_size = 128
+    chunk_overlap = 32
+    step_size = 96
+    search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
+    save_file({
+        "model": model,
+        "query": query,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
+        "step_size": step_size,
+        "count": len(search_results),
+        "results": search_results,
+    }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_{step_size}/search_results.json")
+
+    chunk_size = 128
     chunk_overlap = 0
     step_size = 48
     search_results = main(query, md_content, chunk_size, chunk_overlap, step_size, model)
