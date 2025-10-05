@@ -61,11 +61,6 @@ def search(
     ]
 
 def main(query: str, md_content: str, chunk_size: int, chunk_overlap: int, model: str = "embeddinggemma"):
-    md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md"
-    md_content: str = load_file(md_file)
-    save_file(md_content, f"{OUTPUT_DIR}/doc.md")
-    model = "embeddinggemma"
-    query = "How to change max depth?"
     chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
     print(f"Number of chunks: {len(chunks)}")
     save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
@@ -79,6 +74,7 @@ def main(query: str, md_content: str, chunk_size: int, chunk_overlap: int, model
 if __name__ == '__main__':
     md_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/markdown.md"
     md_content: str = load_file(md_file)
+    save_file(md_content, f"{OUTPUT_DIR}/doc.md")
 
     query = "How to change max depth?"
     model = "embeddinggemma"
