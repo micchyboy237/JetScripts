@@ -152,14 +152,14 @@ to view, we can see better which topics could be logically merged:
 """
 logger.info("### **Text-based topic tree**")
 
->>> tree = topic_model.get_topic_tree(hierarchical_topics)
->>> logger.debug(tree)
-.
-└─atheists_atheism_god_moral_atheist
-     ├─atheists_atheism_god_atheist_argument
-     │    ├─■──atheists_atheism_god_atheist_argument ── Topic: 21
-     │    └─■──br_god_exist_genetic_existence ── Topic: 124
-     └─■──moral_morality_objective_immoral_morals ── Topic: 29
+tree = topic_model.get_topic_tree(hierarchical_topics)
+logger.debug(tree)
+# .
+# └─atheists_atheism_god_moral_atheist
+#      ├─atheists_atheism_god_atheist_argument
+#      │    ├─■──atheists_atheism_god_atheist_argument ── Topic: 21
+#      │    └─■──br_god_exist_genetic_existence ── Topic: 124
+#      └─■──moral_morality_objective_immoral_morals ── Topic: 29
 
 """
 <details>
