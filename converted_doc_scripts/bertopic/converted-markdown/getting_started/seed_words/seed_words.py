@@ -1,8 +1,9 @@
 from bertopic import BERTopic
 from bertopic.vectorizers import ClassTfidfTransformer
 from datasets import load_dataset
-from jet.logger import logger
 from umap import UMAP
+from jet.file.utils import save_file
+from jet.logger import logger
 import os
 import shutil
 
@@ -24,7 +25,7 @@ To do so, let's take a look at an example. We have a dataset of article abstract
 
 The full example is then as follows:
 """
-logger.info("When performing Topic Modeling, you are often faced with data that you are familiar with to a certain extend or that speaks a very specific language. In those cases, topic modeling techniques might have difficulties capturing and representing the semantic nature of domain specific abbreviations, slang, short form, acronyms, etc. For example, the *"TNM"* classification is a method for identifying the stage of most cancers. The word *"TNM"* is an abbreviation and might not be correctly captured in generic embedding models.")
+logger.info("When performing Topic Modeling, you are often faced with data that you are familiar with to a certain extend or that speaks a very specific language. In those cases, topic modeling techniques might have difficulties capturing and representing the semantic nature of domain specific abbreviations, slang, short form, acronyms, etc. For example, the *\"TNM\"* classification is a method for identifying the stage of most cancers. The word *\"TNM\"* is an abbreviation and might not be correctly captured in generic embedding models.")
 
 
 dataset = load_dataset("CShorten/ML-ArXiv-Papers")["train"]
@@ -41,12 +42,14 @@ topic_model = BERTopic(
     umap_model=umap_model,
     min_topic_size=15,
     ctfidf_model=ctfidf_model,
+    verbose=True
 ).fit(abstracts)
 
 """
 Then, when we run `topic_model.get_topic(0)`, we get the following output:
 """
 logger.info("Then, when we run `topic_model.get_topic(0)`, we get the following output:")
+save_file(topic_model.get_topic(0), f"{OUTPUT_DIR}/get_topic_0.json")
 
 [('policy', 0.023413102511982354),
  ('reinforcement', 0.021796126795834238),
