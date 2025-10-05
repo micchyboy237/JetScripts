@@ -1,5 +1,14 @@
 from jet.wordnet.utils import sliding_window
 
+def main_slide_on_short_context():
+    text_corpus = "The quick brown fox jumps over the lazy dog. This is a simple text example for illustration."
+    window_size = 3  # Number of tokens in each window
+    step_size = 1    # Move the window by one token each time
+
+    # Generate and print the sequences
+    # result = list(sliding_window(text_corpus, window_size, step_size))
+    for sequence in sliding_window(text_corpus, window_size, step_size):
+        print(" ".join(sequence))
 
 def main_slide_on_long_context():
     MARKDOWN_CONTEXT = """
@@ -33,21 +42,12 @@ def main_slide_on_long_context():
 - **Episodes**: 64
 - **Synopsis**: Brothers Edward and Alphonse Elric use alchemy to restore their bodies after a failed experiment...
 """
-    for sequence in sliding_window(MARKDOWN_CONTEXT, 300, 200):
-        print(sequence)
-
-
-def main_slide_on_short_context():
-    text_corpus = "The quick brown fox jumps over the lazy dog. This is a simple text example for illustration."
-    window_size = 3  # Number of tokens in each window
-    step_size = 1    # Move the window by one token each time
-
-    # Generate and print the sequences
-    result = list(sliding_window(text_corpus, window_size, step_size))
-    for sequence in sliding_window(text_corpus, window_size, step_size):
-        print(sequence)
-
+    for sequence in sliding_window(MARKDOWN_CONTEXT, 10, 5):
+        print(" ".join(sequence))
 
 if __name__ == "__main__":
+    print("\nmain_slide_on_short_context():")
     main_slide_on_short_context()
+
+    print("\nmain_slide_on_long_context():")
     main_slide_on_long_context()
