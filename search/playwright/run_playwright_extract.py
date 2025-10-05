@@ -142,7 +142,8 @@ def extract_topics(
     documents: List[str],
     model: str = "nomic-embed-text-v2-moe",
     top_k: int = None
-)
+):
+    pass
 
 def search(
     query: str,

@@ -3,18 +3,13 @@ from jet.executor.python_runner import run_python_files_in_directory
 
 
 if __name__ == "__main__":
-    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/bertopic/jet_examples/towards_data_science"
+    target_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/bertopic/jet_examples/more_usage_examples"
     output_dir = f"{target_dir}/generated/runner_status"
     includes = [
         # "file_name.py",
     ]
     excludes = [
-        "ambiguity-clarity.py",
-        "basic-prompt-structures.py",
-        "constrained-guided-generation.py",
-        "cot-prompting.py",
-        "ethical-prompt-engineering.py",
-        "evaluating-prompt-effectiveness.py",
+        # "ambiguity-clarity.py",
     ]
     rerun_mode: Literal["all", "failed",
                         "unrun", "failed_and_unrun"] = "all"
