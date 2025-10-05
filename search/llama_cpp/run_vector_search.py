@@ -36,21 +36,20 @@ if __name__ == '__main__':
     model = "embeddinggemma"
 
     # Test various chunk sizes, overlaps, and thresholds
-    chunk_sizes = [128, 64, 32, 16]
+    chunk_sizes = [128, 64, 32]
     chunk_overlaps = [32, 16]
-    thresholds = [0.0]  # Test with different thresholds
+    threshold = 0.0
 
     for chunk_size in chunk_sizes:
         for chunk_overlap in chunk_overlaps:
-            for threshold in thresholds:
-                print(f"\n--- Searching with chunk_size={chunk_size}, chunk_overlap={chunk_overlap}, threshold={threshold} ---")
-                search_results = main(query, md_content, chunk_size, chunk_overlap, model, threshold=threshold)
-                save_file({
-                    "model": model,
-                    "query": query,
-                    "chunk_size": chunk_size,
-                    "chunk_overlap": chunk_overlap,
-                    "threshold": threshold,
-                    "count": len(search_results),
-                    "results": search_results,
-                }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}_threshold_{threshold}/search_results.json")
+            print(f"\n--- Searching with chunk_size={chunk_size}, chunk_overlap={chunk_overlap}, threshold={threshold} ---")
+            search_results = main(query, md_content, chunk_size, chunk_overlap, model, threshold=threshold)
+            save_file({
+                "model": model,
+                "query": query,
+                "chunk_size": chunk_size,
+                "chunk_overlap": chunk_overlap,
+                "threshold": threshold,
+                "count": len(search_results),
+                "results": search_results,
+            }, f"{OUTPUT_DIR}/chunked_{chunk_size}_{chunk_overlap}/search_results.json")
