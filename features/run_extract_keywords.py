@@ -1,7 +1,7 @@
 import openai
 from keybert import KeyBERT, KeyLLM
 from sentence_transformers import SentenceTransformer
-from jet.file.utils import load_file, save_file
+from jet.file.utils import save_file
 import os
 
 OUTPUT_DIR = os.path.join(
@@ -179,16 +179,16 @@ def main():
     """
     Main function to demonstrate KeyBERT usage examples.
     """
-    import os
-    from typing import List
+    # import os
+    # from typing import List
 
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/docs.json"
-    documents: List[dict] = load_file(docs_file)["documents"]
+    # output_dir = os.path.join(
+        # os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    # docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/docs.json"
+    # documents: List[dict] = load_file(docs_file)["documents"]
+    # text = "\n\n".join(f"{doc["header"]}\n\n{doc["content"]}" for doc in documents)
 
-    # text = SAMPLE_DOC
-    text = "\n\n".join(f"{doc["header"]}\n\n{doc["content"]}" for doc in documents)
+    text = SAMPLE_DOC
 
     # Basic keyword extraction
     print("Basic Keywords:")
