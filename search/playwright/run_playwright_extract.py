@@ -1,12 +1,13 @@
 import os
 import shutil
+import uuid
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
 from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.header_vector_search import search_headers
 import numpy as np
-from typing import List, TypedDict
+from typing import List, Optional, TypedDict
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.search.playwright import PlaywrightExtract
 from jet.file.utils import save_file
@@ -344,15 +345,17 @@ def search(
     query: str,
     documents: List[str],
     model: str = "embeddinggemma",
-    top_k: int = None
+    top_k: int = None,
+    ids: Optional[List[str]] = None
 ) -> List[SearchResult]:
     """Search for documents most similar to the query.
     If top_k is None, return all results sorted by similarity.
+    If ids is None, generate UUIDs for each document.
     """
     if not documents:
         return []
     client = LlamacppEmbedding(model=model)
-    vectors = client.get_embeddings([query] + documents, batch_size=32, show_progress=True)
+    vectors = client.get_embeddings([query] + documents, batch_size=16, show_progress=True)
     query_vector = vectors[0]
     doc_vectors = vectors[1:]
     similarities = np.dot(doc_vectors, query_vector) / (
@@ -361,9 +364,11 @@ def search(
     sorted_indices = np.argsort(similarities)[::-1]
     if top_k is not None:
         sorted_indices = sorted_indices[:top_k]
+    # Generate UUIDs if ids not provided, else use provided ids
+    doc_ids = [str(uuid.uuid4()) for _ in documents] if ids is None else ids
     return [
         {
-            "id": documents[sorted_indices[i]]["id"],
+            "id": doc_ids[sorted_indices[i]],
             "rank": i + 1,
             "doc_index": int(sorted_indices[i]),
             "score": float(similarities[sorted_indices[i]]),

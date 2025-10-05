@@ -2,7 +2,7 @@ import os
 import shutil
 import time
 from jet.file.utils import load_file, save_file
-from jet.llm.rag.mlx.classification import MLXRAGClassifier, generate_summary
+from jet.search.rag.mlx.classification import MLXRAGClassifier, generate_summary
 from jet.logger import logger
 from typing import List, Dict
 from numpy.typing import NDArray
