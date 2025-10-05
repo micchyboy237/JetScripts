@@ -85,9 +85,11 @@ if __name__ == '__main__':
     save_file({
         "model": model,
         "query": query,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/search_results_128_32.json")
+    }, f"{OUTPUT_DIR}/search_results/chunked_128_32.json")
     
     chunk_size = 64
     chunk_overlap = 32
@@ -95,9 +97,11 @@ if __name__ == '__main__':
     save_file({
         "model": model,
         "query": query,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/search_results_64_32.json")
+    }, f"{OUTPUT_DIR}/search_results/chunked_64_32.json")
     
     chunk_size = 32
     chunk_overlap = 0
@@ -105,6 +109,8 @@ if __name__ == '__main__':
     save_file({
         "model": model,
         "query": query,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
         "count": len(search_results),
         "results": search_results,
-    }, f"{OUTPUT_DIR}/search_results_32_0.json")
+    }, f"{OUTPUT_DIR}/search_results/chunked_32_0.json")
