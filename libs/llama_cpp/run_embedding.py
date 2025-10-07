@@ -2,7 +2,7 @@ import os
 import shutil
 import numpy as np
 from typing import List, TypedDict
-from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.file.utils import save_file
 
 OUTPUT_DIR = os.path.join(

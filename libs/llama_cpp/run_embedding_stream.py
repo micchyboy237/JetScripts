@@ -1,4 +1,4 @@
-from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 import numpy as np
 
 # Initialize the embedding client

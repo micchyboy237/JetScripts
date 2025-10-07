@@ -3,7 +3,7 @@ import shutil
 import uuid
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
-from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.utils.text import format_sub_dir
 from jet.wordnet.text_chunker import ChunkResult, chunk_texts_with_data
 import numpy as np
@@ -136,7 +136,7 @@ def extract_topics(
         return []
     
     try:
-        from bertopic import BERTopic
+        from jet.adapters.bertopic import BERTopic
         from sentence_transformers import SentenceTransformer
         import logging
         

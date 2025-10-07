@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.backend import BaseEmbedder
 from bertopic.cluster import BaseCluster
 from bertopic.dimensionality import BaseDimensionalityReduction

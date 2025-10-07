@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from jet.logger import logger
 import os
 import pandas as pd

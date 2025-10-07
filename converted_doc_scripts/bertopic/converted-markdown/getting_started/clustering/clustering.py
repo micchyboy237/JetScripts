@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from cuml.cluster import HDBSCAN
 from hdbscan import HDBSCAN
 from jet.logger import logger

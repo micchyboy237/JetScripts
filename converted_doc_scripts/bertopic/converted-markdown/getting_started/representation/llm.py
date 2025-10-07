@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.representation import Cohere
 from bertopic.representation import LangChain
 from bertopic.representation import LiteLLM

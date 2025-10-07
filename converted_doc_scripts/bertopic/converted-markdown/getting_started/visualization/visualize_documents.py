@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from jet.logger import logger
 from sentence_transformers import SentenceTransformer
 from sklearn.datasets import fetch_20newsgroups

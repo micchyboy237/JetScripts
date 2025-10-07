@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.representation import KeyBERTInspired
 from bertopic.representation import Ollama
 from jet.logger import logger

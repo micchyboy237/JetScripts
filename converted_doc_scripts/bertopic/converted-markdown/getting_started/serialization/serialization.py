@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.backend import OpenAIBackend
 from huggingface_hub import login
 from jet.logger import logger

@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic._utils import MyLogger
 from bertopic.representation import KeyBERTInspired, MaximalMarginalRelevance, Ollama, PartOfSpeech
 from datasets import load_dataset

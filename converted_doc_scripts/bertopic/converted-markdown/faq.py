@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.vectorizers import ClassTfidfTransformer
 from cuml.cluster import HDBSCAN
 from cuml.manifold import UMAP

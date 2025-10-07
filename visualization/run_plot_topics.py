@@ -2,7 +2,7 @@ import json
 import argparse
 import subprocess
 import os
-from jet.libs.bertopic.jet_examples.base.plot_topics import process_documents_for_chart
+from jet.adapters.bertopic.jet_examples.base.plot_topics import process_documents_for_chart
 from jet.logger import logger
 
 OUTPUT_DIR = os.path.join(

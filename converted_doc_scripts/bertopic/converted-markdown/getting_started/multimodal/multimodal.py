@@ -1,5 +1,5 @@
 from IPython.display import HTML
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.backend import MultiModalBackend
 from bertopic.representation import KeyBERTInspired, VisualRepresentation
 from bertopic.representation import VisualRepresentation

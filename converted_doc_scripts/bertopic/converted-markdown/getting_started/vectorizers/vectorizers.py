@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.vectorizers import OnlineCountVectorizer
 from jet.logger import logger
 from sklearn.datasets import fetch_20newsgroups

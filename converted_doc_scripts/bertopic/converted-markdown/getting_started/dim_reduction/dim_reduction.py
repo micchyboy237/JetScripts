@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.dimensionality import BaseDimensionalityReduction
 from cuml.manifold import UMAP
 from jet.logger import logger

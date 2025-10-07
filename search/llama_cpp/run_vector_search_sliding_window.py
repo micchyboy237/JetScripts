@@ -5,7 +5,7 @@ import numpy as np
 from typing import List, Optional, TypedDict
 from jet.file.utils import load_file, save_file
 from jet.wordnet.text_chunker import chunk_texts_sliding_window
-from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.search.rag.base import preprocess_texts
 
 OUTPUT_DIR = os.path.join(

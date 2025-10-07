@@ -1,4 +1,4 @@
-from bertopic import BERTopic
+from jet.adapters.bertopic import BERTopic
 from bertopic.backend import BaseEmbedder
 from bertopic.backend import CohereBackend
 from bertopic.backend import FastEmbedBackend

@@ -1,6 +1,6 @@
 from typing import Iterator, List, TypedDict
 from jet.code.markdown_utils._converters import convert_html_to_markdown
-from jet.libs.llama_cpp.embeddings import LlamacppEmbedding
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.libs.stanza.utils import serialize_stanza_object
 from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.file.utils import load_file, save_file
