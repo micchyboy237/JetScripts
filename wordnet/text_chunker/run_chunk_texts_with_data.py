@@ -1,4 +1,5 @@
 import os
+import shutil
 import logging
 import difflib
 import json
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 class ChunkDict(TypedDict):
     content: str
@@ -70,7 +72,7 @@ def html_escape(text: str) -> str:
 
 def colorize_diff_line_with_substrings(line: str, is_addition: bool, is_deletion: bool, prev_line: str = "") -> str:
     """
-    Colorize a diff line, highlighting only differing substrings using difflib colors.
+    Colorize a diff line, highlighting only differing substrings using difflib.
     For additions/deletions, compare with prev_line to highlight changed parts.
     """
     if is_addition and not line.startswith('+++'):
@@ -78,18 +80,18 @@ def colorize_diff_line_with_substrings(line: str, is_addition: bool, is_deletion
             # Compare with previous deletion line to highlight differences
             matcher = difflib.SequenceMatcher(None, prev_line[1:], line[1:])
             result = []
-            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+            for tag, _, _, j1, j2 in matcher.get_opcodes():
                 if tag == 'equal':
                     result.append(html_escape(line[j1:j2]))
                 elif tag in ('replace', 'insert'):
                     result.append(f'<span style="background-color: #99ff99;">{html_escape(line[j1:j2])}</span>')
             return f'+{''.join(result)}'
-        return f'<span style="background-color: #99ff99;">{html_escape(line)}</span>'  # Green for additions
+        return f'+<span style="background-color: #99ff99;">{html_escape(line[1:])}</span>'  # Green for additions
     elif is_deletion and not line.startswith('---'):
         if prev_line.startswith('+'):
             # Compare with next addition line (handled in next iteration)
-            return html_escape(line)
-        return f'<span style="background-color: #ff9999;">{html_escape(line)}</span>'  # Red for deletions
+            return f'-{html_escape(line[1:])}'
+        return f'-<span style="background-color: #ff9999;">{html_escape(line[1:])}</span>'  # Red for deletions
     elif line.startswith('@@'):
         return f'<span style="color: #0000ff;">{html_escape(line)}</span>'  # Blue for hunk headers
     elif line.startswith('diff ') or line.startswith('--- ') or line.startswith('+++ '):
@@ -100,7 +102,8 @@ def generate_unified_diff_summary(
     from_lines: List[str], to_lines: List[str], path: str = "chunk"
 ) -> tuple[List[DiffChange], str]:
     """
-    Generate a unified diff summary as both a list of typed dictionaries and a colored string.
+    Generate a unified diff summary as both a list of typed dictionaries and a colored string
+    with substring-level highlighting for differences.
     Falls back to difflib's unified_diff if GitPython unavailable or Git CLI fails.
     """
     changes: List[DiffChange] = []
@@ -144,7 +147,7 @@ def generate_unified_diff_summary(
         diff_text = "\n".join(diff_gen) or ""
         logger.debug("difflib unified diff output length: %d", len(diff_text))
 
-    # Colorize lines for string output
+    # Colorize lines with substring highlighting
     colored_lines = []
     if diff_text:
         lines = diff_text.splitlines()
