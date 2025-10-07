@@ -29,8 +29,6 @@ logger = logging.getLogger(__name__)
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-sample = "[ Resources ](/r/LangChain/?f=flair_name%3A%22Resources%22)\nI really liked this idea of evaluating different RAG strategies. This simple project is amazing and can be useful to the community here. You can have your custom data evaluate different RAG strategies and finally can see which one works best. Try and let me know what you guys think: [ https://www.ragarena.com/ ](https://www.ragarena.com/)\nPublic\nAnyone can view, post, and comment to thisck-the-right-method-and-why-your-ai-s-success-2cedcda99f8a&user=Mehulpratapsingh&userId=99320eff683e&source=---header_actions--2cedcda99f8a---------------------clap_footer------------------)\n\\--\n[ ](/ leverages both visual and textual information.\n4. SafeRAG: This paper talks covers the benchmark designed to evaluate the security vulnerabilities of RAG systems against adversarial attacks.\n5. Agentic RAG : This paper covers Agentic RAG, which is the fusion of RAG with agents, improving the retrieval process with decision-making and reasoning capabilities.\n6. TrustRAG: This is another paper that covers a security-focused framework designed to protect Retrieval-Augmented Generation (RAG) systems from corpus poisoning attacks.\n7. Enhancing RAG: Best Practices: This study explores key design factors influencing RAG systems, including query expansion, retrieval strategies, and In-Context Learning.\n8. Chain of Retrieval Augmented Generation: This paper covers the CoRG technique that improves RAG by iteratively retrieving and reasoning over the information before generating an answer.\n9. Fact, Fetch and Reason: This paper talks about a high-quality evaluation dataset called FRAMES, designed to evaluate LLMs' factuality, retrieval, and reasoning in end-to-end RAG scenarios.\n10. LONG 2 RAG: LONG 2 RAG is a new benchmark designed to evaluate RAG systems on long-context retrieval and long-form response generation."
-
 class ChunkDict(TypedDict):
     content: str
     # Add other expected keys as needed; filtered dynamically
@@ -47,20 +45,45 @@ def html_escape(text: str) -> str:
     """Escape HTML special characters for safe <pre> display."""
     return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
 
+def colorize_diff_line_with_substrings(line: str, is_addition: bool, is_deletion: bool, prev_line: str = "") -> str:
+    """
+    Colorize a diff line, highlighting only differing substrings using difflib colors.
+    For additions/deletions, compare with prev_line to highlight changed parts.
+    """
+    if is_addition and not line.startswith('+++'):
+        if prev_line.startswith('-'):
+            # Compare with previous deletion line to highlight differences
+            matcher = difflib.SequenceMatcher(None, prev_line[1:], line[1:])
+            result = []
+            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                if tag == 'equal':
+                    result.append(html_escape(line[j1:j2]))
+                elif tag in ('replace', 'insert'):
+                    result.append(f'<span style="background-color: #99ff99;">{html_escape(line[j1:j2])}</span>')
+            return f'+{''.join(result)}'
+        return f'<span style="background-color: #99ff99;">{html_escape(line)}</span>'  # Green for additions
+    elif is_deletion and not line.startswith('---'):
+        if prev_line.startswith('+'):
+            # Compare with next addition line (handled in next iteration)
+            return html_escape(line)
+        return f'<span style="background-color: #ff9999;">{html_escape(line)}</span>'  # Red for deletions
+    elif line.startswith('@@'):
+        return f'<span style="color: #0000ff;">{html_escape(line)}</span>'  # Blue for hunk headers
+    elif line.startswith('diff ') or line.startswith('--- ') or line.startswith('+++ '):
+        return f'<span style="color: #808080;">{html_escape(line)}</span>'  # Gray for metadata
+    return html_escape(line)  # No color for context lines
+
 def generate_unified_diff_summary(
     from_lines: List[str], to_lines: List[str], path: str = "chunk"
 ) -> str:
     """
-    Generate a Git-like unified diff summary (stats + hunks) for two sets of lines.
+    Generate a Git-like unified diff summary with substring highlighting using difflib colors.
     Falls back to difflib's unified_diff if GitPython unavailable or Git CLI fails.
     """
     if GITPYTHON_AVAILABLE:
-        # Use GitPython for authentic Git diff (treat lines as file content)
         from_content = "\n".join(from_lines) + "\n"
         to_content = "\n".join(to_lines) + "\n"
-        # Combine inputs with separator as a single string
         input_content = f"{from_content}\n---\n{to_content}"
-        # Simulate Git diff via subprocess for unified output
         import subprocess
         try:
             logger.debug("Running git diff --no-index with input length: %d", len(input_content))
@@ -71,30 +94,48 @@ def generate_unified_diff_summary(
                 text=True,
                 check=True
             )
-            logger.debug("Git diff output length: %d", len(result.stdout))
-            return result.stdout if result.stdout.strip() else "No differences."
+            diff_text = result.stdout if result.stdout.strip() else "No differences."
+            logger.debug("Git diff output length: %d", len(diff_text))
         except subprocess.CalledProcessError as e:
             logger.error("Git diff failed: %s", e.stderr)
-            # Fallback to difflib
+            diff_text = None
         except FileNotFoundError:
             logger.error("Git CLI not found. Ensure Git is installed and in PATH.")
-            # Fallback to difflib
+            diff_text = None
         except Exception as e:
             logger.error("Unexpected error in git diff: %s", str(e))
-            # Fallback to difflib
+            diff_text = None
+    else:
+        diff_text = None
 
-    # Fallback to difflib (built-in, no deps)
-    logger.debug("Falling back to difflib.unified_diff")
-    diff_gen = difflib.unified_diff(
-        from_lines, to_lines,
-        fromfile=f"a/{path}", tofile=f"b/{path}",
-        lineterm="", n=3  # 3 lines of context, like git diff -U3
-    )
-    unified_diff = "\n".join(diff_gen)
-    logger.debug("difflib unified diff output length: %d", len(unified_diff))
-    return unified_diff or "No differences."
+    if diff_text is None:
+        logger.debug("Falling back to difflib.unified_diff")
+        diff_gen = difflib.unified_diff(
+            from_lines, to_lines,
+            fromfile=f"a/{path}", tofile=f"b/{path}",
+            lineterm="", n=3
+        )
+        diff_text = "\n".join(diff_gen) or "No differences."
+        logger.debug("difflib unified diff output length: %d", len(diff_text))
+
+    # Colorize lines with substring highlighting
+    colored_lines = []
+    lines = diff_text.splitlines()
+    for i, line in enumerate(lines):
+        prev_line = lines[i - 1] if i > 0 else ""
+        colored_lines.append(
+            colorize_diff_line_with_substrings(
+                line,
+                is_addition=line.startswith('+') and not line.startswith('+++'),
+                is_deletion=line.startswith('-') and not line.startswith('---'),
+                prev_line=prev_line
+            )
+        )
+    return "\n".join(colored_lines)
 
 if __name__ == "__main__":
+    sample = "[ Resources ](/r/LangChain/?f=flair_name%3A%22Resources%22)\nI really liked this idea of evaluating different RAG strategies. This simple project is amazing and can be useful to the community here. You can have your custom data evaluate different RAG strategies and finally can see which one works best. Try and let me know what you guys think: [ https://www.ragarena.com/ ](https://www.ragarena.com/)\nPublic\nAnyone can view, post, and comment to thisck-the-right-method-and-why-your-ai-s-success-2cedcda99f8a&user=Mehulpratapsingh&userId=99320eff683e&source=---header_actions--2cedcda99f8a---------------------clap_footer------------------)\n\\--\n[ ](/ leverages both visual and textual information.\n4. SafeRAG: This paper talks covers the benchmark designed to evaluate the security vulnerabilities of RAG systems against adversarial attacks.\n5. Agentic RAG : This paper covers Agentic RAG, which is the fusion of RAG with agents, improving the retrieval process with decision-making and reasoning capabilities.\n6. TrustRAG: This is another paper that covers a security-focused framework designed to protect Retrieval-Augmented Generation (RAG) systems from corpus poisoning attacks.\n7. Enhancing RAG: Best Practices: This study explores key design factors influencing RAG systems, including query expansion, retrieval strategies, and In-Context Learning.\n8. Chain of Retrieval Augmented Generation: This paper covers the CoRG technique that improves RAG by iteratively retrieving and reasoning over the information before generating an answer.\n9. Fact, Fetch and Reason: This paper talks about a high-quality evaluation dataset called FRAMES, designed to evaluate LLMs' factuality, retrieval, and reasoning in end-to-end RAG scenarios.\n10. LONG 2 RAG: LONG 2 RAG is a new benchmark designed to evaluate RAG systems on long-context retrieval and long-form response generation."
+
     # Log the input text
     logger.info("Input text:\n%s", sample)
     
@@ -118,18 +159,17 @@ if __name__ == "__main__":
         logger.info("Chunk %d: %s", i + 1, dict_to_string(filtered_chunk))
     save_file(result_fast, f"{OUTPUT_DIR}/result_fast.json")
 
-    # Compare and log differences using difflib.HtmlDiff + unified summary
+    # Compare and log differences using difflib.HtmlDiff + colored unified summary
     logger.info("Comparing chunk contents between methods...")
     chunks_regular = [filter_dict(c) for c in result]
     chunks_fast = [filter_dict(c) for c in result_fast]
     if chunks_regular == chunks_fast:
         logger.info("All chunk contents match between methods.")
     else:
-        logger.warning("Chunk contents differ between methods! Generating HTML diff with summary...")
-        differ = difflib.HtmlDiff(wrapcolumn=80)  # Wrap lines for readability
+        logger.warning("Chunk contents differ between methods! Generating HTML diff with colored summary...")
+        differ = difflib.HtmlDiff(wrapcolumn=80)
         for i, (reg, fast) in enumerate(zip(chunks_regular, chunks_fast)):
             if reg != fast:
-                # Convert filtered dicts to strings for diff
                 reg_str = dict_to_string(reg)
                 fast_str = dict_to_string(fast)
                 reg_lines = reg_str.splitlines()
@@ -142,21 +182,20 @@ if __name__ == "__main__":
                     context=True, numlines=3
                 )
                 
-                # Generate Git-like unified diff summary
+                # Generate Git-like unified diff summary with substring coloring
                 unified_summary = generate_unified_diff_summary(reg_lines, fast_lines, f"chunk_{i+1}")
                 
-                # Combine: HTML table + unified summary below
+                # Combine: HTML table + colored unified summary with styles
                 html_diff = f"""
                 {html_table}
                 <hr style="border: 1px solid #ccc; margin: 20px 0;">
                 <h3>Git Diff-Style Unified Summary</h3>
-                <pre style="background: #f8f8f8; padding: 10px; border: 1px solid #ddd; overflow-x: auto; font-family: monospace;">
-{html_escape(unified_summary)}
+                <pre style="background: #f8f8f8; padding: 15px; border: 1px solid #ddd; overflow-x: auto; font-family: monospace; font-size: 14px; line-height: 1.5; white-space: pre-wrap;">
+{unified_summary}
                 </pre>
                 """
                 
                 logger.warning(f"Difference in chunk {i+1}:\n{html_diff}")
-                # Save HTML diff to file for browser viewing
                 diff_file = f"{OUTPUT_DIR}/diff_chunk_{i+1}.html"
                 with open(diff_file, 'w', encoding='utf-8') as f:
                     f.write(html_diff)
