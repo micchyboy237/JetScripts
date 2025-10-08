@@ -337,13 +337,11 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     #     })
     return search_results
 
-def scrape_urls_data(query: str, urls: List[str], model: str):
+def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = True, urls_limit: int = 10):
     sub_dir_query = format_sub_dir(query)
     base_output_dir = f"{OUTPUT_DIR}/{sub_dir_query}"
     shutil.rmtree(base_output_dir, ignore_errors=True)
 
-    use_cache = True
-    urls_limit = 10
     # Fetch URLs if empty
     if not urls:
         search_engine_results = search_data(query, use_cache=use_cache)
@@ -411,10 +409,12 @@ if __name__ == "__main__":
     query = "Top isekai anime 2025"
 
     model = "embeddinggemma"
+    urls_limit = 10
+    use_cache = True
 
     sub_dir_query = format_sub_dir(query)
     # print("Running stream examples...")
-    all_documents = scrape_urls_data(query, urls, model)
+    all_documents = scrape_urls_data(query, urls, model, use_cache=use_cache, urls_limit=urls_limit)
     save_file(all_documents, f"{OUTPUT_DIR}/{sub_dir_query}/all_documents.json")
 
     
