@@ -338,7 +338,6 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     return search_results
 
 def scrape_urls_data(query: str, urls: List[str], model: str):
-
     sub_dir_query = format_sub_dir(query)
     base_output_dir = f"{OUTPUT_DIR}/{sub_dir_query}"
     shutil.rmtree(base_output_dir, ignore_errors=True)
@@ -349,6 +348,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
     if not urls:
         search_engine_results = search_data(query, use_cache=use_cache)
         urls = [r["url"] for r in search_engine_results][:urls_limit]
+        save_file(search_engine_results, f"{base_output_dir}/search_engine_results.json")
     save_file(urls, f"{base_output_dir}/urls.json")
 
     extractor = PlaywrightExtract()
@@ -388,6 +388,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
         save_file(topics, f"{base_output_dir}/{sub_dir_url}/topics.json")
         save_file(search_results, f"{base_output_dir}/{sub_dir_url}/search_results.json")
         save_file({
+            "url": result["url"],
             "tokens": meta["tokens"],
         }, f"{base_output_dir}/{sub_dir_url}/info.json")
         save_file(meta["analysis"], f"{base_output_dir}/{sub_dir_url}/analysis.json")
@@ -401,15 +402,18 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
     return all_documents
 
 if __name__ == "__main__":
+    query = "How to change max depth?"
     urls = [
-        # "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
+        "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
-    model = "embeddinggemma"
-    query = "Top isekai anime 2025"
+    # query = "Top isekai anime 2025"
 
+    model = "embeddinggemma"
+
+    sub_dir_query = format_sub_dir(query)
     # print("Running stream examples...")
     all_documents = scrape_urls_data(query, urls, model)
-    save_file(all_documents, f"{OUTPUT_DIR}/all_documents.json")
+    save_file(all_documents, f"{OUTPUT_DIR}/{sub_dir_query}/all_documents.json")
 
     
     # # Example of using extract_topics function

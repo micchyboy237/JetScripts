@@ -19,10 +19,11 @@ def sync_example(url):
     result = crawler._run(
         url=url,
         max_depth=2,
-        max_breadth=10,
-        limit=20,
-        extract_depth="basic",
-        format="markdown"
+        # select_domains=["^example\\.com$"],
+        # exclude_paths=["/admin/.*"],
+        allow_external=False,
+        include_favicon=True,
+        format="text"
     )
     print("Basic crawl results:")
     print(f"Base URL: {result['base_url']}")
@@ -35,11 +36,11 @@ def sync_example(url):
     # Example 2: Crawl with specific path, category, and images
     result = crawler._run(
         url=url,
-        max_depth=1,
-        # select_paths=["/blog/.*"],
-        # categories=["Blogs"],
-        include_images=True,
-        extract_depth="advanced"
+        instructions="API documentation",
+        categories=["Documentation"],
+        limit=15,
+        extract_depth="advanced",
+        include_images=True
     )
     print("\nBlog-specific crawl results:")
     print(f"Base URL: {result['base_url']}")
