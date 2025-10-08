@@ -108,7 +108,7 @@ async def async_example(urls):
         print(f"Error in async advanced extract: {e}")
 
 def extract_doc_chunks(html: str, url: str, chunk_size: int = 200, chunk_overlap: int = 50) -> List[ChunkResult]:
-    md_content = convert_html_to_markdown(html, ignore_links=False)
+    md_content = convert_html_to_markdown(html, ignore_links=True)
     # original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
     chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
     return chunks
