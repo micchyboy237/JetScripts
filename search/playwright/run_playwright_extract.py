@@ -1,5 +1,6 @@
 import os
 import shutil
+from jet.adapters.bertopic.utils import get_vectorizer
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.scrapers.utils import search_data
@@ -134,7 +135,6 @@ def extract_topics(
     
     try:
         from jet.adapters.bertopic import BERTopic
-        from sentence_transformers import SentenceTransformer
         import logging
         
         # Set up logging
@@ -148,7 +148,9 @@ def extract_topics(
         # embedding_model = SentenceTransformer(model)
         topic_model = BERTopic(
             # embedding_model=embedding_model,
+            vectorizer_model=get_vectorizer(len(documents)),
             calculate_probabilities=True,
+            verbose=True,
         )
         
         # Fit the model to documents
