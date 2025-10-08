@@ -1,22 +1,19 @@
 import os
 import shutil
-import uuid
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
-from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
+from jet.scrapers.utils import search_data
 from jet.utils.text import format_sub_dir
+from jet.vectors.semantic_search.search_docs import search_docs
 from jet.wordnet.text_chunker import ChunkResult, chunk_texts_with_data
-import numpy as np
-from typing import List, Optional, TypedDict
-from jet.search.playwright import PlaywrightExtract
+from typing import List, TypedDict
 from jet.file.utils import save_file
-from jet.search.playwright.playwright_extract import convert_html_to_markdown
+from jet.search.playwright.playwright_extract import PlaywrightExtract, convert_html_to_markdown
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(
         os.path.basename(__file__))[0]
 )
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 class ContextItem(TypedDict):
     doc_idx: int
@@ -152,7 +149,6 @@ def extract_topics(
         topic_model = BERTopic(
             # embedding_model=embedding_model,
             calculate_probabilities=True,
-            random_state=42
         )
         
         # Fit the model to documents
@@ -321,7 +317,7 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     chunk_size = 128
     chunk_overlap = 64
     search_results = list(
-        search(
+        search_docs(
             query,
             texts,
             model,
@@ -341,43 +337,20 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     #     })
     return search_results
 
-def search(
-    query: str,
-    documents: List[str],
-    model: str = "embeddinggemma",
-    top_k: int = None,
-    ids: Optional[List[str]] = None
-) -> List[SearchResult]:
-    """Search for documents most similar to the query.
-    If top_k is None, return all results sorted by similarity.
-    If ids is None, generate UUIDs for each document.
-    """
-    if not documents:
-        return []
-    client = LlamacppEmbedding(model=model)
-    vectors = client.get_embeddings([query] + documents, batch_size=16, show_progress=True)
-    query_vector = vectors[0]
-    doc_vectors = vectors[1:]
-    similarities = np.dot(doc_vectors, query_vector) / (
-        np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(query_vector) + 1e-10
-    )
-    sorted_indices = np.argsort(similarities)[::-1]
-    if top_k is not None:
-        sorted_indices = sorted_indices[:top_k]
-    # Generate UUIDs if ids not provided, else use provided ids
-    doc_ids = [str(uuid.uuid4()) for _ in documents] if ids is None else ids
-    return [
-        {
-            "id": doc_ids[sorted_indices[i]],
-            "rank": i + 1,
-            "doc_index": int(sorted_indices[i]),
-            "score": float(similarities[sorted_indices[i]]),
-            "text": documents[sorted_indices[i]],
-        }
-        for i in range(len(sorted_indices))
-    ]
-
 def scrape_urls_data(query: str, urls: List[str], model: str):
+
+    sub_dir_query = format_sub_dir(query)
+    base_output_dir = f"{OUTPUT_DIR}/{sub_dir_query}"
+    shutil.rmtree(base_output_dir, ignore_errors=True)
+
+    use_cache = True
+    urls_limit = 10
+    # Fetch URLs if empty
+    if not urls:
+        search_engine_results = search_data(query, use_cache=use_cache)
+        urls = [r["url"] for r in search_engine_results][:urls_limit]
+    save_file(urls, f"{base_output_dir}/urls.json")
+
     extractor = PlaywrightExtract()
     result_stream = extractor._stream(
         urls=urls,
@@ -388,50 +361,55 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
     )
     print("\nAdvanced extract results stream:")
     count = 0
-    # all_contexts = []
+    all_documents = {}
     # results = []
     for result in result_stream:
         count += 1
         meta = result.copy().pop("meta")
-        header_docs = extract_doc_chunks(meta["html"], result['url'])
-        documents = [f"{doc["header"]}\n\n{doc["content"]}" for doc in header_docs]
+        chunks = extract_doc_chunks(meta["html"], result['url'])
+        documents = [doc["content"] for doc in chunks]
         topics = extract_topics(query, documents, model, top_k=5)
         search_results = search_contexts(query, meta["html"], result['url'], model)
         sub_dir_url = format_sub_dir(result['url'])
         print(f"URL: {sub_dir_url} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
         # results.extend(result)
-        # all_contexts.extend(contexts)
+        all_documents[result["url"]] = chunks
         save_file({
             "query": query,
-            "count": len(header_docs),
-            "documents": header_docs,
-        }, f"{OUTPUT_DIR}/{sub_dir_url}/docs.json")
-        save_file(result, f"{OUTPUT_DIR}/{sub_dir_url}/results.json")
-        save_file(topics, f"{OUTPUT_DIR}/{sub_dir_url}/topics.json")
-        save_file(search_results, f"{OUTPUT_DIR}/{sub_dir_url}/search_results.json")
+            "count": len(chunks),
+            "chunks": chunks,
+        }, f"{base_output_dir}/{sub_dir_url}/chunks.json")
+        save_file({
+            "query": query,
+            "count": len(documents),
+            "documents": documents,
+        }, f"{base_output_dir}/{sub_dir_url}/documents.json")
+        save_file(result, f"{base_output_dir}/{sub_dir_url}/results.json")
+        save_file(topics, f"{base_output_dir}/{sub_dir_url}/topics.json")
+        save_file(search_results, f"{base_output_dir}/{sub_dir_url}/search_results.json")
         save_file({
             "tokens": meta["tokens"],
-        }, f"{OUTPUT_DIR}/{sub_dir_url}/info.json")
-        save_file(meta["analysis"], f"{OUTPUT_DIR}/{sub_dir_url}/analysis.json")
-        save_file(meta["text_links"], f"{OUTPUT_DIR}/{sub_dir_url}/text_links.json")
-        save_file(meta["image_links"], f"{OUTPUT_DIR}/{sub_dir_url}/image_links.json")
-        save_file(meta["html"], f"{OUTPUT_DIR}/{sub_dir_url}/page.html")
-        save_file(meta["markdown"], f"{OUTPUT_DIR}/{sub_dir_url}/markdown.md")
-        save_file(clean_markdown_links(meta["markdown"]), f"{OUTPUT_DIR}/{sub_dir_url}/markdown_no_links.md")
-        save_file(meta["md_tokens"], f"{OUTPUT_DIR}/{sub_dir_url}/md_tokens.json")
-        save_file(meta["screenshot"], f"{OUTPUT_DIR}/{sub_dir_url}/screenshot.png")
-    # return all_contexts
+        }, f"{base_output_dir}/{sub_dir_url}/info.json")
+        save_file(meta["analysis"], f"{base_output_dir}/{sub_dir_url}/analysis.json")
+        save_file(meta["text_links"], f"{base_output_dir}/{sub_dir_url}/text_links.json")
+        save_file(meta["image_links"], f"{base_output_dir}/{sub_dir_url}/image_links.json")
+        save_file(meta["html"], f"{base_output_dir}/{sub_dir_url}/page.html")
+        save_file(meta["markdown"], f"{base_output_dir}/{sub_dir_url}/markdown.md")
+        save_file(clean_markdown_links(meta["markdown"]), f"{base_output_dir}/{sub_dir_url}/markdown_no_links.md")
+        save_file(meta["md_tokens"], f"{base_output_dir}/{sub_dir_url}/md_tokens.json")
+        save_file(meta["screenshot"], f"{base_output_dir}/{sub_dir_url}/screenshot.png")
+    return all_documents
 
 if __name__ == "__main__":
     urls = [
-        "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
+        # "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
     ]
     model = "embeddinggemma"
-    query = "How to change max depth?"
+    query = "Top isekai anime 2025"
 
     # print("Running stream examples...")
-    all_contexts = scrape_urls_data(query, urls, model)
-    # save_file(all_contexts, f"{OUTPUT_DIR}/all_contexts.json")
+    all_documents = scrape_urls_data(query, urls, model)
+    save_file(all_documents, f"{OUTPUT_DIR}/all_documents.json")
 
     
     # # Example of using extract_topics function
@@ -446,31 +424,29 @@ if __name__ == "__main__":
     #     "Reinforcement learning agents learn through trial and error interactions.",
     #     "Supervised learning uses labeled training data to make predictions."
     # ]
+
+
+    # topics = extract_topics(
+    #     query="machine learning and AI",
+    #     documents=sample_documents,
+    #     model=model,
+    #     top_k=5
+    # )
     
-    # try:
-    #     topics = extract_topics(
-    #         query="machine learning and AI",
-    #         documents=sample_documents,
-    #         model=model,
-    #         top_k=5
-    #     )
-        
-    #     print(f"Found {len(topics)} topics:")
-    #     for topic in topics:
-    #         print(f"  Rank {topic['rank']}: {topic['text']} (Score: {topic['score']:.3f}, Doc: {topic['doc_index']})")
-        
-    #     save_file({
-    #         "query": "machine learning and AI",
-    #         "topics": topics,
-    #         "document_count": len(sample_documents)
-    #     }, f"{OUTPUT_DIR}/topic_extraction_results.json")
-        
-    # except Exception as e:
-    #     print(f"Error in topic extraction: {e}")
+    # print(f"Found {len(topics)} topics:")
+    # for topic in topics:
+    #     print(f"  Rank {topic['rank']}: {topic['text']} (Score: {topic['score']:.3f}, Doc: {topic['doc_index']})")
     
+    # save_file({
+    #     "query": "machine learning and AI",
+    #     "topics": topics,
+    #     "document_count": len(sample_documents)
+    # }, f"{OUTPUT_DIR}/topic_extraction_results.json")
+
+
     # Test the extract_topics function
-    print("\n" + "="*50)
-    test_extract_topics()
+    # print("\n" + "="*50)
+    # test_extract_topics()
     
     # texts = [doc["text"] for doc in all_contexts]
     # search_results = search(query, texts, model)
