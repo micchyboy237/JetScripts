@@ -402,11 +402,13 @@ def scrape_urls_data(query: str, urls: List[str], model: str):
     return all_documents
 
 if __name__ == "__main__":
-    query = "How to change max depth?"
-    urls = [
-        "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
-    ]
-    # query = "Top isekai anime 2025"
+    # urls = [
+    #     "https://docs.tavily.com/documentation/api-reference/endpoint/crawl",
+    # ]
+    # query = "How to change max depth?"
+
+    urls = []
+    query = "Top isekai anime 2025"
 
     model = "embeddinggemma"
 
