@@ -1,71 +1,64 @@
-from typing import List, Any, Union
-import pandas as pd
-from sklearn.datasets import fetch_20newsgroups
+from typing import List, Tuple
 from bertopic import BERTopic
+import re
 
+def preprocess_documents(docs: List[str], mode: str = "clean") -> List[str]:
+    """Preprocess documents based on mode: clean, raw, or structured."""
+    if mode == "clean":
+        return [re.sub(r'http\S+|#[^\s]+|:[^\s]+:|[^\w\s]', '', doc.lower()) for doc in docs]
+    elif mode == "structured":
+        return [f"Summary: {doc[:150]}..." for doc in docs]  # Mimic sectioned text
+    return docs  # Raw mode keeps noise
 
-def load_sample_docs() -> List[str]:
-    """Load sample documents from 20 Newsgroups for demo."""
-    data = fetch_20newsgroups(subset='train', remove=('headers', 'footers', 'quotes'))
-    return data.data[:100]  # Subset for quick demo
+def build_hierarchy(
+    docs: List[str],
+    mode: str = "clean",
+    threshold: float = 0.2,
+    min_similarity: float = 0.3
+) -> Tuple[List[int], List[int]]:
+    """Builds topic hierarchy and returns topic_ids, parent_ids."""
+    model = BERTopic(embedding_model="all-MiniLM-L6-v2", verbose=True)
+    topics, _ = model.fit_transform(docs)
+    hierarchy = model.hierarchical_topics(docs, threshold=threshold, min_similarity=min_similarity)
+    return hierarchy.topic_ids, hierarchy.parent_ids
 
+# Expanded sample data: 100 documents per format
+short_docs = [
+    "Great camera quality!", "Battery dies too fast #fail", "AI zoom is amazing", "Screen is vibrant",
+    "Phone overheats often", "Love the fast charger", "Camera struggles in low light", "Battery life is decent",
+    "UI is super smooth", "Hate the bloatware"  # Base examples
+] * 10  # Repeat to reach ~100 (10x repetition for simplicity)
 
-class CustomBERTopic(BERTopic):
-    """Custom BERTopic subclass to adjust number of representative docs per topic."""
-    
-    def __init__(self, nr_repr_docs: int = 3, **kwargs: Any):
-        super().__init__(**kwargs)
-        self.nr_repr_docs = nr_repr_docs
-    
-    def _save_representative_docs(self, documents: pd.DataFrame) -> None:
-        """Override to customize representative docs extraction."""
-        repr_docs, _, _, _ = self._extract_representative_docs(
-            self.c_tf_idf_,
-            documents,
-            self.topic_representations_,
-            nr_samples=500,  # Adjustable: more for larger corpora
-            nr_repr_docs=self.nr_repr_docs  # Custom: e.g., 5 instead of default 3
-        )
-        self.representative_docs_ = repr_docs
+long_docs = [
+    "The camera quality is exceptional with vibrant colors and sharp details. However, battery life is a concern, draining quickly during heavy use.",
+    "AI zoom feature is innovative but struggles in low light conditions, making photos grainy. Overall, a solid phone.",
+    "Battery performance needs improvement, but the sleek design and fast processor make it a great choice.",
+    "Screen resolution is stunning, but the phone overheats during gaming sessions, which is frustrating.",
+    "The UI is intuitive and smooth, though pre-installed apps slow it down. Camera is a highlight for photography enthusiasts.",
+    "Charging speed is impressive, but battery capacity could be better for all-day use.",
+    "Low-light photography is disappointing compared to competitors, but daytime shots are excellent.",
+    "Build quality feels premium, but the phone lacks water resistance, which is a drawback.",
+    "Processor handles multitasking well, but software updates are slow to roll out.",
+    "Camera app is feature-rich, but navigating settings can be confusing for new users."  # Base examples
+] * 10  # Repeat to reach ~100
 
+noisy_docs = [
+    "Camera is 🔥 #awesome", "Battery SUCKS!! #fail", "AI zoom is 😎 #tech", "Screen is 😍 #vibrant",
+    "Phone gets HOT 🔥 #ugh", "Charger is ⚡ #fast", "Camera sucks in dark 😞 #fail",
+    "Battery is meh 😐 #okay", "UI is slick 😎 #smooth", "Too much bloatware 😡 #annoying"
+] * 10  # Repeat to reach ~100
 
-def fit_standard_model(docs: List[str]) -> BERTopic:
-    """Fit standard BERTopic model (default 3 reps/topic)."""
-    model = BERTopic(min_topic_size=10)  # Ensures topics have at least 10 docs
-    model.fit(docs)
-    return model
+# Process each format
+clean_docs = preprocess_documents(short_docs, mode="clean")
+structured_docs = preprocess_documents(long_docs, mode="structured")
+raw_docs = preprocess_documents(noisy_docs, mode="raw")
 
+# Build hierarchies
+clean_topic_ids, clean_parent_ids = build_hierarchy(clean_docs, mode="clean")
+structured_topic_ids, structured_parent_ids = build_hierarchy(structured_docs, mode="structured")
+raw_topic_ids, raw_parent_ids = build_hierarchy(raw_docs, mode="raw")
 
-def fit_custom_model(docs: List[str], nr_repr_docs: int = 5) -> CustomBERTopic:
-    """Fit custom model with adjustable reps/topic."""
-    model = CustomBERTopic(min_topic_size=10, nr_repr_docs=nr_repr_docs)
-    model.fit(docs)
-    return model
-
-
-def get_topic_reps_info(model: Union[BERTopic, CustomBERTopic]) -> pd.DataFrame:
-    """Get topic info including Representative_Docs."""
-    return model.get_topic_info()
-
-
-# Demo usage
-if __name__ == "__main__":
-    docs = load_sample_docs()
-    
-    # Standard model
-    standard_model = fit_standard_model(docs)
-    standard_info = get_topic_reps_info(standard_model)
-    print("Standard Model Representative Documents (Default 3 per topic):")
-    for idx, row in standard_info.iterrows():
-        print(f"\nTopic {row['Topic']}:")
-        for i, doc in enumerate(row["Representative_Docs"], 1):
-            print(f"  Doc {i}: {doc[:100]}...")  # Truncate for readability
-    
-    # Custom model
-    custom_model = fit_custom_model(docs, nr_repr_docs=5)
-    custom_info = get_topic_reps_info(custom_model)
-    print("\nCustom Model Representative Documents (5 per topic):")
-    for idx, row in custom_info.iterrows():
-        print(f"\nTopic {row['Topic']}:")
-        for i, doc in enumerate(row["Representative_Docs"], 1):
-            print(f"  Doc {i}: {doc[:100]}...")  # Truncate for readability
+# Example output
+print(f"Clean Hierarchy (first 5): {list(zip(clean_topic_ids[:5], clean_parent_ids[:5]))}")
+print(f"Structured Hierarchy (first 5): {list(zip(structured_topic_ids[:5], structured_parent_ids[:5]))}")
+print(f"Raw Hierarchy (first 5): {list(zip(raw_topic_ids[:5], raw_parent_ids[:5]))}")
