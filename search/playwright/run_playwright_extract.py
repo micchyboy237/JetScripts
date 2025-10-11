@@ -1,6 +1,5 @@
 import os
 import shutil
-from jet.adapters.bertopic.utils import get_vectorizer
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
@@ -150,7 +149,6 @@ def extract_topics(
         # embedding_model = SentenceTransformer(model)
         topic_model = BERTopic(
             # embedding_model=embedding_model,
-            vectorizer_model=get_vectorizer(len(documents)),
             calculate_probabilities=True,
             verbose=True,
         )
