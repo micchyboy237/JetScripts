@@ -1,6 +1,8 @@
 from typing import List, TypedDict
+from jet._token.token_utils import token_counter
 from jet.code.markdown_types import HeaderDoc
 from jet.logger import logger
+from jet.models.utils import get_context_size
 from jet.wordnet.text_chunker import ChunkResult, chunk_texts_with_data
 import openai
 from jet.adapters.keybert import KeyBERT, KeyLLM
@@ -209,7 +211,27 @@ def main():
     """
     Main function to demonstrate KeyBERT usage examples.
     """
+    embed_model = "embeddinggemma"
     documents = load_sample_data()
+
+    # separator = "\n\n"
+    # sep_token_count = token_counter(separator, embed_model)
+    token_counts: List[int] = token_counter(documents, embed_model, prevent_total=True)
+    context_size = get_context_size(embed_model)
+    save_file({
+        "embed_model": embed_model,
+        # "query": query,
+        # "separator": separator,
+        "docs_count": len(documents),
+        "context_size": context_size,
+        "tokens": {
+            "min": min(token_counts),
+            "max": max(token_counts),
+            "average": sum(token_counts) // len(token_counts),
+            "total": sum(token_counts),
+            # "sep": sep_token_count
+        }
+    }, f"{OUTPUT_DIR}/_info.json")
 
     # Basic keyword extraction
     print("Basic Keywords:")

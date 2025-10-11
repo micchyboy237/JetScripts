@@ -54,10 +54,24 @@ if __name__ == "__main__":
 
     # Prepare single document for single_doc_keywords
     separator = "\n\n"
-    sep_token_count = token_counter(separator, embed_model, prevent_total=True)
-    sep_token_count = sep_token_count if isinstance(sep_token_count, int) else sum(sep_token_count)
+    sep_token_count = token_counter(separator, embed_model)
     token_counts: List[int] = token_counter(texts, embed_model, prevent_total=True)
     context_size = get_context_size(embed_model)
+    save_file({
+        "embed_model": embed_model,
+        "query": query,
+        "separator": separator,
+        "docs_count": len(texts),
+        "context_size": context_size,
+        "tokens": {
+            "min": min(token_counts),
+            "max": max(token_counts),
+            "average": sum(token_counts) // len(token_counts),
+            "total": sum(token_counts),
+            "sep": sep_token_count
+        }
+    }, f"{OUTPUT_DIR}/_info.json")
+
     # Build single_doc up to <= context_size tokens, accounting for separator tokens
     tokens_so_far = 0
     single_doc_texts = []
