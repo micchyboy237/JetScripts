@@ -2,6 +2,7 @@ from typing import List, Dict, Any, Union
 from pathlib import Path
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
+from jet.utils.url_utils import clean_links
 from tqdm import tqdm
 from jet.adapters.bertopic import BERTopic
 from sklearn.feature_extraction.text import CountVectorizer
@@ -35,9 +36,15 @@ nltk.download('stopwords', quiet=True)
 def load_sample_data():
     """Load sample dataset from local for topic modeling."""
     logger.info("Loading sample dataset...")
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/docs.json"
-    headers: List[HeaderDoc] = load_file(docs_file)["documents"]
-    documents = [clean_markdown_links(f"{doc["header"]}\n\n{doc['content']}") for doc in headers]
+    headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/all_headers.json"
+    headers_dict = load_file(headers_file)
+    headers: List[HeaderDoc] = [h for h_list in headers_dict.values() for h in h_list]
+    documents = [f"{doc["header"]}\n\n{doc['content']}" for doc in headers]
+
+    # Clean all links
+    documents = [clean_markdown_links(doc) for doc in documents]
+    documents = [clean_links(doc) for doc in documents]
+
     documents = chunk_texts(
         documents,
         chunk_size=64,
@@ -330,11 +337,11 @@ if __name__ == "__main__":
 
 
     logger.info("Running BERTopic usage examples...")
+    example_hierarchical_topics()
+    example_topic_reduction_and_update()
     example_base_topic_modeling()
     example_topic_prediction()
     example_topics_over_time()
-    example_hierarchical_topics()
     example_topic_search()
-    example_topic_reduction_and_update()
     example_topic_merging()
     logger.info("All examples completed successfully.")

@@ -4,6 +4,7 @@ from jet.adapters.bertopic.utils import get_vectorizer
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
+from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.scrapers.utils import search_data
 from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.search_docs import search_docs
@@ -108,7 +109,7 @@ async def async_example(urls):
     except Exception as e:
         print(f"Error in async advanced extract: {e}")
 
-def extract_doc_chunks(html: str, url: str, chunk_size: int = 200, chunk_overlap: int = 50) -> List[ChunkResult]:
+def extract_doc_chunks(html: str, url: str, chunk_size: int = 200, chunk_overlap: int = 50, model: Optional[OLLAMA_MODEL_NAMES] = None) -> List[ChunkResult]:
     md_content = convert_html_to_markdown(html, ignore_links=True)
     # original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
     chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
@@ -309,8 +310,8 @@ def test_extract_topics():
         except Exception as e:
             print(f"Error: {e}")
 
-def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderSearchResult]:
-    chunks = extract_doc_chunks(html, url)
+def search_contexts(query: str, html: str, url: str, model: Optional[OLLAMA_MODEL_NAMES] = None) -> List[HeaderSearchResult]:
+    chunks = extract_doc_chunks(html, url, model=model)
     texts = [chunk["content"] for chunk in chunks]
     ids = [chunk["id"] for chunk in chunks]
     
@@ -339,7 +340,7 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     #     })
     return search_results
 
-def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = True, url_limit: Optional[int] = None):
+def scrape_urls_data(query: str, urls: List[str], model: Optional[OLLAMA_MODEL_NAMES] = None, use_cache: bool = True, url_limit: Optional[int] = None):
     sub_dir_query = format_sub_dir(query)
     base_output_dir = f"{OUTPUT_DIR}/{sub_dir_query}"
     shutil.rmtree(base_output_dir, ignore_errors=True)
