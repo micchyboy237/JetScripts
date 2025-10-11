@@ -1,6 +1,6 @@
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
-from keybert import KeyLLM
+from jet.adapters.keybert import KeyLLM
 from keybert.llm import Cohere
 from keybert.llm import LangChain
 from keybert.llm import LiteLLM

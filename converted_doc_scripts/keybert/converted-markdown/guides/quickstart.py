@@ -1,5 +1,5 @@
 from jet.logger import logger
-from keybert import KeyBERT
+from jet.adapters.keybert import KeyBERT
 import os
 import shutil
 import yake

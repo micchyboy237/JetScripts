@@ -8,7 +8,7 @@ from cuml.manifold import UMAP
 from cuml.preprocessing import normalize
 from datasets import load_dataset
 from jet.logger import logger
-from keybert import KeyBERT
+from jet.adapters.keybert import KeyBERT
 from model2vec import StaticModel
 from sentence_transformers import SentenceTransformer
 from sentence_transformers import SentenceTransformer, util

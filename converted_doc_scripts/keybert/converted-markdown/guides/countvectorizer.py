@@ -1,5 +1,5 @@
 from jet.logger import logger
-from keybert import KeyBERT
+from jet.adapters.keybert import KeyBERT
 from sklearn.feature_extraction.text import CountVectorizer
 import jieba
 import os

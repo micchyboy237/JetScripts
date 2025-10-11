@@ -1,6 +1,6 @@
 from jet.logger import logger
-from keybert import KeyLLM
-from keybert import KeyLLM, KeyBERT
+from jet.adapters.keybert import KeyLLM
+from jet.adapters.keybert import KeyLLM, KeyBERT
 from keybert.llm import Ollama
 from sentence_transformers import SentenceTransformer
 import ollama

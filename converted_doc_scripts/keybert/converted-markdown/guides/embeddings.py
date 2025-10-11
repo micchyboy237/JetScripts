@@ -1,7 +1,7 @@
 from flair.embeddings import TransformerDocumentEmbeddings
 from flair.embeddings import WordEmbeddings, DocumentPoolEmbeddings
 from jet.logger import logger
-from keybert import KeyBERT
+from jet.adapters.keybert import KeyBERT
 from keybert.backend import BaseEmbedder
 from keybert.backend import Model2VecBackend
 from model2vec import StaticModel
