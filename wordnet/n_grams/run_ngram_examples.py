@@ -1,14 +1,8 @@
-from jet.code.markdown_utils._markdown_parser import parse_markdown
-from jet.models.embeddings.chunking import DocChunkResult
 from jet.wordnet.keywords.helpers import preprocess_texts
-from jet.wordnet.lemmatizer import lemmatize_text
-from jet.search.formatters import clean_string
-from jet.scrapers.utils import clean_newlines, clean_punctuations, clean_spaces
 import os
 import shutil
-from typing import List, Dict, Union
+from typing import List
 from jet.file.utils import load_file, save_file
-from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.n_grams import (
     calculate_n_gram_diversity,
     count_ngrams,
@@ -30,114 +24,124 @@ from jet.wordnet.n_grams import (
     sort_sentences,
     nwise,
 )
-import logging
 
 # from jet.wordnet.pos_tagger import POSTagger
-from jet.wordnet.pos_tagger_light import POSTagger
-from jet.wordnet.words import get_words
 
-# Configure logging
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+from jet.code.markdown_types import HeaderDoc
+from jet.code.markdown_utils._preprocessors import clean_markdown_links
+from jet.utils.url_utils import clean_links
+from jet.logger import logger
+from jet.wordnet.text_chunker import chunk_texts
+
+OUTPUT_DIR = os.path.join(
+        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+def load_sample_data():
+    """Load sample dataset from local for topic modeling."""
+    embed_model = "embeddinggemma"
+    headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/all_headers.json"
+    
+    logger.info("Loading sample dataset...")
+    headers_dict = load_file(headers_file)
+    headers: List[HeaderDoc] = [h for h_list in headers_dict.values() for h in h_list]
+    # headers: List[HeaderDoc] = headers_dict["https://gamerant.com/new-isekai-anime-2025"]
+    documents = [f"{doc["header"]}\n\n{doc['content']}" for doc in headers]
+
+    # Clean all links
+    documents = [clean_markdown_links(doc) for doc in documents]
+    documents = [clean_links(doc) for doc in documents]
+
+    documents = chunk_texts(
+        documents,
+        chunk_size=64,
+        chunk_overlap=32,
+        model=embed_model,
+    )
+    save_file(documents, f"{OUTPUT_DIR}/documents.json")
+    return documents
 
 
 if __name__ == "__main__":
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(
-            os.path.basename(__file__))[0]
-    )
-    shutil.rmtree(output_dir, ignore_errors=True)
-
-    # docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/search_results.json"
-    # chunks: List[DocChunkResult] = load_file(docs_file)["results"][:50]
-
-    # markdown_tokens = parse_markdown(
-    #     docs_file, merge_headers=False, merge_contents=True, ignore_links=False)
-    # texts: List[str] = [d["content"] for d in markdown_tokens]
-
-    # texts = [f"{doc['header']}\n{doc['content']}" for doc in chunks]
-
-    texts = [
-        "Similar text 1",
-        "Similar text 2",
-        "Different writing 3",
-        "Different writing 4",
-    ]
+    # texts = [
+    #     "Similar text 1",
+    #     "Similar text 2",
+    #     "Different writing 3",
+    #     "Different writing 4",
+    # ]
+    texts = load_sample_data()
 
     logger.debug(f"Loaded {len(texts)} documents")
 
     texts = preprocess_texts(texts)
-    save_file(texts, f"{output_dir}/1_preprocessed_texts.json")
+    save_file(texts, f"{OUTPUT_DIR}/1_preprocessed_texts.json")
 
     # Existing function calls
     all_ngrams = count_ngrams([text.lower()
                                for text in texts], min_words=1)
-    save_file(all_ngrams, f"{output_dir}/2_all_ngrams_count.json")
+    save_file(all_ngrams, f"{OUTPUT_DIR}/2_all_ngrams_count.json")
 
     filtered_ngrams = count_ngrams(
         [text.lower() for text in texts], min_count=2)
     save_file(filtered_ngrams,
-              f"{output_dir}/3_filtered_ngrams_min_count_2.json")
+              f"{OUTPUT_DIR}/3_filtered_ngrams_min_count_2.json")
 
     result = get_most_common_ngrams([text.lower() for text in texts])
-    save_file(result, f"{output_dir}/4_most_common_ngrams.json")
+    save_file(result, f"{OUTPUT_DIR}/4_most_common_ngrams.json")
 
     result = get_common_texts(
         [text.lower() for text in texts], includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"],)
-    save_file(result, f"{output_dir}/5_common_texts.json")
+    save_file(result, f"{OUTPUT_DIR}/5_common_texts.json")
 
     result = group_sentences_by_ngram(
         [text.lower() for text in texts], is_start_ngrams=False)
-    save_file(result, f"{output_dir}/6_grouped_sentences.json")
+    save_file(result, f"{OUTPUT_DIR}/6_grouped_sentences.json")
 
     lowered_ngrams_count = count_ngrams(
         [text.lower() for text in texts], min_words=1, max_words=3)
     save_file(lowered_ngrams_count,
-              f"{output_dir}/7_lowered_ngrams_count.json")
+              f"{OUTPUT_DIR}/7_lowered_ngrams_count.json")
 
     range_results = list(get_ngrams_by_range(
         texts, min_words=1, max_words=2, count=(2,), show_count=True))
-    save_file(range_results, f"{output_dir}/8_ngrams_by_range.json")
+    save_file(range_results, f"{OUTPUT_DIR}/8_ngrams_by_range.json")
 
     count_results = list(get_ngrams_by_range(
         texts, min_words=2, count=2, show_count=True))
-    save_file(count_results, f"{output_dir}/9_ngrams_by_count.json")
+    save_file(count_results, f"{OUTPUT_DIR}/9_ngrams_by_count.json")
 
     results = filter_texts_by_multi_ngram_count(
         texts, min_words=1, count=(2,), count_all_ngrams=True)
-    save_file(results, f"{output_dir}/10_filtered_texts.json")
+    save_file(results, f"{OUTPUT_DIR}/10_filtered_texts.json")
 
     # Calculate n-gram frequency
     ngram_freq = n_gram_frequency(
         " ".join([text.lower() for text in texts]), n=2)
-    save_file(ngram_freq, f"{output_dir}/11_ngram_frequency.json")
+    save_file(ngram_freq, f"{OUTPUT_DIR}/11_ngram_frequency.json")
 
     # Calculate n-gram diversity
     diversity = calculate_n_gram_diversity(ngram_freq)
     save_file({"diversity": diversity},
-              f"{output_dir}/12_ngram_diversity.json")
+              f"{OUTPUT_DIR}/12_ngram_diversity.json")
 
     # Separate n-gram lines
     separated_lines = separate_ngram_lines(
         [text.lower() for text in texts], punctuations_split=[',', '/', ':'])
-    save_file(separated_lines, f"{output_dir}/13_separated_ngram_lines.json")
+    save_file(separated_lines, f"{OUTPUT_DIR}/13_separated_ngram_lines.json")
 
     # Get n-grams
     ngrams_list = get_ngrams([text.lower()
                              for text in texts], min_words=1, max_words=2)
-    save_file(ngrams_list, f"{output_dir}/14_ngrams_list.json")
+    save_file(ngrams_list, f"{OUTPUT_DIR}/14_ngrams_list.json")
 
     # Get n-gram weight for the first sentence
     sentence_ngrams = extract_ngrams(texts, min_words=1, max_words=2)
-    save_file(sentence_ngrams, f"{output_dir}/15_extract_ngrams.json")
+    save_file(sentence_ngrams, f"{OUTPUT_DIR}/15_extract_ngrams.json")
 
     previous_ngrams = set()  # Empty for example; adjust based on context
     weight = get_ngram_weight(
         all_ngrams, sentence_ngrams, previous_ngrams)
-    save_file({"weight": weight}, f"{output_dir}/16_ngram_weight.json")
+    save_file({"weight": weight}, f"{OUTPUT_DIR}/16_ngram_weight.json")
 
     ngram_results = count_ngrams_with_texts(
         texts=[text.lower() for text in texts],
@@ -145,30 +149,30 @@ if __name__ == "__main__":
         min_count=2,
         max_words=2
     )
-    output_path = f"{output_dir}/17_ngrams_with_texts.json"
+    output_path = f"{OUTPUT_DIR}/17_ngrams_with_texts.json"
     save_file(ngram_results, output_path)
 
     # Sort sentences
     sorted_sentences = sort_sentences(
         [text.lower() for text in texts], n=2)
-    save_file(sorted_sentences, f"{output_dir}/18_sorted_sentences.json")
+    save_file(sorted_sentences, f"{OUTPUT_DIR}/18_sorted_sentences.json")
 
     # Filter and sort sentences by n-grams
     filtered_sorted_sentences = filter_and_sort_sentences_by_ngrams(
         [text.lower() for text in texts], n=2, top_n=2, is_start_ngrams=False
     )
     save_file(filtered_sorted_sentences,
-              f"{output_dir}/19_filtered_sorted_sentences.json")
+              f"{OUTPUT_DIR}/19_filtered_sorted_sentences.json")
 
     # Get total unique n-grams
     total_unique = get_total_unique_ngrams(all_ngrams)
     save_file({"total_unique_ngrams": total_unique},
-              f"{output_dir}/20_total_unique_ngrams.json")
+              f"{OUTPUT_DIR}/20_total_unique_ngrams.json")
 
     # Get total counts of n-grams
     total_counts = get_total_counts_of_ngrams(all_ngrams)
     save_file({"total_ngram_counts": total_counts},
-              f"{output_dir}/21_total_ngram_counts.json")
+              f"{OUTPUT_DIR}/21_total_ngram_counts.json")
 
     # Get specific n-gram count (using first n-gram as example)
     specific_ngram = next(iter(all_ngrams))
@@ -176,9 +180,9 @@ if __name__ == "__main__":
         all_ngrams, specific_ngram)
     save_file(
         {"ngram": specific_ngram, "count": specific_count},
-        f"{output_dir}/22_specific_ngram_count.json"
+        f"{OUTPUT_DIR}/22_specific_ngram_count.json"
     )
 
     # Use nwise to generate sliding window n-grams
     nwise_ngrams = [" ".join(ngram) for ngram in nwise(texts, n=2)]
-    save_file(nwise_ngrams, f"{output_dir}/23_nwise_ngrams.json")
+    save_file(nwise_ngrams, f"{OUTPUT_DIR}/23_nwise_ngrams.json")
