@@ -15,6 +15,11 @@ from jet.wordnet.keywords.helpers import extract_query_candidates, extract_keywo
 
 OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+
+CHUNK_SIZE = 128
+CHUNK_OVERLAP = 32
+
+OUTPUT_DIR = f"{OUTPUT_DIR}/chunked_{CHUNK_SIZE}_{CHUNK_OVERLAP}"
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 def load_sample_data():
@@ -34,8 +39,8 @@ def load_sample_data():
 
     documents = chunk_texts(
         documents,
-        chunk_size=64,
-        chunk_overlap=32,
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
         model=embed_model,
     )
     save_file(documents, f"{OUTPUT_DIR}/documents.json")
@@ -62,6 +67,8 @@ if __name__ == "__main__":
         "query": query,
         "separator": separator,
         "docs_count": len(texts),
+        "chunk_size": CHUNK_SIZE,
+        "chunk_overlap": CHUNK_OVERLAP,
         "context_size": context_size,
         "tokens": {
             "min": min(token_counts),

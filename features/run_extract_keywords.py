@@ -227,6 +227,8 @@ def main():
         # "query": query,
         # "separator": separator,
         "docs_count": len(documents),
+        "chunk_size": CHUNK_SIZE,
+        "chunk_overlap": CHUNK_OVERLAP,
         "context_size": context_size,
         "tokens": {
             "min": min(token_counts),
