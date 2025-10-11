@@ -15,8 +15,12 @@ import shutil
 
 OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
+CHUNK_SIZE = 128
+CHUNK_OVERLAP = 32
+
+OUTPUT_DIR = f"{OUTPUT_DIR}/chunked_{CHUNK_SIZE}_{CHUNK_OVERLAP}"
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 class KeywordEntry(TypedDict):
     keyword: str
     score: float
@@ -200,8 +204,8 @@ def load_sample_data():
 
     documents: List[ChunkResult] = chunk_texts_with_data(
         documents,
-        chunk_size=64,
-        chunk_overlap=32,
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
         model=embed_model,
     )
     save_file(documents, f"{OUTPUT_DIR}/documents.json")
