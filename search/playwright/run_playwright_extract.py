@@ -339,7 +339,7 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     #     })
     return search_results
 
-def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = True, url_limit: int = 10):
+def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = True, url_limit: Optional[int] = None):
     sub_dir_query = format_sub_dir(query)
     base_output_dir = f"{OUTPUT_DIR}/{sub_dir_query}"
     shutil.rmtree(base_output_dir, ignore_errors=True)
