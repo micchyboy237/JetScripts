@@ -1,9 +1,11 @@
 import os
 import shutil
 from typing import List
+from jet._token.token_utils import token_counter
 from jet.code.markdown_types import HeaderDoc
 from jet.logger import logger
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
+from jet.models.utils import get_context_size
 from jet.utils.url_utils import clean_links
 from jet.wordnet.text_chunker import chunk_texts
 from sklearn.feature_extraction.text import CountVectorizer
@@ -51,7 +53,25 @@ if __name__ == "__main__":
     save_file(texts, f"{OUTPUT_DIR}/documents.json")
 
     # Prepare single document for single_doc_keywords
-    single_doc = "\n".join(texts)
+    separator = "\n\n"
+    sep_token_count = token_counter(separator, embed_model, prevent_total=True)
+    sep_token_count = sep_token_count if isinstance(sep_token_count, int) else sum(sep_token_count)
+    token_counts: List[int] = token_counter(texts, embed_model, prevent_total=True)
+    context_size = get_context_size(embed_model)
+    # Build single_doc up to <= context_size tokens, accounting for separator tokens
+    tokens_so_far = 0
+    single_doc_texts = []
+    for idx, (text, num_tokens) in enumerate(zip(texts, token_counts)):
+        tokens_to_add = num_tokens if isinstance(num_tokens, int) else sum(num_tokens)
+        # Only add separator tokens if this is not the first line
+        sep_count = sep_token_count if single_doc_texts else 0
+        if tokens_so_far + sep_count + tokens_to_add > context_size:
+            break
+        if single_doc_texts:
+            tokens_so_far += sep_count
+        single_doc_texts.append(text)
+        tokens_so_far += tokens_to_add
+    single_doc = separator.join(single_doc_texts)
     single_doc_id = "combined_doc"
 
     # Extract candidate keywords
