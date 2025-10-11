@@ -5,7 +5,7 @@ import difflib
 import json
 from typing import TypedDict, List, Literal
 from jet.file.utils import save_file
-from jet.wordnet.text_chunker import chunk_texts_with_data, chunk_texts_with_data_fast
+from jet.wordnet.text_chunker import chunk_texts_with_data
 
 # Optional: For Git-like unified diff summary (install with: pip install gitpython)
 try:
@@ -332,11 +332,11 @@ if __name__ == "__main__":
         logger.info("Chunk %d: %s", i, dict_to_string(filtered_chunk))
     save_file(result, f"{OUTPUT_DIR}/result.json")
 
-    # Process with chunk_texts_with_data_fast
-    logger.info("Processing with chunk_texts_with_data_fast...")
-    result_fast: List[ChunkDict] = chunk_texts_with_data_fast(sample, chunk_size=64,
+    # Process with chunk_texts_with_data
+    logger.info("Processing with chunk_texts_with_data...")
+    result_fast: List[ChunkDict] = chunk_texts_with_data(sample, chunk_size=64,
                                             chunk_overlap=32, model="embeddinggemma")
-    logger.info("chunk_texts_with_data_fast results:")
+    logger.info("chunk_texts_with_data results:")
     for i, chunk in enumerate(result_fast):
         filtered_chunk = filter_dict(chunk)
         logger.info("Chunk %d: %s", i, dict_to_string(filtered_chunk))

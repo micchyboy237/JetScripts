@@ -2,12 +2,13 @@ import os
 import shutil
 from jet.adapters.bertopic.utils import get_vectorizer
 from jet.code.markdown_types import HeaderSearchResult
+from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.scrapers.utils import search_data
 from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.search_docs import search_docs
 from jet.wordnet.text_chunker import ChunkResult, chunk_texts_with_data
-from typing import List, TypedDict
+from typing import List, Optional, TypedDict
 from jet.file.utils import save_file
 from jet.search.playwright.playwright_extract import PlaywrightExtract, convert_html_to_markdown
 
@@ -117,7 +118,7 @@ def extract_topics(
     query: str,
     documents: List[str],
     model: str = "embeddinggemma",
-    top_k: int = None
+    top_k: Optional[int] = None
 ) -> List[Topic]:
     """Extract topics from documents using BERTopic.
     
@@ -299,7 +300,6 @@ def test_extract_topics():
                 query=query,
                 documents=test_documents,
                 model="embeddinggemma",
-                top_k=3
             )
             
             print(f"Found {len(topics)} topics:")
@@ -339,7 +339,7 @@ def search_contexts(query: str, html: str, url: str, model: str) -> List[HeaderS
     #     })
     return search_results
 
-def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = True, urls_limit: int = 10):
+def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = True, url_limit: int = 10):
     sub_dir_query = format_sub_dir(query)
     base_output_dir = f"{OUTPUT_DIR}/{sub_dir_query}"
     shutil.rmtree(base_output_dir, ignore_errors=True)
@@ -347,7 +347,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = 
     # Fetch URLs if empty
     if not urls:
         search_engine_results = search_data(query, use_cache=use_cache)
-        urls = [r["url"] for r in search_engine_results][:urls_limit]
+        urls = [r["url"] for r in search_engine_results]
         save_file(search_engine_results, f"{base_output_dir}/search_engine_results.json")
     save_file(urls, f"{base_output_dir}/urls.json")
 
@@ -357,23 +357,22 @@ def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = 
         extract_depth="advanced",
         include_images=True,
         include_favicon=True,
-        format="text"
+        format="text",
+        url_limit=url_limit,
     )
     print("\nAdvanced extract results stream:")
     count = 0
-    all_documents = {}
+    all_headers = {}
     # results = []
     for result in result_stream:
         count += 1
         meta = result.copy().pop("meta")
         chunks = extract_doc_chunks(meta["html"], result['url'])
         documents = [doc["content"] for doc in chunks]
-        topics = extract_topics(query, documents, model, top_k=5)
         search_results = search_contexts(query, meta["html"], result['url'], model)
         sub_dir_url = format_sub_dir(result['url'])
         print(f"URL: {sub_dir_url} (Images: {len(result['images'])}, Favicon: {result['favicon']})")
         # results.extend(result)
-        all_documents[result["url"]] = chunks
         save_file({
             "query": query,
             "count": len(chunks),
@@ -384,8 +383,17 @@ def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = 
             "count": len(documents),
             "documents": documents,
         }, f"{base_output_dir}/{sub_dir_url}/documents.json")
+        
+        md_content = convert_html_to_markdown(meta["html"], ignore_links=True)
+        headers = derive_by_header_hierarchy(md_content, ignore_links=True)
+        save_file({
+            "query": query,
+            "count": len(headers),
+            "headers": headers,
+        }, f"{base_output_dir}/{sub_dir_url}/headers.json")
+        all_headers[result["url"]] = headers
+
         save_file(result, f"{base_output_dir}/{sub_dir_url}/results.json")
-        save_file(topics, f"{base_output_dir}/{sub_dir_url}/topics.json")
         save_file(search_results, f"{base_output_dir}/{sub_dir_url}/search_results.json")
         save_file({
             "url": result["url"],
@@ -399,7 +407,7 @@ def scrape_urls_data(query: str, urls: List[str], model: str, use_cache: bool = 
         save_file(clean_markdown_links(meta["markdown"]), f"{base_output_dir}/{sub_dir_url}/markdown_no_links.md")
         save_file(meta["md_tokens"], f"{base_output_dir}/{sub_dir_url}/md_tokens.json")
         save_file(meta["screenshot"], f"{base_output_dir}/{sub_dir_url}/screenshot.png")
-    return all_documents
+    return all_headers
 
 if __name__ == "__main__":
     # urls = [
@@ -411,13 +419,25 @@ if __name__ == "__main__":
     query = "Top isekai anime 2025"
 
     model = "embeddinggemma"
-    urls_limit = 10
+    url_limit = 20
     use_cache = True
 
     sub_dir_query = format_sub_dir(query)
     # print("Running stream examples...")
-    all_documents = scrape_urls_data(query, urls, model, use_cache=use_cache, urls_limit=urls_limit)
-    save_file(all_documents, f"{OUTPUT_DIR}/{sub_dir_query}/all_documents.json")
+    all_headers = scrape_urls_data(query, urls, model, use_cache=use_cache, url_limit=url_limit)
+    save_file(all_headers, f"{OUTPUT_DIR}/{sub_dir_query}/all_headers.json")
+
+    all_contexts = []
+    for url, headers in all_headers:
+        context = f"<!-- Source: {url} -->\n\n"
+        combined_headers_string = "\n\n".join([f"{header["header"]}\n{header["content"]}" for header in headers])
+        context += combined_headers_string
+        all_contexts.append(context)
+    all_contexts_str = "\n\n\n".join(all_contexts)
+    save_file(all_contexts_str, f"{OUTPUT_DIR}/{sub_dir_query}/all_contexts.md")
+
+    # all_topics = extract_topics(query, all_contexts, model)
+    # save_file(all_topics, f"{OUTPUT_DIR}/{sub_dir_query}/all_topics.json")
 
     
     # # Example of using extract_topics function

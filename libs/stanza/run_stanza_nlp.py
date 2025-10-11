@@ -120,9 +120,9 @@ def search(
     # doc_vectors = np.array(vectors_list)
 
 if __name__ == "__main__":
-    html_string = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/page.html")
+    html_string = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_myanimelist_net_stacks_59506/page.html")
     model = "embeddinggemma"
-    query = "How to change max depth?"
+    query = "Top isekai anime 2025"
 
     md_content = convert_html_to_markdown(html_string, ignore_links=True)
     chunks = chunk_texts_with_data(md_content, chunk_size=150, chunk_overlap=40)

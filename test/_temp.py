@@ -14,7 +14,7 @@ from jet.logger import logger
 import os
 import shutil
 
-from jet.wordnet.text_chunker import chunk_texts_fast
+from jet.wordnet.text_chunker import chunk_texts
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -38,7 +38,7 @@ def load_sample_data():
     docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/https_docs_tavily_com_documentation_api_reference_endpoint_crawl/docs.json"
     headers: List[HeaderDoc] = load_file(docs_file)["documents"]
     documents = [clean_markdown_links(f"{doc["header"]}\n\n{doc['content']}") for doc in headers]
-    documents = chunk_texts_fast(
+    documents = chunk_texts(
         documents,
         chunk_size=64,
         chunk_overlap=32,
