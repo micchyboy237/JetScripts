@@ -3,7 +3,7 @@ from jet.code.markdown_types import HeaderDoc
 from jet.logger import logger
 from jet.wordnet.text_chunker import ChunkResult, chunk_texts_with_data
 import openai
-from keybert import KeyBERT, KeyLLM
+from jet.adapters.keybert import KeyBERT, KeyLLM
 from sentence_transformers import SentenceTransformer
 from jet.file.utils import load_file, save_file
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
@@ -15,13 +15,16 @@ OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-# Define new TypedDict for keyword extraction results
+class KeywordEntry(TypedDict):
+    keyword: str
+    score: float
+
 class KeywordResult(TypedDict):
     doc_index: int
     chunk_index: int
     num_tokens: int
     content: str
-    keywords: list
+    keywords: List[KeywordEntry]
 
 # Sample document for keyword extraction
 SAMPLE_DOC = """
@@ -38,219 +41,145 @@ SAMPLE_DOC = """
 """
 
 def extract_basic_keywords(docs: List[ChunkResult], model_name: str = "google/embeddinggemma-300m") -> List[KeywordResult]:
-    """
-    Extract basic keywords from a list of document chunks using KeyBERT.
-
-    Args:
-        docs (List[ChunkResult]): The input document chunks.
-        model_name (str): The name of the sentence-transformer model to use.
-
-    Returns:
-        List[KeywordResult]: A list of KeywordResult dictionaries containing keywords and metadata.
-    """
     kw_model = KeyBERT(model=model_name)
     results = []
-    for doc in docs:
-        keywords = kw_model.extract_keywords(doc["content"])
+    texts = [doc["content"] for doc in docs]
+    keywords = kw_model.extract_keywords(texts)
+    for doc, kws in zip(docs, keywords):
         results.append({
             "doc_index": doc["doc_index"],
             "chunk_index": doc["chunk_index"],
             "num_tokens": doc["num_tokens"],
             "content": doc["content"],
-            "keywords": keywords
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
         })
     return results
 
 def extract_ngram_keywords(docs: List[ChunkResult], ngram_range: tuple = (1, 1), stop_words: str = None, model_name: str = "google/embeddinggemma-300m") -> List[KeywordResult]:
-    """
-    Extract keywords or keyphrases with specified n-gram range.
-
-    Args:
-        docs (List[ChunkResult]): The input document chunks.
-        ngram_range (tuple): The range of n-grams for keyphrases.
-        stop_words (str): Stop words to filter out.
-        model_name (str): The name of the sentence-transformer model.
-
-    Returns:
-        List[KeywordResult]: A list of KeywordResult dictionaries containing keywords and metadata.
-    """
     kw_model = KeyBERT(model=model_name)
     results = []
-    for doc in docs:
-        keywords = kw_model.extract_keywords(doc["content"], keyphrase_ngram_range=ngram_range, stop_words=stop_words)
+    texts = [doc["content"] for doc in docs]
+    keywords = kw_model.extract_keywords(texts, keyphrase_ngram_range=ngram_range, stop_words=stop_words)
+    for doc, kws in zip(docs, keywords):
         results.append({
             "doc_index": doc["doc_index"],
             "chunk_index": doc["chunk_index"],
             "num_tokens": doc["num_tokens"],
             "content": doc["content"],
-            "keywords": keywords
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
         })
     return results
 
 def highlight_keywords(docs: List[ChunkResult], model_name: str = "google/embeddinggemma-300m") -> List[KeywordResult]:
-    """
-    Extract and highlight keywords in the document chunks.
-
-    Args:
-        docs (List[ChunkResult]): The input document chunks.
-        model_name (str): The name of the sentence-transformer model.
-
-    Returns:
-        List[KeywordResult]: A list of KeywordResult dictionaries containing keywords and metadata.
-    """
     kw_model = KeyBERT(model=model_name)
     results = []
-    for doc in docs:
-        keywords = kw_model.extract_keywords(doc["content"], highlight=True)
+    texts = [doc["content"] for doc in docs]
+    keywords = kw_model.extract_keywords(texts, highlight=True)
+    for doc, kws in zip(docs, keywords):
         results.append({
             "doc_index": doc["doc_index"],
             "chunk_index": doc["chunk_index"],
             "num_tokens": doc["num_tokens"],
             "content": doc["content"],
-            "keywords": keywords
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
         })
     return results
 
 def extract_maxsum_keywords(docs: List[ChunkResult], ngram_range: tuple = (3, 3), stop_words: str = 'english', nr_candidates: int = 20, top_n: int = 5, model_name: str = "google/embeddinggemma-300m") -> List[KeywordResult]:
-    """
-    Extract diversified keywords using Max Sum Distance.
-
-    Args:
-        docs (List[ChunkResult]): The input document chunks.
-        ngram_range (tuple): The range of n-grams for keyphrases.
-        stop_words (str): Stop words to filter out.
-        nr_candidates (int): Number of candidates to consider.
-        top_n (int): Number of top keywords to return.
-        model_name (str): The name of the sentence-transformer model.
-
-    Returns:
-        List[KeywordResult]: A list of KeywordResult dictionaries containing keywords and metadata.
-    """
     kw_model = KeyBERT(model=model_name)
     results = []
-    for doc in docs:
-        keywords = kw_model.extract_keywords(
-            doc["content"],
-            keyphrase_ngram_range=ngram_range,
-            stop_words=stop_words,
-            use_maxsum=True,
-            nr_candidates=nr_candidates,
-            top_n=top_n
-        )
+    texts = [doc["content"] for doc in docs]
+    keywords = kw_model.extract_keywords(
+        texts,
+        keyphrase_ngram_range=ngram_range,
+        stop_words=stop_words,
+        use_maxsum=True,
+        nr_candidates=nr_candidates,
+        top_n=top_n
+    )
+    for doc, kws in zip(docs, keywords):
         results.append({
             "doc_index": doc["doc_index"],
             "chunk_index": doc["chunk_index"],
             "num_tokens": doc["num_tokens"],
             "content": doc["content"],
-            "keywords": keywords
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
         })
     return results
 
 def extract_mmr_keywords(docs: List[ChunkResult], ngram_range: tuple = (3, 3), stop_words: str = 'english', diversity: float = 0.7, model_name: str = "google/embeddinggemma-300m") -> List[KeywordResult]:
-    """
-    Extract diversified keywords using Maximal Marginal Relevance (MMR).
-
-    Args:
-        docs (List[ChunkResult]): The input document chunks.
-        ngram_range (tuple): The range of n-grams for keyphrases.
-        stop_words (str): Stop words to filter out.
-        diversity (float): Diversity parameter for MMR (0 to 1).
-        model_name (str): The name of the sentence-transformer model.
-
-    Returns:
-        List[KeywordResult]: A list of KeywordResult dictionaries containing keywords and metadata.
-    """
     kw_model = KeyBERT(model=model_name)
     results = []
-    for doc in docs:
-        keywords = kw_model.extract_keywords(
-            doc["content"],
-            keyphrase_ngram_range=ngram_range,
-            stop_words=stop_words,
-            use_mmr=True,
-            diversity=diversity
-        )
+    texts = [doc["content"] for doc in docs]
+    keywords = kw_model.extract_keywords(
+        texts,
+        keyphrase_ngram_range=ngram_range,
+        stop_words=stop_words,
+        use_mmr=True,
+        diversity=diversity
+    )
+    for doc, kws in zip(docs, keywords):
         results.append({
             "doc_index": doc["doc_index"],
             "chunk_index": doc["chunk_index"],
             "num_tokens": doc["num_tokens"],
             "content": doc["content"],
-            "keywords": keywords
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
         })
     return results
 
 def extract_keywords_with_flair(docs: List[ChunkResult], model_name: str = 'roberta-base') -> List[KeywordResult]:
-    """
-    Extract keywords using Flair's TransformerDocumentEmbeddings.
-
-    Args:
-        docs (List[ChunkResult]): The input document chunks.
-        model_name (str): The name of the Flair transformer model.
-
-    Returns:
-        List[KeywordResult]: A list of KeywordResult dictionaries containing keywords and metadata.
-    """
     from flair.embeddings import TransformerDocumentEmbeddings
     roberta = TransformerDocumentEmbeddings(model_name)
     kw_model = KeyBERT(model=roberta)
     results = []
-    for doc in docs:
-        keywords = kw_model.extract_keywords(doc["content"])
+    texts = [doc["content"] for doc in docs]
+    keywords = kw_model.extract_keywords(texts)
+    for doc, kws in zip(docs, keywords):
         results.append({
             "doc_index": doc["doc_index"],
             "chunk_index": doc["chunk_index"],
             "num_tokens": doc["num_tokens"],
             "content": doc["content"],
-            "keywords": keywords
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
         })
     return results
 
 def extract_keywords_with_llm(docs: List[ChunkResult], api_key: str, model_name: str = "google/embeddinggemma-300m") -> List[KeywordResult]:
-    """
-    Extract keywords using a Large Language Model (OpenAI).
-
-    Args:
-        docs (List[ChunkResult]): The input document chunks.
-        api_key (str): OpenAI API key.
-        model_name (str): The name of the sentence-transformer model (for fallback or compatibility).
-
-    Returns:
-        List[KeywordResult]: A list of KeywordResult dictionaries containing keywords and metadata.
-    """
     client = openai.OpenAI(api_key=api_key)
     llm = OpenAI(client)
     kw_model = KeyLLM(llm)
     results = []
-    for doc in docs:
-        keywords = kw_model.extract_keywords(doc["content"])
+    texts = [doc["content"] for doc in docs]
+    keywords = kw_model.extract_keywords(texts)
+    for doc, kws in zip(docs, keywords):
         results.append({
             "doc_index": doc["doc_index"],
             "chunk_index": doc["chunk_index"],
             "num_tokens": doc["num_tokens"],
             "content": doc["content"],
-            "keywords": keywords
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
         })
     return results
 
-def extract_keywords_for_similar_docs(docs: List[str], api_key: str, threshold: float = 0.75, model_name: str = "google/embeddinggemma-300m") -> list:
-    """
-    Extract keywords for similar documents using embeddings and LLM.
-
-    Args:
-        docs (list): List of input documents.
-        api_key (str): OpenAI API key.
-        threshold (float): Similarity threshold for grouping documents.
-        model_name (str): The name of the sentence-transformer model.
-
-    Returns:
-        list: A list of keywords for similar documents.
-    """
+def extract_keywords_for_similar_docs(docs: List[ChunkResult], api_key: str, threshold: float = 0.75, model_name: str = "google/embeddinggemma-300m") -> List[KeywordResult]:
     model = SentenceTransformer(model_name)
-    embeddings = model.encode(docs, convert_to_tensor=True)
     client = openai.OpenAI(api_key=api_key)
     llm = OpenAI(client)
     kw_model = KeyLLM(llm)
-    return kw_model.extract_keywords(docs, embeddings=embeddings, threshold=threshold)
+    texts = [doc["content"] for doc in docs]
+    embeddings = model.encode(texts, convert_to_tensor=True)
+    keywords = kw_model.extract_keywords(texts, embeddings=embeddings, threshold=threshold)
+    results = []
+    for doc, kws in zip(docs, keywords):
+        results.append({
+            "doc_index": doc["doc_index"],
+            "chunk_index": doc["chunk_index"],
+            "num_tokens": doc["num_tokens"],
+            "content": doc["content"],
+            "keywords": [{"keyword": kw[0], "score": kw[1]} for kw in kws]
+        })
+    return results
 
 def load_sample_data():
     """Load sample dataset from local for topic modeling."""
@@ -339,7 +268,7 @@ def main():
     # # Similar documents extraction (requires API key and multiple documents)
     # docs = [doc["content"] for doc in documents] + ["Another document about machine learning..."]
     # print("\nKeywords for Similar Documents:")
-    # results = extract_keywords_for_similar_docs(docs, api_key="MY_API_KEY")
+    # results = extract_keywords_for_similar_docs(documents, api_key="MY_API_KEY")
     # print(results)
     # save_file(results, f"{OUTPUT_DIR}/extract_keywords_for_similar_docs.json")
 

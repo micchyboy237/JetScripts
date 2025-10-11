@@ -42,7 +42,7 @@ def load_sample_data():
 if __name__ == "__main__":
     """Main function demonstrating KeyBERT usage."""
     
-    embed_model = "all-MiniLM-L6-v2"
+    embed_model = "embeddinggemma"
     query = "Top isekai anime 2025"
 
     # Map HeaderDoc to texts and ids
