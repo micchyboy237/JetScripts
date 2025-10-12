@@ -1,6 +1,6 @@
 Dont use memory from previous artifacts.
 Execute browse or internet search if requested.
-I use a Mac M1 for my coding work, Windows 11 PC for deploying local servers with specs below:
+I use a Mac M1 for my coding work, Windows 10 Pro for deploying local servers with specs below:
 CPU: AMD Ryzen 5 3600
 GPU: GTX 1660
 RAM: 16GB dual sticks
