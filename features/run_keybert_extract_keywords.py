@@ -2,58 +2,27 @@ import os
 import shutil
 from typing import List
 from jet._token.token_utils import token_counter
-from jet.code.markdown_types import HeaderDoc
-from jet.logger import logger
-from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.models.utils import get_context_size
-from jet.utils.url_utils import clean_links
-from jet.wordnet.text_chunker import chunk_texts
 from sklearn.feature_extraction.text import CountVectorizer
-from jet.file.utils import load_file, save_file
+from jet.file.utils import save_file
 from jet.wordnet.keywords.helpers import extract_query_candidates, extract_keywords_with_candidates, extract_keywords_with_custom_vectorizer, extract_keywords_with_embeddings, extract_multi_doc_keywords, extract_single_doc_keywords, setup_keybert
-
+from jet.libs.bertopic.examples.mock import load_sample_data
 
 OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-
-CHUNK_SIZE = 128
-CHUNK_OVERLAP = 32
-
-OUTPUT_DIR = f"{OUTPUT_DIR}/chunked_{CHUNK_SIZE}_{CHUNK_OVERLAP}"
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-def load_sample_data():
-    """Load sample dataset from local for topic modeling."""
-    embed_model = "embeddinggemma"
-    headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/all_headers.json"
-    
-    logger.info("Loading sample dataset...")
-    headers_dict = load_file(headers_file)
-    # headers: List[HeaderDoc] = [h for h_list in headers_dict.values() for h in h_list]
-    headers: List[HeaderDoc] = headers_dict["https://gamerant.com/new-isekai-anime-2025"]
-    documents = [f"{doc["header"]}\n\n{doc['content']}" for doc in headers]
-
-    # Clean all links
-    documents = [clean_markdown_links(doc) for doc in documents]
-    documents = [clean_links(doc) for doc in documents]
-
-    documents = chunk_texts(
-        documents,
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
-        model=embed_model,
-    )
-    save_file(documents, f"{OUTPUT_DIR}/documents.json")
-    return documents
 
 if __name__ == "__main__":
     """Main function demonstrating KeyBERT usage."""
     
     embed_model = "embeddinggemma"
+    chunk_size = 96
+    chunk_overlap = 32
     query = "Top isekai anime 2025"
 
     # Map HeaderDoc to texts and ids
-    texts = load_sample_data()
+    texts = load_sample_data(model=embed_model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     ids = [str(idx) for idx, doc in enumerate(texts)]
     save_file(texts, f"{OUTPUT_DIR}/documents.json")
 
@@ -67,8 +36,8 @@ if __name__ == "__main__":
         "query": query,
         "separator": separator,
         "docs_count": len(texts),
-        "chunk_size": CHUNK_SIZE,
-        "chunk_overlap": CHUNK_OVERLAP,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
         "context_size": context_size,
         "tokens": {
             "min": min(token_counts),

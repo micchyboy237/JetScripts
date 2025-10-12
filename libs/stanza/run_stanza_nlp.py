@@ -1,5 +1,7 @@
 from typing import Iterator, List, TypedDict
 from jet.code.markdown_utils._converters import convert_html_to_markdown
+from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
+from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.libs.stanza.utils import serialize_stanza_object
 from jet.llm.models import OLLAMA_MODEL_NAMES
@@ -120,12 +122,14 @@ def search(
     # doc_vectors = np.array(vectors_list)
 
 if __name__ == "__main__":
-    html_string = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_myanimelist_net_stacks_59506/page.html")
+    html_string = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html")
     model = "embeddinggemma"
     query = "Top isekai anime 2025"
 
     md_content = convert_html_to_markdown(html_string, ignore_links=True)
-    chunks = chunk_texts_with_data(md_content, chunk_size=150, chunk_overlap=40)
+    md_content = clean_markdown_links(md_content)
+    headers = derive_by_header_hierarchy(md_content, ignore_links=True)
+    chunks = chunk_texts_with_data(md_content, chunk_size=96, chunk_overlap=32)
     chunk_tokens = [chunk["num_tokens"] for chunk in chunks]
     save_file({
         "count": len(chunks),

@@ -1,3 +1,4 @@
+from jet.file.utils import save_file
 from stanza.server import CoreNLPClient
 
 from jet.logger import logger
@@ -15,17 +16,17 @@ logger.info(f"Logs: {log_file}")
 
 
 # example text
-print('---')
-print('input text')
-print('')
+logger.gray('---')
+logger.info('input text')
+logger.newline()
 
 text = "Chris Manning is a nice person. Chris wrote a simple sentence. He also gives oranges to people."
 
-print(text)
+logger.debug(text)
 
 # set up the client
-print('---')
-print('starting up Java Stanford CoreNLP Server...')
+logger.gray('---')
+logger.info('starting up Java Stanford CoreNLP Server...')
 
 # set up the client
 with CoreNLPClient(annotators=['tokenize','ssplit','pos','lemma','ner','parse','depparse','coref'], timeout=60000, memory='16G') as client:
@@ -36,53 +37,55 @@ with CoreNLPClient(annotators=['tokenize','ssplit','pos','lemma','ner','parse','
     sentence = ann.sentence[0]
 
     # get the dependency parse of the first sentence
-    print('---')
-    print('dependency parse of first sentence')
+    logger.gray('---')
+    logger.info('dependency parse of first sentence')
     dependency_parse = sentence.basicDependencies
-    print(dependency_parse)
+    logger.success(dependency_parse)
+    save_file(dependency_parse, f"{OUTPUT_DIR}/dependency_parse.json")
  
     # get the constituency parse of the first sentence
-    print('---')
-    print('constituency parse of first sentence')
+    logger.gray('---')
+    logger.info('constituency parse of first sentence')
     constituency_parse = sentence.parseTree
-    print(constituency_parse)
+    logger.success(constituency_parse)
+    save_file(constituency_parse, f"{OUTPUT_DIR}/constituency_parse.json")
 
     # get the first subtree of the constituency parse
-    print('---')
-    print('first subtree of constituency parse')
-    print(constituency_parse.child[0])
+    logger.gray('---')
+    logger.info('first subtree of constituency parse')
+    logger.success(constituency_parse.child[0])
 
     # get the value of the first subtree
-    print('---')
-    print('value of first subtree of constituency parse')
-    print(constituency_parse.child[0].value)
+    logger.gray('---')
+    logger.info('value of first subtree of constituency parse')
+    logger.success(constituency_parse.child[0].value)
 
     # get the first token of the first sentence
-    print('---')
-    print('first token of first sentence')
+    logger.gray('---')
+    logger.info('first token of first sentence')
     token = sentence.token[0]
-    print(token)
+    logger.success(token)
 
     # get the part-of-speech tag
-    print('---')
-    print('part of speech tag of token')
+    logger.gray('---')
+    logger.info('part of speech tag of token')
     token.pos
-    print(token.pos)
+    logger.success(token.pos)
 
     # get the named entity tag
-    print('---')
-    print('named entity tag of token')
-    print(token.ner)
+    logger.gray('---')
+    logger.info('named entity tag of token')
+    logger.success(token.ner)
 
     # get an entity mention from the first sentence
-    print('---')
-    print('first entity mention in sentence')
-    print(sentence.mentions[0])
+    logger.gray('---')
+    logger.info('first entity mention in sentence')
+    logger.success(sentence.mentions[0])
 
     # access the coref chain
-    print('---')
-    print('coref chains for the example')
-    print(ann.corefChain)
+    logger.gray('---')
+    logger.info('coref chains for the example')
+    logger.success(ann.corefChain)
 
     # Use tokensregex patterns to find who wrote a sentence.
     pattern = '([ner: PERSON]+) /wrote/ /an?/ []{0,3} /sentence|article/'
@@ -107,3 +110,4 @@ with CoreNLPClient(annotators=['tokenize','ssplit','pos','lemma','ner','parse','
     matches["sentences"][1]["0"]["$subject"]["text"] == "Chris"
     matches["sentences"][1]["0"]["$object"]["text"] == "sentence"
 
+logger.info("\n\nDONE!")

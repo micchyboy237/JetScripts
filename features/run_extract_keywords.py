@@ -15,11 +15,6 @@ import shutil
 
 OUTPUT_DIR = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-
-CHUNK_SIZE = 128
-CHUNK_OVERLAP = 32
-
-OUTPUT_DIR = f"{OUTPUT_DIR}/chunked_{CHUNK_SIZE}_{CHUNK_OVERLAP}"
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 class KeywordEntry(TypedDict):
     keyword: str
@@ -190,6 +185,8 @@ def extract_keywords_for_similar_docs(docs: List[ChunkResult], api_key: str, thr
 def load_sample_data():
     """Load sample dataset from local for topic modeling."""
     embed_model = "google/embeddinggemma-300m"
+    chunk_size = 96
+    chunk_overlap = 32
     headers_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/all_headers.json"
     
     logger.info("Loading sample dataset...")
@@ -204,8 +201,8 @@ def load_sample_data():
 
     documents: List[ChunkResult] = chunk_texts_with_data(
         documents,
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
         model=embed_model,
     )
     save_file(documents, f"{OUTPUT_DIR}/documents.json")
@@ -216,6 +213,8 @@ def main():
     Main function to demonstrate KeyBERT usage examples.
     """
     embed_model = "embeddinggemma"
+    chunk_size = 96
+    chunk_overlap = 32
     documents = load_sample_data()
 
     # separator = "\n\n"
@@ -227,8 +226,8 @@ def main():
         # "query": query,
         # "separator": separator,
         "docs_count": len(documents),
-        "chunk_size": CHUNK_SIZE,
-        "chunk_overlap": CHUNK_OVERLAP,
+        "chunk_size": chunk_size,
+        "chunk_overlap": chunk_overlap,
         "context_size": context_size,
         "tokens": {
             "min": min(token_counts),
