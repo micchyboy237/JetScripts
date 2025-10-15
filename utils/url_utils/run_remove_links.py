@@ -32,6 +32,8 @@ if __name__ == "__main__":
 
 
     result = remove_links(text_with_sample_links)
-    logger.success(f"Result: '{result}'")
+
+    logger.debug(f"\nText: '{text_with_sample_links}'")
+    logger.success(f"\nResult: '{result}'")
 
     save_file(result, f"{output_dir}/result.txt")
