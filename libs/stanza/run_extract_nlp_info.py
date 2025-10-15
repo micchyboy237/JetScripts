@@ -1,6 +1,8 @@
 import os
 import shutil
 import stanza
+from tqdm import tqdm
+from jet.libs.bertopic.examples.mock import load_sample_data
 from jet.file.utils import save_file
 from jet.logger import logger
 
@@ -9,21 +11,15 @@ DEFAULT_MODEL_DIR = os.getenv(
     os.path.join(os.path.expanduser("~/.cache"), "stanza_resources")
 )
 
-# Sample text for processing
-SAMPLE_TEXT = (
-    "Barack Obama was born in Hawaii. He was the president. "
-    "The White House is in Washington, D.C."
-)
-
 def initialize_pipeline(processors: str, lang: str = "en") -> stanza.Pipeline:
     """Initialize Stanza pipeline with specified processors."""
     return stanza.Pipeline(lang=lang, dir=DEFAULT_MODEL_DIR, processors=processors, use_gpu=True)
 
-def tokenize_example() -> dict:
+def tokenize_example(sample_text: str) -> dict:
     """Demonstrate tokenization and sentence segmentation."""
     logger.info("Tokenization Example:")
     nlp = initialize_pipeline("tokenize")
-    doc = nlp(SAMPLE_TEXT)
+    doc = nlp(sample_text)
     sentences = []
     tokens_list = []
     for sent in doc.sentences:
@@ -35,11 +31,11 @@ def tokenize_example() -> dict:
         "tokens": tokens_list,
     }
 
-def mwt_example() -> dict:
+def mwt_example(sample_text: str) -> dict:
     """Demonstrate multi-word token expansion for English."""
     logger.info("Multi-Word Token Expansion Example (English):")
     nlp = initialize_pipeline("tokenize,mwt", lang="en")
-    doc = nlp("I don't like to swim.")  # English example with MWT (don't -> do + not)
+    doc = nlp(sample_text)  # English example with MWT (don't -> do + not)
     tokens_per_sentence = []
     words_per_sentence = []
     for sent in doc.sentences:
@@ -52,11 +48,11 @@ def mwt_example() -> dict:
         "words": words_per_sentence,
     }
 
-def pos_example() -> dict:
+def pos_example(sample_text: str) -> dict:
     """Demonstrate part-of-speech tagging."""
     logger.info("Part-of-Speech Tagging Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos")
-    doc = nlp(SAMPLE_TEXT)
+    doc = nlp(sample_text)
     sentences = []
     pos_tags_list = []
     for sent in doc.sentences:
@@ -69,11 +65,11 @@ def pos_example() -> dict:
         "pos_tags": pos_tags_list,
     }
 
-def lemma_example() -> dict:
+def lemma_example(sample_text: str) -> dict:
     """Demonstrate lemmatization."""
     logger.info("Lemmatization Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos,lemma")
-    doc = nlp(SAMPLE_TEXT)
+    doc = nlp(sample_text)
     sentences = []
     lemmas_list = []
     for sent in doc.sentences:
@@ -86,11 +82,11 @@ def lemma_example() -> dict:
         "lemmas": lemmas_list,
     }
 
-def depparse_example() -> dict:
+def depparse_example(sample_text: str) -> dict:
     """Demonstrate dependency parsing."""
     logger.info("Dependency Parsing Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos,lemma,depparse")
-    doc = nlp(SAMPLE_TEXT)
+    doc = nlp(sample_text)
     sentences = []
     dependencies_list = []
     for sent in doc.sentences:
@@ -103,11 +99,11 @@ def depparse_example() -> dict:
         "dependencies": dependencies_list,
     }
 
-def ner_example() -> dict:
+def ner_example(sample_text: str) -> dict:
     """Demonstrate named entity recognition."""
     logger.info("Named Entity Recognition Example:")
     nlp = initialize_pipeline("tokenize,mwt,ner")
-    doc = nlp(SAMPLE_TEXT)
+    doc = nlp(sample_text)
     sentences = []
     entities_list = []
     for sent in doc.sentences:
@@ -120,11 +116,11 @@ def ner_example() -> dict:
         "entities": entities_list,
     }
 
-def sentiment_example() -> dict:
+def sentiment_example(sample_text: str) -> dict:
     """Demonstrate sentiment analysis."""
     logger.info("Sentiment Analysis Example:")
     nlp = initialize_pipeline("tokenize,mwt,sentiment")
-    doc = nlp(SAMPLE_TEXT)
+    doc = nlp(sample_text)
     sentences = []
     sentiment_list = []
     for i, sent in enumerate(doc.sentences):
@@ -140,11 +136,11 @@ def sentiment_example() -> dict:
         "sentiment": sentiment_list,
     }
 
-def constituency_example() -> dict:
+def constituency_example(sample_text: str) -> dict:
     """Demonstrate constituency parsing."""
     logger.info("Constituency Parsing Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos,constituency")
-    doc = nlp(SAMPLE_TEXT)
+    doc = nlp(sample_text)
     sentences = []
     parse_trees = []
     for sent in doc.sentences:
@@ -157,14 +153,14 @@ def constituency_example() -> dict:
     }
 
 def main():
-    """Run all processor examples and save results, each to a separate file."""
+    """Run all processor examples on each document sequentially and save results with progress tracking."""
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    # Download English and French models if not already present
-    # stanza.download("en", model_dir=DEFAULT_MODEL_DIR)
+    # Load all documents
+    docs = load_sample_data(chunk_size=1500, chunk_overlap=200)
     
     # Each example and its filename
     example_funcs = [
@@ -179,14 +175,20 @@ def main():
     ]
     
     saved_files = []
-    for func, func_name in example_funcs:
-        results_dict = func()
-        for key, results in results_dict.items():
-            output_path = os.path.join(output_dir, func_name, f"{key}.json")
-            save_file(results, output_path)
-            saved_files.append(output_path)
+    # Process each document
+    for doc_idx, sample_text in enumerate(tqdm(docs, desc="Processing documents", unit="doc")):
+        doc_dir = os.path.join(output_dir, f"doc_{doc_idx + 1}")
+        os.makedirs(doc_dir, exist_ok=True)
+        
+        # Process all example functions for the current document
+        for func, func_name in tqdm(example_funcs, desc=f"Processing tasks for doc_{doc_idx + 1}", unit="task", leave=False):
+            results_dict = func(sample_text)
+            for key, results in results_dict.items():
+                output_path = os.path.join(doc_dir, f"{func_name}_{key}.json")
+                save_file([{"doc_id": doc_idx, "results": results}], output_path)
+                saved_files.append(output_path)
     
-    # Optionally, summarize where the results were written
+    # Summarize where the results were written
     logger.gray("\nAll example results saved in:")
     for file in saved_files:
         logger.success(f"\n{file}", bright=True)
