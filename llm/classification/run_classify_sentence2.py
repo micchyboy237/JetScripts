@@ -1,4 +1,5 @@
 from jet.llm.classification import classify_sentence
+from jet.code.extraction import extract_sentences
 
 if __name__ == '__main__':
     labels = ['Informational', 'Command', 'Question']

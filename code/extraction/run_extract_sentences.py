@@ -1,5 +1,6 @@
 from tqdm import tqdm
-from jet.code.markdown_utils import convert_html_to_markdown, convert_markdown_to_text, derive_by_header_hierarchy, extract_sentences
+from jet.code.markdown_utils import convert_html_to_markdown, convert_markdown_to_text, derive_by_header_hierarchy
+from jet.code.extraction import extract_sentences
 from jet.file.utils import load_file, save_file
 import os
 import shutil
