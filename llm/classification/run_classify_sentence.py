@@ -1,13 +1,20 @@
 from jet.llm.classification import classify_sentence
+from jet.file.utils import save_file
+import os
+import shutil
 
-if __name__ == '__main__':
-    labels = ['Informational', 'Command', 'Question']
-    text = "Key Responsibilities:\nDevelop and maintain high-quality mobile applications using React Native.\nDeploy applications to the Apple App Store and Google Play Store.\nImplement efficient navigation and project structuring using Expo Router.\nDesign and build user interfaces with React Native Paper for consistent and accessible app design.\nStyle components using NativeWind and Tailwind CSS utilities.\nIntegrate and manage push notifications with services like Firebase Cloud Messaging and APNs.\nCollaborate with backend teams to integrate RESTful APIs into mobile apps.\nUtilize Zustand or similar libraries for effective state management.\nHandle form inputs and validations with React Hook Form and Zod.\nDebug and resolve application issues to ensure optimal performance.\nRequirements:\nExperience:\nMinimum of 3 years of professional experience in mobile application development using React Native.\nProven track record of building and maintaining mobile applications deployed on both iOS and Android platforms.\nTechnical Skills:\nStrong proficiency in React Native and its core principles.\nHands-on experience deploying apps to the Apple App Store and Google Play Store.\nProficiency with Expo Router for navigation and project structuring.\nExperience with React Native Paper for consistent app design.\nFamiliarity with NativeWind for styling components using Tailwind CSS utilities.\nKnowledge of push notification services such as Firebase Cloud Messaging and APNs.\nExperience working with native modules and integrating them with React Native.\nUnderstanding of RESTful APIs and integration with mobile applications.\nStrong debugging skills to troubleshoot and resolve issues effectively.\nProficiency in Zustand or similar state management libraries.\nExperience with React Hook Form for efficient form handling.\nKnowledge of Zod for schema validation.\nKnowledge of TypeScript.\n## Employer questions\nYour application will include the following questions:\n* Which of the following types of qualifications do you have?\n* What's your expected monthly basic salary?\n* How many years' experience do you have as a React Native Developer?\n### Company profile\n#### Cafisglobal Inc.\nInformation & Communication Technology11-50 employees\nCafisglobal Inc is a boutique ITBPO company servicing clients globally. We provide both voice support and software development services to our clients. We are small but growing organization expanding to new markets and is seeking experienced and dedicated workers to join our team.\nCafisglobal Inc is a boutique ITBPO company servicing clients globally. We provide both voice support and software development services to our clients. We are small but growing organization expanding to new markets and is seeking experienced and dedicated workers to join our team.\nMore about this company"
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-    sentences = extract_sentences(text)
-
-    for sentence in sentences:
-        result = classify_sentence(sentence, labels)
-        print(result)
-
-    print("Done!")
+# Example usage
+if __name__ == "__main__":
+    sentences = [
+        "She runs quickly, but he walks slowly.",
+        "What a day!",
+        "Close the door.",
+        "If it rains, we stay home.",
+    ]
+    for s in sentences:
+        print(f"{s}: {classify_sentence(s)}")
+    save_file(sentences, f"{OUTPUT_DIR}/classification_results.json")
