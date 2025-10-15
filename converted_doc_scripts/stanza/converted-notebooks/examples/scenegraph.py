@@ -5,6 +5,7 @@ Requires CoreNLP >= 4.5.5, Stanza >= 1.5.1
 """
 
 
+from jet.file.utils import save_file
 from jet.transformers.formatters import format_json
 from stanza.server import CoreNLPClient
 
@@ -31,5 +32,6 @@ with CoreNLPClient(preload=False) as client:
     result = client.scenegraph(text)
     logger.debug(f"Text:\n{text}")
     logger.success(format_json(result))
+    save_file(result, f"{OUTPUT_DIR}/result.json")
 
 
