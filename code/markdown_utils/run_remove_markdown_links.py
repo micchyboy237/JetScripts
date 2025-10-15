@@ -19,8 +19,9 @@ if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-
     result = remove_markdown_links(text_with_sample_md_links)
+
+    logger.debug(f"\nText: '{text_with_sample_md_links}'")
     logger.success(f"Result: '{result}'")
 
     save_file(result, f"{output_dir}/result.txt")
