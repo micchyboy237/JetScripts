@@ -3,6 +3,9 @@ from jet.file.utils import save_file
 import os
 import shutil
 
+from jet.logger import logger
+from jet.transformers.formatters import format_json
+
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
@@ -15,6 +18,12 @@ if __name__ == "__main__":
         "Close the door.",
         "If it rains, we stay home.",
     ]
+    classification_results = []
     for s in sentences:
-        print(f"{s}: {classify_sentence(s)}")
-    save_file(sentences, f"{OUTPUT_DIR}/classification_results.json")
+        classification = classify_sentence(s)
+        classification_results.append({
+            "sentence": s,
+            "classification": classification
+        })
+    logger.success(format_json(classification_results))
+    save_file(classification_results, f"{OUTPUT_DIR}/classification_results.json")
