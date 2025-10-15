@@ -1,10 +1,7 @@
 import os
 
-from jet.code.markdown_utils import base_analyze_markdown
 from jet.code.markdown_utils._converters import convert_html_to_markdown
-from jet.code.markdown_utils._markdown_analyzer import get_summary
 from jet.file.utils import save_file
-from jet.utils.print_utils import print_dict_types
 
 html_1 = """
 <p>
@@ -368,7 +365,11 @@ if __name__ == "__main__":
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     converted_markdown_1 = convert_html_to_markdown(html_1)
+    converted_markdown_1_no_links = convert_html_to_markdown(html_1, ignore_links=True)
     converted_markdown_2 = convert_html_to_markdown(html_2)
+    converted_markdown_2_no_links = convert_html_to_markdown(html_2, ignore_links=True)
 
-    save_file(converted_markdown_1, f"{output_dir}/converted_markdown_1.html")
-    save_file(converted_markdown_2, f"{output_dir}/converted_markdown_2.html")
+    save_file(converted_markdown_1, f"{output_dir}/converted_markdown_1.md")
+    save_file(converted_markdown_1_no_links, f"{output_dir}/converted_markdown_1_no_links.md")
+    save_file(converted_markdown_2, f"{output_dir}/converted_markdown_2.md")
+    save_file(converted_markdown_2_no_links, f"{output_dir}/converted_markdown_2_no_links.md")
