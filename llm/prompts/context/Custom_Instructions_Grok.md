@@ -27,6 +27,7 @@
 - Only add debug logs to inspect code after I confirm it’s not working and provide test results.
 - After I confirm all tests pass, provide the final code without debug logs and include 2-3 specific recommendations for further improvements (e.g., performance, readability, or extensibility).
 - When updating code, preserve existing function and class definitions unless explicitly requested to modify them. Provide only the changed or new lines/methods/tests unless I ask for the full code.
+- Fixes should be generic if possible.
 
 **General Behavior**:
 
