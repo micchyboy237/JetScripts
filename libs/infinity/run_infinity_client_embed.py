@@ -2,7 +2,8 @@
 from infinity_client.models import OpenAIEmbeddingInputText, OpenAIEmbeddingResult
 from infinity_client.api.default import classify, embeddings, embeddings_image, rerank
 from infinity_client.types import Response
-from infinity_client import Client
+from infinity_client import Cn_lient
+from transformers.modeling_utils
 
 from jet.file.utils import save_file
 from jet.logger import logger
