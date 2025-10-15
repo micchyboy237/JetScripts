@@ -10,7 +10,7 @@ from tqdm import tqdm
 class CoreNLPProcessor:
     """A class to manage CoreNLP client and process text annotations."""
     
-    def __init__(self, annotators: List[str], timeout: int = 60000, memory: str = '16G', endpoint: str = "http://localhost:9000"):
+    def __init__(self, annotators: List[str] = ['tokenize','ssplit','pos','lemma','ner','parse','depparse','coref'], timeout: int = 60000, memory: str = '16G', endpoint: str = "http://localhost:9000"):
         """Initialize the CoreNLPProcessor with client configuration."""
         self.client = CoreNLPClient(annotators=annotators, timeout=timeout, memory=memory, endpoint=endpoint)
         self.sentences: List[Any] = []
@@ -192,7 +192,7 @@ def main():
     # Set up the processor
     logger.gray('---')
     logger.info('starting up Java Stanford CoreNLP Server...')
-    with CoreNLPProcessor(annotators=['tokenize','ssplit','pos','lemma','ner','parse','depparse','coref']) as processor:
+    with CoreNLPProcessor() as processor:
         processor.annotate_text(text)
 
         # Process all sentences
