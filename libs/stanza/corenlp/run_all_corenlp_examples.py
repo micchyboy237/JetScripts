@@ -14,9 +14,11 @@ class CoreNLPProcessor:
         """Initialize the CoreNLPProcessor with client configuration."""
         self.client = CoreNLPClient(annotators=annotators, timeout=timeout, memory=memory, endpoint=endpoint)
         self.sentences: List[Any] = []
+        self.annotation: Any = None  # Store the full annotation
 
     def __enter__(self):
         """Enter context manager, return self."""
+        self.client.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -24,13 +26,13 @@ class CoreNLPProcessor:
         self.client.stop()
 
     def annotate_text(self, text: str) -> None:
-        """Annotate text and store sentences."""
+        """Annotate text and store sentences and full annotation."""
         logger.gray('---')
         logger.info('input text')
         logger.newline()
         logger.debug(text)
-        ann = self.client.annotate(text)
-        self.sentences = ann.sentence
+        self.annotation = self.client.annotate(text)
+        self.sentences = self.annotation.sentence
 
     def get_dependencies(self, output_dir: str) -> List[Any]:
         """Get dependency parses for all sentences."""
@@ -137,7 +139,7 @@ class CoreNLPProcessor:
         """Get coreference chains from the annotation."""
         logger.gray('---')
         logger.info('coref chains for the example')
-        coref_chains = self.client.annotate(self.sentences).corefChain
+        coref_chains = self.annotation.corefChain if self.annotation and hasattr(self.annotation, 'corefChain') else []
         logger.success(coref_chains)
         save_parse_result(coref_chains, f"{output_dir}/coref_chains.json")
         return coref_chains
