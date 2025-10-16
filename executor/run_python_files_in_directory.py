@@ -6,11 +6,9 @@ if __name__ == "__main__":
     output_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/libs/stanza/generated/all_files_with_main_block/runner_status"
 
     includes = []
+    excludes = []
     include_contents = ["*if __name__ == *"]
-    excludes = [
-        # "ambiguity-clarity.py",
-    ]
-    exclude_contents = []
+    exclude_contents = ["*argparse*"]
     rerun_mode: Literal["all", "failed",
                         "unrun", "failed_and_unrun"] = "all"
 
