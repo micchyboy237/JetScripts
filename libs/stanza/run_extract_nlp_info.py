@@ -1,8 +1,12 @@
 import os
 import shutil
+from typing import List
+from jet.code.markdown_utils import base_parse_markdown, convert_markdown_to_text
 import stanza
 from tqdm import tqdm
 from jet.libs.bertopic.examples.mock import load_sample_data
+from jet.code.extraction.sentence_extraction import extract_sentences
+from jet._token.token_utils import token_counter
 from jet.file.utils import save_file
 from jet.logger import logger
 
@@ -160,7 +164,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     # Load all documents
-    docs = load_sample_data(model="embeddinggemma", chunk_size=128, truncate=True)
+    docs = load_sample_data(model="embeddinggemma", chunk_size=200, chunk_overlap=50)
     save_file(docs, f"{output_dir}/docs.json")
     
     # Each example and its filename
@@ -177,15 +181,36 @@ def main():
     
     saved_files = []
     # Process each document
-    for doc_idx, text in enumerate(tqdm(docs, desc="Processing documents", unit="doc")):
+    for doc_idx, md_content in enumerate(tqdm(docs, desc="Processing documents", unit="doc")):
         doc_dir = os.path.join(output_dir, f"doc_{doc_idx + 1}")
         os.makedirs(doc_dir, exist_ok=True)
+
+        save_file(md_content, os.path.join(doc_dir, "doc.md"))
+        save_file(base_parse_markdown(md_content, ignore_links=True), os.path.join(doc_dir, "md_tokens.json"))
+
+        text = convert_markdown_to_text(md_content)
+        save_file(text, os.path.join(doc_dir, "doc.txt"))
+
+        sentences = extract_sentences(text)
+        save_file({
+            "tokens": token_counter(text, "embeddinggemma"),
+            "sentences": len(sentences),
+        }, os.path.join(doc_dir, "info.json"))
+
+        token_counts: List[int] = token_counter(sentences, "embeddinggemma", prevent_total=True)
+        save_file(
+            [{
+                "tokens": tokens,
+                "sentence": sentence
+            } for tokens, sentence in zip(token_counts, sentences)],
+            os.path.join(doc_dir, "sentences.json"),
+        )
         
         # Process all example functions for the current document
         for func, func_name in tqdm(example_funcs, desc=f"Processing tasks for doc_{doc_idx + 1}", unit="task", leave=False):
             results_dict = func(text)
             for key, results in results_dict.items():
-                output_path = os.path.join(doc_dir, f"{func_name}_{key}.json")
+                output_path = os.path.join(doc_dir, "tasks", f"{func_name}_{key}.json")
                 save_file([{"doc_id": doc_idx, "results": results}], output_path)
                 saved_files.append(output_path)
     
