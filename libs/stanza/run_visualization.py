@@ -1,3 +1,4 @@
+from jet.code.markdown_utils import base_parse_markdown
 from jet.code.markdown_utils._converters import convert_markdown_to_text
 from jet.adapters.stanza.ner_visualization import visualize_strings as visualize_ner_strings
 from jet.adapters.stanza.dependency_visualization import visualize_strings as visualize_dep_strings
@@ -21,6 +22,10 @@ if __name__ == "__main__":
     docs = load_sample_data(model="embeddinggemma", chunk_size=200, truncate=True)
     for i, md_content in enumerate(docs):
         save_file(md_content, f"{OUTPUT_DIR}/doc_{i + 1}/doc.md")
+
+    doc_md_tokens = [base_parse_markdown(md_content, ignore_links=True) for md_content in docs]
+    for i, md_tokens in enumerate(doc_md_tokens):
+        save_file(md_tokens, f"{OUTPUT_DIR}/doc_{i + 1}/doc_md_tokens.json")
 
     doc_texts = [convert_markdown_to_text(md_content) for md_content in docs]
     for i, text in enumerate(doc_texts):
