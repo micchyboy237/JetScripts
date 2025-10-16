@@ -1,3 +1,4 @@
+from jet.wordnet.text_chunker import truncate_texts
 from stanza.server import CoreNLPClient
 from tqdm import tqdm
 from jet.code.markdown_utils import convert_html_to_markdown, convert_markdown_to_text, derive_by_header_hierarchy
@@ -39,7 +40,10 @@ def main():
             sentences = extract_sentences(text, use_gpu=True)
             save_file(sentences, f"{header_dir}/rag_sentences.json")
 
-            for sentence_idx, sentence in enumerate(tqdm(sentences, desc="Processing documents", unit="doc")):
+            truncated_sents = truncate_texts(sentences, max_tokens=128)
+            save_file(truncated_sents, f"{header_dir}/truncated_sentences.json")
+
+            for sentence_idx, sentence in enumerate(tqdm(truncated_sents, desc="Processing documents", unit="doc")):
                 scenegraph = client.scenegraph(sentence)
 
                 output_path = f"{header_dir}/scenegraph/scenegraph_{sentence_idx + 1}.json"
