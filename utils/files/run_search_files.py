@@ -2,8 +2,6 @@ import os
 import shutil
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.transformers.formatters import format_json
-from jet.utils.commands import copy_to_clipboard
 from jet.utils.file import search_files
 
 OUTPUT_DIR = os.path.join(
@@ -11,15 +9,16 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == '__main__':
-    base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index"
-    includes = ["multi_document_agents-v1"]
+    base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza"
+    includes = []
+    include_contents = ["*if __name__ == *"]
     excludes = []
-    extensions = [".ipynb"]
+    extensions = [".py"]
     results = search_files(
         base_dir,
         extensions,
-        include_files=includes,
         exclude_files=excludes,
+        include_contents=include_contents,
     )
     logger.success(f"Results: ({len(results)})")
 
