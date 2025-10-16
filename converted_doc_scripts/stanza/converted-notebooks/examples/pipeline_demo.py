@@ -6,6 +6,7 @@ import sys
 import argparse
 import os
 
+from jet.file.utils import save_file
 import stanza
 from stanza.resources.common import DEFAULT_MODEL_DIR
 
@@ -38,27 +39,39 @@ if __name__ == '__main__':
             "vi": "Trận Trân Châu Cảng (hay Chiến dịch Hawaii theo cách gọi của Bộ Tổng tư lệnh Đế quốc Nhật Bản) là một đòn tấn công quân sự bất ngờ được Hải quân Nhật Bản thực hiện nhằm vào căn cứ hải quân của Hoa Kỳ tại Trân Châu Cảng thuộc tiểu bang Hawaii vào sáng Chủ Nhật, ngày 7 tháng 12 năm 1941, dẫn đến việc Hoa Kỳ sau đó quyết định tham gia vào hoạt động quân sự trong Chiến tranh thế giới thứ hai."}
 
     if args.lang not in example_sentences:
-        print(f'Sorry, but we don\'t have a demo sentence for "{args.lang}" for the moment. Try one of these languages: {list(example_sentences.keys())}')
+        logger.debug(f'Sorry, but we don\'t have a demo sentence for "{args.lang}" for the moment. Try one of these languages: {list(example_sentences.keys())}')
         sys.exit(1)
 
     # download the models
     # stanza.download(args.lang, dir=args.models_dir)
     # set up a pipeline
-    print('---')
-    print('Building pipeline...')
+    logger.debug('---')
+    logger.debug('Building pipeline...')
     pipeline = stanza.Pipeline(lang=args.lang, dir=args.models_dir, use_gpu=(not args.cpu))
     # process the document
     doc = pipeline(example_sentences[args.lang])
     # access nlp annotations
-    print('')
-    print('Input: {}'.format(example_sentences[args.lang]))
-    print("The tokenizer split the input into {} sentences.".format(len(doc.sentences)))
-    print('---')
-    print('tokens of first sentence: ')
-    doc.sentences[0].print_tokens()
-    print('')
-    print('---')
-    print('dependency parse of first sentence: ')
-    doc.sentences[0].print_dependencies()
-    print('')
+    logger.debug('')
+    logger.debug('Input: {}'.format(example_sentences[args.lang]))
+    logger.debug("The tokenizer split the input into {} sentences.".format(len(doc.sentences)))
 
+    logger.debug('')
+    logger.debug('---')
+    logger.debug('tokens of first sentence: ')
+    tokens_str = doc.sentences[0].tokens_string()
+    save_file(tokens_str, f"{OUTPUT_DIR}/tokens.txt")
+
+    logger.debug('')
+    logger.debug('---')
+    logger.debug('words of first sentence: ')
+    words_str = doc.sentences[0].words_string()
+    save_file(words_str, f"{OUTPUT_DIR}/words.txt")
+    logger.debug('')
+
+    logger.debug('')
+    logger.debug('---')
+    logger.debug('dependency parse of first sentence: ')
+    deps_str = doc.sentences[0].dependencies_string()
+    save_file(deps_str, f"{OUTPUT_DIR}/dependencies.txt")
+
+    save_file(doc.sentences[0].to_dict(), f"{OUTPUT_DIR}/sentence_1.json")
