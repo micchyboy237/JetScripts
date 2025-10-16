@@ -15,11 +15,11 @@ def initialize_pipeline(processors: str, lang: str = "en") -> stanza.Pipeline:
     """Initialize Stanza pipeline with specified processors."""
     return stanza.Pipeline(lang=lang, dir=DEFAULT_MODEL_DIR, processors=processors, use_gpu=True)
 
-def tokenize_example(sample_text: str) -> dict:
+def tokenize_example(text: str) -> dict:
     """Demonstrate tokenization and sentence segmentation."""
     logger.info("Tokenization Example:")
     nlp = initialize_pipeline("tokenize")
-    doc = nlp(sample_text)
+    doc = nlp(text)
     sentences = []
     tokens_list = []
     for sent in doc.sentences:
@@ -31,11 +31,11 @@ def tokenize_example(sample_text: str) -> dict:
         "tokens": tokens_list,
     }
 
-def mwt_example(sample_text: str) -> dict:
+def mwt_example(text: str) -> dict:
     """Demonstrate multi-word token expansion for English."""
     logger.info("Multi-Word Token Expansion Example (English):")
     nlp = initialize_pipeline("tokenize,mwt", lang="en")
-    doc = nlp(sample_text)  # English example with MWT (don't -> do + not)
+    doc = nlp(text)  # English example with MWT (don't -> do + not)
     tokens_per_sentence = []
     words_per_sentence = []
     for sent in doc.sentences:
@@ -48,11 +48,11 @@ def mwt_example(sample_text: str) -> dict:
         "words": words_per_sentence,
     }
 
-def pos_example(sample_text: str) -> dict:
+def pos_example(text: str) -> dict:
     """Demonstrate part-of-speech tagging."""
     logger.info("Part-of-Speech Tagging Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos")
-    doc = nlp(sample_text)
+    doc = nlp(text)
     sentences = []
     pos_tags_list = []
     for sent in doc.sentences:
@@ -65,11 +65,11 @@ def pos_example(sample_text: str) -> dict:
         "pos_tags": pos_tags_list,
     }
 
-def lemma_example(sample_text: str) -> dict:
+def lemma_example(text: str) -> dict:
     """Demonstrate lemmatization."""
     logger.info("Lemmatization Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos,lemma")
-    doc = nlp(sample_text)
+    doc = nlp(text)
     sentences = []
     lemmas_list = []
     for sent in doc.sentences:
@@ -82,11 +82,11 @@ def lemma_example(sample_text: str) -> dict:
         "lemmas": lemmas_list,
     }
 
-def depparse_example(sample_text: str) -> dict:
+def depparse_example(text: str) -> dict:
     """Demonstrate dependency parsing."""
     logger.info("Dependency Parsing Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos,lemma,depparse")
-    doc = nlp(sample_text)
+    doc = nlp(text)
     sentences = []
     dependencies_list = []
     for sent in doc.sentences:
@@ -99,11 +99,11 @@ def depparse_example(sample_text: str) -> dict:
         "dependencies": dependencies_list,
     }
 
-def ner_example(sample_text: str) -> dict:
+def ner_example(text: str) -> dict:
     """Demonstrate named entity recognition."""
     logger.info("Named Entity Recognition Example:")
     nlp = initialize_pipeline("tokenize,mwt,ner")
-    doc = nlp(sample_text)
+    doc = nlp(text)
     sentences = []
     entities_list = []
     for sent in doc.sentences:
@@ -116,11 +116,11 @@ def ner_example(sample_text: str) -> dict:
         "entities": entities_list,
     }
 
-def sentiment_example(sample_text: str) -> dict:
+def sentiment_example(text: str) -> dict:
     """Demonstrate sentiment analysis."""
     logger.info("Sentiment Analysis Example:")
     nlp = initialize_pipeline("tokenize,mwt,sentiment")
-    doc = nlp(sample_text)
+    doc = nlp(text)
     sentences = []
     sentiment_list = []
     for i, sent in enumerate(doc.sentences):
@@ -136,11 +136,11 @@ def sentiment_example(sample_text: str) -> dict:
         "sentiment": sentiment_list,
     }
 
-def constituency_example(sample_text: str) -> dict:
+def constituency_example(text: str) -> dict:
     """Demonstrate constituency parsing."""
     logger.info("Constituency Parsing Example:")
     nlp = initialize_pipeline("tokenize,mwt,pos,constituency")
-    doc = nlp(sample_text)
+    doc = nlp(text)
     sentences = []
     parse_trees = []
     for sent in doc.sentences:
@@ -160,7 +160,8 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     # Load all documents
-    docs = load_sample_data(chunk_size=1500, chunk_overlap=200)
+    docs = load_sample_data(model="embeddinggemma", chunk_size=128, truncate=True)
+    save_file(docs, f"{output_dir}/docs.json")
     
     # Each example and its filename
     example_funcs = [
@@ -176,13 +177,13 @@ def main():
     
     saved_files = []
     # Process each document
-    for doc_idx, sample_text in enumerate(tqdm(docs, desc="Processing documents", unit="doc")):
+    for doc_idx, text in enumerate(tqdm(docs, desc="Processing documents", unit="doc")):
         doc_dir = os.path.join(output_dir, f"doc_{doc_idx + 1}")
         os.makedirs(doc_dir, exist_ok=True)
         
         # Process all example functions for the current document
         for func, func_name in tqdm(example_funcs, desc=f"Processing tasks for doc_{doc_idx + 1}", unit="task", leave=False):
-            results_dict = func(sample_text)
+            results_dict = func(text)
             for key, results in results_dict.items():
                 output_path = os.path.join(doc_dir, f"{func_name}_{key}.json")
                 save_file([{"doc_id": doc_idx, "results": results}], output_path)
