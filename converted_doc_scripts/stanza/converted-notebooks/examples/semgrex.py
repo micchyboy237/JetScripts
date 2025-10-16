@@ -1,10 +1,10 @@
 import stanza
 from stanza.server.semgrex import Semgrex
 
+from jet.file.utils import save_file
 from jet.logger import logger
 import os
 import shutil
-
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -24,6 +24,7 @@ with Semgrex(classpath="$CLASSPATH") as sem:
     logger.newline()
     logger.gray("COMPLETE RESULTS")
     logger.success(semgrex_results)
+    save_file(semgrex_results, f"{OUTPUT_DIR}/semgrex_results.json")
 
     logger.newline()
     logger.gray("Number of matches in graph 0 ('Banning opal...') for semgrex query 1 (thing <obj action): %d" % len(semgrex_results.result[0].result[1].match))

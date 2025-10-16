@@ -34,40 +34,40 @@ def initialize_pipeline(processors: str = ALL_PROCESSORS, lang: str = "en") -> s
     """Initialize Stanza pipeline with all processors."""
     return stanza.Pipeline(lang=lang, dir=DEFAULT_MODEL_DIR, processors=processors, use_gpu=True)
 
-def tokenize_example(text: str) -> dict:
+def sentences_example(text: str) -> list:
     """Demonstrate tokenization and sentence segmentation."""
     logger.info("Tokenization Example:")
     nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
-    tokens_list = []
     for sent in doc.sentences:
         tokens = [token.text for token in sent.tokens]
         sentences.append(' '.join(tokens))
-        tokens_list.append(tokens)
-    return {
-        "sentences": sentences,
-        "tokens": tokens_list,
-    }
+    return sentences
 
-def mwt_example(text: str) -> dict:
+def tokenize_example(text: str) -> list:
+    """Demonstrate tokenization and sentence segmentation."""
+    logger.info("Tokenization Example:")
+    nlp = _load_pipeline()
+    doc = nlp(text)
+    tokens_list = []
+    for sent in doc.sentences:
+        tokens = [token.text for token in sent.tokens]
+        tokens_list.append(tokens)
+    return tokens_list
+
+def mwt_example(text: str) -> list:
     """Demonstrate multi-word token expansion for English."""
     logger.info("Multi-Word Token Expansion Example (English):")
     nlp = _load_pipeline()
     doc = nlp(text)  # English example with MWT (don't -> do + not)
-    tokens_per_sentence = []
     words_per_sentence = []
     for sent in doc.sentences:
-        tokens = [token.text for token in sent.tokens]
         words = [word.text for word in sent.words]
-        tokens_per_sentence.append(tokens)
         words_per_sentence.append(words)
-    return {
-        "tokens": tokens_per_sentence,
-        "words": words_per_sentence,
-    }
+    return words_per_sentence
 
-def pos_example(text: str) -> dict:
+def pos_example(text: str) -> list:
     """Demonstrate part-of-speech tagging."""
     logger.info("Part-of-Speech Tagging Example:")
     nlp = _load_pipeline()
@@ -79,12 +79,9 @@ def pos_example(text: str) -> dict:
         pos_tags = [(word.text, word.upos, word.xpos, word.feats) for word in sent.words]
         sentences.append(sentence_text)
         pos_tags_list.append(pos_tags)
-    return {
-        "sentences": sentences,
-        "pos_tags": pos_tags_list,
-    }
+    return pos_tags_list
 
-def lemma_example(text: str) -> dict:
+def lemma_example(text: str) -> list:
     """Demonstrate lemmatization."""
     logger.info("Lemmatization Example:")
     nlp = _load_pipeline()
@@ -96,12 +93,9 @@ def lemma_example(text: str) -> dict:
         lemmas = [(word.text, word.lemma) for word in sent.words]
         sentences.append(sentence_text)
         lemmas_list.append(lemmas)
-    return {
-        "sentences": sentences,
-        "lemmas": lemmas_list,
-    }
+    return lemmas_list
 
-def depparse_example(text: str) -> dict:
+def depparse_example(text: str) -> list:
     """Demonstrate dependency parsing."""
     logger.info("Dependency Parsing Example:")
     nlp = _load_pipeline()
@@ -113,12 +107,9 @@ def depparse_example(text: str) -> dict:
         deps = [(word.text, word.deprel, word.head) for word in sent.words]
         sentences.append(sentence_text)
         dependencies_list.append(deps)
-    return {
-        "sentences": sentences,
-        "dependencies": dependencies_list,
-    }
+    return dependencies_list
 
-def ner_example(text: str) -> dict:
+def ner_example(text: str) -> list:
     """Demonstrate named entity recognition."""
     logger.info("Named Entity Recognition Example:")
     nlp = _load_pipeline()
@@ -130,12 +121,9 @@ def ner_example(text: str) -> dict:
         entities = [(ent.text, ent.type) for ent in sent.ents]
         sentences.append(sentence_text)
         entities_list.append(entities)
-    return {
-        "sentences": sentences,
-        "entities": entities_list,
-    }
+    return entities_list
 
-def sentiment_example(text: str) -> dict:
+def sentiment_example(text: str) -> list:
     """Demonstrate sentiment analysis."""
     logger.info("Sentiment Analysis Example:")
     nlp = _load_pipeline()
@@ -150,12 +138,9 @@ def sentiment_example(text: str) -> dict:
             "value": sentiment,
             "label": ["negative", "neutral", "positive"][sentiment]
         })
-    return {
-        "sentences": sentences,
-        "sentiment": sentiment_list,
-    }
+    return sentiment_list
 
-def constituency_example(text: str) -> dict:
+def constituency_example(text: str) -> list:
     """Demonstrate constituency parsing."""
     logger.info("Constituency Parsing Example:")
     nlp = _load_pipeline()
@@ -166,10 +151,7 @@ def constituency_example(text: str) -> dict:
         sentence_text = ' '.join(word.text for word in sent.words)
         sentences.append(sentence_text)
         parse_trees.append(str(sent.constituency))
-    return {
-        "sentences": sentences,
-        "constituency_trees": parse_trees,
-    }
+    return parse_trees
 
 def main():
     """Run all processor examples on each document sequentially and save results with progress tracking."""
@@ -184,6 +166,7 @@ def main():
     
     # Each example and its filename
     example_funcs = [
+        (sentences_example, "sentences_example"),
         (tokenize_example, "tokenize_example"),
         (mwt_example, "mwt_example"),
         (pos_example, "pos_example"),
@@ -223,11 +206,10 @@ def main():
         
         # Process all example functions for the current document
         for func, func_name in tqdm(example_funcs, desc=f"Processing tasks for doc_{doc_idx + 1}", unit="task", leave=False):
-            results_dict = func(text)
-            for key, results in results_dict.items():
-                output_path = os.path.join(doc_dir, "tasks", f"{func_name}_{key}.json")
-                save_file([{"doc_id": doc_idx, "results": results}], output_path)
-                saved_files.append(output_path)
+            results = func(text)
+            output_path = os.path.join(doc_dir, "tasks", f"{func_name}.json")
+            save_file([{"doc_id": doc_idx, "results": results}], output_path)
+            saved_files.append(output_path)
     
     # Summarize where the results were written
     logger.gray("\nAll example results saved in:")
