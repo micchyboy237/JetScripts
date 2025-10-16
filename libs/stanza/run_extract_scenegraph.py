@@ -1,9 +1,9 @@
-from jet.wordnet.text_chunker import truncate_texts
+from jet.libs.bertopic.examples.mock import load_sample_data
 from stanza.server import CoreNLPClient
 from tqdm import tqdm
-from jet.code.markdown_utils import convert_html_to_markdown, convert_markdown_to_text, derive_by_header_hierarchy
+from jet.code.markdown_utils import convert_markdown_to_text
 from jet.code.extraction import extract_sentences
-from jet.file.utils import load_file, save_file
+from jet.file.utils import save_file
 import os
 import shutil
 
@@ -16,34 +16,24 @@ def main():
     Demonstrates usage of the extract_sentences function with various text inputs.
     Optimized for Mac M1 with MPS support.
     """
-    html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html")
-    md_content = convert_html_to_markdown(html, ignore_links=True)
-    save_file(md_content, f"{OUTPUT_DIR}/md_content.md")
-
-    headers = derive_by_header_hierarchy(md_content, ignore_links=True)
-    save_file(headers, f"{OUTPUT_DIR}/headers.json")
-
-    header_texts = [f"{header['header']}\n\n{header['content']}" for header in headers]
-    save_file(header_texts, f"{OUTPUT_DIR}/header_texts.json")
+    docs = load_sample_data(model="embeddinggemma", chunk_size=200, truncate=True)
+    save_file(docs, f"{OUTPUT_DIR}/docs.json")
 
     with CoreNLPClient(preload=False) as client:
-        for idx, header_md_content in enumerate(tqdm(header_texts, desc="Extracting RAG sentences", unit="header")):
+        for idx, md_content in enumerate(tqdm(docs, desc="Extracting RAG sentences", unit="header")):
             header_dir = os.path.join(OUTPUT_DIR, f"header_{idx + 1}")
             os.makedirs(header_dir, exist_ok=True)
 
-            save_file(header_md_content, f"{header_dir}/rag_markdown.md")
+            save_file(md_content, f"{header_dir}/rag_markdown.md")
 
-            text = convert_markdown_to_text(header_md_content)
+            text = convert_markdown_to_text(md_content)
             save_file(text, f"{header_dir}/rag_text.txt")
 
             # Optional: nested progress tracking if extract_sentences is slow
             sentences = extract_sentences(text, use_gpu=True)
             save_file(sentences, f"{header_dir}/rag_sentences.json")
 
-            truncated_sents = truncate_texts(sentences, model="embeddinggemma", max_tokens=128)
-            save_file(truncated_sents, f"{header_dir}/truncated_sentences.json")
-
-            for sentence_idx, sentence in enumerate(tqdm(truncated_sents, desc="Processing documents", unit="doc")):
+            for sentence_idx, sentence in enumerate(tqdm(sentences, desc="Processing documents", unit="doc")):
                 scenegraph = client.scenegraph(sentence)
 
                 output_path = f"{header_dir}/scenegraph/scenegraph_{sentence_idx + 1}.json"

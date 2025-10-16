@@ -15,14 +15,29 @@ DEFAULT_MODEL_DIR = os.getenv(
     os.path.join(os.path.expanduser("~/.cache"), "stanza_resources")
 )
 
-def initialize_pipeline(processors: str, lang: str = "en") -> stanza.Pipeline:
-    """Initialize Stanza pipeline with specified processors."""
+# Define the default set of processors for most complete English analyses
+ALL_PROCESSORS = "tokenize,mwt,pos,lemma,depparse,ner,sentiment,constituency"
+
+_nlp = None
+
+def _load_pipeline(processors: str = ALL_PROCESSORS, lang: str = "en"):
+    """Load Stanza NLP pipeline lazily, only once."""
+    global _nlp
+    if _nlp is None:
+        logger.debug("Creating pipeline")
+        _nlp = initialize_pipeline(processors, lang)
+    else:
+        logger.debug("Reusing cache for pipeline")
+    return _nlp
+
+def initialize_pipeline(processors: str = ALL_PROCESSORS, lang: str = "en") -> stanza.Pipeline:
+    """Initialize Stanza pipeline with all processors."""
     return stanza.Pipeline(lang=lang, dir=DEFAULT_MODEL_DIR, processors=processors, use_gpu=True)
 
 def tokenize_example(text: str) -> dict:
     """Demonstrate tokenization and sentence segmentation."""
     logger.info("Tokenization Example:")
-    nlp = initialize_pipeline("tokenize")
+    nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
     tokens_list = []
@@ -38,7 +53,7 @@ def tokenize_example(text: str) -> dict:
 def mwt_example(text: str) -> dict:
     """Demonstrate multi-word token expansion for English."""
     logger.info("Multi-Word Token Expansion Example (English):")
-    nlp = initialize_pipeline("tokenize,mwt", lang="en")
+    nlp = _load_pipeline()
     doc = nlp(text)  # English example with MWT (don't -> do + not)
     tokens_per_sentence = []
     words_per_sentence = []
@@ -55,7 +70,7 @@ def mwt_example(text: str) -> dict:
 def pos_example(text: str) -> dict:
     """Demonstrate part-of-speech tagging."""
     logger.info("Part-of-Speech Tagging Example:")
-    nlp = initialize_pipeline("tokenize,mwt,pos")
+    nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
     pos_tags_list = []
@@ -72,7 +87,7 @@ def pos_example(text: str) -> dict:
 def lemma_example(text: str) -> dict:
     """Demonstrate lemmatization."""
     logger.info("Lemmatization Example:")
-    nlp = initialize_pipeline("tokenize,mwt,pos,lemma")
+    nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
     lemmas_list = []
@@ -89,7 +104,7 @@ def lemma_example(text: str) -> dict:
 def depparse_example(text: str) -> dict:
     """Demonstrate dependency parsing."""
     logger.info("Dependency Parsing Example:")
-    nlp = initialize_pipeline("tokenize,mwt,pos,lemma,depparse")
+    nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
     dependencies_list = []
@@ -106,7 +121,7 @@ def depparse_example(text: str) -> dict:
 def ner_example(text: str) -> dict:
     """Demonstrate named entity recognition."""
     logger.info("Named Entity Recognition Example:")
-    nlp = initialize_pipeline("tokenize,mwt,ner")
+    nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
     entities_list = []
@@ -123,7 +138,7 @@ def ner_example(text: str) -> dict:
 def sentiment_example(text: str) -> dict:
     """Demonstrate sentiment analysis."""
     logger.info("Sentiment Analysis Example:")
-    nlp = initialize_pipeline("tokenize,mwt,sentiment")
+    nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
     sentiment_list = []
@@ -143,7 +158,7 @@ def sentiment_example(text: str) -> dict:
 def constituency_example(text: str) -> dict:
     """Demonstrate constituency parsing."""
     logger.info("Constituency Parsing Example:")
-    nlp = initialize_pipeline("tokenize,mwt,pos,constituency")
+    nlp = _load_pipeline()
     doc = nlp(text)
     sentences = []
     parse_trees = []
@@ -164,7 +179,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     # Load all documents
-    docs = load_sample_data(model="embeddinggemma", chunk_size=200, chunk_overlap=50)
+    docs = load_sample_data(model="embeddinggemma", chunk_size=200, truncate=True)
     save_file(docs, f"{output_dir}/docs.json")
     
     # Each example and its filename
