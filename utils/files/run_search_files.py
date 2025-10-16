@@ -11,14 +11,16 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 if __name__ == '__main__':
     base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza"
     includes = []
-    include_contents = ["*if __name__ == *"]
     excludes = []
+    include_contents = ["*if __name__ == *"]
+    exclude_contents = ["*argparse*"]
     extensions = [".py"]
     results = search_files(
         base_dir,
         extensions,
         exclude_files=excludes,
         include_contents=include_contents,
+        exclude_contents=exclude_contents,
     )
     logger.success(f"Results: ({len(results)})")
 
