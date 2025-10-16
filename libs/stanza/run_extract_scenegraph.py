@@ -40,7 +40,7 @@ def main():
             sentences = extract_sentences(text, use_gpu=True)
             save_file(sentences, f"{header_dir}/rag_sentences.json")
 
-            truncated_sents = truncate_texts(sentences, max_tokens=128)
+            truncated_sents = truncate_texts(sentences, model="embeddinggemma", max_tokens=128)
             save_file(truncated_sents, f"{header_dir}/truncated_sentences.json")
 
             for sentence_idx, sentence in enumerate(tqdm(truncated_sents, desc="Processing documents", unit="doc")):
