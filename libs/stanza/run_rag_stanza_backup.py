@@ -1,88 +1,97 @@
+# jet_python_modules/jet/libs/stanza/examples/examples_rag_stanza.py
 """
 examples_rag_stanza.py
+Usage examples for `rag_stanza.py`.
 
-Demonstrates how to use `rag_stanza` on long, realistic inputs to:
-  1. Build a full Stanza pipeline.
-  2. Parse text into syntactically and semantically rich sentence data.
-  3. Chunk text for use in a Retrieval-Augmented Generation (RAG) system.
-  4. Inspect metadata such as entities and salience scores.
+Demonstrates how to:
+  1. Build a Stanza pipeline.
+  2. Parse sentences with syntax and entity metadata.
+  3. Chunk parsed sentences for RAG.
+  4. Run the full integrated demo.
 
 Run:
     python examples_rag_stanza.py
 """
 
-from jet.libs.stanza.rag_stanza_backup import build_stanza_pipeline, parse_sentences, chunk_sentences_for_rag, build_context_chunks
+from contextlib import contextmanager
+import time
+from typing import Any, Dict, List
+from jet.code.markdown_utils import convert_markdown_to_text
+from jet.logger import logger
+from jet.libs.stanza.rag_stanza import (
+    build_stanza_pipeline,
+    parse_sentences,
+    build_context_chunks,
+)
+from jet.libs.bertopic.examples.mock import load_sample_data_with_info, ChunkResultWithMeta
+from jet.file.utils import save_file
+from tqdm import tqdm
+import os
+import shutil
 
-# --- Example 1: Long multi-paragraph input ---
-LONG_TEXT = """
-OpenAI announced the GPT-5 model on October 15, 2025, marking a major leap in multimodal reasoning and multilingual understanding.
-The company claims that GPT-5 can handle text, image, and structured data simultaneously, offering developers a unified API for advanced RAG systems.
-Industry analysts from Gartner and McKinsey noted that the integration of reasoning and retrieval may redefine enterprise search.
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-In a blog post, OpenAI also shared new benchmarks showing 40% higher factual accuracy when used with domain-specific retrieval pipelines.
-For instance, a medical RAG system fine-tuned on PubMed articles showed improved diagnostic explanations with lower hallucination rates.
+# Sample web scraped data with headers separation chunking
+EXAMPLE_DATA: List[ChunkResultWithMeta] = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
 
-Meanwhile, universities like Stanford, MIT, and ETH Zurich are testing open-source alternatives built on Stanza and Hugging Face Transformers,
-demonstrating that combining syntactic dependency parsing with retrieval improves contextual chunking and precision recall trade-offs.
+@contextmanager
+def timer(description: str) -> None:
+    """Context manager to track and print execution time."""
+    start = time.time()
+    yield
+    elapsed = time.time() - start
+    print(f"{description}: {elapsed:.2f} seconds")
 
-Experts believe that syntax-aware chunking can drastically reduce embedding redundancy,
-allowing context windows to fit more meaningful text and reducing retrieval noise for downstream large language models.
-"""
-
-def example_full_pipeline():
+def run_rag_stanza_demo(text: str) -> Dict[str, Any]:
     """
-    Run a full end-to-end demo using Stanza to build RAG-ready chunks.
+    Run the full Stanza-based RAG preprocessing pipeline with progress tracking.
+    Returns a dict with sentence-level and chunk-level information.
     """
+    with timer("=== Building Stanza pipeline"):
+        nlp = build_stanza_pipeline()
+    
+    with timer("=== Parsing sentences"):
+        parsed_sentences = parse_sentences(text, nlp)
+        print(f"Total sentences parsed: {len(parsed_sentences)}")
+    
+    with timer("=== Creating context chunks for RAG"):
+        chunks = build_context_chunks(parsed_sentences, max_tokens=80)
+        print(f"Generated {len(chunks)} chunks.\n")
+    
+    return {"parsed_sentences": parsed_sentences, "chunks": chunks}
 
-    print("=== Building Stanza pipeline (this may take a few seconds) ===")
-    pipeline = build_stanza_pipeline(lang="en")
-
-    print("\n=== Parsing sentences ===")
-    sentences = parse_sentences(LONG_TEXT, pipeline)
-    print(f"Total sentences parsed: {len(sentences)}")
-
-    # Show a few representative sentence analyses
-    for i, s in enumerate(sentences[:3]):
-        print(f"\n--- Sentence {i+1} ---")
-        print(f"Text: {s['text']}")
-        print(f"Tokens: {s['tokens']}")
-        print(f"POS: {s['pos']}")
-        print(f"Lemmas: {s['lemmas'][:6]}...")
-        if s['entities']:
-            print(f"Entities: {[e['text'] + ':' + e['type'] for e in s['entities']]}")
-        print(f"Dependency heads: {[d['deprel'] for d in s['deps']]}")
-
-    print("\n=== Creating context chunks for RAG ===")
-    chunks = chunk_sentences_for_rag(sentences, max_tokens=60, overlap=15)
-    print(f"Generated {len(chunks)} chunks.\n")
-
-    for i, c in enumerate(chunks):
-        print(f"\n>>> Chunk {i+1}")
-        print(f"Sentences: {c['sentence_indices']}")
-        print(f"Token count (approx): {c['est_token_count']}")
-        print(f"Salience score: {c['metadata']['salience']:.2f}")
-        print(f"Text preview: {c['text'][:200]}...")
-        if c['metadata'].get("entities"):
-            ents = [e['text'] for e in c['metadata']['entities']]
-            print(f"Entities in chunk: {', '.join(set(ents))}")
-
-def example_quick_pipeline():
-    """
-    Simplified version using the high-level `build_context_chunks` function.
-    """
-    print("\n=== Using build_context_chunks() ===")
-    chunks = build_context_chunks(LONG_TEXT, lang="en", max_tokens=80, overlap=20)
-    print(f"Chunks built: {len(chunks)}")
-    for i, c in enumerate(chunks):
-        print(f"\nChunk {i+1} summary:")
-        print(f"- Tokens ≈ {c['est_token_count']}")
-        print(f"- Sentences: {len(c['sentence_indices'])}")
-        print(f"- Salience: {c['metadata']['salience']:.2f}")
-        if c['metadata'].get("entities"):
-            ents = [e['text'] for e in c['metadata']['entities']]
-            print(f"- Entities: {', '.join(sorted(set(ents)))}")
-        print(f"- Text (first 150 chars): {c['text'][:150]}...")
+def example_full_demo():
+    """Example: run full integrated demo."""
+    logger.debug("\n=== Example: Running full RAG Stanza demo ===")
+    
+    for i, d in enumerate(tqdm(EXAMPLE_DATA, desc="Processing RAG")):
+        logger.info(f">>> Chunk {i + 1}")
+        results = run_rag_stanza_demo(d["content"])
+        logger.teal(f"\nParsed {len(results['parsed_sentences'])} sentences.")
+        logger.teal(f"Built {len(results['chunks'])} chunks.")
+        final_result = {
+            "chunk_id": d["id"],
+            "chunk_index": d["chunk_index"],
+            "doc_id": d["doc_id"],
+            "doc_index": d["doc_index"],
+            "rag": results["chunks"],
+            "parent_header": convert_markdown_to_text(d["meta"]["parent_header"]),
+            "header": convert_markdown_to_text(d["meta"]["header"]),
+            "content": convert_markdown_to_text(d["content"]),
+            "sentences": results["parsed_sentences"],
+        }
+        yield final_result
 
 if __name__ == "__main__":
-    example_full_pipeline()
-    example_quick_pipeline()
+    full_demo_stream = example_full_demo()
+    all_results = []
+    for result in full_demo_stream:
+        all_results.append(result)
+        out_path = f"{OUTPUT_DIR}/chunks/doc{result["doc_index"]}_chunk{result["chunk_index"]}.json"
+        save_file(result, out_path)
+    save_file({
+        "count": len(all_results),
+        "results": all_results
+    }, f"{OUTPUT_DIR}/all_results.json")

@@ -1,30 +1,30 @@
-# jet_python_modules/jet/libs/stanza/examples/examples_rag_stanza.py
 """
 examples_rag_stanza.py
-Usage examples for `rag_stanza.py`.
+======================
 
-Demonstrates how to:
-  1. Build a Stanza pipeline.
-  2. Parse sentences with syntax and entity metadata.
-  3. Chunk parsed sentences for RAG.
-  4. Run the full integrated demo.
+Usage examples for the Stanza-based RAG preprocessing utilities.
 
-Run:
-    python examples_rag_stanza.py
+Demonstrates:
+  - Pipeline caching and reuse
+  - Sentence parsing and token-level features
+  - Entity extraction and lemma normalization
+  - Context chunk building for RAG
+  - Query-guided context expansion
 """
 
-from contextlib import contextmanager
-import time
-from typing import Any, Dict, List
-from jet.logger import logger
-from jet.libs.stanza.rag_stanza import (
-    build_stanza_pipeline,
-    parse_sentences,
-    build_context_chunks,
-)
-from jet.libs.bertopic.examples.mock import load_sample_data_with_info, ChunkResultWithMeta
+from pprint import pprint
+from textwrap import shorten
+from typing import List, Dict, TypedDict
+
 from jet.file.utils import save_file
-from tqdm import tqdm
+import stanza
+
+from jet.libs.bertopic.examples.mock import load_sample_data_with_info
+from jet.libs.stanza.rag_stanza import (
+    StanzaPipelineCache,
+    parse_sentences,
+)
+
 import os
 import shutil
 
@@ -32,65 +32,203 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-# Sample web scraped data with headers separation chunking
-EXAMPLE_DATA: List[ChunkResultWithMeta] = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
+# Sample web scraped data
+EXAMPLE_DATA: List[str] = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, truncate=True)
+EXAMPLE_TEXT = EXAMPLE_DATA[4]["content"]
 
-@contextmanager
-def timer(description: str) -> None:
-    """Context manager to track and print execution time."""
-    start = time.time()
-    yield
-    elapsed = time.time() - start
-    print(f"{description}: {elapsed:.2f} seconds")
 
-def run_rag_stanza_demo(text: str) -> Dict[str, Any]:
+def build_cached_pipeline(lang: str = "en") -> stanza.Pipeline:
+    """Create or reuse a cached Stanza pipeline."""
+    cache = StanzaPipelineCache()
+    pipeline = cache.get_pipeline(
+        lang=lang,
+        processors="tokenize,pos,lemma,depparse,ner",
+        use_gpu=False
+    )
+    return pipeline
+
+
+def example_parse_text(text: str, pipeline: stanza.Pipeline) -> List[Dict]:
+    """Example: parse a long text into structured sentences."""
+    print("\n--- Parsing long text with Stanza ---")
+    sentences = parse_sentences(text, pipeline)
+
+    print(f"\nParsed {len(sentences)} sentences.")
+    pprint(sentences[0], depth=2)  # Show first parsed sentence
+    return sentences
+
+
+def example_extract_entities(sentences: List[Dict]) -> List[Dict]:
+    """Example: extract named entities from parsed sentences."""
+    print("\n--- Extracting Named Entities ---")
+    all_entities = []
+    for sent in sentences:
+        for ent in sent.get("entities", []):
+            all_entities.append({
+                "sentence_id": sent["sentence_id"],
+                "entity": ent["text"],
+                "type": ent["type"],
+                "lemma": ent["lemma"]
+            })
+    pprint(all_entities)
+    return all_entities
+
+
+def example_build_rag_context(sentences: List[Dict], query: str = None) -> List[Dict]:
     """
-    Run the full Stanza-based RAG preprocessing pipeline with progress tracking.
-    Returns a dict with sentence-level and chunk-level information.
+    Example: Build retrieval-augmented context chunks.
+
+    If a query is provided, prioritize sentences related to query entities or lemmas.
     """
-    with timer("=== Building Stanza pipeline"):
-        nlp = build_stanza_pipeline()
-    
-    with timer("=== Parsing sentences"):
-        parsed_sentences = parse_sentences(text, nlp)
-        print(f"Total sentences parsed: {len(parsed_sentences)}")
-    
-    with timer("=== Creating context chunks for RAG"):
-        chunks = build_context_chunks(parsed_sentences, max_tokens=80)
-        print(f"Generated {len(chunks)} chunks.\n")
-    
-    return {"parsed_sentences": parsed_sentences, "chunks": chunks}
+    print("\n--- Building RAG Contexts ---")
 
-def example_full_demo():
-    """Example: run full integrated demo."""
-    logger.debug("\n=== Example: Running full RAG Stanza demo ===")
-    
-    for i, d in enumerate(tqdm(EXAMPLE_DATA, desc="Processing RAG")):
-        logger.info(f">>> Chunk {i + 1}")
-        results = run_rag_stanza_demo(d["content"])
-        logger.teal(f"\nParsed {len(results['parsed_sentences'])} sentences.")
-        logger.teal(f"Built {len(results['chunks'])} chunks.")
-        final_result = {
-            "chunk_id": d["id"],
-            "chunk_index": d["chunk_index"],
-            "doc_id": d["doc_id"],
-            "doc_index": d["doc_index"],
-            "rag": results["chunks"],
-            "parent_header": d["meta"]["parent_header"],
-            "header": d["meta"]["header"],
-            "content": d["content"],
-            "sentences": results["parsed_sentences"],
-        }
-        yield final_result
+    if query:
+        query_terms = set(query.lower().split())
+        filtered = [
+            s for s in sentences
+            if any(t["lemma"].lower() in query_terms for t in s["tokens"] if t["lemma"])
+        ]
+        print(f"Filtered {len(filtered)} relevant sentences based on query: '{query}'")
+        contexts = filtered or sentences
+    else:
+        contexts = sentences
 
+    # Format for RAG — small chunk dictionary
+    rag_chunks = []
+    for s in contexts:
+        chunk_text = s["text"].strip()
+        if len(chunk_text) < 30:
+            continue
+        rag_chunks.append({
+            "id": s["sentence_id"],
+            "text": chunk_text,
+            "entities": [e["text"] for e in s.get("entities", [])],
+            "token_count": s["token_count"],
+        })
+
+    for c in rag_chunks[:3]:  # preview only first 3 chunks
+        print(f"[Chunk {c['id']}] {shorten(c['text'], width=120)}")
+    return rag_chunks
+
+
+from sklearn.metrics.pairwise import cosine_similarity
+
+
+class SearchResult(TypedDict):
+    rank: int
+    doc_index: int
+    score: float
+    text: str
+
+
+# Try using OllamaEmbeddings if available, otherwise fallback
+try:
+    from jet.llm.ollama.base_langchain import OllamaEmbeddings
+
+    def get_embedding_model():
+        print("\n[Embedding Model] Using OllamaEmbeddings backend...")
+        return OllamaEmbeddings(model="nomic-embed-text")
+
+except ImportError:
+    from sentence_transformers import SentenceTransformer
+
+    def get_embedding_model():
+        print("\n[Embedding Model] Using SentenceTransformers fallback...")
+        return SentenceTransformer("all-MiniLM-L6-v2")
+
+
+def compute_embeddings(texts: List[str], model):
+    """Compute embeddings for list of texts using chosen embedding model."""
+    print(f"\nComputing embeddings for {len(texts)} texts...")
+    if hasattr(model, "embed_documents"):  # Ollama-compatible
+        return model.embed_documents(texts)
+    elif hasattr(model, "encode"):  # SentenceTransformers
+        return model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
+    else:
+        raise TypeError("Unsupported embedding model interface.")
+
+
+def retrieve_similar_chunks(chunks: List[Dict], query: str, model, top_k: int = 3) -> List[SearchResult]:
+    """Retrieve top-K chunks most similar to a query and return them as List[SearchResult]."""
+    print("\n--- Running Similarity Search ---")
+    texts = [c["text"] for c in chunks]
+
+    query_vec = (
+        model.embed_query(query)
+        if hasattr(model, "embed_query")
+        else model.encode([query], convert_to_numpy=True, normalize_embeddings=True)[0]
+    )
+    chunk_vecs = compute_embeddings(texts, model)
+
+    # Compute cosine similarity
+    scores = cosine_similarity([query_vec], chunk_vecs)[0]
+    # List of (idx, score) for each chunk
+    indices_scores = sorted(
+        enumerate(scores),
+        key=lambda x: x[1],
+        reverse=True
+    )
+
+    top = indices_scores[:top_k]
+    search_results: List[SearchResult] = []
+    print(f"\nTop-{top_k} retrieved chunks for query: '{query}'")
+    for rank_i, (doc_index, score) in enumerate(top, start=1):
+        chunk = chunks[doc_index]
+        print(f"({rank_i}) score={score:.3f} | {shorten(chunk['text'], width=100)}")
+        search_results.append({
+            "rank": rank_i,
+            "doc_index": doc_index,
+            "score": float(score),
+            "text": chunk["text"]
+        })
+    return search_results
+
+
+def example_end_to_end_rag_flow(query: str, text: str) -> List[SearchResult]:
+    """Full example: parse → extract → chunk → embed → retrieve."""
+    print("\n==================== RAG Flow Example ====================")
+    pipeline = build_cached_pipeline()
+    sentences = parse_sentences(text, pipeline)
+    chunks = example_build_rag_context(sentences)
+
+    # Step 1: Initialize embedding model
+    model = get_embedding_model()
+
+    # Step 2: Embed and retrieve
+    results = retrieve_similar_chunks(chunks, query, model, top_k=5)
+
+    return results
+
+
+def main(text):
+    """
+    Demonstration entrypoint:
+      1. Build pipeline
+      2. Parse long document
+      3. Extract entities
+      4. Build RAG contexts
+    """
+    pipeline = build_cached_pipeline()
+
+    sentences = example_parse_text(text, pipeline)
+    save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
+    
+    entities = example_extract_entities(sentences)
+    save_file(entities, f"{OUTPUT_DIR}/entities.json")
+
+    rag_chunks = example_build_rag_context(sentences, query="AI regulation efficiency")
+    save_file(rag_chunks, f"{OUTPUT_DIR}/rag_chunks.json")
+
+    
 if __name__ == "__main__":
-    full_demo_stream = example_full_demo()
-    all_results = []
-    for result in full_demo_stream:
-        all_results.append(result)
-        out_path = f"{OUTPUT_DIR}/chunks/doc{result["doc_index"]}_chunk{result["chunk_index"]}.json"
-        save_file(result, out_path)
-    save_file({
-        "count": len(all_results),
-        "results": all_results
-    }, f"{OUTPUT_DIR}/all_results.json")
+    save_file(EXAMPLE_DATA, f"{OUTPUT_DIR}/chunks.json")
+    save_file(EXAMPLE_TEXT, f"{OUTPUT_DIR}/sample.txt")
+
+    query = "Top isekai anime 2025"
+
+    # Keep existing main as is
+    main(EXAMPLE_TEXT)
+
+    # Add full RAG flow demo
+    search_results = example_end_to_end_rag_flow(query, EXAMPLE_TEXT)
+    save_file(search_results, f"{OUTPUT_DIR}/search_results.json")
