@@ -34,6 +34,16 @@ def initialize_pipeline(processors: str = ALL_PROCESSORS, lang: str = "en") -> s
     """Initialize Stanza pipeline with all processors."""
     return stanza.Pipeline(lang=lang, dir=DEFAULT_MODEL_DIR, processors=processors, use_gpu=True)
 
+def full_results_example(text: str) -> list:
+    """Demonstrate tokenization and sentence segmentation."""
+    logger.info("Tokenization Example:")
+    nlp = _load_pipeline()
+    doc = nlp(text)
+    results = []
+    for sent in doc.sentences:
+        results.append(sent.to_dict())
+    return results
+
 def sentences_example(text: str) -> list:
     """Demonstrate tokenization and sentence segmentation."""
     logger.info("Tokenization Example:")
@@ -166,6 +176,7 @@ def main():
     
     # Each example and its filename
     example_funcs = [
+        (full_results_example, "full_results_example"),
         (sentences_example, "sentences_example"),
         (tokenize_example, "tokenize_example"),
         (mwt_example, "mwt_example"),
