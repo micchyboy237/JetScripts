@@ -13,14 +13,16 @@ Run:
     python examples_rag_stanza.py
 """
 
+from contextlib import contextmanager
+import time
+from typing import Any, Dict, List
 from jet.logger import logger
 from jet.libs.stanza.rag_stanza import (
     build_stanza_pipeline,
     parse_sentences,
     build_context_chunks,
-    run_rag_stanza_demo,
 )
-from jet.libs.bertopic.examples.mock import load_sample_data_with_info
+from jet.libs.bertopic.examples.mock import load_sample_data_with_info, ChunkResultWithMeta
 from jet.file.utils import save_file
 from tqdm import tqdm
 import os
@@ -31,51 +33,33 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 # Sample web scraped data with headers separation chunking
-EXAMPLE_DATA = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
-EXAMPLE_TEXT = EXAMPLE_DATA[5]["content"]
+EXAMPLE_DATA: List[ChunkResultWithMeta] = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
 
+@contextmanager
+def timer(description: str) -> None:
+    """Context manager to track and print execution time."""
+    start = time.time()
+    yield
+    elapsed = time.time() - start
+    print(f"{description}: {elapsed:.2f} seconds")
 
-def example_build_pipeline():
-    """Example: build the Stanza pipeline."""
-    print("=== Example: Building Stanza pipeline ===")
-    nlp = build_stanza_pipeline()
-    print("Pipeline successfully created.")
-    return nlp
-
-
-def example_parse_sentences():
-    """Example: parse text into structured sentence data."""
-    print("\n=== Example: Parsing sentences ===")
-    nlp = build_stanza_pipeline()
-    parsed = parse_sentences(EXAMPLE_TEXT, nlp)
-    print(f"Parsed {len(parsed)} sentences.")
-    for i, s in enumerate(parsed[:3]):
-        print(f"\n--- Sentence {i+1} ---")
-        print(f"Text: {s['text']}")
-        print(f"Tokens: {s['tokens']}")
-        print(f"POS: {s['pos']}")
-        print(f"Lemmas: {s['lemmas']}")
-        print(f"Entities: {s['entities']}")
-        print(f"Deps: {s['deps']}")
-    return parsed
-
-
-def example_build_chunks():
-    """Example: build RAG context chunks from parsed sentences."""
-    print("\n=== Example: Building context chunks ===")
-    nlp = build_stanza_pipeline()
-    parsed = parse_sentences(EXAMPLE_TEXT, nlp)
-    chunks = build_context_chunks(parsed, max_tokens=50)
-    print(f"Generated {len(chunks)} chunks.")
-    for i, c in enumerate(chunks, 1):
-        print(f"\n>>> Chunk {i}")
-        print(f"Sentence indices: {c['sent_indices']}")
-        print(f"Token count: {c['tokens']}")
-        print(f"Salience: {c['salience']}")
-        print(f"Entities: {', '.join(c['entities']) if c['entities'] else 'None'}")
-        print(f"Text preview: {c['text'][:150]}...")
-    return chunks
-
+def run_rag_stanza_demo(text: str) -> Dict[str, Any]:
+    """
+    Run the full Stanza-based RAG preprocessing pipeline with progress tracking.
+    Returns a dict with sentence-level and chunk-level information.
+    """
+    with timer("=== Building Stanza pipeline"):
+        nlp = build_stanza_pipeline()
+    
+    with timer("=== Parsing sentences"):
+        parsed_sentences = parse_sentences(text, nlp)
+        print(f"Total sentences parsed: {len(parsed_sentences)}")
+    
+    with timer("=== Creating context chunks for RAG"):
+        chunks = build_context_chunks(parsed_sentences, max_tokens=80)
+        print(f"Generated {len(chunks)} chunks.\n")
+    
+    return {"parsed_sentences": parsed_sentences, "chunks": chunks}
 
 def example_full_demo():
     """Example: run full integrated demo."""
@@ -99,27 +83,7 @@ def example_full_demo():
         }
         yield final_result
 
-
 if __name__ == "__main__":
-    # Sequentially run all examples
-    example_build_pipeline()
-
-    token_counts = [chunk["num_tokens"] for chunk in EXAMPLE_DATA]
-    save_file({
-        "tokens": {
-            "min": min(token_counts),
-            "max": max(token_counts),
-            "ave": sum(token_counts) // len(token_counts),
-        }
-    }, f"{OUTPUT_DIR}/chunks_info.json")
-    save_file(EXAMPLE_DATA, f"{OUTPUT_DIR}/chunks.json")
-
-    parsed_sentences_results = example_parse_sentences()
-    save_file(parsed_sentences_results, f"{OUTPUT_DIR}/parsed_sentences_results.json")
-
-    chunks_results = example_build_chunks()
-    save_file(chunks_results, f"{OUTPUT_DIR}/chunks_results.json")
-
     full_demo_stream = example_full_demo()
     all_results = []
     for result in full_demo_stream:
