@@ -19,15 +19,16 @@ from jet.libs.stanza.rag_stanza2 import (
     build_context_chunks,
     run_rag_stanza_demo,
 )
+from jet.libs.bertopic.examples.mock import load_sample_data
+from jet.file.utils import save_file
+import os
+import shutil
 
-EXAMPLE_TEXT = (
-    "OpenAI unveiled the GPT-5 model in October 2025, showcasing advanced reasoning "
-    "and multilingual understanding capabilities. "
-    "The model can process text, images, and structured data simultaneously. "
-    "Analysts from Gartner believe this integration may redefine enterprise AI search. "
-    "Meanwhile, universities such as MIT and ETH Zurich are testing Stanza-based parsing "
-    "to improve context chunking for retrieval-augmented generation systems."
-)
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+EXAMPLE_TEXT = load_sample_data(model="embeddinggemma", chunk_size=512, truncate=True)[5]
 
 
 def example_build_pipeline():
@@ -84,6 +85,12 @@ def example_full_demo():
 if __name__ == "__main__":
     # Sequentially run all examples
     example_build_pipeline()
-    example_parse_sentences()
-    example_build_chunks()
-    example_full_demo()
+
+    parsed_sentences_results = example_parse_sentences()
+    save_file(parsed_sentences_results, f"{OUTPUT_DIR}/parsed_sentences_results.json")
+
+    chunks_results = example_build_chunks()
+    save_file(chunks_results, f"{OUTPUT_DIR}/chunks_results.json")
+
+    full_demo_results = example_full_demo()
+    save_file(full_demo_results, f"{OUTPUT_DIR}/full_demo_results.json")
