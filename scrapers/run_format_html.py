@@ -1,6 +1,6 @@
 import os
 import shutil
-from jet.code.html_utils import clean_html
+from jet.code.html_utils import clean_html, preprocess_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
@@ -28,6 +28,11 @@ if __name__ == "__main__":
 
     html_str: str = load_file(html_file)
     save_file(html_str, f"{output_dir}/doc.html")
+
+    preprocessed_html_str: str = load_file(html_file)
+    save_file(preprocess_html(html_str, excludes=["head", "nav", "footer", "script", "style"]), f"{output_dir}/doc_preprocessed.html")
+
+    html_str = preprocessed_html_str
 
     doc_markdown = convert_html_to_markdown(html_str, ignore_links=False)
     save_file(doc_markdown, f"{output_dir}/doc_markdown.md")

@@ -12,7 +12,6 @@ Demonstrates:
   - Query-guided context expansion
 """
 
-from pprint import pprint
 from textwrap import shorten
 from typing import List, Dict, TypedDict
 
@@ -46,32 +45,6 @@ def build_cached_pipeline(lang: str = "en") -> stanza.Pipeline:
         use_gpu=False
     )
     return pipeline
-
-
-def example_parse_text(text: str, pipeline: stanza.Pipeline) -> List[Dict]:
-    """Example: parse a long text into structured sentences."""
-    print("\n--- Parsing long text with Stanza ---")
-    sentences = parse_sentences(text, pipeline)
-
-    print(f"\nParsed {len(sentences)} sentences.")
-    pprint(sentences[0], depth=2)  # Show first parsed sentence
-    return sentences
-
-
-def example_extract_entities(sentences: List[Dict]) -> List[Dict]:
-    """Example: extract named entities from parsed sentences."""
-    print("\n--- Extracting Named Entities ---")
-    all_entities = []
-    for sent in sentences:
-        for ent in sent.get("entities", []):
-            all_entities.append({
-                "sentence_id": sent["sentence_id"],
-                "entity": ent["text"],
-                "type": ent["type"],
-                "lemma": ent["lemma"]
-            })
-    pprint(all_entities)
-    return all_entities
 
 
 def example_build_rag_context(sentences: List[Dict], query: str = None) -> List[Dict]:
@@ -199,35 +172,12 @@ def example_end_to_end_rag_flow(query: str, text: str) -> List[SearchResult]:
 
     return results
 
-
-def main(text):
-    """
-    Demonstration entrypoint:
-      1. Build pipeline
-      2. Parse long document
-      3. Extract entities
-      4. Build RAG contexts
-    """
-    pipeline = build_cached_pipeline()
-
-    sentences = example_parse_text(text, pipeline)
-    save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
-    
-    entities = example_extract_entities(sentences)
-    save_file(entities, f"{OUTPUT_DIR}/entities.json")
-
-    rag_chunks = example_build_rag_context(sentences, query="AI regulation efficiency")
-    save_file(rag_chunks, f"{OUTPUT_DIR}/rag_chunks.json")
-
     
 if __name__ == "__main__":
     save_file(EXAMPLE_DATA, f"{OUTPUT_DIR}/chunks.json")
     save_file(EXAMPLE_TEXT, f"{OUTPUT_DIR}/sample.txt")
 
     query = "Top isekai anime 2025"
-
-    # Keep existing main as is
-    main(EXAMPLE_TEXT)
 
     # Add full RAG flow demo
     search_results = example_end_to_end_rag_flow(query, EXAMPLE_TEXT)
