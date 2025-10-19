@@ -30,6 +30,7 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
+# Sample web scraped data with headers separation chunking
 EXAMPLE_DATA = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
 EXAMPLE_TEXT = EXAMPLE_DATA[5]["content"]
 
