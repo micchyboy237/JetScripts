@@ -30,8 +30,8 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-EXAMPLE_TEXTS = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
-EXAMPLE_TEXT = EXAMPLE_TEXTS[5]["content"]
+EXAMPLE_DATA = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
+EXAMPLE_TEXT = EXAMPLE_DATA[5]["content"]
 
 
 def example_build_pipeline():
@@ -79,17 +79,36 @@ def example_build_chunks():
 def example_full_demo():
     """Example: run full integrated demo."""
     logger.debug("\n=== Example: Running full RAG Stanza demo ===")
-    for i, chunk in enumerate(tqdm(EXAMPLE_TEXTS, desc="Processing RAG")):
+    
+    for i, d in enumerate(tqdm(EXAMPLE_DATA, desc="Processing RAG")):
         logger.info(f">>> Chunk {i + 1}")
-        results = run_rag_stanza_demo(chunk)
+        results = run_rag_stanza_demo(d["content"])
         logger.teal(f"\nParsed {len(results['parsed_sentences'])} sentences.")
         logger.teal(f"Built {len(results['chunks'])} chunks.")
-    return results
+        final_result = {
+            "chunk_id": d["id"],
+            "chunk_index": d["chunk_index"],
+            "doc_id": d["doc_id"],
+            "doc_index": d["doc_index"],
+            "content": d["content"],
+            "rag": results
+        }
+        yield final_result
 
 
 if __name__ == "__main__":
     # Sequentially run all examples
     example_build_pipeline()
+
+    token_counts = [chunk["num_tokens"] for chunk in EXAMPLE_DATA]
+    save_file({
+        "tokens": {
+            "min": min(token_counts),
+            "max": max(token_counts),
+            "ave": sum(token_counts) // len(token_counts),
+        }
+    }, f"{OUTPUT_DIR}/chunks_info.json")
+    save_file(EXAMPLE_DATA, f"{OUTPUT_DIR}/chunks.json")
 
     parsed_sentences_results = example_parse_sentences()
     save_file(parsed_sentences_results, f"{OUTPUT_DIR}/parsed_sentences_results.json")
@@ -97,5 +116,13 @@ if __name__ == "__main__":
     chunks_results = example_build_chunks()
     save_file(chunks_results, f"{OUTPUT_DIR}/chunks_results.json")
 
-    full_demo_results = example_full_demo()
-    save_file(full_demo_results, f"{OUTPUT_DIR}/full_demo_results.json")
+    full_demo_stream = example_full_demo()
+    all_results = []
+    for result in full_demo_stream:
+        all_results.append(result)
+        out_path = f"{OUTPUT_DIR}/chunks/doc{result["doc_index"]}_chunk{result["chunk_index"]}.json"
+        save_file(result, out_path)
+    save_file({
+        "count": len(all_results),
+        "results": all_results
+    }, f"{OUTPUT_DIR}/all_results.json")
