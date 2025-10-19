@@ -90,8 +90,11 @@ def example_full_demo():
             "chunk_index": d["chunk_index"],
             "doc_id": d["doc_id"],
             "doc_index": d["doc_index"],
+            "rag": results["chunks"],
+            "parent_header": d["meta"]["parent_header"],
+            "header": d["meta"]["header"],
             "content": d["content"],
-            "rag": results
+            "sentences": results["parsed_sentences"],
         }
         yield final_result
 
