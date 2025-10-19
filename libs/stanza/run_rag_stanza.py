@@ -13,14 +13,16 @@ Run:
     python examples_rag_stanza.py
 """
 
+from jet.logger import logger
 from jet.libs.stanza.rag_stanza import (
     build_stanza_pipeline,
     parse_sentences,
     build_context_chunks,
     run_rag_stanza_demo,
 )
-from jet.libs.bertopic.examples.mock import load_sample_data
+from jet.libs.bertopic.examples.mock import load_sample_data_with_info
 from jet.file.utils import save_file
+from tqdm import tqdm
 import os
 import shutil
 
@@ -28,7 +30,8 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-EXAMPLE_TEXT = load_sample_data(model="embeddinggemma", chunk_size=512, truncate=True)[5]
+EXAMPLE_TEXTS = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, chunk_overlap=64)
+EXAMPLE_TEXT = EXAMPLE_TEXTS[5]["content"]
 
 
 def example_build_pipeline():
@@ -75,10 +78,12 @@ def example_build_chunks():
 
 def example_full_demo():
     """Example: run full integrated demo."""
-    print("\n=== Example: Running full RAG Stanza demo ===")
-    results = run_rag_stanza_demo(EXAMPLE_TEXT)
-    print(f"\nParsed {len(results['parsed_sentences'])} sentences.")
-    print(f"Built {len(results['chunks'])} chunks.")
+    logger.debug("\n=== Example: Running full RAG Stanza demo ===")
+    for i, chunk in enumerate(tqdm(EXAMPLE_TEXTS, desc="Processing RAG")):
+        logger.info(f">>> Chunk {i + 1}")
+        results = run_rag_stanza_demo(chunk)
+        logger.teal(f"\nParsed {len(results['parsed_sentences'])} sentences.")
+        logger.teal(f"Built {len(results['chunks'])} chunks.")
     return results
 
 
