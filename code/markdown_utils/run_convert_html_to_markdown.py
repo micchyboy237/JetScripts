@@ -6,6 +6,15 @@ from jet.file.utils import save_file
 
 sample_html = """
 <p>Visit <a href="https://example.com" title="Example Site Tooltip">this site</a> for more info.</p>
+<ul class="table-content-list">
+    <li class="table-content-element icon">
+        <div class="table-content-link">
+            <a href="#2025-isekai-anime-sequels">
+                2025 Isekai Anime Sequels
+            </a>
+        </div>
+    </li>
+</ul>
 """
 
 if __name__ == "__main__":
