@@ -118,7 +118,7 @@ def main():
 
     console.print("[bold green]>>> Loading RAG pipeline...[/bold green]")
     pipeline = RAGPipeline(
-        model_name="all-MiniLM-L6-v2",
+        model_name="embeddinggemma",
         use_markdown=(args.chunk_mode == "markdown"),
         stride_ratio=args.stride_ratio,
     )
