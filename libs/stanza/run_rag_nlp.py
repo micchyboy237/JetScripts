@@ -131,6 +131,7 @@ def main():
         chunks = pipeline.prepare_chunks(doc)
         all_chunks.extend(chunks)
     console.print(f"[bold cyan]>>> Created {len(all_chunks)} chunks[/bold cyan]")
+    save_file([chunk.to_dict() for chunk in all_chunks], f"{OUTPUT_DIR}/all_chunks.json")
 
     if args.with_topics:
         console.print("[bold yellow]>>> Fitting BERTopic model for topic tagging...[/bold yellow]")
@@ -146,6 +147,7 @@ def main():
         diversity=args.diversity if args.use_mmr else None,
     )
     results_table = show_results(args.query, results)
+    save_file([result.to_dict() for result in results], f"{OUTPUT_DIR}/search_results.json")
 
     if args.debug:
         for idx, c in enumerate(results):
@@ -153,9 +155,7 @@ def main():
             console.print(f"[cyan]Section:[/cyan] {c.section_title}")
             console.print(f"[yellow]Tokens:[/yellow] {len(c.text.split())}")
             console.print(f"[white]{c.text}[/white]\n")
-
-    save_file([chunk.to_dict() for chunk in all_chunks], f"{OUTPUT_DIR}/all_chunks.json")
-    save_file([result.to_dict() for result in results], f"{OUTPUT_DIR}/search_results.json")
+    
     save_file(results_table, f"{OUTPUT_DIR}/results.json")
     save_file(results_table, f"{OUTPUT_DIR}/table.md")
 

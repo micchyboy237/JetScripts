@@ -12,8 +12,12 @@ def run_example_rag_bertopic():
     """Demonstrates RAG retrieval with varying document sets and queries."""
 
     docs = load_sample_data(model="embeddinggemma", chunk_size=512, truncate=True, convert_plain_text=True)
+
     rag = TopicRAG(verbose=True)
+    
     rag.fit_topics(docs)
+    save_file(rag.model.get_topic_info().to_dict(orient="records"), f"{OUTPUT_DIR}/topic_info.json")
+
     search_results = rag.retrieve_for_query("Top isekai anime 2025")
     save_file(search_results, f"{OUTPUT_DIR}/search_results.json")
 
