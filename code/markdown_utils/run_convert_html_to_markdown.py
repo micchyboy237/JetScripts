@@ -1,22 +1,41 @@
 import os
 import shutil
 
-from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
+from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.file.utils import save_file
 
-sample_html = """
-<p>Visit <a href="https://example.com" title="Example Site Tooltip">this site</a> for more info.</p>
-<a href="#2025-isekai-anime-sequels">
-    2025 Isekai Anime Sequels
-</a>
-<ul class="table-content-list">
-    <li class="table-content-element icon">
-        <div class="table-content-link">
-            <a href="#2025-isekai-anime-sequels">
-                2025 Isekai Anime Sequels
-            </a>
-        </div>
-    </li>
+html1 = """
+<ul>
+  <li>Item 1</li>
+  <li>Item 2
+    <ol>
+      <li>Step 2.1</li>
+      <li>Step 2.2
+        <ul>
+          <li>Sub-step 2.2.1</li>
+          <li>Sub-step 2.2.2</li>
+        </ul>
+      </li>
+    </ol>
+  </li>
+  <li>Item 3</li>
+</ul>
+"""
+
+html2 = """
+<ul>
+  <li>Term 1
+    <dl>
+      <dt>Definition term</dt>
+      <dd>Definition description</dd>
+    </dl>
+  </li>
+  <li>Term 2
+    <dl>
+      <dt>Another term</dt>
+      <dd>Another description</dd>
+    </dl>
+  </li>
 </ul>
 """
 
@@ -25,14 +44,8 @@ if __name__ == "__main__":
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     shutil.rmtree(output_dir, ignore_errors=True)
 
-    converted_markdown_with_links = convert_html_to_markdown(sample_html, ignore_links=False)
-    converted_markdown_no_links = convert_html_to_markdown(sample_html, ignore_links=True)
+    md_content1 = convert_html_to_markdown(html1, ignore_links=True)
+    save_file(md_content1, f"{output_dir}/md_content1.md")
 
-    save_file(converted_markdown_with_links, f"{output_dir}/converted_markdown_with_links.md")
-    save_file(converted_markdown_no_links, f"{output_dir}/converted_markdown_no_links.md")
-
-    html_with_links = convert_markdown_to_html(converted_markdown_with_links)
-    html_no_links = convert_markdown_to_html(converted_markdown_no_links)
-
-    save_file(html_with_links, f"{output_dir}/html_with_links.html")
-    save_file(html_no_links, f"{output_dir}/html_no_links.html")
+    md_content2 = convert_html_to_markdown(html2, ignore_links=True)
+    save_file(md_content2, f"{output_dir}/md_content2.md")

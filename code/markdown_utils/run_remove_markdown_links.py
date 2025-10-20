@@ -5,6 +5,7 @@ from jet.file.utils import save_file
 from jet.logger import logger
 
 text_with_sample_md_links = """
+Visit [Google](https://www.google.com) now
 [ ](/)
 [ ](/db/ \"Database\") [ ](/threads/ \"Threads\")
 With [Go to home](/) text
@@ -23,9 +24,9 @@ if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    result = remove_markdown_links(text_with_sample_md_links)
+    result = remove_markdown_links(text_with_sample_md_links, remove_text=True)
 
-    logger.debug(f"\nText: '{text_with_sample_md_links}'")
-    logger.success(f"Result: '{result}'")
+    logger.debug(f'\n"""\n{text_with_sample_md_links}\n"""')
+    logger.success(f'\n"""\n{result}\n"""')
 
     save_file(result, f"{output_dir}/result.txt")
