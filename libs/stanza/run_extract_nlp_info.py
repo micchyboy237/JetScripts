@@ -4,11 +4,18 @@ from typing import List
 from jet.code.markdown_utils import base_parse_markdown, convert_markdown_to_text
 import stanza
 from tqdm import tqdm
-from jet.libs.bertopic.examples.mock import load_sample_data
+from jet.libs.bertopic.examples.mock import load_sample_data_with_info
 from jet.code.extraction.sentence_extraction import extract_sentences
+from jet.adapters.stanza.ner_visualization import visualize_ner_str as visualize_ner
+from jet.adapters.stanza.dependency_visualization import visualize_str as visualize_dep
+from jet.adapters.stanza.semgrex_visualization import visualize_search_str as visualize_sem
 from jet._token.token_utils import token_counter
 from jet.file.utils import save_file
 from jet.logger import logger
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 DEFAULT_MODEL_DIR = os.getenv(
     'STANZA_RESOURCES_DIR',
@@ -163,48 +170,84 @@ def constituency_example(text: str) -> list:
         parse_trees.append(str(sent.constituency))
     return parse_trees
 
+def visualize_ner_example(text: str) -> str:
+    nlp = _load_pipeline()
+    return visualize_ner(text, nlp)
+
+def visualize_dep_example(text: str) -> str:
+    nlp = _load_pipeline()
+    return visualize_dep(text, "en", nlp)
+
+def visualize_sem_example(text: str) -> str:
+    nlp = _load_pipeline()
+    queries = ["{pos:NN}=object <obl {}=action",
+               "{cpos:NOUN}=thing <obj {cpos:VERB}=action"]
+    return visualize_sem(text, queries, "en", nlp)
+
 def main():
     """Run all processor examples on each document sequentially and save results with progress tracking."""
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    shutil.rmtree(output_dir, ignore_errors=True)
-    os.makedirs(output_dir, exist_ok=True)
-
     # Load all documents
-    docs = load_sample_data(model="embeddinggemma", chunk_size=200, truncate=True)
-    save_file(docs, f"{output_dir}/docs.json")
+    chunks = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, truncate=True)
+    save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
+
+    token_counts = [chunk["num_tokens"] for chunk in chunks]
+    save_file({
+        "chunks": len(chunks),
+        "tokens": {
+            "min": min(token_counts),
+            "max": max(token_counts),
+            "ave": sum(token_counts) // len(token_counts),
+        }
+    }, f"{OUTPUT_DIR}/info.json")
+
+    headers = [{
+        "doc_index": chunk["doc_index"],
+        "content_tokens": chunk["num_tokens"],
+        "header": chunk["meta"]["header"],
+    } for chunk in chunks]
+    save_file(headers, f"{OUTPUT_DIR}/headers.json")
     
     # Each example and its filename
     example_funcs = [
-        (full_results_example, "full_results_example"),
-        (sentences_example, "sentences_example"),
-        (tokenize_example, "tokenize_example"),
-        (mwt_example, "mwt_example"),
-        (pos_example, "pos_example"),
-        (lemma_example, "lemma_example"),
-        (depparse_example, "depparse_example"),
-        (ner_example, "ner_example"),
-        (sentiment_example, "sentiment_example"),
-        (constituency_example, "constituency_example"),
+        (full_results_example, "full_results"),
+        (sentences_example, "sentences"),
+        (tokenize_example, "tokenize"),
+        (mwt_example, "mwt"),
+        (pos_example, "pos"),
+        (lemma_example, "lemma"),
+        (depparse_example, "depparse"),
+        (ner_example, "ner"),
+        (sentiment_example, "sentiment"),
+        (constituency_example, "constituency"),
+    ]
+
+    example_visualization_funcs = [
+        (visualize_ner_example, "visualize_ner"),
+        (visualize_dep_example, "visualize_dep"),
+        (visualize_sem_example, "visualize_sem"),
     ]
     
+    chunk_texts = [chunk["content"] for chunk in chunks]
     saved_files = []
     # Process each document
-    for doc_idx, md_content in enumerate(tqdm(docs, desc="Processing documents", unit="doc")):
-        doc_dir = os.path.join(output_dir, f"doc_{doc_idx + 1}")
-        os.makedirs(doc_dir, exist_ok=True)
-
-        save_file(md_content, os.path.join(doc_dir, "doc.md"))
-        save_file(base_parse_markdown(md_content, ignore_links=True), os.path.join(doc_dir, "md_tokens.json"))
-
+    for doc_idx, md_content in enumerate(tqdm(chunk_texts, desc="Processing documents", unit="doc")):
         text = convert_markdown_to_text(md_content)
-        save_file(text, os.path.join(doc_dir, "doc.txt"))
+        sentences = extract_sentences(text, valid_only=True)
 
-        sentences = extract_sentences(text)
+        if not sentences:
+            continue
+
+        doc_dir = os.path.join(OUTPUT_DIR, f"doc_{doc_idx + 1}")
+        os.makedirs(doc_dir, exist_ok=True)
         save_file({
             "tokens": token_counter(text, "embeddinggemma"),
             "sentences": len(sentences),
         }, os.path.join(doc_dir, "info.json"))
+        save_file(md_content, os.path.join(doc_dir, "doc.md"))
+        save_file(base_parse_markdown(md_content, ignore_links=True), os.path.join(doc_dir, "md_tokens.json"))
+
+        save_file(text, os.path.join(doc_dir, "doc.txt"))
+
 
         token_counts: List[int] = token_counter(sentences, "embeddinggemma", prevent_total=True)
         save_file(
@@ -220,6 +263,12 @@ def main():
             results = func(text)
             output_path = os.path.join(doc_dir, "tasks", f"{func_name}.json")
             save_file([{"doc_id": doc_idx, "results": results}], output_path)
+            saved_files.append(output_path)
+
+        for func, func_name in tqdm(example_visualization_funcs, desc=f"Visualization for doc_{doc_idx + 1}", unit="visualization", leave=False):
+            html = func(text)
+            output_path = os.path.join(doc_dir, "visualization", f"{func_name}.html")
+            save_file(html, output_path)
             saved_files.append(output_path)
     
     # Summarize where the results were written

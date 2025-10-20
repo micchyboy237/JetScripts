@@ -1,8 +1,8 @@
 from tqdm import tqdm
 from jet.code.markdown_utils import convert_html_to_markdown, convert_markdown_to_text, derive_by_header_hierarchy
 from jet.code.extraction import extract_sentences
-from jet.wordnet.validators.sentence_validator import is_valid_sentence
 from jet.file.utils import load_file, save_file
+from jet.logger import logger
 import os
 import shutil
 
@@ -35,12 +35,12 @@ def main():
         save_file(text, f"{header_dir}/rag_text.txt")
 
         # Optional: nested progress tracking if extract_sentences is slow
-        sentences = extract_sentences(text, use_gpu=True)
+        sentences = extract_sentences(text, use_gpu=True, valid_only=True)
 
-        # Filter valid sentences
-        sentences = [s for s in tqdm(sentences, desc=f"Filtering valid sentences for header {idx + 1}") if is_valid_sentence(s)]
-
-        save_file(sentences, f"{header_dir}/rag_sentences.json")
+        if sentences:
+            save_file(sentences, f"{header_dir}/rag_sentences.json")
+        else:
+            logger.warning(f"No valid sentences for header {idx + 1}")
 
 if __name__ == "__main__":
     main()

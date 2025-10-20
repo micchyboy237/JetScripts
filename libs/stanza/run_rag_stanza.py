@@ -32,7 +32,7 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 # Sample web scraped data
-EXAMPLE_DATA: List[str] = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, truncate=True)
+EXAMPLE_DATA = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, truncate=True, convert_plain_text=True)
 EXAMPLE_TEXT = EXAMPLE_DATA[4]["content"]
 
 
