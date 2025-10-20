@@ -98,7 +98,7 @@ def main():
     stride_ratio = 0.3
     diversity = 0.5
     use_mmr = False  # Set True to enable MMR-based retrieval
-    with_topics = False  # Set True to enable BERTopic topic tagging
+    with_topics = True  # Set True to enable BERTopic topic tagging
     debug = False  # Set True to print debug info
     class Args:
         pass
