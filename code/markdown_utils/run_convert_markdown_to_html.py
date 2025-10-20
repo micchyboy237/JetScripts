@@ -1,7 +1,7 @@
 import os
 
 from jet.file.utils import save_file
-import markdown
+from jet.code.markdown_utils._converters import convert_markdown_to_html
 
 md_content1 = """
 Sample title
@@ -140,37 +140,12 @@ He said, "Hello..." and used -- and --- in text.
 This is a [[WikiLink]].
 """
 
-def md_to_html(md):
-    extensions = [
-        "markdown.extensions.extra",
-        "markdown.extensions.abbr",
-        "markdown.extensions.attr_list",
-        "markdown.extensions.def_list",
-        "markdown.extensions.fenced_code",
-        "markdown.extensions.footnotes",
-        "markdown.extensions.md_in_html",
-        "markdown.extensions.tables",
-        "markdown.extensions.admonition",
-        "markdown.extensions.codehilite",
-        "markdown.extensions.legacy_attrs",
-        "markdown.extensions.legacy_em",
-        "markdown.extensions.meta",
-        "markdown.extensions.nl2br",
-        "markdown.extensions.sane_lists",
-        "markdown.extensions.smarty",
-        "markdown.extensions.toc",
-        "markdown.extensions.wikilinks",
-    ]
-
-    html_content = markdown.markdown(md, extensions=extensions)
-    return html_content
-
 if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(
         __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    converted_html_1 = md_to_html(md_content1)
-    converted_html_2 = md_to_html(md_content2)
+    converted_html_1 = convert_markdown_to_html(md_content1)
+    converted_html_2 = convert_markdown_to_html(md_content2)
 
     save_file(converted_html_1, f"{output_dir}/converted_html_1.html")
     save_file(converted_html_2, f"{output_dir}/converted_html_2.html")
