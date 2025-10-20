@@ -137,6 +137,7 @@ def main():
         console.print("[bold yellow]>>> Fitting BERTopic model for topic tagging...[/bold yellow]")
         topic_model = tag_topics(all_chunks, pipeline.embedder)
         console.print(f"[green]Found {len(set([c.metadata['topic'] for c in all_chunks]))} topics[/green]")
+        save_file(topic_model.get_topic_info().to_dict(orient="records"), f"{OUTPUT_DIR}/topic_info.json")
 
     console.print(f"[bold blue]>>> Running {'MMR' if args.use_mmr else 'similarity'} retrieval for query:[/bold blue] '{args.query}'")
     results = pipeline.retrieve(
