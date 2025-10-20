@@ -154,10 +154,10 @@ def main():
             console.print(f"[yellow]Tokens:[/yellow] {len(c.text.split())}")
             console.print(f"[white]{c.text}[/white]\n")
 
-    save_file(all_chunks, f"{OUTPUT_DIR}/all_chunks.json")
-    save_file(results, f"{OUTPUT_DIR}/search_results.json")
-    save_file(results_table, f"{OUTPUT_DIR}/results_table.json")
-    save_file(results_table, f"{OUTPUT_DIR}/results_table.md")
+    save_file([chunk.to_dict() for chunk in all_chunks], f"{OUTPUT_DIR}/all_chunks.json")
+    save_file([result.to_dict() for result in results], f"{OUTPUT_DIR}/search_results.json")
+    save_file(results_table, f"{OUTPUT_DIR}/results.json")
+    save_file(results_table, f"{OUTPUT_DIR}/table.md")
 
 
 if __name__ == "__main__":
