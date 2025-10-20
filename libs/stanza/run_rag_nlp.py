@@ -92,7 +92,7 @@ def show_results(query: str, chunks: List[Chunk]):
 def main():
     # Replace argparse with static variables
     query = "Top isekai anime 2025"
-    docs = f"{os.path.dirname(__file__)}/sample_docs"
+    docs = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/stanza/sample_docs"
     chunk_mode = "markdown"  # options: "markdown", "sentence"
     top_k = 10
     stride_ratio = 0.3
