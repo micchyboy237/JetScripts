@@ -231,14 +231,22 @@ def main():
     saved_files = []
     # Process each document
     for doc_idx, md_content in enumerate(tqdm(chunk_texts, desc="Processing documents", unit="doc")):
+        doc_dir = os.path.join(OUTPUT_DIR, f"doc_{doc_idx + 1}")
+        os.makedirs(doc_dir, exist_ok=True)
+
         text = convert_markdown_to_text(md_content)
         sentences = extract_sentences(text, valid_only=True)
 
-        if not sentences:
-            continue
+        if sentences:
+            token_counts: List[int] = token_counter(sentences, "embeddinggemma", prevent_total=True)
+            save_file(
+                [{
+                    "tokens": tokens,
+                    "sentence": sentence
+                } for tokens, sentence in zip(token_counts, sentences)],
+                os.path.join(doc_dir, "sentences.json"),
+            )
 
-        doc_dir = os.path.join(OUTPUT_DIR, f"doc_{doc_idx + 1}")
-        os.makedirs(doc_dir, exist_ok=True)
         save_file({
             "tokens": token_counter(text, "embeddinggemma"),
             "sentences": len(sentences),
@@ -247,16 +255,6 @@ def main():
         save_file(base_parse_markdown(md_content, ignore_links=True), os.path.join(doc_dir, "md_tokens.json"))
 
         save_file(text, os.path.join(doc_dir, "doc.txt"))
-
-
-        token_counts: List[int] = token_counter(sentences, "embeddinggemma", prevent_total=True)
-        save_file(
-            [{
-                "tokens": tokens,
-                "sentence": sentence
-            } for tokens, sentence in zip(token_counts, sentences)],
-            os.path.join(doc_dir, "sentences.json"),
-        )
         
         # Process all example functions for the current document
         for func, func_name in tqdm(example_funcs, desc=f"Processing tasks for doc_{doc_idx + 1}", unit="task", leave=False):
