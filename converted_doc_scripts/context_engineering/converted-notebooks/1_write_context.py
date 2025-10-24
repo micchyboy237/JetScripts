@@ -117,7 +117,7 @@ chain = workflow.compile()
 
 # display(Image(chain.get_graph().draw_mermaid_png()))
 render_mermaid_graph(
-    chain, output_filename=f"{OUTPUT_DIR}/graph_output1.png")
+    chain, output_filename=f"{OUTPUT_DIR}/workflow_graph1.png")
 
 joke_generator_state = chain.invoke({"topic": "cats"})
 
@@ -229,7 +229,7 @@ chain = workflow.compile(checkpointer=checkpointer, store=memory_store)
 
 # display(Image(chain.get_graph().draw_mermaid_png()))
 render_mermaid_graph(
-    chain, output_filename=f"{OUTPUT_DIR}/graph_output2.png")
+    chain, output_filename=f"{OUTPUT_DIR}/workflow_graph2.png")
 
 config = {"configurable": {"thread_id": "1"}}
 joke_generator_state = chain.invoke({"topic": "cats"}, config)

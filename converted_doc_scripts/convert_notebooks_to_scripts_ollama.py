@@ -266,23 +266,28 @@ def read_notebook_file(file, with_markdown=False):
     cells = source_dict.get('cells', [])
     source_groups = []
     for cell in cells:
-        code_lines = []
-        for line in cell.get('source', []):
-            if cell.get('cell_type') == 'code':
+        cell_source = cell.get('source', [])
+        # Join lines correctly: Jupyter stores lines with \n already included
+        code = ''.join(cell_source)
+        if cell.get('cell_type') == 'code':
+            # Split and process code lines
+            lines = code.splitlines(True)  # Keep trailing newlines
+            processed_lines = []
+            for line in lines:
                 if line.strip().startswith('#'):
                     continue
-                if not line.endswith('\n'):
-                    line += '\n'
                 if line.strip().startswith(('%', '!')) and not line.strip().startswith('#'):
                     line = "# " + line
-                code_lines.append(line)
-            elif with_markdown:
-                if not line.endswith('\n'):
-                    line += '\n'
-                code_lines.append(line)
+                processed_lines.append(line)
+            code = ''.join(processed_lines)
+        elif with_markdown:
+            # Keep markdown as-is, ensure trailing newline
+            if not code.endswith('\n'):
+                code += '\n'
+
         source_groups.append({
             "type": "text" if cell.get('cell_type') != "code" else "code",
-            "code": "".join(code_lines).strip()
+            "code": code.rstrip('\n') + '\n'  # Normalize: strip trailing, add one
         })
     return source_groups
 
@@ -296,25 +301,30 @@ def read_markdown_file(file):
     extractor = MarkdownCodeExtractor()
     code_blocks = extractor.extract_code_blocks(source, with_text=True)
     source_groups = []
-    for code_block in code_blocks:
-        type = code_block["language"]
-        lines = code_block["code"].splitlines()
-        code_lines = []
-        for line in lines:
-            if type != 'text':
+    for block in code_blocks:
+        lang = block["language"]
+        code = block["code"]
+        if lang != 'text':
+            lines = code.splitlines(True)
+            processed = []
+            for line in lines:
                 if line.strip().startswith('#'):
                     continue
-                if not line.endswith('\n'):
-                    line += '\n'
-            else:
-                if not line.endswith('\n'):
-                    line += '\n'
+                processed.append(line)
+            code = ''.join(processed)
+        else:
+            if not code.endswith('\n'):
+                code += '\n'
+            lines = code.splitlines(True)
+            processed = []
+            for line in lines:
                 if line.strip().startswith('pip install') and not line.strip().startswith('#'):
                     line = "# " + line
-            code_lines.append(line)
+                processed.append(line)
+            code = ''.join(processed)
         source_groups.append({
-            "type": "code" if type != "text" else "text",
-            "code": "".join(code_lines).strip()
+            "type": "code" if lang != "text" else "text",
+            "code": code.rstrip('\n') + '\n'
         })
     return source_groups
 
@@ -724,18 +734,6 @@ if __name__ == "__main__":
     ]
     repo_dirs = list_folders(repo_base_dir)
     input_base_dirs = [
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/langchain",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/llama_index",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/BERTopic",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/autogen",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/agents-towards-production",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/deepeval",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/BERTopic/docs",
-        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/KeyBERT/docs",
         "/Users/jethroestrada/Desktop/External_Projects/AI/examples/context_engineering/context_engineering",
     ]
     include_files = [
