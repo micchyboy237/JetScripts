@@ -392,13 +392,7 @@ Now, implement an agent that can select context from the tool.
 logger.info("Now, implement an agent that can select context from the tool.")
 
 tools = [retriever_tool]
-
-# CORRECT: Build available_functions from tool objects
-available_functions = {}
-for tool in tools:
-    if hasattr(tool, "name") and callable(tool.func):
-        available_functions[tool.name] = tool.func
-
+tools_by_name = {tool.name: tool for tool in tools}
 llm_with_tools = llm.bind_tools(tools)
 
 
