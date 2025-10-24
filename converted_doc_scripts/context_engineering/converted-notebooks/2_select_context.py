@@ -1,7 +1,8 @@
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
+from jet.adapters.langchain.embed_llama_cpp import EmbedLlamaCpp
+from jet.models.utils import get_embedding_size
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.logger import logger
-from langchain.embeddings import init_embeddings
 from langchain.tools.retriever import create_retriever_tool
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.messages import SystemMessage, ToolMessage
@@ -271,12 +272,15 @@ tool_registry = {
     for tool in all_tools
 }
 
-embeddings = init_embeddings("ollama:nomic-embed-text")
+# embeddings = init_embeddings("ollama:nomic-embed-text")
+embeddings = EmbedLlamaCpp(
+    model="embeddinggemma",
+)
 
 store = InMemoryStore(
     index={
         "embed": embeddings,
-        "dims": 1536,
+        "dims": get_embedding_size("embeddinggemma"),
         "fields": ["description"],
     }
 )
