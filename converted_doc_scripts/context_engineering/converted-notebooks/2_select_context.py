@@ -20,7 +20,6 @@ convert_positional_only_function_to_tool
 from rich.console import Console
 from typing import TypedDict
 from typing_extensions import Literal
-from utils import format_messages
 import math
 import os
 import shutil
@@ -300,7 +299,7 @@ agent
 
 query = "Use available tools to calculate arc cosine of 0.5."
 result = agent.invoke({"messages": query})
-format_messages(result['messages'])
+logger.success(result['messages'])
 
 """
 ### Learn more
@@ -463,7 +462,7 @@ render_mermaid_graph(
 
 query = "What are the types of reward hacking discussed in the blogs?"
 result = agent.invoke({"messages": query})
-format_messages(result['messages'])
+logger.success(result['messages'])
 
 
 
