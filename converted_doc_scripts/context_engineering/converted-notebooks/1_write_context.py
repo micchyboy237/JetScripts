@@ -1,7 +1,8 @@
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 # from IPython.display import Image, display
 from jet.logger import logger
-from langchain.chat_models import init_chat_model
+# from langchain.chat_models import init_chat_model
+from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.store.base import BaseStore
@@ -74,14 +75,20 @@ logger.info("Once we've defined a state object, how do write context to it?")
 
 
 
-def _set_env(var: str) -> None:
-    """Set environment variable if not already set."""
-    if not os.environ.get(var):
+# def _set_env(var: str) -> None:
+    # """Set environment variable if not already set."""
+    # if not os.environ.get(var):
 #         os.environ[var] = getpass.getpass(f"{var}: ")
 
 
 # _set_env("ANTHROPIC_API_KEY")
-llm = init_chat_model("ollama:claude-sonnet-4-20250514", temperature=0)
+# llm = init_chat_model("ollama:claude-sonnet-4-20250514", temperature=0)
+llm = ChatLlamaCpp(
+    model="qwen3-instruct-2507:4b",  # must match model loaded in server
+    base_url="http://shawn-pc.local:8080/v1",
+    api_key="sk-1234",
+    temperature=0.0,
+)
 
 
 def generate_joke(state: State) -> dict[str, str]:
