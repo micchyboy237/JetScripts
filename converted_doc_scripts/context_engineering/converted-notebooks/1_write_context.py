@@ -1,3 +1,5 @@
+from jet.adapters.langchain.embed_llama_cpp import EmbedLlamaCpp
+from jet.models.utils import get_embedding_size
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 # from IPython.display import Image, display
 from jet.logger import logger
@@ -153,8 +155,17 @@ Let's create an `InMemoryStore` for use across a few different sessions in our n
 """
 logger.info("#### Learn More")
 
+embeddings = EmbedLlamaCpp(
+    model="embeddinggemma",
+)
 
-store = InMemoryStore()
+# store = InMemoryStore()
+store = InMemoryStore(
+    index={
+        "embed": embeddings,
+        "dims": get_embedding_size("embeddinggemma"),
+    }
+)
 
 namespace = ("rlm", "joke_generator")
 
@@ -188,7 +199,12 @@ logger.info("Now, let's just embed what we did inside a LangGraph workflow.")
 
 
 checkpointer = InMemorySaver()  # For thread-level state persistence
-memory_store = InMemoryStore()  # For cross-thread memory storage
+memory_store = InMemoryStore(
+    index={
+        "embed": embeddings,
+        "dims": get_embedding_size("embeddinggemma"),
+    }
+)  # For cross-thread memory storage
 
 
 def generate_joke(state: State, store: BaseStore) -> dict[str, str]:
