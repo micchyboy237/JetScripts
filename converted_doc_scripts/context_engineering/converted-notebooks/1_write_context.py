@@ -85,8 +85,6 @@ logger.info("Once we've defined a state object, how do write context to it?")
 # llm = init_chat_model("ollama:claude-sonnet-4-20250514", temperature=0)
 llm = ChatLlamaCpp(
     model="qwen3-instruct-2507:4b",  # must match model loaded in server
-    base_url="http://shawn-pc.local:8080/v1",
-    api_key="sk-1234",
     temperature=0.0,
 )
 

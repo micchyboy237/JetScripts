@@ -742,7 +742,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners/lessons/",
     ]
     exclude_files = [
-        "_*.py",
+        # "_*.py",
+        "1_write_context.py",
     ]
     include_content_patterns = []
     exclude_content_patterns = []
