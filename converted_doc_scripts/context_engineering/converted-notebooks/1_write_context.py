@@ -1,12 +1,13 @@
-from IPython.display import Image, display
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
+# from IPython.display import Image, display
 from jet.logger import logger
 from langchain.chat_models import init_chat_model
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
-from rich.console import Console
-from rich.pretty import pprint
+# from rich.console import Console
+# from rich.pretty import pprint
 from typing import TypedDict
 import os
 import shutil
@@ -45,7 +46,7 @@ logger.info("# Writing Context in LangGraph")
 
 
 
-console = Console()
+# console = Console()
 
 
 class State(TypedDict):
@@ -109,12 +110,14 @@ workflow.add_edge("generate_joke", END)
 
 chain = workflow.compile()
 
-display(Image(chain.get_graph().draw_mermaid_png()))
+# display(Image(chain.get_graph().draw_mermaid_png()))
+render_mermaid_graph(
+    chain, output_filename=f"{OUTPUT_DIR}/graph_output1.png")
 
 joke_generator_state = chain.invoke({"topic": "cats"})
 
-console.logger.debug("\n[bold blue]Joke Generator State:[/bold blue]")
-plogger.debug(joke_generator_state)
+logger.debug("\n[bold blue]Joke Generator State:[/bold blue]")
+logger.success(joke_generator_state)
 
 """
 This simple example shows how we can write context to state. In the next notebook (`2_select_context.ipynb`), we'll use this written context in downstream nodes.
@@ -165,8 +168,8 @@ logger.info("We'll talk more about selecting context from the namespace in the n
 
 stored_items = list(store.search(namespace))
 
-console.logger.debug("\n[bold green]Stored Items in Memory:[/bold green]")
-plogger.debug(stored_items)
+logger.debug("\n[bold green]Stored Items in Memory:[/bold green]")
+logger.success(stored_items)
 
 """
 Now, let's just embed what we did inside a LangGraph workflow.
@@ -219,13 +222,15 @@ workflow.add_edge("generate_joke", END)
 
 chain = workflow.compile(checkpointer=checkpointer, store=memory_store)
 
-display(Image(chain.get_graph().draw_mermaid_png()))
+# display(Image(chain.get_graph().draw_mermaid_png()))
+render_mermaid_graph(
+    chain, output_filename=f"{OUTPUT_DIR}/graph_output2.png")
 
 config = {"configurable": {"thread_id": "1"}}
 joke_generator_state = chain.invoke({"topic": "cats"}, config)
 
-console.logger.debug("\n[bold cyan]Workflow Result (Thread 1):[/bold cyan]")
-plogger.debug(joke_generator_state)
+logger.debug("\n[bold cyan]Workflow Result (Thread 1):[/bold cyan]")
+logger.success(joke_generator_state)
 
 """
 Because we compiled with a checkpointer, we can see the [latest state](https://langchain-ai.github.io/langgraph/concepts/persistence/#get-state) of the graph!
@@ -234,14 +239,14 @@ logger.info("Because we compiled with a checkpointer, we can see the [latest sta
 
 latest_state = chain.get_state(config)
 
-console.logger.debug("\n[bold magenta]Latest Graph State:[/bold magenta]")
-plogger.debug(latest_state)
+logger.debug("\n[bold magenta]Latest Graph State:[/bold magenta]")
+logger.success(latest_state)
 
 config = {"configurable": {"thread_id": "2"}}
 joke_generator_state = chain.invoke({"topic": "cats"}, config)
 
-console.logger.debug("\n[bold yellow]Workflow Result (Thread 2):[/bold yellow]")
-plogger.debug(joke_generator_state)
+logger.debug("\n[bold yellow]Workflow Result (Thread 2):[/bold yellow]")
+logger.success(joke_generator_state)
 
 """
 We can see that the joke from the first thread was saved to memory.
