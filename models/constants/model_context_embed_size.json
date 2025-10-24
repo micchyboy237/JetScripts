@@ -1,5 +1,5 @@
 {
-  "model_id": "mistralai/Mistral-7B-Instruct-v0.3",
-  "max_context": 32768,
-  "max_embeddings": 4096
+  "model_id": "Qwen/Qwen3-4B-Instruct-2507",
+  "max_context": 262144,
+  "max_embeddings": 2560
 }
