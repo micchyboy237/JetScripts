@@ -734,8 +734,9 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/examples/haystack-cookbook",
         # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/BERTopic/docs",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/KeyBERT/docs",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/BERTopic/docs",
+        # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/KeyBERT/docs",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/examples/context_engineering/context_engineering",
     ]
     include_files = [
         # "/Users/jethroestrada/Desktop/External_Projects/AI/lessons/AI-For-Beginners/lessons/",
