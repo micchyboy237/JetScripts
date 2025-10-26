@@ -3,7 +3,7 @@ Fixed ChatLlamaCpp + structured tool calling
 """
 import logging
 from pydantic import BaseModel, Field
-from langchain_core.messages import ToolMessage, SystemMessage, HumanMessage
+from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 
 log = logging.getLogger(__name__)
@@ -30,12 +30,12 @@ llm_with_tools = (
     )
     .with_structured_output(
         schema=GetWeatherInput,
-        method="json_mode",  # Switch to json_mode for simpler output
-        include_raw=True  # Keep for debugging
+        method="json_mode",
+        include_raw=True
     )
 )
 
-# System message for JSON output
+# System message for JSON output in first call
 messages = [
     SystemMessage(content="Extract the city name from the user's query and output a JSON object with a 'location' key, e.g., {'location': 'Paris'} for the GetWeatherInput tool. If no city is specified, use {'location': 'unknown'}."),
     HumanMessage(content="What's the weather in Paris?")
@@ -58,10 +58,12 @@ for attempt in range(max_retries):
 tool_result = get_weather(structured)
 print(f"Tool result: {tool_result}")
 
-messages.append(ToolMessage(
-    content=tool_result,
-    tool_call_id="manual_123"
-))
+# Update messages for second call with a new system prompt
+messages = [
+    SystemMessage(content="Summarize the weather information provided by the tool in a concise, natural language response, e.g., 'The weather in Paris is sunny and 25°C today.'"),
+    HumanMessage(content="What's the weather in Paris?"),
+    ToolMessage(content=tool_result, tool_call_id="manual_123")
+]
 
 print("\n=== Second LLM Call (Summarize) ===")
 final = llm.invoke(messages)
