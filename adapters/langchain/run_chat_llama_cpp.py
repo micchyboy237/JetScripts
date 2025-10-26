@@ -3,7 +3,7 @@ Fixed ChatLlamaCpp + structured tool calling
 """
 import logging
 from pydantic import BaseModel, Field
-from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
+from langchain_core.messages import ToolMessage, SystemMessage, HumanMessage
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 
 log = logging.getLogger(__name__)
@@ -30,24 +30,30 @@ llm_with_tools = (
     )
     .with_structured_output(
         schema=GetWeatherInput,
-        method="function_calling",
-        include_raw=False
+        method="json_mode",  # Switch to json_mode for simpler output
+        include_raw=True  # Keep for debugging
     )
 )
 
-# Add system message to guide the LLM
+# System message for JSON output
 messages = [
-    SystemMessage(content="Extract the city name from the user's query and pass it to the GetWeatherInput tool as the 'location' parameter."),
+    SystemMessage(content="Extract the city name from the user's query and output a JSON object with a 'location' key, e.g., {'location': 'Paris'} for the GetWeatherInput tool. If no city is specified, use {'location': 'unknown'}."),
     HumanMessage(content="What's the weather in Paris?")
 ]
 
 print("\n=== First LLM Call (Structured Tool Input) ===")
-try:
-    structured: GetWeatherInput = llm_with_tools.invoke(messages)
-    print(f"Parsed input: {structured}")
-except Exception as e:
-    log.error(f"Structured parse failed: {e}")
-    structured = GetWeatherInput(location="unknown")
+max_retries = 2
+for attempt in range(max_retries):
+    try:
+        result = llm_with_tools.invoke(messages)
+        log.debug(f"Raw LLM output (attempt {attempt + 1}): {result.get('raw')}")
+        structured = result.get("parsed") or GetWeatherInput(location="unknown")
+        print(f"Parsed input: {structured}")
+        break
+    except Exception as e:
+        log.error(f"Attempt {attempt + 1} failed: {e}")
+        if attempt == max_retries - 1:
+            structured = GetWeatherInput(location="unknown")
 
 tool_result = get_weather(structured)
 print(f"Tool result: {tool_result}")
