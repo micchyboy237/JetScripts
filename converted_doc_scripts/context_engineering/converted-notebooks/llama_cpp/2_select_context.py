@@ -263,8 +263,11 @@ def safe_tool_from_function(func):
     except ValueError:
         return None
 
-    # Skip *args / **kwargs
-    if any(p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD) for p in sig.parameters.values()):
+    # Skip if any parameter is positional-only or variable
+    if any(
+        p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD, p.POSITIONAL_ONLY)
+        for p in sig.parameters.values()
+    ):
         return None
 
     params = {}
@@ -288,9 +291,7 @@ def safe_tool_from_function(func):
     }
     ArgsSchema = pydantic.create_model(f"{func.__name__.capitalize()}Args", **fields)
 
-    # ---- NEW: positional-only wrapper ----
     def positional_wrapper(**kwargs):
-        # Order must match the original signature
         bound = sig.bind(**kwargs)
         bound.apply_defaults()
         return func(*bound.args)
@@ -299,7 +300,7 @@ def safe_tool_from_function(func):
         name=func.__name__,
         description=getattr(func, "__doc__", "") or f"Call {func.__name__}",
         args_schema=ArgsSchema,
-        func=positional_wrapper,          # <-- use wrapper
+        func=positional_wrapper,
     )
 
 # --- BUILD TOOLS SAFELY ---
