@@ -5,7 +5,17 @@ from langgraph_supervisor import create_supervisor
 from jet.visualization.terminal import display_iterm2_image
 from jet.adapters.langchain.chat_agent_utils import build_agent
 from jet.adapters.llama_cpp.tokens import count_tokens
+
+import os
+import shutil
 from jet.logger import logger
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = f"{OUTPUT_DIR}/main.log"
+logger.basicConfig(filename=log_file)
+logger.orange(f"Main logs: {log_file}")
 
 console = Console()
 

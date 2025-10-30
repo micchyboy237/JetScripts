@@ -16,9 +16,20 @@
 # %%
 from typing import TypedDict
 
-from jet.visualization.terminal import display_iterm2_image
 from rich.console import Console
 from rich.pretty import pprint
+from jet.visualization.terminal import display_iterm2_image
+
+import os
+import shutil
+from jet.logger import logger
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+log_file = f"{OUTPUT_DIR}/main.log"
+logger.basicConfig(filename=log_file)
+logger.orange(f"Main logs: {log_file}")
 
 # Initialize console for rich formatting
 console = Console()
