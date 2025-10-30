@@ -94,12 +94,12 @@ class ToolCallLoggingMiddleware(AgentMiddleware):
         agent_state = request.state
 
         model_logger.info("[MODEL START]")
-        model_logger.log("\nModel Settings: ", format_json(model_settings))
-        model_logger.log("\nSystem Prompt: ", format_json(system_prompt))
-        model_logger.log("\nMessages: ", format_json(messages))
-        model_logger.log("\nTool Choice: ", format_json(tool_choice))
-        model_logger.log("\nTools: ", format_json(tools))
-        model_logger.log("\nAgent State: ", format_json(agent_state))
+        model_logger.log("\nModel Settings: ", format_json(model_settings), colors=["GRAY", "DEBUG"])
+        model_logger.log("\nSystem Prompt: ", format_json(system_prompt), colors=["GRAY", "DEBUG"])
+        model_logger.log("\nMessages: ", format_json(messages), colors=["GRAY", "DEBUG"])
+        model_logger.log("\nTool Choice: ", format_json(tool_choice), colors=["GRAY", "DEBUG"])
+        model_logger.log("\nTools: ", format_json(tools), colors=["GRAY", "DEBUG"])
+        model_logger.log("\nAgent State: ", format_json(agent_state), colors=["GRAY", "DEBUG"])
         result = handler(request)
         model_logger.teal(
             "[MODEL END] result=%s", result
