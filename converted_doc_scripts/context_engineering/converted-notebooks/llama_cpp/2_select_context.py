@@ -133,9 +133,9 @@ display_iterm2_image(png_data)
 # %%
 from langgraph.store.memory import InMemoryStore
 from jet.models.utils import get_embedding_size
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 
-embeddings = OllamaEmbeddings(model="embeddinggemma")
+embeddings = LlamacppEmbedding(model="embeddinggemma")
 
 # Initialize the memory store
 store = InMemoryStore(
@@ -247,7 +247,6 @@ from langgraph.store.memory import InMemoryStore
 # )
 from langchain_core.tools import StructuredTool
 
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.models.utils import get_embedding_size
 
 # _set_env("OPENAI_API_KEY")
@@ -317,7 +316,6 @@ for function_name in dir(math):
 # identifiers to tool instances.
 tool_registry = {str(uuid.uuid4()): tool for tool in all_tools}
 
-embeddings = OllamaEmbeddings(model="embeddinggemma", use_cache=True)
 store = InMemoryStore(
     index={
         "embed": embeddings,
