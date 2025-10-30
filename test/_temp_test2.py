@@ -105,11 +105,17 @@ def main() -> None:
         for line in resp.iter_lines():
             if not line or not line.startswith(b"data: "):
                 continue
+
             data = line[6:]
             if data == b"[DONE]":
                 break
+
             chunk = json.loads(data)
-            delta = chunk.get("choices", [{}])[0].get("delta", {})
+            choices = chunk.get("choices")
+            if not choices:
+                break
+
+            delta = choices[0].get("delta", {})
 
             # ---- stream normal content ------------------------------------------------
             if content := delta.get("content"):
