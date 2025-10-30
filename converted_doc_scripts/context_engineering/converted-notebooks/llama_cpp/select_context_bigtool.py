@@ -139,9 +139,9 @@ display_iterm2_image(png_data)
 # %%
 from langgraph.store.memory import InMemoryStore
 from jet.models.utils import get_embedding_size
-from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
+from jet.adapters.langchain.embed_llama_cpp import EmbedLlamaCpp
 
-embeddings = LlamacppEmbedding(model="embeddinggemma")
+embeddings = EmbedLlamaCpp(model="embeddinggemma")
 
 # Initialize the memory store
 store = InMemoryStore(
@@ -313,11 +313,68 @@ def safe_tool_from_function(func) -> StructuredTool | None:
 
     # Wrapper that respects original call order
     def wrapper(**kwargs):
-        # Remove any positional-only args from kwargs before binding
+        # Keep only params that exist in the signature
         clean_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
-        bound = sig.bind(**clean_kwargs)
-        bound.apply_defaults()
-        return func(*bound.args, **bound.kwargs)
+
+        args_list = []
+        kwargs_dict = {}
+
+        for param in sig.parameters.values():
+            name = param.name
+            kind = param.kind
+
+            if kind is inspect.Parameter.POSITIONAL_ONLY:
+                # positional-only: must be passed positionally
+                if name in clean_kwargs:
+                    args_list.append(clean_kwargs.pop(name))
+                elif param.default is not param.empty:
+                    args_list.append(param.default)
+                else:
+                    # required positional-only missing
+                    raise TypeError(f"Missing required positional-only argument: {name}")
+
+            elif kind is inspect.Parameter.POSITIONAL_OR_KEYWORD:
+                # prefer positional if provided in clean_kwargs
+                if name in clean_kwargs:
+                    args_list.append(clean_kwargs.pop(name))
+                elif param.default is not param.empty:
+                    args_list.append(param.default)
+                else:
+                    raise TypeError(f"Missing required argument: {name}")
+
+            elif kind is inspect.Parameter.VAR_POSITIONAL:
+                # accept a provided iterable under the param name, else nothing
+                if name in clean_kwargs:
+                    var_val = clean_kwargs.pop(name)
+                    if not isinstance(var_val, (list, tuple)):
+                        raise TypeError(f"VAR_POSITIONAL param '{name}' must be a list/tuple")
+                    args_list.extend(var_val)
+
+            elif kind is inspect.Parameter.KEYWORD_ONLY:
+                if name in clean_kwargs:
+                    kwargs_dict[name] = clean_kwargs.pop(name)
+                elif param.default is not param.empty:
+                    kwargs_dict[name] = param.default
+                else:
+                    raise TypeError(f"Missing required keyword-only argument: {name}")
+
+            elif kind is inspect.Parameter.VAR_KEYWORD:
+                # capture any remaining extras later
+                pass
+
+        # Any leftover keys should go into **kwargs if function accepts VAR_KEYWORD
+        accepts_varkw = any(
+            p.kind is inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+        )
+        if clean_kwargs:
+            if accepts_varkw:
+                kwargs_dict.update(clean_kwargs)
+            else:
+                # unknown/extra parameters provided
+                unexpected = ", ".join(clean_kwargs.keys())
+                raise TypeError(f"Got unexpected keyword arguments: {unexpected}")
+
+        return func(*args_list, **kwargs_dict)
 
     return StructuredTool(
         name=func.__name__,
