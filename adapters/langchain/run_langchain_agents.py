@@ -25,16 +25,19 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = f"{OUTPUT_DIR}/main.log"
 logger.basicConfig(DEFAULT_LOGGER, filename=log_file, level=logging.DEBUG)
-logger.orange(f"Logs: {log_file}")
+logger.orange(f"Main logs: {log_file}")
 
 agent_log_file = f"{OUTPUT_DIR}/agent.log"
 agent_logger = CustomLogger("agent", filename=agent_log_file)
+logger.orange(f"Agent logs: {agent_log_file}")
 
 model_log_file = f"{OUTPUT_DIR}/model.log"
 model_logger = CustomLogger("model", filename=model_log_file)
+logger.orange(f"Model logs: {model_log_file}")
 
 tool_log_file = f"{OUTPUT_DIR}/tool.log"
 tool_logger = CustomLogger("tool", filename=tool_log_file)
+logger.orange(f"Tool logs: {tool_log_file}")
 
 # tool_log_file = f"{OUTPUT_DIR}/tools.log"
 # tool_logger = CustomLogger("tools", filename=tool_log_file, level=logging.DEBUG)
