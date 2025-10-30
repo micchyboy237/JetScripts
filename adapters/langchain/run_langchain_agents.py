@@ -3,6 +3,7 @@ LangChain Agent Example (create_agent + AgentState)
 ✅ Fixed for LangChain 0.3+ / LangGraph runtime
 """
 from typing import TypedDict, List, Dict, Any
+from jet.logger import logger
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain.agents import create_agent
 from langchain_core.tools import tool
@@ -14,6 +15,10 @@ import shutil
 OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+log_file = f"{OUTPUT_DIR}/main.log"
+logger.basicConfig(filename=log_file)
+logger.orange(f"Logs: {log_file}")
 
 class CalcAgentState(TypedDict):
     """Agent state schema containing memory and operation tracking."""
@@ -56,12 +61,13 @@ def divide(a: float, b: float) -> float:
 def build_calc_agent():
     """Create a LangChain agent that can perform basic arithmetic."""
     tools = [add, subtract, multiply, divide]
-    model = ChatOpenAI(temperature=0, model="qwen3-instruct-2507:4b", base_url="http://shawn-pc.local:8080/v1")
+    model = ChatOpenAI(temperature=0, verbosity="high", model="qwen3-instruct-2507:4b", base_url="http://shawn-pc.local:8080/v1")
     
     agent = create_agent(
         model=model,
         tools=tools,
         system_prompt="You are a precise math assistant. Use tools to compute exactly.",
+        debug=True,
     )
 
     return agent
