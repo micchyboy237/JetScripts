@@ -16,9 +16,10 @@
 # %%
 from typing import TypedDict
 
-from jet.visualization.terminal import display_iterm2_image
 from rich.console import Console
 from rich.pretty import pprint
+
+from jet.visualization.terminal import display_iterm2_image
 
 # Initialize console for rich formatting
 console = Console()
@@ -137,9 +138,9 @@ display_iterm2_image(png_data)
 # %%
 from langgraph.store.memory import InMemoryStore
 from jet.models.utils import get_embedding_size
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 
-embeddings = OllamaEmbeddings(model="embeddinggemma")
+embeddings = LlamacppEmbedding(model="embeddinggemma")
 
 # Initialize the memory store
 store = InMemoryStore(
@@ -347,7 +348,6 @@ from langgraph.store.base import PutOp
 from langgraph.store.memory import InMemoryStore
 
 
-from jet.adapters.langchain.ollama_embeddings import OllamaEmbeddings
 from jet.models.utils import get_embedding_size
 
 # _set_env("OPENAI_API_KEY")
@@ -375,8 +375,6 @@ tool_registry = {
 
 # Index tool names and descriptions in the LangGraph
 # Store. Here we use a simple in-memory store.
-embeddings = OllamaEmbeddings(model="embeddinggemma", use_cache=True)
-
 store = InMemoryStore(
     index={
         "embed": embeddings,
