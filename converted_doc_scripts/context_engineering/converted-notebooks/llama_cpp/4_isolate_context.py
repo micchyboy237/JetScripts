@@ -1,5 +1,7 @@
 from rich.console import Console
 from rich.pretty import pprint
+from langchain_openai import ChatOpenAI
+from langgraph_supervisor import create_supervisor
 from jet.visualization.terminal import display_iterm2_image
 from jet.adapters.langchain.chat_agent_utils import build_agent
 from jet.adapters.llama_cpp.tokens import count_tokens
@@ -7,10 +9,12 @@ from jet.logger import logger
 
 console = Console()
 
-from langgraph_supervisor import create_supervisor
-from jet.adapters.langchain.chat_ollama import ChatOllama
-
-llm = ChatOllama(model="llama3.2", temperature=0)
+llm = ChatOpenAI(
+    model="qwen3-instruct-2507:4b",
+    temperature=0.0,
+    base_url="http://shawn-pc.local:8080/v1",
+    verbosity="high",
+)
 
 def add(a: float, b: float) -> float:
     """Add two numbers.
@@ -107,7 +111,7 @@ display_iterm2_image(png_data)
 
 # Context-aware invocation with token logging
 query = "what's the combined headcount of the FAANG companies in 2024?"
-query_tokens = count_tokens([query], model="llama3.2")
+query_tokens = count_tokens([query], model="qwen3-instruct-2507:4b")
 logger.log(f"User query tokens: {query_tokens}", colors=["INFO", "YELLOW"])
 
 result = app.invoke({
@@ -130,7 +134,7 @@ sandbox_agent = create_react_agent_raw(
 )
 
 code_query = "what's 5 + 7?"
-code_tokens = count_tokens([code_query], model="llama3.2")
+code_tokens = count_tokens([code_query], model="qwen3-instruct-2507:4b")
 logger.log(f"Sandbox query tokens: {code_tokens}", colors=["INFO", "YELLOW"])
 
 result = sandbox_agent.invoke(
