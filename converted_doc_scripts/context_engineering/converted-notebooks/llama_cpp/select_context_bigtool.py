@@ -335,6 +335,8 @@ for function_name in tqdm(dir(math), desc="Building tools"):
         tool = safe_tool_from_function(func)
         if tool:
             all_tools.append(tool)
+# TODO: Improve all_tools limit logic
+all_tools = all_tools[:30]
 
 console.print("\n[bold pink]All Tools:[/bold pink]")
 pprint(all_tools)
