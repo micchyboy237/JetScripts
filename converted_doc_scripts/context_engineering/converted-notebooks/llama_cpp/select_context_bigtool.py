@@ -554,7 +554,7 @@ retriever = vectorstore.as_retriever()
 # Create a retriever tool that we can use in our agent.
 
 # %%
-from langchain.tools.retriever import create_retriever_tool
+from langchain_core.tools import create_retriever_tool
 
 retriever_tool = create_retriever_tool(
     retriever,
