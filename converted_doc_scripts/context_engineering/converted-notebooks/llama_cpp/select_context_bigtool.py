@@ -15,13 +15,12 @@
 
 # %%
 from typing import TypedDict
-
-from jet.logger import logger
 from rich.console import Console
 from rich.pretty import pprint
-
 from jet.visualization.terminal import display_iterm2_image
-from jet.adapters.langchain.chat_agent_utils import build_agent, compress_context, estimate_tokens
+from jet.adapters.langchain.chat_agent_utils import build_agent
+from jet.adapters.llama_cpp.tokens import count_tokens
+from jet.logger import logger
 
 # Initialize console for rich formatting
 console = Console()
@@ -587,36 +586,71 @@ def llm_call(state: MessagesState):
     messages = state["messages"]
     user_query = messages[-1].content
 
-    # Retrieve
+    # ------------------------------------------------------------------
+    # 1. Retrieve & **count** tokens of raw docs *before* any concatenation
+    # ------------------------------------------------------------------
     retrieved = retriever.invoke(user_query)
-    doc_text = "\n\n".join(doc.page_content for doc in retrieved[:4])
+    doc_texts = [doc.page_content for doc in retrieved[:4]]
 
-    # Build candidate context
-    candidate_context = f"Documents:\n{doc_text}\n\nHistory:\n"
+    # Count tokens for each document (exact, model-specific)
+    doc_token_counts = count_tokens(
+        doc_texts,
+        model="qwen3-instruct-2507:4b",   # same model used for generation
+        prevent_total=True,
+        add_special_tokens=False,
+    )   # -> List[int]
+
+    # ------------------------------------------------------------------
+    # 2. Build history part (always needed)
+    # ------------------------------------------------------------------
+    history_lines = []
     for msg in messages[:-1]:
         role = "User" if isinstance(msg, HumanMessage) else "Assistant"
-        candidate_context += f"{role}: {msg.content}\n"
+        history_lines.append(f"{role}: {msg.content}")
+    history_text = "\n".join(history_lines)
 
-    # Estimate full prompt size
-    full_prompt_estimate = estimate_tokens(
-        system_prompt=rag_prompt,
-        messages=[SystemMessage(content=candidate_context + f"Question: {user_query}")],
-        tools=tools  # <-- critical
-    )
-    logger.log("full_prompt_estimate: ", full_prompt_estimate, colors=["INFO", "DEBUG"])
-
+    # ------------------------------------------------------------------
+    # 3. Determine how many docs we can safely include
+    # ------------------------------------------------------------------
     MAX_CTX = 3000
-    SAFETY_BUFFER = 600  # for output + tool call
-    BUDGET = MAX_CTX - SAFETY_BUFFER
+    SAFETY_BUFFER = 600
+    BUDGET = MAX_CTX - SAFETY_BUFFER          # ~2400 tokens
 
-    if full_prompt_estimate > BUDGET:
-        # Compress documents + history
-        compressed = compress_context(messages, doc_text, max_tokens=BUDGET - 200)
-        final_context = compressed
-    else:
-        final_context = candidate_context
+    # tokens already consumed by static parts (system prompt + question + delimiters)
+    static_parts = (
+        rag_prompt
+        + "\n\nContext:\n"
+        + "Documents:\n"
+        + "\n\nHistory:\n"
+        + history_text
+        + "\n\nQuestion: "
+        + user_query
+    )
+    static_tokens = count_tokens(static_parts, model="qwen3-instruct-2507:4b")
 
+    available_for_docs = BUDGET - static_tokens - 200   # 200-token cushion for tool JSON
+
+    # Greedily add docs until we run out of budget
+    selected_docs = []
+    consumed = 0
+    for txt, cnt in zip(doc_texts, doc_token_counts):
+        if consumed + cnt <= available_for_docs:
+            selected_docs.append(txt)
+            consumed += cnt
+        else:
+            break
+
+    doc_text = "\n\n".join(selected_docs) if selected_docs else ""
+
+    # ------------------------------------------------------------------
+    # 4. Final prompt – guaranteed ≤ BUDGET
+    # ------------------------------------------------------------------
+    final_context = f"Documents:\n{doc_text}\n\nHistory:\n{history_text}"
     final_prompt = f"{rag_prompt}\n\nContext:\n{final_context}\nQuestion: {user_query}"
+
+    # (optional) sanity-check
+    total_tokens = count_tokens(final_prompt, model="qwen3-instruct-2507:4b")
+    logger.log("final_prompt_tokens: ", total_tokens, colors=["INFO", "DEBUG"])
 
     response = llm_with_tools.invoke([SystemMessage(content=final_prompt)])
     return {"messages": [response]}
