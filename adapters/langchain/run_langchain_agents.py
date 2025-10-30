@@ -226,6 +226,7 @@ def main():
     print(f"Operation Count: {result_state.get('operation_count', 'N/A')}")
 
     save_file(result_state["messages"], f"{OUTPUT_DIR}/messages.json")
+    save_file(_current_state, f"{OUTPUT_DIR}/state_summary.json")
 
 if __name__ == "__main__":
     main()
