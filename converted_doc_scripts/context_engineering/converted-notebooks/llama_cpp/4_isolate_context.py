@@ -1,4 +1,3 @@
-# JetScripts/converted_doc_scripts/context_engineering/converted-notebooks/llama_cpp/4_isolate_context.py
 from rich.console import Console
 from rich.pretty import pprint
 from jet.visualization.terminal import display_iterm2_image
@@ -14,15 +13,32 @@ from jet.adapters.langchain.chat_ollama import ChatOllama
 llm = ChatOllama(model="llama3.2", temperature=0)
 
 def add(a: float, b: float) -> float:
-    """Add two numbers."""
+    """Add two numbers.
+    Args:
+        a: First number
+        b: Second number
+    Returns:
+        Sum of a and b
+    """
     return a + b
 
 def multiply(a: float, b: float) -> float:
-    """Multiply two numbers."""
+    """Multiply two numbers.
+    Args:
+        a: First number
+        b: Second number
+    Returns:
+        Product of a and b
+    """
     return a * b
 
 def web_search(query: str) -> str:
-    """Mock web search returning FAANG headcounts."""
+    """Mock web search function that returns FAANG company headcounts.
+    Args:
+        query: Search query (unused in this mock)
+    Returns:
+        Static information about FAANG company headcounts
+    """
     return (
         "Here are the headcounts for each of the FAANG companies in 2024:\n"
         "1. **Facebook (Meta)**: 67,317 employees.\n"
@@ -32,18 +48,47 @@ def web_search(query: str) -> str:
         "5. **Google (Alphabet)**: 181,269 employees."
     )
 
-# Use jet.build_agent for consistency
+# ------------------------------------------------------------------
+# `create_supervisor` requires each sub-agent to have a `.name`.
+# `build_agent` does not expose `name`, so we:
+#   1. create the raw agent with `create_react_agent`,
+#   2. set `.name`,
+#   3. re-wrap with `build_agent` (adds logging/middleware),
+#   4. copy the name back.
+# ------------------------------------------------------------------
+from langgraph.prebuilt import create_react_agent as _create_react_agent
+
+# ---- Math agent ----------------------------------------------------
+math_raw = _create_react_agent(
+    model=llm,
+    tools=[add, multiply],
+    prompt="You are a math expert. Always use one tool at a time.",
+)
+math_raw.name = "math_expert"
+
+math_prompt = "You are a math expert. Always use one tool at a time."
 math_agent = build_agent(
     tools=[add, multiply],
     model=llm,
-    system_prompt="You are a math expert. Always use one tool at a time."
+    system_prompt=math_prompt,
 )
+math_agent.name = math_raw.name
 
+# ---- Research agent ------------------------------------------------
+research_raw = _create_react_agent(
+    model=llm,
+    tools=[web_search],
+    prompt="You are a world class researcher with access to web search. Do not do any math.",
+)
+research_raw.name = "research_expert"
+
+research_prompt = "You are a world class researcher with access to web search. Do not do any math."
 research_agent = build_agent(
     tools=[web_search],
     model=llm,
-    system_prompt="You are a world class researcher with access to web search. Do not do any math."
+    system_prompt=research_prompt,
 )
+research_agent.name = research_raw.name
 
 # Supervisor with context isolation via token counting
 workflow = create_supervisor(
