@@ -7,6 +7,7 @@ as it arrives, flushing stdout immediately.
 import json
 from typing import Any
 
+from jet.logger import logger
 import requests
 
 
@@ -49,7 +50,6 @@ def main() -> None:
                 },
             },
         ],
-        "verbosity": "high",
     }
 
     headers = {"Content-Type": "application/json"}
@@ -75,7 +75,7 @@ def main() -> None:
                     .get("content", "")
                 )
                 if delta:
-                    print(delta, end="", flush=True)
+                    logger.teal(delta, flush=True)
     print()  # final newline
 
 
