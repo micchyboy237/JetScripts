@@ -1,79 +1,78 @@
-"""
-Fixed ChatLlamaCpp + structured tool calling
-"""
-import logging
+from typing import List, Dict, Any, Union, Type, Callable
+from langchain_core.language_models import BaseLanguageModel
+from langchain_core.messages import AIMessage
+from langchain_core.tools import tool, BaseTool
+from langchain_core.output_parsers import PydanticToolsParser
+from langchain.agents import create_agent
+from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
-from langchain_core.messages import HumanMessage, ToolMessage, SystemMessage
-from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 
-log = logging.getLogger(__name__)
+class MathOperation(BaseModel):
+    """Base class for math operations."""
+    a: int = Field(description="First integer")
+    b: int = Field(description="Second integer")
 
-class GetWeatherInput(BaseModel):
-    """Input for get_weather."""
-    location: str = Field(..., description="City name, e.g. 'Paris'")
+class Add(MathOperation):
+    """Add two integers."""
 
-def get_weather(input: GetWeatherInput) -> str:
-    """Mock weather tool."""
-    log.info(f">>> [TOOL EXECUTION] get_weather(location='{input.location}')")
-    return f"It's sunny and 25°C in {input.location} today!"
+class Multiply(MathOperation):
+    """Multiply two integers."""
 
-llm = ChatLlamaCpp(
-    model="qwen3-instruct-2507:4b",
-    temperature=0.1,
-    base_url="http://shawn-pc.local:8080/v1",
-)
+@tool
+def add_tool(operation: Add) -> int:
+    """Add two integers."""
+    return operation.a + operation.b
 
-llm_with_tools = (
-    llm.bind_tools(
-        tools=[get_weather],
-        tool_choice="any"
-    )
-    .with_structured_output(
-        schema=GetWeatherInput,
-        method="json_mode",
-        include_raw=True
-    )
-)
+@tool
+def multiply_tool(operation: Multiply) -> int:
+    """Multiply two integers."""
+    return operation.a * operation.b
 
-# System message for JSON output in first call
-messages = [
-    SystemMessage(content="Extract the city name from the user's query and output a JSON object with a 'location' key, e.g., {'location': 'Paris'} for the GetWeatherInput tool. If no city is specified, use {'location': 'unknown'}."),
-    HumanMessage(content="What's the weather in Paris?")
-]
+def bind_tools_to_llm(
+    llm: BaseLanguageModel,
+    tools: List[Union[Type[BaseModel], Callable, BaseTool]],
+) -> BaseLanguageModel:
+    """Bind tools to an LLM for tool-calling capabilities."""
+    return llm.bind_tools(tools)
 
-print("\n=== First LLM Call (Structured Tool Input) ===")
-max_retries = 2
-for attempt in range(max_retries):
-    try:
-        result = llm_with_tools.invoke(messages)
-        log.debug(f"Raw LLM output (attempt {attempt + 1}): {result.get('raw')}")
-        structured = result.get("parsed") or GetWeatherInput(location="unknown")
-        print(f"Parsed input: {structured}")
-        break
-    except Exception as e:
-        log.error(f"Attempt {attempt + 1} failed: {e}")
-        if attempt == max_retries - 1:
-            structured = GetWeatherInput(location="unknown")
+def parse_and_execute_tool_calls(
+    response: AIMessage,
+    tools_map: Dict[str, Callable],
+    parser: PydanticToolsParser | None = None,
+) -> List[Any]:
+    """Parse tool calls from LLM response and execute them."""
+    results = []
+    if response.tool_calls:
+        for tool_call in response.tool_calls:
+            tool_name = tool_call["name"]
+            args = tool_call["args"]
+            if tool_name in tools_map:
+                result = tools_map[tool_name](**args)
+                results.append(result)
+    return results
 
-tool_result = get_weather(structured)
-print(f"Tool result: {tool_result}")
+def create_agent_with_tools(
+    llm: BaseLanguageModel,
+    tools: List[BaseTool],
+    system_prompt: str = "You are a helpful assistant.",
+) -> Callable:
+    """Create a LangGraph-based agent for handling tool loops."""
+    return create_agent(llm, tools, system_prompt=system_prompt)
 
-# Update messages for second call with a new system prompt
-messages = [
-    SystemMessage(content="Summarize the weather information provided by the tool in a concise, natural language response, e.g., 'The weather in Paris is sunny and 25°C today.'"),
-    HumanMessage(content="What's the weather in Paris?"),
-    ToolMessage(content=tool_result, tool_call_id="manual_123")
-]
+# Example usage
+llm = ChatOpenAI(model="qwen3-instruct-2507:4b", base_url="http://shawn-pc.local:8080/v1")  # Compatible with M1; adjust for your provider
+tools = [Add, Multiply]  # Pydantic models as tools
+llm_with_tools = bind_tools_to_llm(llm, tools)
 
-print("\n=== Second LLM Call (Summarize) ===")
-final = llm.invoke(messages)
-print(f"Final AI: {final.content}")
+# Simple invocation and execution
+query = "What is 5 plus 3?"
+response = llm_with_tools.invoke(query)
+tools_map = {"add": lambda a, b: a + b, "multiply": lambda a, b: a * b}  # Map to executables
+results = parse_and_execute_tool_calls(response, tools_map)
+print(results)  # e.g., [8] if add is called
 
-print("\n" + "="*50)
-print("SUMMARY")
-print("="*50)
-print("User : What's the weather in Paris?")
-print(f"Tool : {structured.location}")
-print(f"Result: {tool_result}")
-print(f"AI   : {final.content}")
-print("="*50)
+# Agent workflow
+agent_tools = [add_tool, multiply_tool]  # Function-based tools for agent
+agent = create_agent_with_tools(llm, agent_tools)
+agent_response = agent.invoke({"messages": [{"role": "user", "content": "Multiply 4 by 7 then add 2."}]})
+print(agent_response["messages"][-1].content)  # Final answer after loops
