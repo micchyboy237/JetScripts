@@ -21,6 +21,7 @@ from rich.console import Console
 from rich.pretty import pprint
 
 from jet.visualization.terminal import display_iterm2_image
+from jet.adapters.langchain.chat_agent_utils import build_agent, compress_context, estimate_tokens
 
 # Initialize console for rich formatting
 console = Console()
@@ -468,7 +469,6 @@ batch_results = store.batch(put_ops)
 # builder = create_agent(llm, tool_registry)
 # agent = builder.compile(store=store)
 
-from jet.adapters.langchain.chat_agent_utils import build_agent, compress_context, estimate_tokens
 agent = build_agent(all_tools, llm)
 
 # Display the agent visualization
