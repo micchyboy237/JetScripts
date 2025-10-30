@@ -542,7 +542,7 @@ def llm_call(state: MessagesState):
         tools=tools  # <-- critical
     )
 
-    MAX_CTX = 4096
+    MAX_CTX = 3000
     SAFETY_BUFFER = 600  # for output + tool call
     BUDGET = MAX_CTX - SAFETY_BUFFER
 
