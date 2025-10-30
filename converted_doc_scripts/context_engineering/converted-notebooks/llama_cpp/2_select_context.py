@@ -148,20 +148,6 @@ store = InMemoryStore(
 # Define namespace for organizing memories
 namespace = ("rlm", "joke_generator")
 
-# Store the generated joke in memory
-store.put(
-    namespace,                             # namespace for organization
-    "last_joke",                          # key identifier
-    {"joke": joke_generator_state["joke"]} # value to store
-)
-
-# Select (retrieve) the joke from memory
-retrieved_joke = store.get(namespace, "last_joke").value
-
-# Display the retrieved context
-console.print("\n[bold green]Retrieved Context from Memory:[/bold green]")
-pprint(retrieved_joke)
-
 # %%
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.store.base import BaseStore
