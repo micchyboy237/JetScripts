@@ -406,7 +406,7 @@ batch_results = store.batch(put_ops)
 # builder = create_agent(llm, tool_registry)
 # agent = builder.compile(store=store)
 
-from jet.adapters.langchain.chat_agent_utils import build_agent, compress_context
+from jet.adapters.langchain.chat_agent_utils import build_agent, compress_context, estimate_tokens
 agent = build_agent(all_tools, llm)
 
 # Display the agent visualization
@@ -513,7 +513,7 @@ llm_with_tools = llm.bind_tools(tools)
 
 # %%
 from langgraph.graph import MessagesState
-from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
 from typing_extensions import Literal
 
 rag_prompt = """You are a helpful assistant tasked with retrieving information from a series of technical blog posts by Lilian Weng. 
@@ -525,25 +525,35 @@ def llm_call(state: MessagesState):
     messages = state["messages"]
     user_query = messages[-1].content
 
-    # Step 1: Retrieve relevant chunks
-    retrieved_docs = retriever.invoke(user_query)
-    doc_texts = "\n\n".join([doc.page_content for doc in retrieved_docs[:4]])  # top 4
+    # Retrieve
+    retrieved = retriever.invoke(user_query)
+    doc_text = "\n\n".join(doc.page_content for doc in retrieved[:4])
 
-    # Step 2: Compress if needed
-    compressed_context = compress_context(messages, doc_texts, max_tokens=3500)
+    # Build candidate context
+    candidate_context = f"Documents:\n{doc_text}\n\nHistory:\n"
+    for msg in messages[:-1]:
+        role = "User" if isinstance(msg, HumanMessage) else "Assistant"
+        candidate_context += f"{role}: {msg.content}\n"
 
-    # Step 3: Build final prompt
-    final_prompt = f"""
-{rag_prompt}
+    # Estimate full prompt size
+    full_prompt_estimate = estimate_tokens(
+        system_prompt=rag_prompt,
+        messages=[SystemMessage(content=candidate_context + f"Question: {user_query}")],
+        tools=tools  # <-- critical
+    )
 
-### Relevant Context (compressed):
-{compressed_context}
+    MAX_CTX = 4096
+    SAFETY_BUFFER = 600  # for output + tool call
+    BUDGET = MAX_CTX - SAFETY_BUFFER
 
-### User Question:
-{user_query}
+    if full_prompt_estimate > BUDGET:
+        # Compress documents + history
+        compressed = compress_context(messages, doc_text, max_tokens=BUDGET - 200)
+        final_context = compressed
+    else:
+        final_context = candidate_context
 
-Answer precisely using only the provided context.
-"""
+    final_prompt = f"{rag_prompt}\n\nContext:\n{final_context}\nQuestion: {user_query}"
 
     response = llm_with_tools.invoke([SystemMessage(content=final_prompt)])
     return {"messages": [response]}
