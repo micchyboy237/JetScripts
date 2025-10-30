@@ -16,6 +16,7 @@
 # %%
 from typing import TypedDict
 
+from jet.logger import logger
 from rich.console import Console
 from rich.pretty import pprint
 
@@ -312,7 +313,9 @@ def safe_tool_from_function(func) -> StructuredTool | None:
 
     # Wrapper that respects original call order
     def wrapper(**kwargs):
-        bound = sig.bind(**kwargs)
+        # Remove any positional-only args from kwargs before binding
+        clean_kwargs = {k: v for k, v in kwargs.items() if k in sig.parameters}
+        bound = sig.bind(**clean_kwargs)
         bound.apply_defaults()
         return func(*bound.args, **bound.kwargs)
 
@@ -543,6 +546,7 @@ def llm_call(state: MessagesState):
         messages=[SystemMessage(content=candidate_context + f"Question: {user_query}")],
         tools=tools  # <-- critical
     )
+    logger.log("full_prompt_estimate: ", full_prompt_estimate, colors=["INFO", "DEBUG"])
 
     MAX_CTX = 3000
     SAFETY_BUFFER = 600  # for output + tool call
