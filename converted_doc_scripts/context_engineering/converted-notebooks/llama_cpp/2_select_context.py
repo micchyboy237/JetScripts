@@ -19,6 +19,8 @@ from typing import TypedDict
 from rich.console import Console
 from rich.pretty import pprint
 
+from jet.visualization.terminal import display_iterm2_image
+
 # Initialize console for rich formatting
 console = Console()
 
@@ -108,25 +110,10 @@ chain = workflow.compile()
 # Display the workflow visualization
 # display(Image(chain.get_graph().draw_mermaid_png()))
 
-# --- With this iTerm2-compatible version ---
-
-def display_iterm2_image(png_data: bytes):
-    """Display PNG image inline in iTerm2 using imgcat protocol."""
-    import base64
-    b64 = base64.b64encode(png_data).decode()
-    print(f"\033]1337;File=inline=1:{b64}\a", end="")
-
 # Render and display graph in iTerm2
 png_data = chain.get_graph().draw_mermaid_png()
 display_iterm2_image(png_data)
 
-# %%
-# Execute the workflow to see context selection in action
-joke_generator_state = chain.invoke({"topic": "cats"})
-
-# Display the final state with rich formatting
-console.print("\n[bold blue]Joke Generator State:[/bold blue]")
-pprint(joke_generator_state)
 
 # %% [markdown]
 # ## Memory
@@ -250,12 +237,6 @@ pprint(latest_state)
 # %% [markdown]
 # We fetch the prior joke from memory and pass it to an LLM to improve it!
 
-# %%
-# Execute the workflow with a second thread to demonstrate memory persistence
-config = {"configurable": {"thread_id": "2"}}
-joke_generator_state = chain.invoke({"topic": "cats"}, config)
-console.print("\n[bold blue]Memory persistence demo result:[/bold blue]")
-pprint(joke_generator_state)
 
 # %% [markdown]
 # ## Tools
@@ -297,26 +278,24 @@ def safe_tool_from_function(func):
     except ValueError:
         return None
 
-    # Skip *args, **kwargs, or complex signatures
+    # Skip *args / **kwargs
     if any(p.kind in (p.VAR_POSITIONAL, p.VAR_KEYWORD) for p in sig.parameters.values()):
         return None
 
-    # Build clean parameter info
     params = {}
     for name, param in sig.parameters.items():
         default = param.default
         if default is not param.empty:
             if default is None:
-                default = None  # Keep null as None
+                default = None
             elif isinstance(default, float) and (default == 0.0 or abs(default) < 1e-6):
-                default = float(default)  # Normalize 1e-9 → 1e-09
+                default = float(default)
             elif isinstance(default, (int, float, str, bool)):
                 default = default
             else:
-                default = None  # Fallback: drop unsupported defaults
+                default = None
         params[name] = (param.annotation if param.annotation != param.empty else str, default)
 
-    # Use custom schema creation
     import pydantic
     fields = {
         name: (annotation, pydantic.Field(default=default) if default is not None else ...)
@@ -324,11 +303,18 @@ def safe_tool_from_function(func):
     }
     ArgsSchema = pydantic.create_model(f"{func.__name__.capitalize()}Args", **fields)
 
+    # ---- NEW: positional-only wrapper ----
+    def positional_wrapper(**kwargs):
+        # Order must match the original signature
+        bound = sig.bind(**kwargs)
+        bound.apply_defaults()
+        return func(*bound.args)
+
     return StructuredTool(
         name=func.__name__,
         description=getattr(func, "__doc__", "") or f"Call {func.__name__}",
         args_schema=ArgsSchema,
-        func=func,
+        func=positional_wrapper,          # <-- use wrapper
     )
 
 # --- BUILD TOOLS SAFELY ---
