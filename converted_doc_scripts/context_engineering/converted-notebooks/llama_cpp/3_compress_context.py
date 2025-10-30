@@ -7,6 +7,7 @@ from jet.adapters.langchain.embed_llama_cpp import EmbedLlamaCpp
 from jet.adapters.llama_cpp.tokens import count_tokens
 from jet.logger import logger
 from jet.adapters.langchain.chat_agent_utils import compress_context
+from jet.visualization.terminal import display_iterm2_image
 
 # -------------------------------------------------
 # 1. Load & chunk documents
@@ -61,7 +62,6 @@ llm_with_tools = llm.bind_tools(tools)
 # 4. Graph state & prompts
 # -------------------------------------------------
 from typing_extensions import Literal
-from IPython.display import Image, display
 from langchain_core.messages import SystemMessage, ToolMessage, HumanMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 
@@ -155,7 +155,9 @@ agent_builder.add_edge("environment", "llm_call")
 agent_builder.add_edge("summary_node", END)
 
 agent = agent_builder.compile()
-display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
+# display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
+png_data = agent.get_graph(xray=True).draw_mermaid_png()
+display_iterm2_image(png_data)
 
 # -------------------------------------------------
 # 8. Example run

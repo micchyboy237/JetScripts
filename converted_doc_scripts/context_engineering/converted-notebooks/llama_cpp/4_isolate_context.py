@@ -1,0 +1,100 @@
+# JetScripts/converted_doc_scripts/context_engineering/converted-notebooks/llama_cpp/4_isolate_context.py
+from rich.console import Console
+from rich.pretty import pprint
+from jet.visualization.terminal import display_iterm2_image
+from jet.adapters.langchain.chat_agent_utils import build_agent
+from jet.adapters.llama_cpp.tokens import count_tokens
+from jet.logger import logger
+
+console = Console()
+
+from langgraph_supervisor import create_supervisor
+from jet.adapters.langchain.chat_ollama import ChatOllama
+
+llm = ChatOllama(model="llama3.2", temperature=0)
+
+def add(a: float, b: float) -> float:
+    """Add two numbers."""
+    return a + b
+
+def multiply(a: float, b: float) -> float:
+    """Multiply two numbers."""
+    return a * b
+
+def web_search(query: str) -> str:
+    """Mock web search returning FAANG headcounts."""
+    return (
+        "Here are the headcounts for each of the FAANG companies in 2024:\n"
+        "1. **Facebook (Meta)**: 67,317 employees.\n"
+        "2. **Apple**: 164,000 employees.\n"
+        "3. **Amazon**: 1,551,000 employees.\n"
+        "4. **Netflix**: 14,000 employees.\n"
+        "5. **Google (Alphabet)**: 181,269 employees."
+    )
+
+# Use jet.build_agent for consistency
+math_agent = build_agent(
+    tools=[add, multiply],
+    model=llm,
+    system_prompt="You are a math expert. Always use one tool at a time."
+)
+
+research_agent = build_agent(
+    tools=[web_search],
+    model=llm,
+    system_prompt="You are a world class researcher with access to web search. Do not do any math."
+)
+
+# Supervisor with context isolation via token counting
+workflow = create_supervisor(
+    [research_agent, math_agent],
+    model=llm,
+    prompt=(
+        "You are a team supervisor managing a research expert and a math expert. "
+        "For current events, use research_agent. For math problems, use math_agent. "
+        "Estimate context size before routing."
+    )
+)
+
+app = workflow.compile()
+png_data = app.get_graph().draw_mermaid_png()
+display_iterm2_image(png_data)
+
+# Context-aware invocation with token logging
+query = "what's the combined headcount of the FAANG companies in 2024?"
+query_tokens = count_tokens([query], model="llama3.2")
+logger.log(f"User query tokens: {query_tokens}", colors=["INFO", "YELLOW"])
+
+result = app.invoke({
+    "messages": [
+        {"role": "user", "content": query}
+    ]
+})
+
+console.print("\n[bold blue]Multi-Agent Workflow State:[/bold blue]")
+pprint(result)
+
+# Sandbox tool with async isolation
+from langchain_sandbox import PyodideSandboxTool
+from langgraph.prebuilt import create_react_agent as create_react_agent_raw
+
+tool = PyodideSandboxTool(allow_net=True)
+sandbox_agent = create_react_agent_raw(
+    model=llm,
+    tools=[tool],
+)
+
+code_query = "what's 5 + 7?"
+code_tokens = count_tokens([code_query], model="llama3.2")
+logger.log(f"Sandbox query tokens: {code_tokens}", colors=["INFO", "YELLOW"])
+
+result = sandbox_agent.invoke(
+    {"messages": [{"role": "user", "content": code_query}]},
+)
+
+console.print("\n[bold blue]React agent with sandbox tool result:[/bold blue]")
+pprint(result)
+
+# Final graph visualization
+final_png = sandbox_agent.get_graph().draw_mermaid_png()
+display_iterm2_image(final_png)
