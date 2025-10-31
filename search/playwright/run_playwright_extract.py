@@ -427,7 +427,7 @@ if __name__ == "__main__":
     save_file(all_headers, f"{OUTPUT_DIR}/{sub_dir_query}/all_headers.json")
 
     all_contexts = []
-    for url, headers in all_headers:
+    for url, headers in all_headers.items():
         context = f"<!-- Source: {url} -->\n\n"
         combined_headers_string = "\n\n".join([f"{header["header"]}\n{header["content"]}" for header in headers])
         context += combined_headers_string
