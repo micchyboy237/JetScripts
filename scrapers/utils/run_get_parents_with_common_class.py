@@ -1,10 +1,6 @@
 import os
 import shutil
-from jet.code.markdown_utils._converters import convert_html_to_markdown
-from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
-from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy
 from jet.file.utils import load_file, save_file
-from jet.logger import logger
 from jet.scrapers.utils import extract_tree_with_text, get_parents_with_common_class
 
 OUTPUT_DIR = os.path.join(
@@ -12,7 +8,7 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/pages/gamerant_com_new_isekai_anime_2025/page_preprocessed.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
 
     output_dir = OUTPUT_DIR
 

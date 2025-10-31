@@ -1,7 +1,7 @@
 import os
 import shutil
 from jet.file.utils import load_file, save_file
-from jet.scrapers.utils import scrape_title
+from jet.scrapers.text_nodes import extract_text_nodes
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -15,5 +15,5 @@ if __name__ == "__main__":
     html_str: str = load_file(html_file)
     save_file(html_str, f"{output_dir}/page.html")
 
-    title = scrape_title(html_str)
-    save_file(title, f"{output_dir}/title.md")
+    text_nodes = extract_text_nodes(html_str)
+    save_file(text_nodes, f"{output_dir}/text_nodes.json")
