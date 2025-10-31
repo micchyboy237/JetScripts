@@ -20,13 +20,6 @@ logger.orange(f"Main logs: {log_file}")
 
 console = Console()
 
-llm = ChatOpenAI(
-    model="qwen3-instruct-2507:4b",
-    temperature=0.0,
-    base_url="http://shawn-pc.local:8080/v1",
-    verbosity="high",
-)
-
 def add(a: float, b: float) -> float:
     """Add two numbers.
     Args:
@@ -63,6 +56,29 @@ def web_search(query: str) -> str:
         "5. **Google (Alphabet)**: 181,269 employees."
     )
 
+llm_math = ChatOpenAI(
+    model="qwen3-instruct-2507:4b",
+    temperature=0.0,
+    base_url="http://shawn-pc.local:8080/v1",
+    verbosity="high",
+)
+llm_math.bind_tools([add, multiply])
+
+llm_research = ChatOpenAI(
+    model="qwen3-instruct-2507:4b",
+    temperature=0.0,
+    base_url="http://shawn-pc.local:8080/v1",
+    verbosity="high",
+)
+llm_research.bind_tools([web_search])
+
+llm_supervisor = ChatOpenAI(
+    model="qwen3-instruct-2507:4b",
+    temperature=0.0,
+    base_url="http://shawn-pc.local:8080/v1",
+    verbosity="high",
+)
+
 # ------------------------------------------------------------------
 # `create_supervisor` requires each sub-agent to have a `.name`.
 # `build_agent` does not expose `name`, so we:
@@ -71,49 +87,35 @@ def web_search(query: str) -> str:
 #   3. re-wrap with `build_agent` (adds logging/middleware),
 #   4. copy the name back.
 # ------------------------------------------------------------------
-from langgraph.prebuilt import create_react_agent as _create_react_agent
 
 # ---- Math agent ----------------------------------------------------
-math_raw = _create_react_agent(
-    model=llm,
-    tools=[add, multiply],
-    prompt="You are a math expert. Always use one tool at a time.",
-)
-math_raw.name = "math_expert"
-
 math_prompt = "You are a math expert. Always use one tool at a time."
 math_agent = build_agent(
     tools=[add, multiply],
-    model=llm,
+    model=llm_math,
     system_prompt=math_prompt,
+    name="math_expert",
 )
-math_agent.name = math_raw.name
 
 # ---- Research agent ------------------------------------------------
-research_raw = _create_react_agent(
-    model=llm,
-    tools=[web_search],
-    prompt="You are a world class researcher with access to web search. Do not do any math.",
-)
-research_raw.name = "research_expert"
-
 research_prompt = "You are a world class researcher with access to web search. Do not do any math."
 research_agent = build_agent(
     tools=[web_search],
-    model=llm,
+    model=llm_research,
     system_prompt=research_prompt,
+    name="research_expert",
 )
-research_agent.name = research_raw.name
 
 # Supervisor with context isolation via token counting
 workflow = create_supervisor(
     [research_agent, math_agent],
-    model=llm,
+    model=llm_supervisor,
     prompt=(
         "You are a team supervisor managing a research expert and a math expert. "
         "For current events, use research_agent. For math problems, use math_agent. "
         "Estimate context size before routing."
-    )
+    ),
+    supervisor_name="supervisor_jet"
 )
 
 app = workflow.compile()
@@ -139,9 +141,16 @@ pprint(result)
 from langchain_sandbox import PyodideSandboxTool
 from langgraph.prebuilt import create_react_agent as create_react_agent_raw
 
+llm_sandbox = ChatOpenAI(
+    model="qwen3-instruct-2507:4b",
+    temperature=0.0,
+    base_url="http://shawn-pc.local:8080/v1",
+    verbosity="high",
+)
+
 tool = PyodideSandboxTool(allow_net=True)
 sandbox_agent = create_react_agent_raw(
-    model=llm,
+    model=llm_sandbox,
     tools=[tool],
 )
 
