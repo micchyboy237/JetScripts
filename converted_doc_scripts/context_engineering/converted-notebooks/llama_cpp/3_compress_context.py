@@ -1,4 +1,5 @@
 # JetScripts/converted_doc_scripts/context_engineering/converted-notebooks/llama_cpp/3_compress_context.py
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.tools import create_retriever_tool
 from langchain_community.document_loaders import WebBaseLoader
 from langchain_core.vectorstores import InMemoryVectorStore
@@ -165,7 +166,8 @@ agent_builder.add_edge("summary_node", END)
 
 agent = agent_builder.compile()
 # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
-png_data = agent.get_graph(xray=True).draw_mermaid_png()
+png_data = render_mermaid_graph(
+    agent, xray=True, output_filename=f"{OUTPUT_DIR}/agent_graph.png")
 display_iterm2_image(png_data)
 
 # -------------------------------------------------

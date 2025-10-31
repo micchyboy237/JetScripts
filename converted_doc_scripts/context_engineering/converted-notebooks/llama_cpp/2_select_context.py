@@ -16,6 +16,7 @@
 # %%
 from typing import TypedDict
 
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from rich.console import Console
 from rich.pretty import pprint
 from jet.visualization.terminal import display_iterm2_image
@@ -119,7 +120,8 @@ chain = workflow.compile()
 
 # Display the workflow visualization
 # display(Image(chain.get_graph().draw_mermaid_png()))
-png_data = chain.get_graph().draw_mermaid_png()
+png_data = render_mermaid_graph(
+    chain, output_filename=f"{OUTPUT_DIR}/joke_generator_graph.png")
 display_iterm2_image(png_data)
 
 # %%
@@ -482,7 +484,8 @@ agent = build_agent(all_tools, llm)
 
 # Display the agent visualization
 # display(Image(agent.get_graph().draw_mermaid_png()))
-png_data = agent.get_graph().draw_mermaid_png()
+png_data = render_mermaid_graph(
+    agent, output_filename=f"{OUTPUT_DIR}/structured_tools_graph.png")
 display_iterm2_image(png_data)
 
 # %%
@@ -717,7 +720,8 @@ agent = agent_builder.compile()
 
 # Show the agent
 # display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
-png_data = agent.get_graph(xray=True).draw_mermaid_png()
+png_data = render_mermaid_graph(
+    agent, xray=True, output_filename=f"{OUTPUT_DIR}/blog_retrieval_graph.png")
 display_iterm2_image(png_data)
 
 # %%

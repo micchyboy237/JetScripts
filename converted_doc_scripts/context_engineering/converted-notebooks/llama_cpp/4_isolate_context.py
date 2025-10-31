@@ -1,3 +1,4 @@
+from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from rich.console import Console
 from rich.pretty import pprint
 from langchain_openai import ChatOpenAI
@@ -116,7 +117,8 @@ workflow = create_supervisor(
 )
 
 app = workflow.compile()
-png_data = app.get_graph().draw_mermaid_png()
+png_data = render_mermaid_graph(
+    app, output_filename=f"{OUTPUT_DIR}/supervisor_graph.png")
 display_iterm2_image(png_data)
 
 # Context-aware invocation with token logging
@@ -155,5 +157,6 @@ console.print("\n[bold blue]React agent with sandbox tool result:[/bold blue]")
 pprint(result)
 
 # Final graph visualization
-final_png = sandbox_agent.get_graph().draw_mermaid_png()
+final_png = render_mermaid_graph(
+    sandbox_agent, output_filename=f"{OUTPUT_DIR}/sandbox_agent_graph.png")
 display_iterm2_image(final_png)
