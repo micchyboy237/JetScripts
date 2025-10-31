@@ -10,7 +10,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 def main() -> None:
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/async_results/html_files/https_cloud_google_com_blog_topics_public_sector_5_ai_trends_shaping_the_future_of_the_public_sector_in_2025.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
     html_str: str = load_file(html_file)
 
     save_file(html_str, f"{OUTPUT_DIR}/page.html")
