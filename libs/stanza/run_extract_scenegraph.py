@@ -1,3 +1,4 @@
+from jet.wordnet.text_chunker import truncate_texts_fast
 from stanza.server import CoreNLPClient
 from tqdm import tqdm
 # from jet.libs.bertopic.examples.mock import load_sample_data
@@ -15,6 +16,14 @@ file_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScri
 headings = load_file(file_path)
 docs = [h["text"] for h in headings]
 # docs = load_sample_data(model="embeddinggemma", chunk_size=200, truncate=True)
+docs = truncate_texts_fast(
+    docs,
+    model="qwen3-instruct-2507:4b",
+    max_tokens=512,
+    strict_sentences=True,
+    show_progress=True
+)
+save_file(docs, f"{OUTPUT_DIR}/truncated_docs.json")
 
 def main():
     """
@@ -34,7 +43,7 @@ def main():
             save_file(text, f"{header_dir}/rag_text.txt")
 
             # Optional: nested progress tracking if extract_sentences is slow
-            sentences = extract_sentences(text, use_gpu=True)
+            sentences = extract_sentences(text, use_gpu=True, valid_only=True)
             save_file(sentences, f"{header_dir}/rag_sentences.json")
 
             for sentence_idx, sentence in enumerate(tqdm(sentences, desc="Processing documents", unit="doc")):

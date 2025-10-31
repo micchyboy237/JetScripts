@@ -33,6 +33,7 @@ def main():
         strict_sentences=True,
         show_progress=True
     )
+    save_file(header_texts, f"{OUTPUT_DIR}/truncated_headers.json")
 
     for idx, header_md_content in enumerate(tqdm(header_texts, desc="Extracting RAG sentences", unit="header")):
         header_dir = os.path.join(OUTPUT_DIR, f"header_{idx + 1}")
