@@ -62,7 +62,6 @@ llm_math = ChatOpenAI(
     base_url="http://shawn-pc.local:8080/v1",
     verbosity="high",
 )
-llm_math.bind_tools([add, multiply])
 
 llm_research = ChatOpenAI(
     model="qwen3-instruct-2507:4b",
@@ -70,7 +69,6 @@ llm_research = ChatOpenAI(
     base_url="http://shawn-pc.local:8080/v1",
     verbosity="high",
 )
-llm_research.bind_tools([web_search])
 
 llm_supervisor = ChatOpenAI(
     model="qwen3-instruct-2507:4b",
