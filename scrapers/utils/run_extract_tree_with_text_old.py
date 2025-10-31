@@ -1,7 +1,7 @@
 import os
 import shutil
 from jet.file.utils import load_file, save_file
-from jet.scrapers.utils import extract_tree_with_text, flatten_tree_to_base_nodes
+from jet.scrapers.utils_old import extract_tree_with_text, flatten_tree_to_base_nodes
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -19,11 +19,5 @@ if __name__ == "__main__":
     tree_elements = extract_tree_with_text(html_str)
     save_file(tree_elements, f"{output_dir}/tree_elements.json")
 
-    all_nodes = flatten_tree_to_base_nodes(tree_elements)
-    save_file(all_nodes, f"{output_dir}/all_nodes.json")
-
-    all_links = [node.get_links() for node in all_nodes]
-    save_file(all_links, f"{output_dir}/all_links.json")
-
-    all_html = [node.get_html() for node in all_nodes]
-    save_file(all_html, f"{output_dir}/all_html.json")
+    flattened_nodes = flatten_tree_to_base_nodes(tree_elements)
+    save_file(flattened_nodes, f"{output_dir}/flattened_nodes.json")

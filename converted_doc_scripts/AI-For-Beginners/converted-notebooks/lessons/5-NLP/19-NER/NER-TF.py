@@ -34,7 +34,8 @@ We will start by reading the dataset into a dataframe. If you want to learn more
 """
 logger.info("## Preparing the Dataset")
 
-df = pd.read_csv('ner_dataset.csv',encoding='unicode-escape')
+csv_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/data/kaggle/ner_dataset.csv"
+df = pd.read_csv(csv_file,encoding='unicode-escape')
 df.head()
 
 """

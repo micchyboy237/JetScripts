@@ -4,6 +4,7 @@ import shutil
 from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.code.markdown_utils._converters import base_convert_html_to_markdown
 from jet.file.utils import save_file
+from jet.logger import logger
 
 html = """
 <dl><dt>A</dt><dd>1</dd></dl>
@@ -22,4 +23,6 @@ if __name__ == "__main__":
     save_file(converted_html, f"{output_dir}/converted_html.html")
 
     md_content = base_convert_html_to_markdown(converted_html, ignore_links=True)
+    logger.gray("RESULT:")
+    logger.success(md_content)
     save_file(md_content, f"{output_dir}/md_content.md")

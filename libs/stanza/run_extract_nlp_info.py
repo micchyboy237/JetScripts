@@ -5,6 +5,7 @@ from jet.code.markdown_utils import base_parse_markdown, convert_markdown_to_tex
 import stanza
 from tqdm import tqdm
 from jet.libs.bertopic.examples.mock import load_sample_data_with_info
+from jet.libs.stanza.rag_stanza import StanzaPipelineCache
 from jet.code.extraction.sentence_extraction import extract_sentences
 from jet.adapters.stanza.ner_visualization import visualize_ner_str as visualize_ner
 from jet.adapters.stanza.dependency_visualization import visualize_str as visualize_dep
@@ -12,7 +13,6 @@ from jet.adapters.stanza.semgrex_visualization import visualize_search_str as vi
 from jet._token.token_utils import token_counter
 from jet.file.utils import save_file
 from jet.logger import logger
-
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
@@ -39,7 +39,14 @@ def _load_pipeline(processors: str = ALL_PROCESSORS, lang: str = "en"):
 
 def initialize_pipeline(processors: str = ALL_PROCESSORS, lang: str = "en") -> stanza.Pipeline:
     """Initialize Stanza pipeline with all processors."""
-    return stanza.Pipeline(lang=lang, dir=DEFAULT_MODEL_DIR, processors=processors, use_gpu=True)
+    cache = StanzaPipelineCache()
+    # return stanza.Pipeline(lang=lang, dir=DEFAULT_MODEL_DIR, processors=processors, use_gpu=True)
+    pipeline = cache.get_pipeline(
+        lang=lang,
+        processors=processors,
+        use_gpu=True
+    )
+    return pipeline
 
 def full_results_example(text: str) -> list:
     """Demonstrate tokenization and sentence segmentation."""
