@@ -6,13 +6,9 @@ from jet.file.utils import save_file
 from jet.logger import logger
 
 html = """
-<dl>
-  <dt>Release Date</dt>
-  <dd>January 1, 2025</dd>
-  <dt>Platforms</dt>
-  <dd>PC</dd>
-  <dd>Mac</dd>
-</dl>
+<dl><dt>A</dt><dd>1</dd></dl>
+<p>---</p>
+<dl><dt>B</dt><dd>2</dd><dd>3</dd></dl>
 """
 
 if __name__ == "__main__":
