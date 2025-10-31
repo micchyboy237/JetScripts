@@ -127,11 +127,40 @@ def tool_node_with_compression(state: MessagesState) -> dict:
     return {"messages": result}
 
 def summary_node(state: MessagesState) -> dict:
-    """Generate a final summary after the loop ends."""
-    summarization_prompt = """Summarize the full chat history and all tool feedback to
-give an overview of what the user asked about and what the agent did."""
-    messages = [SystemMessage(content=summarization_prompt)] + state["messages"]
-    summary_msg = llm.invoke(messages)
+    # ------------------------------------------------------------------
+    # 1. Merge whole conversation into a single readable string
+    # ------------------------------------------------------------------
+    history_lines = []
+
+    for msg in state["messages"]:
+        role = "User" if isinstance(msg, HumanMessage) else "Assistant"
+        # ToolMessages are the compressed retrieval results – keep them as-is
+        if isinstance(msg, ToolMessage):
+            history_lines.append(f"Retrieved context: {msg.content}")
+        else:
+            history_lines.append(f"{role}: {msg.content}")
+    history_text = "\n".join(history_lines)
+
+    # ------------------------------------------------------------------
+    # 2. Improved system prompt (clear, concise, fact-preserving)
+    # ------------------------------------------------------------------
+    summarization_system = """You are a concise summarizer.  
+Produce a **single paragraph** that captures:
+- the user's exact research question,
+- the key retrieved facts / techniques,
+- the final answer or conclusion.
+Preserve all technical terms, citations, and numbers.  
+Do **not** add speculation or extra commentary."""
+
+    # ------------------------------------------------------------------
+    # 3. Call LLM with *only* system + one user message
+    # ------------------------------------------------------------------
+    summary_msg = llm.invoke(
+        [
+            SystemMessage(content=summarization_system),
+            HumanMessage(content=history_text),
+        ]
+    )
     return {"summary": summary_msg.content}
 
 # -------------------------------------------------
