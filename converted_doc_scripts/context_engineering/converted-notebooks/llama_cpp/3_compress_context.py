@@ -108,7 +108,7 @@ def tool_node_with_compression(state: MessagesState) -> dict:
         compressed = compress_context(
             messages=messages,
             retriever_results=observation,
-            max_tokens=3000,          # adjust as needed
+            max_tokens=3500,          # adjust as needed
             llm=llm
         )
 
