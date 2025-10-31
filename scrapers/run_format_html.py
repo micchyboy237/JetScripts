@@ -190,7 +190,7 @@ if __name__ == "__main__":
     flattened_nodes = flatten_tree_to_base_nodes(tree_elements)
     save_file(flattened_nodes, f"{output_dir}/flattened_nodes.json")
 
-    leaf_nodes = get_leaf_nodes(tree_elements)
+    leaf_nodes = get_leaf_nodes(tree_elements, with_text=True)
     save_file(leaf_nodes, f"{output_dir}/leaf_nodes.json")
 
     parents_with_common_class = get_parents_with_common_class(tree_elements)
