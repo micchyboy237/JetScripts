@@ -1,5 +1,6 @@
 import os
 import shutil
+from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.file.utils import load_file, save_file
 from jet.scrapers.utils import extract_tree_with_text, get_parents_with_common_class
 
@@ -13,6 +14,7 @@ if __name__ == "__main__":
     output_dir = OUTPUT_DIR
 
     html_str: str = load_file(html_file)
+    html_str = convert_dl_blocks_to_md(html_str)
     save_file(html_str, f"{output_dir}/page.html")
 
     # Get the tree-like structure
