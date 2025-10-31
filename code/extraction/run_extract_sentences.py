@@ -1,3 +1,4 @@
+from jet.wordnet.text_chunker import truncate_texts_fast
 from tqdm import tqdm
 from jet.code.markdown_utils import convert_html_to_markdown, convert_markdown_to_text, derive_by_header_hierarchy
 from jet.code.extraction import extract_sentences
@@ -24,6 +25,14 @@ def main():
 
     header_texts = [f"{header['header']}\n\n{header['content']}" for header in headers]
     save_file(header_texts, f"{OUTPUT_DIR}/header_texts.json")
+
+    header_texts = truncate_texts_fast(
+        header_texts,
+        model="qwen3-instruct-2507:4b",
+        max_tokens=512,
+        strict_sentences=True,
+        show_progress=True
+    )
 
     for idx, header_md_content in enumerate(tqdm(header_texts, desc="Extracting RAG sentences", unit="header")):
         header_dir = os.path.join(OUTPUT_DIR, f"header_{idx + 1}")
