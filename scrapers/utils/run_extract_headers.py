@@ -1,26 +1,21 @@
 import os
 import shutil
-from typing import List
 from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.file.utils import load_file, save_file
-from jet.scrapers.header_hierarchy import extract_header_hierarchy, HtmlHeaderDoc
+from jet.scrapers.text_nodes import extract_text_nodes
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-
-def main() -> None:
+if __name__ == "__main__":
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
+
+    output_dir = OUTPUT_DIR
+
     html_str: str = load_file(html_file)
     html_str = convert_dl_blocks_to_md(html_str)
-    save_file(html_str, f"{OUTPUT_DIR}/page.html")
+    save_file(html_str, f"{output_dir}/page.html")
 
-    # Extract header hierarchy with default excludes and timeout
-    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
-
-    save_file(headings, f"{OUTPUT_DIR}/headings.json")
-
-
-if __name__ == "__main__":
-    main()
+    text_nodes = extract_text_nodes(html_str)
+    save_file(text_nodes, f"{output_dir}/text_nodes.json")
