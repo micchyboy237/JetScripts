@@ -46,32 +46,16 @@ def example_page_evaluate(url):
 
 def example_inject_js(url):
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True, executable_path=PLAYWRIGHT_CHROMIUM_EXECUTABLE)
+        browser = p.chromium.launch(
+            headless=True, executable_path=PLAYWRIGHT_CHROMIUM_EXECUTABLE
+        )
         page = browser.new_page()
-
-        # 🔹 Inject listener tracker BEFORE navigation (runs before any page JS)
-        page.add_init_script("""
-        (() => {
-          window.__clickableElements = new Set();
-          const origAddEventListener = EventTarget.prototype.addEventListener;
-          EventTarget.prototype.addEventListener = function(type, listener, options) {
-            if (type === 'click' && this instanceof Element) {
-              window.__clickableElements.add(this);
-            }
-            return origAddEventListener.call(this, type, listener, options);
-          };
-        })();
-        """)
-
-        # Now navigate normally
         page.goto(url)
 
-        # Inject our JS utilities (after load)
+        # Inject utils.js (handles init and click-tracker internally)
         page.add_script_tag(path=JS_UTILS_PATH)
+        print("✅ Injected utils.js")
 
-        print("✅ Injected utils.js and click-tracker")
-
-        # ---- Demonstrate all utils ----
         message = page.evaluate("Utils.myInjectedFunction('Jet')")
         print("myInjectedFunction:", message)
 
@@ -90,44 +74,12 @@ def example_inject_js(url):
             print(" -", c)
         save_file(clickables, f"{OUTPUT_DIR}/clickables.json")
 
-        # ---- Collect elements that had JS click listeners attached ----
-        js_clickables = page.evaluate("""
-        Array.from(window.__clickableElements).map(el => ({
-            tag: el.tagName.toLowerCase(),
-            text: el.innerText?.trim().slice(0, 100) || '',
-            hasHref: !!el.getAttribute('href'),
-            css_selector: (() => {
-            const getCssSelector = (el) => {
-                if (!(el instanceof Element)) return null;
-                const path = [];
-                while (el && el.nodeType === Node.ELEMENT_NODE) {
-                let selector = el.nodeName.toLowerCase();
-                if (el.id) {
-                    selector += `#${el.id}`;
-                    path.unshift(selector);
-                    break;
-                } else {
-                    let sib = el, nth = 1;
-                    while (sib = sib.previousElementSibling) {
-                    if (sib.nodeName.toLowerCase() === selector) nth++;
-                    }
-                    if (nth > 1) selector += `:nth-of-type(${nth})`;
-                }
-                path.unshift(selector);
-                el = el.parentElement;
-                }
-                return path.join(" > ");
-            };
-            return getCssSelector(el);
-            })()
-        }))
-        """)
-        print(f"Detected {len(js_clickables)} elements with JS click listeners")
+        js_clickables = page.evaluate("Utils.getJSClickableElements()")
+        print(f"getJSClickableElements(): Found {len(js_clickables)} elements")
         for el in js_clickables[:3]:
             print(" -", el)
         save_file(js_clickables, f"{OUTPUT_DIR}/js_clickables.json")
 
-        # ---- Capture screenshot for reference ----
         element = page.query_selector("h1")
         if element:
             screenshot_path = Path(os.path.join(OUTPUT_DIR, "injected_h1_screenshot.png")).resolve()
