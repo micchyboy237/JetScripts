@@ -275,7 +275,7 @@ Related"""
     save_file(displacy.parse_spans(doc, options={
               "spans_key": "entities"}), f"{output_dir}/spans.json")
 
-    # Visualize spans
+    # Visualize dependencies
     displacy.serve(doc, style="dep", port=5002)
 
 
