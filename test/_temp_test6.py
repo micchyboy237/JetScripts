@@ -6,6 +6,7 @@ from jet.file.utils import load_file, save_file
 from jet.libs.stanza.pipeline import StanzaPipelineCache
 from jet.logger import logger
 from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
+from jet.wordnet.text_chunker import chunk_texts
 from tqdm import tqdm
 
 OUTPUT_DIR = os.path.join(
@@ -62,19 +63,13 @@ if __name__ == "__main__":
             continue
 
         sub_output_dir = f"{OUTPUT_DIR}/heading_{idx + 1}"
-        results = extract_nlp(content)
-        for key, nlp_results in results.items():
-            save_file(nlp_results, f"{sub_output_dir}/{key}_results.json")
-        # chunks = chunk_texts(
-        #     content,
-        #     chunk_size=512,
-        #     chunk_overlap=50,
-        #     model="qwen3-instruct-2507:4b",
-        # )
-        # for chunk in chunks:
-        #     chunk_sentences = extract_sentences(chunk, use_gpu=True, valid_only=True)
-        #     if chunk_sentences:
-        #         sentences.append(f"{heading["level"] * "#"} {header}")
-        #     sentences.extend(chunk_sentences)
-        #     save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
-    
+        chunks = chunk_texts(
+            content,
+            chunk_size=512,
+            chunk_overlap=50,
+            model="qwen3-instruct-2507:4b",
+        )
+        for chunk_idx, chunk in enumerate(chunks):
+            results = extract_nlp(content)
+            for key, nlp_results in results.items():
+                save_file(nlp_results, f"{sub_output_dir}/{chunk}_{chunk_idx + 1}/{key}_results.json")
