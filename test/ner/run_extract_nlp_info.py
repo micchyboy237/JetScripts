@@ -315,4 +315,4 @@ if __name__ == "__main__":
 
         results = extract_nlp(chunk["content"])
         for key, nlp_results in results.items():
-            save_file(nlp_results, f"{sub_output_dir}/{key}_results.json")
+            save_file(nlp_results, f"{sub_output_dir}/{key}.json")
