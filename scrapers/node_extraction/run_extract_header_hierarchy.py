@@ -16,11 +16,7 @@ def main() -> None:
     save_file(html_str, f"{OUTPUT_DIR}/page.html")
 
     # Extract header hierarchy with default excludes and timeout
-    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(
-        source=html_str,
-        excludes=["nav", "footer", "script", "style"],
-        timeout_ms=1000
-    )
+    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
 
     save_file(headings, f"{OUTPUT_DIR}/headings.json")
 

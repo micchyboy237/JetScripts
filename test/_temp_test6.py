@@ -1,83 +1,91 @@
-from jet.llm.mlx.helpers import load_model
-from jet.models.model_types import LLMModelType
-import pytest
-import mlx.core as mx
-import mlx.nn as nn
-import numpy as np
-from mlx_lm import load, generate
+from jet.scrapers.browser.config import PLAYWRIGHT_CHROMIUM_EXECUTABLE
+from playwright.sync_api import sync_playwright, Page, JSHandle
+from typing import List, Dict, Any
 
-# Simplified attention layer with causal mask
+def _get_click_listeners_count(page: Page, el: JSHandle) -> int:
+    """Helper to get click listener count for a single element."""
+    try:
+        result = page.evaluate(
+            """el => {
+                const listeners = getEventListeners(el);
+                return listeners.click ? listeners.click.length : 0;
+            }""",
+            el
+        )
+        return int(result)
+    except Exception:
+        return 0
 
+def get_clickable_elements(page: Page) -> List[Dict[str, Any]]:
+    """
+    Retrieves all elements with click event listeners on the given page.
 
-class SimpleAttention(nn.Module):
-    def __init__(self, dims: int, num_heads: int):
-        super().__init__()
-        self.num_heads = num_heads
-        self.query_proj = nn.Linear(dims, dims, bias=False)
-        self.key_proj = nn.Linear(dims, dims, bias=False)
-        self.value_proj = nn.Linear(dims, dims, bias=False)
-        self.out_proj = nn.Linear(dims, dims, bias=False)
+    Args:
+        page: Playwright Page object.
 
-    def __call__(self, queries, keys, values, mask=None):
-        B, L, D = queries.shape
-        queries = self.query_proj(queries).reshape(
-            B, L, self.num_heads, -1).transpose(0, 2, 1, 3)
-        keys = self.key_proj(keys).reshape(
-            B, L, self.num_heads, -1).transpose(0, 2, 1, 3)
-        values = self.value_proj(values).reshape(
-            B, L, self.num_heads, -1).transpose(0, 2, 1, 3)
+    Returns:
+        List of dictionaries with element details.
+    """
+    try:
+        # Get array of all elements as JSHandle
+        elements_handle: JSHandle = page.evaluate_handle("() => Array.from(document.querySelectorAll('*'))")
+        count: int = page.evaluate("arr => arr.length", elements_handle)
+        
+        clickable_elements: List[Dict[str, Any]] = []
+        
+        for i in range(count):
+            el: JSHandle = page.evaluate_handle("(arr, i) => arr[i]", [elements_handle, i])
+            listeners_count = _get_click_listeners_count(page, el)
+            
+            if listeners_count > 0:
+                props = page.evaluate("""el => ({
+                    tagName: el.tagName,
+                    id: el.id || '',
+                    classes: el.className || '',
+                    text: el.textContent ? el.textContent.trim().slice(0, 50) : ''
+                })""", el)
+                clickable_elements.append(props)
+            
+            el.dispose()  # Clean up individual element handle
+        
+        elements_handle.dispose()
+        return clickable_elements
+    except Exception as e:
+        print(f"Error executing script: {e}")
+        return []
 
-        scale = mx.sqrt(1 / queries.shape[-1])
-        scores = (queries * scale) @ keys.transpose(0, 1, 3, 2)
-        if mask is not None:
-            scores = scores + mask  # Apply causal mask
-        scores = mx.softmax(scores, axis=-1)
-        values_hat = (scores @ values).transpose(0, 2, 1, 3).reshape(B, L, -1)
-        return self.out_proj(values_hat)
+def main(url: str) -> None:
+    """
+    Main function to navigate to a URL and print clickable elements.
 
-# Create causal mask
-
-
-def create_causal_mask(seq_len: int):
-    mask = mx.triu(mx.ones((seq_len, seq_len)) * float('-inf'), k=1)
-    return mask
-
-
-# Example usage
-# Load model and tokenizer
-llm_model: LLMModelType = "qwen3-1.7b-4bit"
-model, tokenizer = load_model(llm_model)
-prompt = "Once upon a time"
-
-# Use encode instead of calling the tokenizer
-input_ids = tokenizer.encode(prompt)
-input_ids = mx.array([input_ids])  # Add batch dimension
-
-seq_len = input_ids.shape[1]
-mask = create_causal_mask(seq_len)
-
-# Generate text
-response = generate(model, tokenizer, prompt=prompt,
-                    max_tokens=20, verbose=True)
-print(response)
-
-
-# Pytest test
-
-
-class TestCausalMask:
-    def test_causal_mask_shape(self):
-        seq_len = 5
-        expected = mx.triu(mx.ones((seq_len, seq_len)) * float('-inf'), k=1)
-        result = create_causal_mask(seq_len)
-        assert result.shape == expected.shape, f"Expected shape {expected.shape}, got {result.shape}"
-        assert mx.all(result == expected), "Causal mask values incorrect"
-
-    def test_causal_mask_values(self):
-        seq_len = 3
-        expected = mx.array([[0., -float('inf'), -float('inf')],
-                             [0., 0., -float('inf')],
-                             [0., 0., 0.]])
-        result = create_causal_mask(seq_len)
-        assert mx.allclose(
-            result, expected), "Causal mask values not close to expected"
+    Args:
+        url: The URL to navigate to.
+    """
+    with sync_playwright() as p:
+        # Use Chromium for getEventListeners support
+        browser = p.chromium.launch(
+            headless=False,
+            executable_path=PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+        )
+        page = browser.new_page()
+        
+        try:
+            page.goto(url, wait_until="domcontentloaded")
+            clickable_elements = get_clickable_elements(page)
+            
+            if clickable_elements:
+                print(f"Found {len(clickable_elements)} clickable elements:")
+                for i, elem in enumerate(clickable_elements):
+                    print(f"{i + 1}. Tag: {elem['tagName']}, ID: {elem['id']}, "
+                          f"Classes: {elem['classes']}, Text: {elem['text']}")
+            else:
+                print("No clickable elements found or an error occurred.")
+                
+        except Exception as e:
+            print(f"Error navigating to {url}: {e}")
+        finally:
+            browser.close()
+            
+if __name__ == "__main__":
+    # Example usage
+    main("https://gamerant.com/new-isekai-anime-2025")

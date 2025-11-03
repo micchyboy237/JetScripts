@@ -29,3 +29,6 @@ if __name__ == "__main__":
 
     all_html = [node.get_html() for node in all_nodes]
     save_file(all_html, f"{output_dir}/all_html.json")
+
+    all_elements = [dict(node.get_element_details()) for node in all_nodes]
+    save_file(all_elements, f"{output_dir}/all_elements.json")
