@@ -1,10 +1,7 @@
-import json
 from jet.logger import logger
 import spacy
 from spacy import displacy
 from spacy.tokens.doc import Doc
-from span_marker import SpanMarkerModel
-from typing import Dict, List
 
 # Simulated logger for demonstration (replace with jet.logger if available)
 
@@ -59,9 +56,7 @@ def main():
     }, last=True)
 
     # Input text
-    text = """Cleopatra VII, also known as Cleopatra the Great, was the last active ruler of the 
-    Ptolemaic Kingdom of Egypt. She was born in 69 BCE and ruled Egypt from 51 BCE until her 
-    death in 30 BCE."""
+    text = "##### Headhunted to Another World: From Salaryman to Big Four!\nIsekai\nFantasy\nComedy\nRelease Date : January 1, 2025\nRelease Date\n: January 1, 2025\nJapanese Title : Salaryman ga Isekai ni Ittara Shitennou ni Natta Hanashi Studio : Geek Toys, CompTown Based On : Manga Creator : Benigashira Streaming Service(s) : Crunchyroll\nJapanese Title\n: Salaryman ga Isekai ni Ittara Shitennou ni Natta Hanashi\n\nStudio\n: Geek Toys, CompTown\n\nBased On\n: Manga\n\nCreator\n: Benigashira\n\nStreaming Service(s)\n: Crunchyroll\nPowered by\nExpand Collapse\nPlenty of 2025 isekai anime will feature OP protagonists capable of brute-forcing their way through any and every encounter, so it is always refreshing when an MC comes along that relies on brain rather than brawn. A competent office worker who feels underappreciated, Uchimura is suddenly summoned to another world by a demonic ruler, who comes with quite an unusual offer: Join the crew as one of the Heavenly Kings. So, Uchimura starts a new career path that tasks him with tackling challenges using his expertise in discourse and sales.\nRelated"
 
     # Process text
     doc = process_text(text, nlp)
@@ -71,7 +66,7 @@ def main():
     log_noun_chunks(doc)
 
     # Visualize entities
-    displacy.serve(doc, style="dep", port=5002, options={"colors": {
+    displacy.serve(doc, style="ent", port=5002, options={"colors": {
                    "PER": "#ff9999", "LOC": "#99ff99", "DATE": "#9999ff"}})
 
 
