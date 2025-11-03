@@ -88,6 +88,7 @@ def example_inject_js(url):
         print(f"getClickableElements(): Found {len(clickables)} elements")
         for c in clickables[:3]:
             print(" -", c)
+        save_file(clickables, f"{OUTPUT_DIR}/clickables.json")
 
         # ---- Collect elements that had JS click listeners attached ----
         js_clickables = page.evaluate("""
@@ -100,6 +101,7 @@ def example_inject_js(url):
         print(f"Detected {len(js_clickables)} elements with JS click listeners")
         for el in js_clickables[:3]:
             print(" -", el)
+        save_file(js_clickables, f"{OUTPUT_DIR}/js_clickables.json")
 
         # ---- Capture screenshot for reference ----
         element = page.query_selector("h1")
