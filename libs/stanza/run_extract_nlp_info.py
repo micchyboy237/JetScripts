@@ -4,7 +4,6 @@ from typing import List
 from jet.code.markdown_utils import base_parse_markdown, convert_markdown_to_text
 import stanza
 from tqdm import tqdm
-from jet.libs.bertopic.examples.mock import load_sample_data_with_info
 from jet.libs.stanza.rag_stanza import StanzaPipelineCache
 from jet.code.extraction.sentence_extraction import extract_sentences
 from jet.adapters.stanza.ner_visualization import visualize_ner_str as visualize_ner
@@ -191,28 +190,48 @@ def visualize_sem_example(text: str) -> str:
                "{cpos:NOUN}=thing <obj {cpos:VERB}=action"]
     return visualize_sem(text, queries, "en", nlp)
 
+text = """Title: Headhunted to Another World: From Salaryman to Big Four!
+Isekai
+Fantasy
+Comedy
+Release Date: January 1, 2025
+Japanese Title: Salaryman ga Isekai ni Ittara Shitennou ni Natta Hanashi Studio
+
+Studio: Geek Toys, CompTown
+
+Based On: Manga
+
+Creator: Benigashira
+
+Streaming Service(s): Crunchyroll
+Powered by
+Expand Collapse
+Plenty of 2025 isekai anime will feature OP protagonists capable of brute-forcing their way through any and every encounter, so it is always refreshing when an MC comes along that relies on brain rather than brawn. A competent office worker who feels underappreciated, Uchimura is suddenly summoned to another world by a demonic ruler, who comes with quite an unusual offer: Join the crew as one of the Heavenly Kings. So, Uchimura starts a new career path that tasks him with tackling challenges using his expertise in discourse and sales.
+Related"""
+texts = [text]
+
 def main():
     """Run all processor examples on each document sequentially and save results with progress tracking."""
-    # Load all documents
-    chunks = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, truncate=True)
-    save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
+    # # Load all documents
+    # chunks = load_sample_data_with_info(model="embeddinggemma", chunk_size=512, truncate=True)
+    # save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
-    token_counts = [chunk["num_tokens"] for chunk in chunks]
-    save_file({
-        "chunks": len(chunks),
-        "tokens": {
-            "min": min(token_counts),
-            "max": max(token_counts),
-            "ave": sum(token_counts) // len(token_counts),
-        }
-    }, f"{OUTPUT_DIR}/info.json")
+    # token_counts = [chunk["num_tokens"] for chunk in chunks]
+    # save_file({
+    #     "chunks": len(chunks),
+    #     "tokens": {
+    #         "min": min(token_counts),
+    #         "max": max(token_counts),
+    #         "ave": sum(token_counts) // len(token_counts),
+    #     }
+    # }, f"{OUTPUT_DIR}/info.json")
 
-    headers = [{
-        "doc_index": chunk["doc_index"],
-        "content_tokens": chunk["num_tokens"],
-        "header": chunk["meta"]["header"],
-    } for chunk in chunks]
-    save_file(headers, f"{OUTPUT_DIR}/headers.json")
+    # headers = [{
+    #     "doc_index": chunk["doc_index"],
+    #     "content_tokens": chunk["num_tokens"],
+    #     "header": chunk["meta"]["header"],
+    # } for chunk in chunks]
+    # save_file(headers, f"{OUTPUT_DIR}/headers.json")
     
     # Each example and its filename
     example_funcs = [
@@ -234,7 +253,8 @@ def main():
         (visualize_sem_example, "visualize_sem"),
     ]
     
-    chunk_texts = [chunk["content"] for chunk in chunks]
+    # chunk_texts = [chunk["content"] for chunk in chunks]
+    chunk_texts = texts
     saved_files = []
     # Process each document
     for doc_idx, md_content in enumerate(tqdm(chunk_texts, desc="Processing documents", unit="doc")):
