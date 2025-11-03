@@ -19,3 +19,6 @@ if __name__ == "__main__":
 
     text_nodes = extract_text_nodes(html_str)
     save_file(text_nodes, f"{output_dir}/text_nodes.json")
+
+    text_elements = [dict(node.get_element_details()) for node in text_nodes]
+    save_file(text_elements, f"{output_dir}/text_elements.json")
