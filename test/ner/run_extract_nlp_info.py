@@ -81,8 +81,9 @@ class DocPOS:
     dep: str          # Syntactic dependency
     ent: str          # Named entity label
     head_text: str    # Head token text
+    lang: str         # Language code for the token (e.g. 'en')
     sentence_text: str  # Full sentence context
-    meta: DocPOSMeta
+    meta: DocPOSMeta  # Miscellaneous token metadata flags (digit, currency, etc.)
 
 
 @dataclass
@@ -159,6 +160,7 @@ def parse_pos(doc: Doc) -> List[DocPOS]:
             dep=token.dep_,
             ent=token.ent_type_,
             head_text=token.head.text,
+            lang=token.lang_,
             sentence_text=_sentence_for_token(token.i),
             meta=DocPOSMeta(
                 is_digit=token.is_digit,
@@ -248,6 +250,10 @@ def parse_settings(doc: Doc) -> DocSettings:
 
 
 def extract_nlp(text: str) -> dict:
+    logger.info("Running spacy NER extraction")
+    doc = nlp(text)
+    spacy_entities = doc.ents
+
     logger.info("Running span marker NER extraction")
     predictions = process_predictions(text, nlp, model)
     entities = parse_entities(doc, predictions)
@@ -255,11 +261,6 @@ def extract_nlp(text: str) -> dict:
     dependencies = parse_dependencies(doc)
     noun_chunks = parse_noun_chunks(doc)
     sentences = parse_sentences(doc)
-
-    logger.info("Running spacy NER extraction")
-    doc = nlp(text)
-    spacy_entities = doc.ents
-
 
     return {
         "pos": pos,

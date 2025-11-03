@@ -65,8 +65,9 @@ class DocPOS:
     dep: str          # Syntactic dependency
     ent: str          # Named entity label
     head_text: str    # Head token text
+    lang: str         # Language code for the token (e.g. 'en')
     sentence_text: str  # Full sentence context
-    meta: DocPOSMeta
+    meta: DocPOSMeta  # Miscellaneous token metadata flags (digit, currency, etc.)
 
 
 @dataclass
@@ -191,6 +192,7 @@ def parse_pos(doc: Doc) -> List[DocPOS]:
             dep=token.dep_,
             ent=token.ent_type_,
             head_text=token.head.text,
+            lang=token.lang_,
             sentence_text=_sentence_for_token(token.i),
             meta=DocPOSMeta(
                 is_digit=token.is_digit,
