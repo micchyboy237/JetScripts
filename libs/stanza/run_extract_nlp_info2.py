@@ -73,4 +73,4 @@ if __name__ == "__main__":
             results = extract_nlp(chunk)
             for key, nlp_results in results.items():
                 nlp_results_path = f"{sub_output_dir}/{key}_results.json" if chunk_idx == 0 else f"{sub_output_dir}_{chunk_idx + 1}/{key}_results.json"
-                save_file(nlp_results, )
+                save_file(nlp_results, nlp_results_path)
