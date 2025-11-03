@@ -9,6 +9,7 @@ from spacy import displacy
 from span_marker import SpanMarkerModel
 from typing import List, Optional
 import os
+from typing import Dict, Any
 
 # SpanMarkerWord with label
 
@@ -215,6 +216,129 @@ def create_span_group(doc: Doc, predictions: List[SpanMarkerWord]) -> SpanGroup:
     return SpanGroup(doc, name="entities", spans=spans)
 
 
+def create_noun_chunk_spans(doc: Doc) -> None:
+    """Assign noun chunks to a custom SpanGroup for visualization."""
+    spans = [
+        Span(doc, chunk.start, chunk.end, label="NOUN_CHUNK")
+        for chunk in doc.noun_chunks
+    ]
+    doc.spans["noun_chunks"] = spans
+
+
+def create_sentence_spans(doc: Doc) -> None:
+    """Assign sentences to a custom SpanGroup for visualization."""
+    spans = [
+        Span(doc, sent.start, sent.end, label="SENTENCE")
+        for sent in doc.sents
+    ]
+    doc.spans["sentences"] = spans
+
+
+def create_custom_spans(doc: Doc) -> None:
+    """Assign arbitrary custom spans (e.g., key phrases) to a SpanGroup."""
+    # Example: Highlight specific phrases
+    spans = [
+        doc[:3],  # First three tokens
+        doc[5:8],  # Tokens 5-8
+    ]
+    for span in spans:
+        span.label_ = "CUSTOM_PHRASE"
+    doc.spans["custom_phrases"] = spans
+
+
+def create_span_group_from_predictions(doc: Doc, predictions: List[SpanMarkerWord], key: str = "sc") -> None:
+    """Create and assign a SpanGroup from predictions to a specified doc.spans key."""
+    spans = []
+    for entity in predictions:
+        start_token, end_token = char_to_token_index(doc, entity.start_idx, entity.end_idx)
+        if start_token is not None and end_token is not None:
+            try:
+                span = Span(doc, start_token, end_token, label=entity.label)
+                spans.append(span)
+            except IndexError:
+                logger.warning(f"Invalid span for '{entity.text}'")
+    doc.spans[key] = SpanGroup(doc, name=key, spans=spans)
+
+
+def parse_spans_entities(doc: Doc):
+    """Parse spans from a custom 'entities' key"""
+    parsed_span_entities = displacy.parse_spans(doc, options={"spans_key": "entities"})
+    text = parsed_span_entities["text"]
+    spans = parsed_span_entities["spans"]
+    result = {
+        "text": text,
+        "spans": [{
+            **span,
+            "span": text[span["start"] : span["end"]]
+        } for span in spans]
+    }
+    return result
+
+
+def parse_spans_noun_chunks(doc: Doc) -> Dict[str, Any]:
+    """Parse spans from a 'noun_chunks' key."""
+    create_noun_chunk_spans(doc)
+    parsed = displacy.parse_spans(doc, options={"spans_key": "noun_chunks"})
+    text = parsed["text"]
+    spans = parsed["spans"]
+    result = {
+        "text": text,
+        "spans": [
+            {**span, "span": text[span["start"]: span["end"]]}
+            for span in spans
+        ]
+    }
+    return result
+
+
+def parse_spans_sentences(doc: Doc) -> Dict[str, Any]:
+    """Parse spans from a 'sentences' key."""
+    create_sentence_spans(doc)
+    parsed = displacy.parse_spans(doc, options={"spans_key": "sentences"})
+    text = parsed["text"]
+    spans = parsed["spans"]
+    result = {
+        "text": text,
+        "spans": [
+            {**span, "span": text[span["start"]: span["end"]]}
+            for span in spans
+        ]
+    }
+    return result
+
+
+def parse_spans_custom_phrases(doc: Doc) -> Dict[str, Any]:
+    """Parse spans from a 'custom_phrases' key."""
+    create_custom_spans(doc)
+    parsed = displacy.parse_spans(doc, options={"spans_key": "custom_phrases"})
+    text = parsed["text"]
+    spans = parsed["spans"]
+    result = {
+        "text": text,
+        "spans": [
+            {**span, "span": text[span["start"]: span["end"]]}
+            for span in spans
+        ]
+    }
+    return result
+
+
+def parse_spans_ruler(doc: Doc) -> Dict[str, Any]:
+    """Parse spans from the 'ruler' key (default for SpanRuler component)."""
+    # Assume a SpanRuler has been added to the pipeline
+    parsed = displacy.parse_spans(doc, options={"spans_key": "ruler"})
+    text = parsed["text"]
+    spans = parsed["spans"]
+    result = {
+        "text": text,
+        "spans": [
+            {**span, "span": text[span["start"]: span["end"]]}
+            for span in spans
+        ]
+    }
+    return result
+
+
 def main():
     # Load spaCy model
     nlp = spacy.load("en_core_web_sm")
@@ -243,31 +367,52 @@ Expand Collapse
 Plenty of 2025 isekai anime will feature OP protagonists capable of brute-forcing their way through any and every encounter, so it is always refreshing when an MC comes along that relies on brain rather than brawn. A competent office worker who feels underappreciated, Uchimura is suddenly summoned to another world by a demonic ruler, who comes with quite an unusual offer: Join the crew as one of the Heavenly Kings. So, Uchimura starts a new career path that tasks him with tackling challenges using his expertise in discourse and sales.
 Related"""
 
-    # Process text
+    # Process text (first pass: base pipeline + SpanMarker)
     doc, predictions = process_text(text, nlp, model)
 
-    # Log entities, noun chunks, and sentences
+    # Log entities, noun chunks, and sentences (from first pass)
     log_entities(predictions)
     log_noun_chunks(doc)
     log_sentences(doc)
 
-    # Create span group for visualization
-    doc.spans["entities"] = create_span_group(doc, predictions)
+    # Create reusable span groups from predictions
+    create_span_group_from_predictions(doc, predictions, key="entities")
+
+    # Add SpanRuler if not present
+    if "span_ruler" not in nlp.pipe_names:
+        ruler = nlp.add_pipe("span_ruler")
+        ruler.add_patterns([{"label": "MOCK_RULER", "pattern": "Crunchyroll"}])
+
+    # Re-process text to apply ruler and refresh noun_chunks/sents (pipeline-dependent)
+    doc = nlp(text)
+    # Re-apply SpanMarker predictions to refreshed doc
+    _, predictions = process_text(text, nlp, model)  # Re-run for char indices alignment
+    create_span_group_from_predictions(doc, predictions, key="entities")
+
+    # Refresh other example spans on the final doc
+    create_noun_chunk_spans(doc)
+    create_sentence_spans(doc)
+    create_custom_spans(doc)
 
     # Parse and save data
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
             os.path.basename(__file__))[0]
     )
-    save_file([e.__dict__ for e in parse_entities(
-        doc, predictions)], f"{output_dir}/entities.json")
+    os.makedirs(output_dir, exist_ok=True)
+
+    save_file([e.__dict__ for e in parse_entities(doc, predictions)],
+              f"{output_dir}/entities.json")
     save_file([d.__dict__ for d in parse_dependencies(doc)],
               f"{output_dir}/dependencies.json")
     save_file([s.__dict__ for s in parse_sentences(doc)],
               f"{output_dir}/sentences.json")
     save_file(parse_settings(doc).__dict__, f"{output_dir}/settings.json")
-    save_file(displacy.parse_spans(doc, options={
-              "spans_key": "entities"}), f"{output_dir}/spans.json")
+    save_file(parse_spans_entities(doc), f"{output_dir}/span_entities.json")
+    save_file(parse_spans_noun_chunks(doc), f"{output_dir}/span_noun_chunks.json")
+    save_file(parse_spans_sentences(doc), f"{output_dir}/span_sentences.json")
+    save_file(parse_spans_custom_phrases(doc), f"{output_dir}/span_custom_phrases.json")
+    save_file(parse_spans_ruler(doc), f"{output_dir}/span_ruler.json")
 
     # Visualize dependencies
     displacy.serve(doc, style="dep", port=5002)
