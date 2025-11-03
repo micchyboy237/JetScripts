@@ -8,7 +8,7 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 model = SpanMarkerModel.from_pretrained(
     # "tomaarsen/span-marker-bert-base-cross-ner",
     "tomaarsen/span-marker-roberta-large-ontonotes5",
-)
+).to("mps")
 
 # Example text
 text = """Title: Headhunted to Another World: From Salaryman to Big Four!

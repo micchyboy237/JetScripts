@@ -219,7 +219,9 @@ def main():
     # Load spaCy model
     nlp = spacy.load("en_core_web_sm")
     model = SpanMarkerModel.from_pretrained(
-        "tomaarsen/span-marker-mbert-base-multinerd").to("cpu")
+        # "tomaarsen/span-marker-mbert-base-multinerd"
+        "tomaarsen/span-marker-roberta-large-ontonotes5"
+    ).to("mps")
 
     # Input text
     text = """Title: Headhunted to Another World: From Salaryman to Big Four!
