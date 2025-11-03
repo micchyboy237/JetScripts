@@ -1,10 +1,9 @@
-from jet.wordnet.text_chunker import truncate_texts_fast
 from stanza.server import CoreNLPClient
 from tqdm import tqdm
 # from jet.libs.bertopic.examples.mock import load_sample_data
 from jet.code.markdown_utils import convert_markdown_to_text
 from jet.code.extraction import extract_sentences
-from jet.file.utils import load_file, save_file
+from jet.file.utils import save_file
 import os
 import shutil
 
@@ -12,18 +11,38 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-file_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html/headings.json"
-headings = load_file(file_path)
-docs = [h["text"] for h in headings]
-# docs = load_sample_data(model="embeddinggemma", chunk_size=200, truncate=True)
-docs = truncate_texts_fast(
-    docs,
-    model="qwen3-instruct-2507:4b",
-    max_tokens=512,
-    strict_sentences=True,
-    show_progress=True
-)
-save_file(docs, f"{OUTPUT_DIR}/truncated_docs.json")
+text = """Title: Headhunted to Another World: From Salaryman to Big Four!
+Isekai
+Fantasy
+Comedy
+Release Date: January 1, 2025
+Japanese Title: Salaryman ga Isekai ni Ittara Shitennou ni Natta Hanashi Studio
+
+Studio: Geek Toys, CompTown
+
+Based On: Manga
+
+Creator: Benigashira
+
+Streaming Service(s): Crunchyroll
+Powered by
+Expand Collapse
+Plenty of 2025 isekai anime will feature OP protagonists capable of brute-forcing their way through any and every encounter, so it is always refreshing when an MC comes along that relies on brain rather than brawn. A competent office worker who feels underappreciated, Uchimura is suddenly summoned to another world by a demonic ruler, who comes with quite an unusual offer: Join the crew as one of the Heavenly Kings. So, Uchimura starts a new career path that tasks him with tackling challenges using his expertise in discourse and sales.
+Related"""
+docs = [text]
+
+# file_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/generated/run_format_html/headings.json"
+# headings = load_file(file_path)
+# docs = [h["text"] for h in headings]
+# # docs = load_sample_data(model="embeddinggemma", chunk_size=200, truncate=True)
+# docs = truncate_texts_fast(
+#     docs,
+#     model="qwen3-instruct-2507:4b",
+#     max_tokens=512,
+#     strict_sentences=True,
+#     show_progress=True
+# )
+# save_file(docs, f"{OUTPUT_DIR}/truncated_docs.json")
 
 def main():
     """
