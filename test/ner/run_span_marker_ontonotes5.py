@@ -16,7 +16,7 @@ Isekai
 Fantasy
 Comedy
 Release Date: January 1, 2025
-Japanese Title : Salaryman ga Isekai ni Ittara Shitennou ni Natta Hanashi Studio : Geek Toys, CompTown Based On : Manga Creator : Benigashira Streaming Service(s) : Crunchyroll
+Japanese Title: Salaryman ga Isekai ni Ittara Shitennou ni Natta Hanashi Studio
 
 Studio: Geek Toys, CompTown
 
