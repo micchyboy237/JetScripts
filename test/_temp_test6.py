@@ -24,6 +24,7 @@ if __name__ == "__main__":
 
     sentences = []
     for heading in tqdm(headings, desc="Processing headings..."):
+        header = heading["header"]
         content = heading["content"]
         chunks = chunk_texts(
             content,
@@ -33,6 +34,8 @@ if __name__ == "__main__":
         )
         for chunk in chunks:
             chunk_sentences = extract_sentences(chunk, use_gpu=True, valid_only=True)
+            if chunk_sentences:
+                sentences.append(f"{heading["level"] * "#"} {header}")
             sentences.extend(chunk_sentences)
             save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
     
