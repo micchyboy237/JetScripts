@@ -32,3 +32,6 @@ if __name__ == "__main__":
 
     all_elements = [dict(node.get_element_details()) for node in all_nodes]
     save_file(all_elements, f"{output_dir}/all_elements.json")
+    
+    all_clickable_elements = [dict(node.get_element_details()) for node in all_nodes if node.is_clickable]
+    save_file(all_clickable_elements, f"{output_dir}/all_clickable_elements.json")
