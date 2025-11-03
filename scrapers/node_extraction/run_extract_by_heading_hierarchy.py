@@ -18,4 +18,5 @@ if __name__ == "__main__":
     save_file(html_str, f"{output_dir}/page.html")
 
     headings = extract_by_heading_hierarchy(html_str)
+    headings = [heading.get_content() for heading in headings]
     save_file(headings, f"{output_dir}/headings.json")
