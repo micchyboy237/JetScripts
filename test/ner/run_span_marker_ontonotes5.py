@@ -11,7 +11,7 @@ model = SpanMarkerModel.from_pretrained(
 )
 
 # Example text
-text = """Headhunted to Another World: From Salaryman to Big Four!
+text = """Title: Headhunted to Another World: From Salaryman to Big Four!
 Isekai
 Fantasy
 Comedy
