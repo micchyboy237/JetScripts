@@ -1,16 +1,48 @@
 import os
 import shutil
 from typing import List
-from jet.code.extraction import extract_sentences
 from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.file.utils import load_file, save_file
+from jet.libs.stanza.pipeline import StanzaPipelineCache
+from jet.logger import logger
 from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
-from jet.wordnet.text_chunker import chunk_texts
 from tqdm import tqdm
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+def initialize_pipeline() -> StanzaPipelineCache:
+    """Initialize Stanza pipeline with all processors."""
+    stanza_pipeline = StanzaPipelineCache(use_gpu=True)
+    return stanza_pipeline
+
+def extract_nlp(text: str) -> dict:
+    """Run all Stanza extraction methods and return full results."""
+    logger.info("Running full Stanza pipeline extractions")
+    stanza_pipeline = initialize_pipeline()
+    pos = stanza_pipeline.extract_pos(text)
+    sentences = stanza_pipeline.extract_sentences(text)
+    entities = stanza_pipeline.extract_entities(text)
+    dependencies = stanza_pipeline.extract_dependencies(text)
+    constituencies = stanza_pipeline.extract_constituencies(text)
+    scenes = stanza_pipeline.extract_scenes(text)
+
+    # Also, fetch the underlying stanza.Document and construct detailed token info per sentence
+    doc = stanza_pipeline._pipeline(text)
+    sentence_details = []
+    for sent in doc.sentences:
+        sentence_details.append(sent.to_dict())
+
+    return {
+        "pos": pos,
+        "sentences": sentences,
+        "entities": entities,
+        "dependencies": dependencies,
+        "constituencies": constituencies,
+        "scenes": scenes,
+        "sentence_details": sentence_details,
+    }
 
 if __name__ == "__main__":
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
@@ -22,21 +54,27 @@ if __name__ == "__main__":
     headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
     save_file(headings, f"{OUTPUT_DIR}/headings.json")
 
-    sentences = []
-    for heading in tqdm(headings, desc="Processing headings..."):
+    for idx, heading in enumerate(tqdm(headings, desc="Processing headings...")):
         header = heading["header"]
         content = heading["content"]
-        chunks = chunk_texts(
-            content,
-            chunk_size=512,
-            chunk_overlap=50,
-            model="qwen3-instruct-2507:4b",
-        )
-        for chunk in chunks:
-            chunk_sentences = extract_sentences(chunk, use_gpu=True, valid_only=True)
-            if chunk_sentences:
-                sentences.append(f"{heading["level"] * "#"} {header}")
-            sentences.extend(chunk_sentences)
-            save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
+
+        if not content:
+            continue
+
+        sub_output_dir = f"{OUTPUT_DIR}/heading_{idx + 1}"
+        results = extract_nlp(content)
+        for key, nlp_results in results.items():
+            save_file(nlp_results, f"{sub_output_dir}/{key}_results.json")
+        # chunks = chunk_texts(
+        #     content,
+        #     chunk_size=512,
+        #     chunk_overlap=50,
+        #     model="qwen3-instruct-2507:4b",
+        # )
+        # for chunk in chunks:
+        #     chunk_sentences = extract_sentences(chunk, use_gpu=True, valid_only=True)
+        #     if chunk_sentences:
+        #         sentences.append(f"{heading["level"] * "#"} {header}")
+        #     sentences.extend(chunk_sentences)
+        #     save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
     
-    save_file(sentences, f"{OUTPUT_DIR}/sentences.json")
