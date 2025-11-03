@@ -46,6 +46,30 @@ class DocEntity:
 
 
 @dataclass
+class DocPOSMeta:
+    is_digit: bool
+    is_currency: bool
+    like_email: bool
+    like_num: bool
+    like_url: bool
+
+
+@dataclass
+class DocPOS:
+    """Represents a single token's Part-of-Speech details with sentence context."""
+    text: str
+    lemma: str
+    pos: str          # Coarse-grained POS (NOUN, VERB, ADJ, etc.)
+    tag: str          # Fine-grained tag (NNP, VBD, JJ, etc.)
+    morph: str        # Morphological features
+    dep: str          # Syntactic dependency
+    ent: str          # Named entity label
+    head_text: str    # Head token text
+    sentence_text: str  # Full sentence context
+    meta: DocPOSMeta
+
+
+@dataclass
 class DocNounChunk:
     text: str
     root_text: str
@@ -145,6 +169,42 @@ def parse_entities(doc: Doc, predictions: List[SpanMarkerWord]) -> List[DocEntit
     ]
 
 
+def parse_pos(doc: Doc) -> List[DocPOS]:
+    """Parse a spaCy Doc into a list of DocPOS objects with POS, morph, dep, and sentence context."""
+    # Pre-compute sentence boundaries for fast lookup
+    sent_starts: Dict[int, str] = {sent.start: sent.text for sent in doc.sents}
+
+    def _sentence_for_token(token_idx: int) -> str:
+        """Get sentence text for token using binary-search-like lookup."""
+        for start in sorted(sent_starts.keys(), reverse=True):
+            if start <= token_idx:
+                return sent_starts[start]
+        return ""
+
+    return [
+        DocPOS(
+            text=token.text,
+            lemma=token.lemma_,
+            pos=token.pos_,
+            tag=token.tag_,
+            morph=token.morph.to_dict() if token.morph else {},
+            dep=token.dep_,
+            ent=token.ent_type_,
+            head_text=token.head.text,
+            sentence_text=_sentence_for_token(token.i),
+            meta=DocPOSMeta(
+                is_digit=token.is_digit,
+                is_currency=token.is_currency,
+                like_email=token.like_email,
+                like_num=token.like_num,
+                like_url=token.like_url,
+            )
+        )
+        for token in doc
+        if not token.is_space and not token.is_punct  # Filter whitespace/punctuation
+    ]
+
+
 def parse_dependencies(doc: Doc) -> List[DocNounChunk]:
     """Parse a spaCy Doc into a list of DocNounChunk objects containing noun chunk details
     plus the full sentence context."""
@@ -165,6 +225,34 @@ def parse_dependencies(doc: Doc) -> List[DocNounChunk]:
             root_dep=chunk.root.dep_,
             root_head_text=chunk.root.head.text,
             context=_sentence_for_token(chunk.root)  # full sentence text
+        )
+        for chunk in doc.noun_chunks
+    ]
+
+
+def parse_noun_chunks(doc: Doc) -> List[DocNounChunk]:
+    """Parse a spaCy Doc into a list of DocNounChunk objects with full sentence context.
+
+    Uses pre-computed sentence start indices for O(log n) lookup per token.
+    Returns generic, reusable objects suitable for serialization or further analysis.
+    """
+    # Pre-compute sentence boundaries for fast lookup
+    sent_starts: Dict[int, str] = {sent.start: sent.text for sent in doc.sents}
+
+    def _sentence_for_token(token: Token) -> str:
+        # Binary search equivalent using sorted keys in reverse
+        for start in sorted(sent_starts.keys(), reverse=True):
+            if start <= token.i:
+                return sent_starts[start]
+        return ""
+
+    return [
+        DocNounChunk(
+            text=chunk.text,
+            root_text=chunk.root.text,
+            root_dep=chunk.root.dep_,
+            root_head_text=chunk.root.head.text,
+            context=_sentence_for_token(chunk.root)
         )
         for chunk in doc.noun_chunks
     ]
@@ -416,8 +504,12 @@ Related"""
 
     save_file([e.__dict__ for e in parse_entities(doc, predictions)],
               f"{output_dir}/entities.json")
+    save_file([p.__dict__ for p in parse_pos(doc)],
+            f"{output_dir}/pos.json")
     save_file([d.__dict__ for d in parse_dependencies(doc)],
               f"{output_dir}/dependencies.json")
+    save_file([d.__dict__ for d in parse_noun_chunks(doc)],
+              f"{output_dir}/noun_chunks.json")
     save_file([s.__dict__ for s in parse_sentences(doc)],
               f"{output_dir}/sentences.json")
     save_file(parse_settings(doc).__dict__, f"{output_dir}/settings.json")
@@ -427,8 +519,8 @@ Related"""
     save_file(parse_spans_custom_phrases(doc), f"{output_dir}/span_custom_phrases.json")
     save_file(parse_spans_ruler(doc), f"{output_dir}/span_ruler.json")
 
-    # Visualize dependencies
-    displacy.serve(doc, style="dep", port=5002)
+    # # Visualize dependencies
+    # displacy.serve(doc, style="dep", port=5002)
 
 
 if __name__ == "__main__":
