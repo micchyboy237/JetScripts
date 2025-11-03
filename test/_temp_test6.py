@@ -68,7 +68,7 @@ def example_inner_element_screenshot():
             screenshot_path = Path(os.path.join(OUTPUT_DIR, "element_screenshot.png")).resolve()
             # Take a screenshot of just that element
             element.screenshot(path=str(screenshot_path))
-            print("✅ Screenshot saved as element_screenshot.png")
+            print(f"✅ Screenshot saved as {str(screenshot_path)}")
         else:
             print("❌ Element not found")
 
