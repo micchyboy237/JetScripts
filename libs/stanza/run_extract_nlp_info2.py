@@ -1,32 +1,21 @@
 import os
 import shutil
-from jet.libs.stanza.rag_stanza import StanzaPipelineCache
-from jet.file.utils import save_file
+from typing import List
+from jet.code.html_utils import convert_dl_blocks_to_md
+from jet.file.utils import load_file, save_file
+from jet.libs.stanza.pipeline import StanzaPipelineCache
 from jet.logger import logger
+from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
+from jet.wordnet.text_chunker import chunk_texts
+from tqdm import tqdm
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-text = "Barack Obama was born in Hawaii.  He was elected president in 2008.  Obama attended Harvard."
-
-DEFAULT_MODEL_DIR = os.getenv(
-    'STANZA_RESOURCES_DIR',
-    os.path.join(os.path.expanduser("~/.cache"), "stanza_resources")
-)
-
-# Define the default set of processors for most complete English analyses
-ALL_PROCESSORS = "tokenize,mwt,pos,lemma,depparse,ner,sentiment,constituency"
-
-
-def initialize_pipeline(processors: str = ALL_PROCESSORS, lang: str = "en") -> StanzaPipelineCache:
+def initialize_pipeline() -> StanzaPipelineCache:
     """Initialize Stanza pipeline with all processors."""
-    stanza_pipeline = StanzaPipelineCache(
-        lang=lang,
-        processors=processors,
-        use_gpu=True,
-        verbose=True
-    )
+    stanza_pipeline = StanzaPipelineCache(use_gpu=True)
     return stanza_pipeline
 
 def extract_nlp(text: str) -> dict:
@@ -56,11 +45,31 @@ def extract_nlp(text: str) -> dict:
         "sentence_details": sentence_details,
     }
 
-def main():
-    """Run all processor examples on each document sequentially and save results with progress tracking."""
-    results = extract_nlp(text)
-    for key, nlp_results in results.items():
-        save_file(nlp_results, f"{OUTPUT_DIR}/{key}_results.json")
-
 if __name__ == "__main__":
-    main()
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
+
+    html_str: str = load_file(html_file)
+    html_str = convert_dl_blocks_to_md(html_str)
+    save_file(html_str, f"{OUTPUT_DIR}/page.html")
+
+    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
+    save_file(headings, f"{OUTPUT_DIR}/headings.json")
+
+    for idx, heading in enumerate(tqdm(headings, desc="Processing headings...")):
+        header = heading["header"]
+        content = heading["content"]
+
+        if not content:
+            continue
+
+        sub_output_dir = f"{OUTPUT_DIR}/heading_{idx + 1}"
+        chunks = chunk_texts(
+            content,
+            chunk_size=512,
+            chunk_overlap=50,
+            model="qwen3-instruct-2507:4b",
+        )
+        for chunk_idx, chunk in enumerate(chunks):
+            results = extract_nlp(chunk)
+            for key, nlp_results in results.items():
+                save_file(nlp_results, f"{sub_output_dir}/chunk_{chunk_idx + 1}/{key}_results.json")
