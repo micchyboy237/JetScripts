@@ -70,6 +70,6 @@ if __name__ == "__main__":
             model="qwen3-instruct-2507:4b",
         )
         for chunk_idx, chunk in enumerate(chunks):
-            results = extract_nlp(content)
+            results = extract_nlp(chunk)
             for key, nlp_results in results.items():
-                save_file(nlp_results, f"{sub_output_dir}/{chunk}_{chunk_idx + 1}/{key}_results.json")
+                save_file(nlp_results, f"{sub_output_dir}/chunk_{chunk_idx + 1}/{key}_results.json")
