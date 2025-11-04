@@ -31,11 +31,16 @@ nlp = init_gliner_pipeline(cat_data)
 logger.info("--- Load sample text ---")
 text = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/gliner_spacy/examples/gliner_cat/data/testimony.txt")
 
+chunk_size = 512
+chunk_overlap = 128
+model = "embeddinggemma"
+
 chunks = chunk_texts(
     text,
-    chunk_size=512,
-    chunk_overlap=50,
-    model="embeddinggemma",
+    chunk_size=chunk_size,
+    chunk_overlap=chunk_overlap,
+    model=model,
+    strict_sentences=True,
     show_progress=True,
 )
 save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
@@ -52,7 +57,7 @@ for chunk_idx, chunk in enumerate(chunks):
     save_file(sentence_themes, f"{sub_output_dir}/sentence_themes.json")
 
     logger.info("--- Visualize ---")
-    image = visualize_doc(doc)
+    image = visualize_doc(doc, chunk_size=chunk_size)
     if image:
         image_path = f"{sub_output_dir}/gliner_visualization.png"
         image.save(image_path, format="PNG")
