@@ -1,15 +1,13 @@
+from jet.libs.bertopic.examples.mock import load_sample_data
 from jet.wordnet.analyzers.analyze_pos_tags import analyze_pos_tags
 
 if __name__ == '__main__':
-    from jet.file.utils import load_file
     import os
 
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/docs.json"
 
-    docs: list[dict] = load_file(docs_file)
-    texts = [{'text': doc["text"], 'lang': 'en'} for doc in docs["documents"]]
+    texts = load_sample_data()
 
     analyze_pos_tags(texts, n=2, from_start=True,
                      words_only=True, output_dir=output_dir)

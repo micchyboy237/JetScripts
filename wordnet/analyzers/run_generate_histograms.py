@@ -1,6 +1,7 @@
 import shutil
 import os
-from jet.file.utils import load_file, save_file
+from jet.file.utils import save_file
+from jet.libs.bertopic.examples.mock import load_sample_data
 from jet.wordnet.analyzers.analyze_ngrams import generate_histograms
 
 
@@ -20,11 +21,9 @@ def main_generate_histograms(texts, output_dir):
 
 
 if __name__ == '__main__':
-    data_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/searched_html_myanimelist_net_Isekai/headers.json"
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    data: list[dict] = load_file(data_file)
-    texts = [d["content"] for d in data]
+    texts = load_sample_data()
 
     main_generate_histograms(texts, output_dir)
