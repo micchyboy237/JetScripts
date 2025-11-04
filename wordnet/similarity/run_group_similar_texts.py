@@ -36,7 +36,8 @@ def main(documents: List[str], ids: List[str], mode: ClusteringMode):
                f"{execution_time:.2f}s", colors=["WHITE", "ORANGE"])
 
     # Map grouped_similar_texts (which contains ClusterResult with doc_ids) back to the original doc objects
-    doc_id_to_doc = {doc["id"]: doc for doc in docs}
+    doc_id_to_doc = {doc_id: {"content": doc_content}  # Minimal dict for content; extend if more fields needed later
+                 for doc_id, doc_content in zip(ids, documents)}
     mapped_results = [
         {
             "label": group["label"],
@@ -66,7 +67,7 @@ def main(documents: List[str], ids: List[str], mode: ClusteringMode):
     for group in grouped_similar_texts:
         # group["texts"] is a list of doc_ids
         docs_in_group = [doc_id_to_doc[doc_id]
-                         for doc_id in group["texts"] if doc_id in doc_id_to_doc]
+                 for doc_id in group["texts"] if doc_id in doc_id_to_doc]
         total_tokens = sum(doc["metadata"].get("num_tokens", 0)
                            for doc in docs_in_group)
         headers = [doc.get("header") for doc in docs_in_group]
