@@ -3,15 +3,15 @@ import math
 import os
 import shutil
 from typing import DefaultDict, List, Set, Tuple
-from jet.code.markdown_types.markdown_parsed_types import HeaderDoc
+from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.code.markdown_utils._preprocessors import link_to_text_ratio
 from jet.file.utils import load_file, save_file
-from jet.llm.llm_generator import LLMGenerator
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.logger import logger
 from jet.logger.config import colorize_log
 from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
+from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.utils.text import format_sub_dir
 from jet.vectors.clusters.retrieval import ChunkSearchResult, RetrievalConfigDict, VectorRetriever
 from jet.wordnet.analyzers.text_analysis import analyze_readability
@@ -141,8 +141,14 @@ def group_results_by_source_for_llm_context(
 
 
 def main():
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_4/top_isekai_anime_2025/docs.json"
-    header_docs: List[HeaderDoc] = load_file(docs_file)["documents"]
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
+
+    html_str: str = load_file(html_file)
+    html_str = convert_dl_blocks_to_md(html_str)
+    save_file(html_str, f"{OUTPUT_DIR}/page.html")
+
+    header_docs: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
+    save_file(header_docs, f"{OUTPUT_DIR}/headings.json")
 
     embed_model: EmbedModelType = "all-MiniLM-L6-v2"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"

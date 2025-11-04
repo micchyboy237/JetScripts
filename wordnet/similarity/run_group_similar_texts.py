@@ -1,13 +1,14 @@
 import os
 import shutil
 import time
+from typing import List
 
-from fastapi.utils import generate_unique_id
+from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.file.utils import save_file, load_file
 from jet.logger import logger
 from jet.models.model_types import EmbedModelType
+from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.vectors.clusters.cluster_types import ClusteringMode
-from jet.vectors.document_types import HeaderDocument
 from jet.wordnet.similarity import group_similar_texts
 
 OUTPUT_DIR = os.path.join(os.path.dirname(
@@ -15,18 +16,13 @@ OUTPUT_DIR = os.path.join(os.path.dirname(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
-def main(mode: ClusteringMode):
+def main(documents: List[str], ids: List[str], mode: ClusteringMode):
     mode_output_dir = f"{OUTPUT_DIR}/{mode}"
-
-    documents = [
-        f"{doc["header"].lstrip('#').strip()}\n{doc["content"]}" for doc in docs]
 
     model_name: EmbedModelType = "all-MiniLM-L6-v2"
 
     # Start timing
     start_time = time.time()
-
-    ids = [doc["id"] for doc in docs]
 
     grouped_similar_texts = group_similar_texts(
         documents, model_name=model_name, ids=ids, mode=mode)
@@ -88,18 +84,18 @@ def main(mode: ClusteringMode):
 
 
 if __name__ == '__main__':
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_5/top_isekai_anime_2025/search_results.json"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
 
-    docs = load_file(docs_file)
-    docs = docs["results"]
+    html_str: str = load_file(html_file)
+    html_str = convert_dl_blocks_to_md(html_str)
+    save_file(html_str, f"{OUTPUT_DIR}/page.html")
 
-    save_file({
-        "count": len(docs),
-        "total_tokens": sum(doc["metadata"]["num_tokens"] for doc in docs),
-        "documents": docs,
-    }, f"{OUTPUT_DIR}/documents.json")
+    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
+    save_file(headings, f"{OUTPUT_DIR}/headings.json")
+    ids = [header["id"] for header in headings]
+    docs = [f"{header["header"]}\n{header["content"]}" for header in headings]
 
-    main("agglomerative")
-    main("kmeans")
-    main("dbscan")
-    main("hdbscan")
+    main(docs, ids, "agglomerative")
+    main(docs, ids, "kmeans")
+    main(docs, ids, "dbscan")
+    main(docs, ids, "hdbscan")
