@@ -36,50 +36,50 @@ def main(documents: List[str], ids: List[str], mode: ClusteringMode):
                f"{execution_time:.2f}s", colors=["WHITE", "ORANGE"])
 
     # Map grouped_similar_texts (which contains ClusterResult with doc_ids) back to the original doc objects
-    doc_id_to_doc = {doc_id: {"content": doc_content}  # Minimal dict for content; extend if more fields needed later
-                 for doc_id, doc_content in zip(ids, documents)}
-    mapped_results = [
-        {
-            "label": group["label"],
-            "docs": [
-                {
-                    "rank": doc.get("rank"),
-                    "score": doc.get("score"),
-                    "header": doc.get("header"),
-                    "content": doc.get("content"),
-                    "metadata": {
-                        "doc_index": doc["metadata"].get("doc_index"),
-                        "doc_id": doc["metadata"].get("doc_id"),
-                        "source": doc["metadata"].get("source"),
-                        "num_tokens": doc["metadata"].get("num_tokens"),
-                    }
-                }
-                for doc_id in group["texts"] if (doc := doc_id_to_doc.get(doc_id))
-            ]
-        }
-        for group in grouped_similar_texts
-    ]
+    doc_id_to_doc = {doc_id: {"doc_index": doc_index, "content": doc_content}  # Minimal dict for content; extend if more fields needed later
+                 for doc_index, (doc_id, doc_content) in enumerate(zip(ids, documents))}
+    # mapped_results = [
+    #     {
+    #         "label": group["label"],
+    #         "docs": [
+    #             {
+    #                 "rank": doc.get("rank"),
+    #                 "score": doc.get("score"),
+    #                 "header": doc.get("header"),
+    #                 "content": doc.get("content"),
+    #                 "metadata": {
+    #                     "doc_index": doc["metadata"].get("doc_index"),
+    #                     "doc_id": doc["metadata"].get("doc_id"),
+    #                     "source": doc["metadata"].get("source"),
+    #                     "num_tokens": doc["metadata"].get("num_tokens"),
+    #                 }
+    #             }
+    #             for doc_id in group["texts"] if (doc := doc_id_to_doc.get(doc_id))
+    #         ]
+    #     }
+    #     for group in grouped_similar_texts
+    # ]
 
-    save_file({"execution_time": f"{execution_time:.2f}s", "count": len(grouped_similar_texts), "results": mapped_results},
-              f"{mode_output_dir}/results.json")
+    save_file({"execution_time": f"{execution_time:.2f}s", "count": len(grouped_similar_texts)},
+              f"{mode_output_dir}/summary.json")
 
     clusters = []
     for group in grouped_similar_texts:
         # group["texts"] is a list of doc_ids
         docs_in_group = [doc_id_to_doc[doc_id]
                  for doc_id in group["texts"] if doc_id in doc_id_to_doc]
-        total_tokens = sum(doc["metadata"].get("num_tokens", 0)
-                           for doc in docs_in_group)
-        headers = [doc.get("header") for doc in docs_in_group]
+        # total_tokens = sum(doc["metadata"].get("num_tokens", 0)
+                        #    for doc in docs_in_group)
+        contents = [doc["content"] for doc in docs_in_group]
         clusters.append({
             "label": group["label"],
             "count": len(group["texts"]),
-            "total_tokens": total_tokens,
-            "headers": headers
+            # "total_tokens": total_tokens,
+            "contents": contents
         })
     save_file({
         "count": len(clusters),
-        "total_tokens": sum(cluster["total_tokens"] for cluster in clusters),
+        # "total_tokens": sum(cluster["total_tokens"] for cluster in clusters),
         "clusters": clusters,
     }, f"{mode_output_dir}/clusters.json")
 
