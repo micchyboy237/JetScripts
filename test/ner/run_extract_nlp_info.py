@@ -286,6 +286,7 @@ if __name__ == "__main__":
     save_file(headings, f"{OUTPUT_DIR}/headings.json")
 
     doc_ids = [h["id"] for h in headings]
+    headers = [h["header"] for h in headings]
     contents = [h["content"] for h in headings]
 
     chunks_with_data = chunk_texts_with_data(
@@ -302,9 +303,12 @@ if __name__ == "__main__":
 
         header_idx = doc_ids.index(chunk["doc_id"])
         chunk_idx = chunk["chunk_index"]
+        header = headers[header_idx]
+
         sub_output_dir = f"{OUTPUT_DIR}/heading_{header_idx + 1}"
         sub_output_dir = f"{sub_output_dir}_{chunk_idx + 1}"
     
+        save_file(header, f"{sub_output_dir}/header.txt")
         save_file({
             "id": chunk["doc_id"],
             "doc_id": chunk["doc_id"],
