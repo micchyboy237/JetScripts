@@ -6,7 +6,7 @@ from typing import DefaultDict, List, Set, Tuple
 from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.code.markdown_utils._preprocessors import link_to_text_ratio
 from jet.file.utils import load_file, save_file
-from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+# from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.logger import logger
 from jet.logger.config import colorize_log
@@ -352,16 +352,16 @@ def main():
     context = group_results_by_source_for_llm_context(
         filtered_results, llm_model)
     save_file(context, f"{query_output_dir}/context.md")
-    mlx = MLXModelRegistry.load_model(llm_model)
-    prompt = PROMPT_TEMPLATE.format(query=query, context=context)
-    save_file(prompt, f"{query_output_dir}/prompt.md")
-    llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
-    save_file(query, f"{query_output_dir}/query.md")
-    save_file(context, f"{query_output_dir}/context.md")
-    save_file(llm_response["content"], f"{query_output_dir}/response.md")
+    # mlx = MLXModelRegistry.load_model(llm_model)
+    # prompt = PROMPT_TEMPLATE.format(query=query, context=context)
+    # save_file(prompt, f"{query_output_dir}/prompt.md")
+    # llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
+    # save_file(query, f"{query_output_dir}/query.md")
+    # save_file(context, f"{query_output_dir}/context.md")
+    # save_file(llm_response["content"], f"{query_output_dir}/response.md")
 
-    save_file(f"# LLM Generation\n\n## Prompt\n\n{prompt}\n\n## Response\n\n{llm_response['content']}",
-              f"{query_output_dir}/llm_generation.md")
+    # save_file(f"# LLM Generation\n\n## Prompt\n\n{prompt}\n\n## Response\n\n{llm_response['content']}",
+    #           f"{query_output_dir}/llm_generation.md")
 
 
 if __name__ == "__main__":
