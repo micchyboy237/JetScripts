@@ -5,7 +5,8 @@ from jet.libs.gliner_spacy.gliner_pipeline_utils import (
     extract_sentence_themes,
     visualize_doc,
 )
-from jet.wordnet.text_chunker import chunk_texts
+from jet._token.token_utils import token_counter
+from jet.libs.bertopic.examples.mock import load_sample_data
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
 import os
@@ -31,19 +32,25 @@ nlp = init_gliner_pipeline(cat_data)
 logger.info("--- Load sample text ---")
 text = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/gliner_spacy/examples/gliner_cat/data/testimony.txt")
 
-chunk_size = 512
-chunk_overlap = 128
-model = "embeddinggemma"
+embed_model = "embeddinggemma"
+chunks = load_sample_data(model=embed_model)
+token_counts = token_counter(chunks, model=embed_model, prevent_total=True)
 
-chunks = chunk_texts(
-    text,
-    chunk_size=chunk_size,
-    chunk_overlap=chunk_overlap,
-    model=model,
-    strict_sentences=True,
-    show_progress=True,
-)
-save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
+save_file([
+    {
+        "chunk_idx": idx,
+        "tokens": tokens,
+        "chunk": chunk,
+    }
+    for idx, (tokens, chunk) in enumerate(zip(token_counts, chunks))
+], f"{OUTPUT_DIR}/chunks.json")
+
+save_file({
+    "min": min(token_counts),
+    "ave": sum(token_counts) // len(token_counts),
+    "max": max(token_counts),
+    "total": sum(token_counts),
+}, f"{OUTPUT_DIR}/tokens.json")
 
 for chunk_idx, chunk in enumerate(chunks):
     sub_output_dir = f"{OUTPUT_DIR}/chunk_{chunk_idx + 1}"
@@ -57,7 +64,7 @@ for chunk_idx, chunk in enumerate(chunks):
     save_file(sentence_themes, f"{sub_output_dir}/sentence_themes.json")
 
     logger.info("--- Visualize ---")
-    image = visualize_doc(doc, chunk_size=chunk_size)
+    image = visualize_doc(doc)
     if image:
         image_path = f"{sub_output_dir}/gliner_visualization.png"
         image.save(image_path, format="PNG")

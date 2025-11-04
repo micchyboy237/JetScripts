@@ -294,7 +294,8 @@ if __name__ == "__main__":
         ids=doc_ids,
         chunk_size=512,
         chunk_overlap=50,
-        model="qwen3-instruct-2507:4b",
+        model="embeddinggemma",
+        strict_sentences=True,
     )
 
     for chunk in tqdm(chunks_with_data, desc="Processing headings..."):

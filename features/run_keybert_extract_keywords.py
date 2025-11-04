@@ -17,12 +17,10 @@ if __name__ == "__main__":
     """Main function demonstrating KeyBERT usage."""
     
     embed_model = "embeddinggemma"
-    chunk_size = 96
-    chunk_overlap = 32
     query = "Top isekai anime 2025"
 
     # Map HeaderDoc to texts and ids
-    texts = load_sample_data(model=embed_model, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    texts = load_sample_data()
     ids = [str(idx) for idx, doc in enumerate(texts)]
     save_file(texts, f"{OUTPUT_DIR}/documents.json")
 
@@ -36,8 +34,6 @@ if __name__ == "__main__":
         "query": query,
         "separator": separator,
         "docs_count": len(texts),
-        "chunk_size": chunk_size,
-        "chunk_overlap": chunk_overlap,
         "context_size": context_size,
         "tokens": {
             "min": min(token_counts),
