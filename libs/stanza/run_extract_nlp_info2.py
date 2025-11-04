@@ -44,7 +44,7 @@ def extract_nlp(text: str) -> dict:
 
 if __name__ == "__main__":
     model = "embeddinggemma"
-    chunks = load_sample_data(model=model)
+    chunks = load_sample_data(model=model, includes=["p"])
     save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
     for chunk_idx, chunk in enumerate(tqdm(chunks, desc="Processing chunks...")):
