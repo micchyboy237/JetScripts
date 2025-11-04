@@ -296,11 +296,12 @@ if __name__ == "__main__":
         model="qwen3-instruct-2507:4b",
     )
 
-    for chunk_idx, chunk in enumerate(tqdm(chunks_with_data, desc="Processing headings...")):
+    for chunk in tqdm(chunks_with_data, desc="Processing headings..."):
         if not chunk:
             continue
 
         header_idx = doc_ids.index(chunk["doc_id"])
+        chunk_idx = chunk["chunk_index"]
         sub_output_dir = f"{OUTPUT_DIR}/heading_{header_idx + 1}"
         sub_output_dir = f"{sub_output_dir}_{chunk_idx + 1}"
     
