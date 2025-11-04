@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     print("\nExample 1: Single Document Keywords")
     keywords = extract_single_doc_keywords(
-        single_doc, kw_model, id=single_doc_id, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 3))
+        single_doc, kw_model, id=single_doc_id, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 2))
     for result in keywords:
         print(
             f"Doc ID: {result['id']}, Keywords: {[(kw['text'], kw['score']) for kw in result['keywords']]}, Tokens: {result['tokens']}")
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     print("\nExample 2: Multiple Documents Keywords")
     keywords = extract_multi_doc_keywords(
-        texts, kw_model, ids=ids, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 3))
+        texts, kw_model, ids=ids, seed_keywords=candidate_keywords, top_n=5, use_mmr=True, diversity=0.7, keyphrase_ngram_range=(1, 2))
     for result in keywords:
         print(
             f"Doc ID: {result['id']}, Keywords: {[(kw['text'], kw['score']) for kw in result['keywords']]}, Tokens: {result['tokens']}")
@@ -85,7 +85,7 @@ if __name__ == "__main__":
 
     print("\nExample 3: Keywords with Candidates")
     keywords = extract_keywords_with_candidates(
-        texts, kw_model, candidates=candidate_keywords, ids=ids, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 3))
+        texts, kw_model, candidates=candidate_keywords, ids=ids, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 2))
     for result in keywords:
         print(
             f"Doc ID: {result['id']}, Keywords: {[(kw['text'], kw['score']) for kw in result['keywords']]}, Tokens: {result['tokens']}")
@@ -93,7 +93,7 @@ if __name__ == "__main__":
 
     print("\nExample 4: Keywords with Custom Vectorizer")
     custom_vectorizer = CountVectorizer(
-        ngram_range=(1, 3), stop_words="english")
+        ngram_range=(1, 2), stop_words="english")
     keywords = extract_keywords_with_custom_vectorizer(
         texts, kw_model, custom_vectorizer, ids=ids, seed_keywords=candidate_keywords, top_n=5)
     for result in keywords:
@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
     print("\nExample 5: Keywords with Precomputed Embeddings")
     keywords = extract_keywords_with_embeddings(
-        texts, kw_model, ids=ids, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 3))
+        texts, kw_model, ids=ids, seed_keywords=candidate_keywords, top_n=5, keyphrase_ngram_range=(1, 2))
     for result in keywords:
         print(
             f"Doc ID: {result['id']}, Keywords: {[(kw['text'], kw['score']) for kw in result['keywords']]}, Tokens: {result['tokens']}")
