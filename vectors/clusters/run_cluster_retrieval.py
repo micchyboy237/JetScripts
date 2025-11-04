@@ -14,7 +14,7 @@ from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.utils.text import format_sub_dir
 from jet.vectors.clusters.retrieval import ChunkSearchResult, RetrievalConfigDict, VectorRetriever
-from jet.wordnet.analyzers.text_analysis import analyze_readability
+# from jet.wordnet.analyzers.text_analysis import analyze_readability
 from jet.wordnet.text_chunker import chunk_texts_with_data
 
 OUTPUT_DIR = os.path.join(
@@ -214,7 +214,7 @@ def main():
                     "header": header,
                     "content": chunk_content,
                     "ltr_ratio": link_to_text_ratio(text),
-                    "text_analysis": analyze_readability(text),
+                    # "text_analysis": analyze_readability(text),
                     # "tokens": tokens,
                 }
             }
