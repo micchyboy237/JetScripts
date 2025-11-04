@@ -173,7 +173,7 @@ def main():
         doc_index = header_doc["doc_index"]
         header = header_doc["header"]
         content = header_doc['content']
-        source = header_doc.get("source", "Unknown Source")
+        # source = header_doc.get("source", "Unknown Source")
         parent_header = header_doc.get("parent_header", None)
         buffer: int = count_tokens(embed_model, header)
         doc_ids = [header_doc["id"]]
@@ -192,8 +192,8 @@ def main():
             parent_header = header_doc_copy.pop("parent_header")
             parent_headers = header_doc_copy.pop("parent_headers")
 
-            source = header_doc_copy.pop("source")
-            tokens = header_doc_copy.pop("tokens")
+            # source = header_doc_copy.pop("source")
+            # tokens = header_doc_copy.pop("tokens")
 
             chunk_copy = chunk.copy()
             header_doc_copy["id"] = chunk_copy.pop("id")
@@ -206,7 +206,7 @@ def main():
                 "text": text,
                 "metadata": {
                     **chunk_copy,
-                    "source": source,
+                    # "source": source,
                     "parent_level": parent_level,
                     "level": level,
                     "parent_headers": parent_headers,
