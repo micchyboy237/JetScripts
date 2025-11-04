@@ -8,6 +8,7 @@ if __name__ == '__main__':
         os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
     texts = load_sample_data()
+    texts = [{"text": t, "lang": "en"} for t in texts]
 
     analyze_pos_tags(texts, n=2, from_start=True,
                      words_only=True, output_dir=output_dir)
