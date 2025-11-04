@@ -20,7 +20,7 @@ if __name__ == "__main__":
     query = "Top isekai anime 2025"
 
     # Map HeaderDoc to texts and ids
-    texts = load_sample_data()
+    texts = load_sample_data(model=embed_model)
     ids = [str(idx) for idx, doc in enumerate(texts)]
     save_file(texts, f"{OUTPUT_DIR}/documents.json")
 
