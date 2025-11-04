@@ -33,18 +33,19 @@ text = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/je
 
 chunks = chunk_texts(
     text,
-    chunk_size=128,
-    chunk_overlap=32,
+    chunk_size=512,
+    chunk_overlap=50,
     model="embeddinggemma",
     show_progress=True,
 )
+save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
 for chunk_idx, chunk in enumerate(chunks):
     sub_output_dir = f"{OUTPUT_DIR}/chunk_{chunk_idx + 1}"
+    save_file(chunk, f"{sub_output_dir}/chunk.txt")
 
     logger.info("--- Run inference ---")
     doc = process_text(nlp, chunk)
-    save_file(doc, f"{sub_output_dir}/doc.json")
 
     logger.info("--- Inspect sentence 200 ---")
     sentence_themes = extract_sentence_themes(doc)
