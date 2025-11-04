@@ -154,7 +154,7 @@ def main():
     save_file(header_texts, f"{OUTPUT_DIR}/header_texts.json")
 
     embed_model: EmbedModelType = "embeddinggemma"
-    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+    llm_model: LLMModelType = "qwen3-instruct-2507:4b"
 
     config: RetrievalConfigDict = {
         "embed_model": embed_model,
@@ -165,8 +165,8 @@ def main():
         "cache_file": None,
         "threshold": None,
     }
-    chunk_size = 500
-    chunk_overlap = 100
+    chunk_size = 64
+    chunk_overlap = 0
     max_tokens = 2000
 
     doc_ids = [header["id"] for header in header_docs]
@@ -179,6 +179,7 @@ def main():
         model=embed_model,
         ids=doc_ids,
         buffer=buffer,
+        strict_sentences=True,
     )
 
     query = "Top isekai anime 2025."
@@ -314,6 +315,13 @@ def main():
         "count": len(clusters),
         "clusters": clusters
     }, f"{OUTPUT_DIR}/clusters.json")
+
+    # Save cohesive cluster assignments to clusters.json
+    clusters = retriever.get_cohesive_clusters(max_distance=0.3)
+    save_file({
+        "count": len(clusters),
+        "clusters": clusters
+    }, f"{OUTPUT_DIR}/cohesive_clusters.json")
 
     # Save centroid information and similarity scores
     centroids = retriever.get_centroids()

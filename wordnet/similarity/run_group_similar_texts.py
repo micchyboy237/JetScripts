@@ -5,11 +5,13 @@ from typing import List
 
 from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.file.utils import save_file, load_file
+from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.logger import logger
 from jet.models.model_types import EmbedModelType
 from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.vectors.clusters.cluster_types import ClusteringMode
 from jet.wordnet.similarity import group_similar_texts
+from jet.wordnet.text_chunker import chunk_texts_with_data
 
 OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -94,9 +96,27 @@ if __name__ == '__main__':
     headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
     save_file(headings, f"{OUTPUT_DIR}/headings.json")
     ids = [header["id"] for header in headings]
-    docs = [f"{header["header"]}\n{header["content"]}" for header in headings]
+    headers = [header["header"] for header in headings]
+    contents = [header["content"] for header in headings]
 
-    main(docs, ids, "agglomerative")
-    main(docs, ids, "kmeans")
-    main(docs, ids, "dbscan")
-    main(docs, ids, "hdbscan")
+    embed_model: OLLAMA_MODEL_NAMES = "embeddinggemma"
+    chunk_size = 64
+    chunk_overlap = 0
+    buffer = 0
+
+    chunks = chunk_texts_with_data(
+        texts=contents,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        model=embed_model,
+        ids=ids,
+        buffer=buffer,
+        strict_sentences=True,
+    )
+    chunk_texts = [f"{headers[chunk["doc_index"]]}\n{chunk["content"]}" for chunk in chunks]
+    chunk_ids = [chunk["id"] for chunk in chunks]
+
+    main(chunk_texts, chunk_ids, "agglomerative")
+    main(chunk_texts, chunk_ids, "kmeans")
+    main(chunk_texts, chunk_ids, "dbscan")
+    main(chunk_texts, chunk_ids, "hdbscan")
