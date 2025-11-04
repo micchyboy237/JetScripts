@@ -65,7 +65,7 @@ if __name__ == "__main__":
     save_file(result, f"{OUTPUT_DIR}/5_common_texts.json")
 
     result = group_sentences_by_ngram(
-        [text.lower() for text in texts], is_start_ngrams=False)
+        [text.lower() for text in texts], is_start_ngrams=False, top_n=10)
     save_file(result, f"{OUTPUT_DIR}/6_grouped_sentences.json")
 
     lowered_ngrams_count = count_ngrams(
@@ -74,7 +74,7 @@ if __name__ == "__main__":
               f"{OUTPUT_DIR}/7_lowered_ngrams_count.json")
 
     range_results = list(get_ngrams_by_range(
-        texts, min_words=1, max_words=2, count=(2,), show_count=True))
+        texts, min_words=1, max_words=3, count=(2,), show_count=True))
     save_file(range_results, f"{OUTPUT_DIR}/8_ngrams_by_range.json")
 
     count_results = list(get_ngrams_by_range(

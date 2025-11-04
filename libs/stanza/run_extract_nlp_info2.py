@@ -1,12 +1,9 @@
 import os
 import shutil
-from typing import List
-from jet.code.html_utils import convert_dl_blocks_to_md
-from jet.file.utils import load_file, save_file
+from jet.file.utils import save_file
+from jet.libs.bertopic.examples.mock import load_sample_data
 from jet.libs.stanza.pipeline import StanzaPipelineCache
 from jet.logger import logger
-from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
-from jet.wordnet.text_chunker import chunk_texts
 from tqdm import tqdm
 
 OUTPUT_DIR = os.path.join(
@@ -46,30 +43,11 @@ def extract_nlp(text: str) -> dict:
     }
 
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
+    model = "embeddinggemma"
+    chunks = load_sample_data(model=model)
+    save_file(chunks, f"{OUTPUT_DIR}/chunks.json")
 
-    html_str: str = load_file(html_file)
-    html_str = convert_dl_blocks_to_md(html_str)
-    save_file(html_str, f"{OUTPUT_DIR}/page.html")
-
-    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
-    save_file(headings, f"{OUTPUT_DIR}/headings.json")
-
-    for idx, heading in enumerate(tqdm(headings, desc="Processing headings...")):
-        header = heading["header"]
-        content = heading["content"]
-
-        if not content:
-            continue
-
-        sub_output_dir = f"{OUTPUT_DIR}/heading_{idx + 1}"
-        chunks = chunk_texts(
-            content,
-            chunk_size=512,
-            chunk_overlap=50,
-            model="qwen3-instruct-2507:4b",
-        )
-        for chunk_idx, chunk in enumerate(chunks):
-            results = extract_nlp(chunk)
-            for key, nlp_results in results.items():
-                save_file(nlp_results, f"{sub_output_dir}/chunk_{chunk_idx + 1}/{key}_results.json")
+    for chunk_idx, chunk in enumerate(tqdm(chunks, desc="Processing chunks...")):
+        results = extract_nlp(chunk)
+        for key, nlp_results in results.items():
+            save_file(nlp_results, f"{OUTPUT_DIR}/chunk_{chunk_idx + 1}/{key}_results.json")
