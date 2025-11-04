@@ -15,8 +15,13 @@ model = SpanMarkerModel.from_pretrained(
 texts = load_sample_data()
 
 # Predict entities
-entities = model.predict(texts, batch_size=32, show_progress_bar=True)
+entities_list = model.predict(texts, batch_size=32, show_progress_bar=True)
 
 output_dir = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-save_file(entities, f"{output_dir}/entities.json")
+save_file([{
+    "index": idx,
+    "text": text,
+    "ent_count": len(entities),
+    "entities": entities,
+} for idx, (text, entities) in enumerate(zip(texts, entities_list))], f"{output_dir}/entities.json")
