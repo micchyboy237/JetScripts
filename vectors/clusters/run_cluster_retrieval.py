@@ -150,7 +150,10 @@ def main():
     header_docs: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
     save_file(header_docs, f"{OUTPUT_DIR}/headings.json")
 
-    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
+    header_texts = [f"{header["header"]}\n{header["content"]}" for header in header_docs]
+    save_file(header_texts, f"{OUTPUT_DIR}/header_texts.json")
+
+    embed_model: EmbedModelType = "embeddinggemma"
     llm_model: LLMModelType = "qwen3-1.7b-4bit"
 
     config: RetrievalConfigDict = {
@@ -166,6 +169,18 @@ def main():
     chunk_overlap = 100
     max_tokens = 2000
 
+    doc_ids = [header["id"] for header in header_docs]
+    buffer = 0
+
+    chunks = chunk_texts_with_data(
+        texts=header_texts,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        model=embed_model,
+        ids=doc_ids,
+        buffer=buffer,
+    )
+
     query = "Top isekai anime 2025."
     chunked_docs = []
     all_chunks_with_metadata = []
@@ -176,13 +191,11 @@ def main():
         # source = header_doc.get("source", "Unknown Source")
         parent_header = header_doc.get("parent_header", None)
         buffer: int = count_tokens(embed_model, header)
-        doc_ids = [header_doc["id"]]
-        chunks = chunk_texts_with_data(content, chunk_size,
-                                       chunk_overlap, embed_model, doc_ids, buffer)
+        header_chunks = [chunk for chunk in chunks if chunk["doc_id"] == header_doc["id"]]
 
         chunks_with_metadata = []
         # Create metadata for each chunk
-        for chunk in chunks:
+        for chunk in header_chunks:
             header_doc_copy = header_doc.copy()
             header_doc_copy.pop("doc_index")
 
@@ -257,7 +270,7 @@ def main():
     filtered_chunks_with_metadata = [
         chunk
         for chunk in all_chunks_with_metadata
-        if chunk["metadata"]["text_analysis"]["mtld_category"] != "very_low"
+        # if chunk["metadata"]["text_analysis"]["mtld_category"] != "very_low"
         # and not chunk["metadata"]["ltr_ratio"]["is_link_heavy"]
     ]
     save_file({
