@@ -10,14 +10,15 @@ def main_generate_histograms(texts, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     results = generate_histograms(texts)
+    save_file(texts, os.path.join(output_dir, 'texts.json'))
     save_file(results['most_common_start'], os.path.join(
-        output_dir, 'most_common_start.json'),)
+        output_dir, 'most_common_start.json'))
     save_file(results['least_common_start'], os.path.join(
-        output_dir, 'least_common_start.json'),)
+        output_dir, 'least_common_start.json'))
     save_file(results['most_common_any'], os.path.join(
-        output_dir, 'most_common_any.json'),)
+        output_dir, 'most_common_any.json'))
     save_file(results['least_common_any'], os.path.join(
-        output_dir, 'least_common_any.json'),)
+        output_dir, 'least_common_any.json'))
 
 
 if __name__ == '__main__':
