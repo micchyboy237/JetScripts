@@ -15,6 +15,7 @@ def main_phrase_detection(texts, output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
     print(f"Number of texts: {len(texts)}")
+    save_file(texts, f"{output_dir}/texts.json")
 
     detector = PhraseDetector(texts)
 
@@ -64,8 +65,6 @@ def main_phrase_detection(texts, output_dir):
 
     logger.success(f"Phrase grams: {len(phrase_grams)}")
 
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
     # save_file(queries, f"{output_dir}/queries.json")
     # save_file(results_dict, f"{output_dir}/results_dict.json")
     save_file(phrase_grams, f"{output_dir}/phrase_grams.json")
