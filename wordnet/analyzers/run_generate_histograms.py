@@ -1,7 +1,7 @@
 import shutil
 import os
 from jet.file.utils import save_file
-from jet.libs.bertopic.examples.mock import load_sample_data#, load_sample_jobs
+from jet.libs.bertopic.examples.mock import load_sample_data, load_sample_jobs
 from jet.wordnet.analyzers.analyze_ngrams import generate_histograms
 
 
@@ -26,7 +26,8 @@ if __name__ == '__main__':
 
     texts = load_sample_data()
     sub_output_dir = f"{output_dir}/anime"
-    # texts = load_sample_jobs()
-    # sub_output_dir = f"{output_dir}/jobs"
+    main_generate_histograms(texts, sub_output_dir)
 
+    texts = load_sample_jobs()
+    sub_output_dir = f"{output_dir}/jobs"
     main_generate_histograms(texts, sub_output_dir)
