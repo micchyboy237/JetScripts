@@ -9,12 +9,12 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == '__main__':
-    base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/stanza"
+    base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/examples/Context-Engineering"
     includes = []
     excludes = []
-    include_contents = ["*if __name__ == *"]
-    exclude_contents = ["*argparse*"]
-    extensions = [".py"]
+    include_contents = []
+    exclude_contents = []
+    extensions = [".py", ".ipynb"]
     results = search_files(
         base_dir,
         extensions,

@@ -415,7 +415,8 @@ if __name__ == "__main__":
     # query = "How to change max depth?"
 
     urls = []
-    query = "Top isekai anime 2025"
+    # query = "Top isekai anime 2025"
+    query = "Top RAG context engineering tips 2025 reddit"
 
     model = "embeddinggemma"
     url_limit = 20

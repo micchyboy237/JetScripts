@@ -3,7 +3,6 @@ import os
 import re
 import shutil
 import string
-import numpy as np
 
 from collections import defaultdict
 from typing import DefaultDict, List, Set
@@ -11,21 +10,17 @@ from jet.code.html_utils import preprocess_html
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc, HeaderSearchResult
 from jet.code.markdown_utils._converters import convert_html_to_markdown
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
-from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
-from jet.code.markdown_utils._preprocessors import clean_markdown_links, link_to_text_ratio
+from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy
+from jet.code.markdown_utils._preprocessors import link_to_text_ratio
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.logger.config import colorize_log
-from jet.models.embeddings.base import generate_embeddings
-from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
-from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
-from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.utils import resolve_model_value
 from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
 from jet.vectors.semantic_search.header_vector_search import search_headers
 from jet.wordnet.analyzers.text_analysis import calculate_mtld, calculate_mtld_category
+from jet.adapters.llama_cpp.llm import LlamacppLLM
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -319,8 +314,8 @@ def create_url_dict_list(urls: List[str], search_results: List[HeaderSearchResul
 
 async def main(query):
     """Main function to demonstrate file search."""
-    embed_model: EmbedModelType = "all-MiniLM-L6-v2"
-    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+    embed_model = "embeddinggemma"
+    llm_model = "qwen3-instruct-2507:4b"
     max_tokens = 2000
     use_cache = True
     urls_limit = 10
@@ -646,14 +641,18 @@ async def main(query):
 
     context = group_results_by_source_for_llm_context(filtered_results)
     save_file(context, f"{query_output_dir}/context.md")
-    mlx = MLXModelRegistry.load_model(llm_model)
+    llm = LlamacppLLM(model=llm_model, base_url="http://shawn-pc.local:8080/v1", verbose=True)
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
-    save_file(prompt, f"{query_output_dir}/prompt.md")
-    llm_response = mlx.chat(prompt, llm_model, temperature=0.7, verbose=True)
-    save_file(llm_response["content"], f"{query_output_dir}/response.md")
+    messages = [
+        # {"role": "system", "content": "You are a concise assistant."},
+        {"role": "user", "content": prompt},
+    ]
+    save_file(messages, f"{query_output_dir}/messages.json")
+    llm_response = llm.chat(messages, temperature=0.3)
+    save_file(llm_response, f"{query_output_dir}/response.md")
 
     input_tokens = count_tokens(llm_model, prompt)
-    output_tokens = count_tokens(llm_model, llm_response["content"])
+    output_tokens = count_tokens(llm_model, llm_response)
 
     save_file({
         "input_tokens": input_tokens,
