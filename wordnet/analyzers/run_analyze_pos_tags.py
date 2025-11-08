@@ -13,7 +13,7 @@ def main_pos_tagger(texts, output_dir):
 
     texts = [{"text": t, "lang": "en"} for t in texts]
     includes_pos = ['PROPN', 'NOUN', 'ADJ', 'VERB']
-    top_n = 20
+    top_n = 50
 
     analyze_pos_tags(texts, n=2, from_start=True,
                      words_only=True, top_n=top_n, includes_pos=includes_pos, output_dir=output_dir)
