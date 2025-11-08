@@ -60,7 +60,7 @@ def main_run_ngram_examples(texts, output_dir):
     save_file(result, f"{output_dir}/5_common_texts.json")
 
     result = group_sentences_by_ngram(
-        [text.lower() for text in texts], is_start_ngrams=False, top_n=10)
+        [text.lower() for text in texts], is_start_ngrams=False, top_n=10, includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"])
     save_file(result, f"{output_dir}/6_grouped_sentences.json")
 
     lowered_ngrams_count = count_ngrams(
