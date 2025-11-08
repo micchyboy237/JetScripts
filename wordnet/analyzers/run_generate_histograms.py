@@ -57,7 +57,7 @@ def main_text_analysis(texts, output_dir):
         ngram_range=(1, 2),
         # weight_tfidf=0.6,
         # weight_collocation=0.4,
-        top_n=20,
+        top_n=None,
         show_progress=True,
     )
     save_file(top_documents, f"{output_dir}/top_documents_n_1_2.json")
@@ -66,7 +66,7 @@ def main_text_analysis(texts, output_dir):
         ngram_range=(3, 6),
         # weight_tfidf=0.6,
         # weight_collocation=0.4,
-        top_n=20,
+        top_n=None,
         show_progress=True,
     )
     save_file(top_documents, f"{output_dir}/top_documents_n_3_6.json")
