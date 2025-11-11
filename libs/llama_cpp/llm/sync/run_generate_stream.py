@@ -12,7 +12,6 @@ def run_generate_stream(
     """Synchronous streaming generate example with real-time token printing."""
     llm = LlamacppLLM(model=model, base_url=base_url, verbose=verbose)
     print("Streaming response:")
-    response_text = ""
     chunks = list(llm.generate(prompt, temperature=temperature, max_tokens=max_tokens, stream=True))
     response_text = "".join(chunks)
     print("\n--- Stream complete ---\n")
