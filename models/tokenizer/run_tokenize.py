@@ -9,5 +9,9 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
     model = "qwen3-instruct-2507:4b"
-    tokens = tokenize(model)
+    text = "Sample text to tokenize"
+    tokens = tokenize(text, model)
     save_file(tokens, f"{OUTPUT_DIR}/encoded.json")
+    
+    batch_tokens = tokenize([text], model)
+    save_file(batch_tokens, f"{OUTPUT_DIR}/encoded_batch.json")

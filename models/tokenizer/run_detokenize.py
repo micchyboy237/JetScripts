@@ -13,3 +13,7 @@ if __name__ == "__main__":
     tokens = tokenize(text, model)
     decoded_text = detokenize(tokens, model)
     save_file(decoded_text, f"{OUTPUT_DIR}/decoded.txt")
+    
+    batch_tokens = tokenize([text], model)
+    batch_text = detokenize(batch_tokens, model)
+    save_file(batch_text, f"{OUTPUT_DIR}/decoded_batch.json")
