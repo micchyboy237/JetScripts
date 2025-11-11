@@ -23,8 +23,9 @@ async def run_achat_structured_stream(
     llm = LlamacppLLM(model=model, base_url=base_url, verbose=verbose)
     print("Streaming structured response(s):")
     async for result in llm.achat_structured_stream(messages, response_model, temperature=temperature):
+        print(result)
         return result
-    raise ValueError("No valid structured response received")
+    
 
 
 if __name__ == "__main__":
