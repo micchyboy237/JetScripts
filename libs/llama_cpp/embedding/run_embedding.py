@@ -1,7 +1,5 @@
 import os
 import shutil
-import numpy as np
-from typing import List, TypedDict
 from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.file.utils import save_file
 
@@ -10,45 +8,7 @@ OUTPUT_DIR = os.path.join(
         os.path.basename(__file__))[0]
 )
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
-class SearchResult(TypedDict):
-    rank: int
-    doc_index: int
-    score: float
-    text: str
     
-def search(
-    query: str,
-    documents: List[str],
-    model: str = "embeddinggemma-300M-Q8_0.gguf",
-    top_k: int = None
-) -> List[SearchResult]:
-    """Search for documents most similar to the query.
-
-    If top_k is None, return all results sorted by similarity.
-    """
-    if not documents:
-        return []
-    client = LlamacppEmbedding(model=model)
-    vectors = client.get_embeddings([query] + documents, show_progress=True)
-    query_vector = vectors[0]
-    doc_vectors = vectors[1:]
-    similarities = np.dot(doc_vectors, query_vector) / (
-        np.linalg.norm(doc_vectors, axis=1) * np.linalg.norm(query_vector) + 1e-10
-    )
-    sorted_indices = np.argsort(similarities)[::-1]
-    if top_k is not None:
-        sorted_indices = sorted_indices[:top_k]
-    return [
-        {
-            "rank": i + 1,
-            "doc_index": int(sorted_indices[i]),
-            "score": float(similarities[sorted_indices[i]]),
-            "text": documents[sorted_indices[i]],
-        }
-        for i in range(len(sorted_indices))
-    ]
-
 def main():
     """Example usage of EmbeddingClient."""
     model = "embeddinggemma"
@@ -62,8 +22,12 @@ def main():
     ]
     
     embedder = LlamacppEmbedding(model=model)
-    embeddings = embedder.encode(query, return_format="list")
-    save_file(embeddings, f"{OUTPUT_DIR}/query_embeddings.json")
+    
+    query_embeddings = embedder(query, return_format="list")
+    save_file(query_embeddings, f"{OUTPUT_DIR}/query_embeddings.json")
+
+    doc_embeddings = embedder(documents, return_format="list")
+    save_file(doc_embeddings, f"{OUTPUT_DIR}/doc_embeddings.json")
 
 if __name__ == "__main__":
     main()
