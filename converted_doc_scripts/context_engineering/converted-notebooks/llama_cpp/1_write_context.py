@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 from typing import TypedDict
 from jet.transformers.formatters import format_json
+from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.visualization.terminal import display_iterm2_image
 import os
@@ -164,7 +165,7 @@ def example_3_thread_isolated_memory():
     (example_dir / "thread1_result.json").write_text(json.dumps(result1, indent=2))
 
     latest_state = chain.get_state(config1)
-    (example_dir / "thread1_latest_state.json").write_text(json.dumps(latest_state.__dict__, indent=2, default=str))
+    (example_dir / "thread1_latest_state.json").write_text(json.dumps(make_serializable(latest_state), indent=2, default=str))
 
     config2 = {"configurable": {"thread_id": "2"}}
     result2 = chain.invoke({"topic": "cats"}, config2)
