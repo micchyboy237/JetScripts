@@ -8,12 +8,16 @@ from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.visualization.terminal import display_iterm2_image
 import os
-from jet.logger import CustomLogger
+from jet.logger import logger, CustomLogger
 
 BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
 shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
+os.makedirs(str(BASE_OUTPUT_DIR), exist_ok=True)
+log_file = os.path.join(str(BASE_OUTPUT_DIR), "main.log")
+logger.basicConfig(filename=log_file)
+logger.orange(f"Logs: {log_file}")
 
 # === State definition ===
 class State(TypedDict):
@@ -80,14 +84,14 @@ def generate_joke_with_memory(state: State, store: BaseStore) -> dict[str, str]:
     """
     example_dir = Path(BASE_OUTPUT_DIR) / "example_3_thread_isolated_memory"
     log_file = example_dir / "main.log"
-    logger = CustomLogger("example_3_thread_isolated_memory", filename=str(log_file))
+    logger_local = CustomLogger("example_3_thread_isolated_memory", filename=str(log_file))
 
     existing_jokes = list(store.search(namespace))
     if existing_jokes:
         existing_joke = existing_jokes[0].value
-        logger.debug(f"Existing joke: {existing_joke['joke']}")
+        logger_local.debug(f"Existing joke: {existing_joke['joke']}")
     else:
-        logger.debug("Existing joke: No existing joke")
+        logger_local.debug("Existing joke: No existing joke")
 
     msg = llm.invoke(f"Write a short joke about {state['topic']}")
     store.put(namespace, "last_joke", {"joke": msg.content})
@@ -98,8 +102,8 @@ def example_1_basic_joke_generation():
     example_dir = Path(BASE_OUTPUT_DIR) / "example_1_basic_joke_generation"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger = CustomLogger("example_1_basic_joke_generation", filename=str(log_file))
-    logger.orange(f"Example 1 logs: {log_file}")
+    logger_local = CustomLogger("example_1_basic_joke_generation", filename=str(log_file))
+    logger_local.orange(f"Example 1 logs: {log_file}")
 
     workflow = StateGraph(State)
     workflow.add_node("generate_joke", generate_joke)
@@ -114,16 +118,16 @@ def example_1_basic_joke_generation():
     result = chain.invoke({"topic": "cats"})
     (example_dir / "result.json").write_text(json.dumps(result, indent=2))
 
-    logger.blue("\nExample 1 - Joke Generator State:")
-    logger.success(format_json(result))
+    logger_local.blue("\nExample 1 - Joke Generator State:")
+    logger_local.success(format_json(result))
 
 def example_2_memory_store_write_read():
     """Example 2: Write joke to memory store and retrieve it."""
     example_dir = Path(BASE_OUTPUT_DIR) / "example_2_memory_store_write_read"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger = CustomLogger("example_2_memory_store_write_read", filename=str(log_file))
-    logger.orange(f"Example 2 logs: {log_file}")
+    logger_local = CustomLogger("example_2_memory_store_write_read", filename=str(log_file))
+    logger_local.orange(f"Example 2 logs: {log_file}")
 
     # Use result from example 1
     prior_result_path = Path(BASE_OUTPUT_DIR) / "example_1_basic_joke_generation" / "result.json"
@@ -137,16 +141,16 @@ def example_2_memory_store_write_read():
 
     (example_dir / "stored_items.json").write_text(json.dumps([item.value for item in stored_items], indent=2))
 
-    logger.green("\nExample 2 - Stored Items in Memory:")
-    logger.success(format_json(stored_items))
+    logger_local.green("\nExample 2 - Stored Items in Memory:")
+    logger_local.success(format_json(stored_items))
 
 def example_3_thread_isolated_memory():
     """Example 3: Thread-isolated joke generation with memory."""
     example_dir = Path(BASE_OUTPUT_DIR) / "example_3_thread_isolated_memory"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger = CustomLogger("example_3_thread_isolated_memory", filename=str(log_file))
-    logger.orange(f"Example 3 logs: {log_file}")
+    logger_local = CustomLogger("example_3_thread_isolated_memory", filename=str(log_file))
+    logger_local.orange(f"Example 3 logs: {log_file}")
 
     workflow = StateGraph(State)
     workflow.add_node("generate_joke", generate_joke_with_memory)
@@ -169,12 +173,12 @@ def example_3_thread_isolated_memory():
     result2 = chain.invoke({"topic": "cats"}, config2)
     (example_dir / "thread2_result.json").write_text(json.dumps(result2, indent=2))
 
-    logger.cyan("\nExample 3 - Thread 1:")
-    logger.success(format_json(result1))
-    logger.magenta("\nExample 3 - Thread 1 Latest State:")
-    logger.success(format_json(latest_state))
-    logger.yellow("\nExample 3 - Thread 2:")
-    logger.success(format_json(result2))
+    logger_local.cyan("\nExample 3 - Thread 1:")
+    logger_local.success(format_json(result1))
+    logger_local.magenta("\nExample 3 - Thread 1 Latest State:")
+    logger_local.success(format_json(latest_state))
+    logger_local.yellow("\nExample 3 - Thread 2:")
+    logger_local.success(format_json(result2))
 
 if __name__ == "__main__":
     logger.magenta("Running 1_write_context.py examples...")

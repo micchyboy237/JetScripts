@@ -47,6 +47,11 @@ BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
 shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
+os.makedirs(str(BASE_OUTPUT_DIR), exist_ok=True)
+log_file = os.path.join(str(BASE_OUTPUT_DIR), "main.log")
+logger.basicConfig(filename=log_file)
+logger.orange(f"Logs: {log_file}")
+
 embeddings = EmbedLlamaCpp(model="embeddinggemma")
 llm = ChatLlamaCpp()
 
