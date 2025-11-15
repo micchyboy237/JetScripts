@@ -431,7 +431,7 @@ proceed until you have sufficient context to answer the user's research request.
         save_file({
             "query": user_query,
             "results": retrieved,
-        }, f"{str(example_dir)}/rag_results.json")
+        }, f"{str(example_dir)}/vector_rag_result.json")
         doc_texts = [doc.page_content for doc in retrieved[:4]]
         doc_token_counts = count_tokens(doc_texts, model="qwen3-instruct-2507:4b", prevent_total=True, add_special_tokens=False)
 
@@ -526,7 +526,7 @@ proceed until you have sufficient context to answer the user's research request.
             ""
         )
     }
-    (Path(example_dir) / "rag_result.json").write_text(json.dumps(make_serializable(result_clean), indent=2))
+    (Path(example_dir) / "agent_rag_result.json").write_text(json.dumps(make_serializable(result_clean), indent=2))
 
     logger_local.purple("\nAgent query result:")
     logger_local.success(format_json(result))
