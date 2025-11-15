@@ -6,6 +6,7 @@ from datetime import datetime
 
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 from jet.file.utils import save_file
+from jet.transformers.formatters import format_json
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.documents import Document
 from langchain_core.tools import create_retriever_tool
@@ -23,6 +24,10 @@ BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
 shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
+os.makedirs(str(BASE_OUTPUT_DIR), exist_ok=True)
+log_file = os.path.join(str(BASE_OUTPUT_DIR), "main.log")
+logger.basicConfig(filename=log_file)
+logger.orange(f"Logs: {log_file}")
 
 from jet.adapters.langchain.chat_agent_utils import compress_context
 
@@ -215,6 +220,9 @@ def example_1_rag_with_compression_and_summary(
     tools_by_name = {tool.name: tool for tool in tools}
     llm_with_tools = llm.bind_tools(tools)
 
+    logger_local.info(f"Tools ({len(tools)})")
+    logger_local.debug(format_json(list(tools_by_name.keys())))
+
     # -------------------------------------------------
     # 5. Graph state & prompts
     # -------------------------------------------------
@@ -241,15 +249,31 @@ def example_1_rag_with_compression_and_summary(
         messages = state["messages"]
 
         for tool_call in state["messages"][-1].tool_calls:
+            logger_local.info("Invoking Tool Call - observation:\n%s", format_json(tool_call))
             tool = tools_by_name[tool_call["name"]]
             observation = tool.invoke(tool_call["args"])
 
+            logger_local.info("Tools Result - observation")
+            logger_local.debug(observation)
+
+            messages.append(
+                ToolMessage(content=observation, tool_call_id=tool_call["id"])
+            )
+            logger_local.info("Invoking compress_context:\n%s", format_json({
+                "max_tokens": 4096,
+                "messages": messages,
+                "retriever_results": observation,
+            }))
             compressed = compress_context(
                 messages=messages,
                 retriever_results=observation,
-                max_tokens=3500,
+                max_tokens=4096,
                 llm=llm,
+                logger=logger_local,
             )
+
+            logger_local.info("Compression Result - observation")
+            logger_local.debug(compressed)
 
             orig_tokens = count_tokens(observation, model="qwen3-instruct-2507:4b")
             comp_tokens = count_tokens(compressed, model="qwen3-instruct-2507:4b")
@@ -287,6 +311,8 @@ Do **not** add speculation or extra commentary."""
                 HumanMessage(content=history_text),
             ]
         )
+        logger_local.info("Summary Node Result:")
+        logger_local.debug(format_json(summary_msg))
         return {"summary": summary_msg.content}
 
     # -------------------------------------------------
@@ -325,6 +351,9 @@ Do **not** add speculation or extra commentary."""
     # Build the final user message using the template
     user_message = user_prompt_template.format(documents="\n\n".join(urls))
     result = agent.invoke({"messages": [HumanMessage(content=user_message)]})
+
+    logger_local.info("Final Message Result:")
+    logger_local.debug(format_json(result))
 
     # -------------------------------------------------
     # 10. Save outputs
