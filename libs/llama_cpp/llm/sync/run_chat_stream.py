@@ -12,9 +12,8 @@ def run_chat_stream(
     """Synchronous streaming chat example with real-time token printing."""
     llm = LlamacppLLM(model=model, base_url=base_url, verbose=verbose)
     print("Streaming response:")
-    response_text = ""
-    chunks = list(llm.chat_stream(messages, temperature=temperature, max_tokens=max_tokens))
-    response_text = "".join(chunk.choices[0].delta.content for chunk in chunks)
+    chunks = list(llm.chat(messages, temperature=temperature, max_tokens=max_tokens, stream=True))
+    response_text = "".join(chunks)
     print("\n--- Stream complete ---\n")
     return response_text
 
