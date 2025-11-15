@@ -359,7 +359,7 @@ def example_3_structured_tools():
     workflow.add_node("select_tools", select_relevant_tools)
     workflow.add_node("agent", lambda state: build_agent(
         tools=state.get("selected_tools", []),
-        model=llm
+        model="qwen3-instruct-2507:4b"
     ).invoke({"messages": state["messages"]}))
     workflow.add_edge(START, "select_tools")
     workflow.add_edge("select_tools", "agent")
