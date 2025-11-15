@@ -214,7 +214,7 @@ def example_1_rag_with_compression_and_summary(
     # -------------------------------------------------
     # 4. LLM (local server)
     # -------------------------------------------------
-    llm = ChatLlamaCpp()
+    llm = ChatLlamaCpp(logger=logger_local)
 
     tools = [retriever_tool]
     tools_by_name = {tool.name: tool for tool in tools}
@@ -246,7 +246,6 @@ def example_1_rag_with_compression_and_summary(
 
     def tool_node_with_compression(state: MessagesState) -> dict:
         result = []
-        messages = state["messages"]
 
         for tool_call in state["messages"][-1].tool_calls:
             logger_local.info("Invoking Tool Call - observation:\n%s", format_json(tool_call))
@@ -255,6 +254,12 @@ def example_1_rag_with_compression_and_summary(
 
             logger_local.info("Tools Result - observation")
             logger_local.debug(observation)
+
+            # Filter out ToolMessage messages with empty content
+            messages = [
+                msg for msg in state["messages"]
+                if not (isinstance(msg, ToolMessage) and (msg.content is None or msg.content == ""))
+            ]
 
             messages.append(
                 ToolMessage(content=observation, tool_call_id=tool_call["id"])
