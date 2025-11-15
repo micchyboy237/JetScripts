@@ -402,13 +402,13 @@ def example_4_rag_retrieval():
     ]
     docs = [WebBaseLoader(url).load() for url in urls]
     docs_list = [item for sublist in docs for item in sublist]
-    save_file(docs_list, f"{str(BASE_OUTPUT_DIR)}/searched_docs.json")
+    save_file(docs_list, f"{str(BASE_OUTPUT_DIR)}/web_docs.json")
 
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=2000, chunk_overlap=50
     )
     doc_splits = text_splitter.split_documents(docs_list)
-    save_file(doc_splits, f"{str(BASE_OUTPUT_DIR)}/searched_chunks.json")
+    save_file(doc_splits, f"{str(BASE_OUTPUT_DIR)}/web_chunks.json")
 
     vectorstore = InMemoryVectorStore.from_documents(documents=doc_splits, embedding=embeddings)
     retriever = vectorstore.as_retriever()
@@ -428,6 +428,10 @@ proceed until you have sufficient context to answer the user's research request.
         messages = state["messages"]
         user_query = messages[-1].content
         retrieved = retriever.invoke(user_query)
+        save_file({
+            "query": user_query,
+            "results": retrieved,
+        }, f"{str(example_dir)}/rag_results.json")
         doc_texts = [doc.page_content for doc in retrieved[:4]]
         doc_token_counts = count_tokens(doc_texts, model="qwen3-instruct-2507:4b", prevent_total=True, add_special_tokens=False)
 
