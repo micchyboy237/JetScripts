@@ -6,6 +6,7 @@ from pathlib import Path
 import shutil
 from typing import TypedDict
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
+from jet.file.utils import save_file
 from jet.transformers.formatters import format_json
 from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
@@ -173,15 +174,13 @@ def example_1_basic_joke():
         improved_joke: str
 
     def generate_joke(state: State) -> dict[str, str]:
-        logger_simple_joker = CustomLogger("simple_joker", filename=f"{AGENTS_DIR}/simple_joker.log")
-        llm = ChatLlamaCpp(logger=logger_simple_joker, agent_name="simple_joker")
+        llm = ChatLlamaCpp(logger=logger_local, agent_name="simple_joker")
         msg = llm.invoke(f"Write a short joke about {state['topic']}")
         return {"joke": msg.content}
 
     def improve_joke(state: State) -> dict[str, str]:
         print(f"Initial joke: {state['joke']}")
-        logger_improve_joker = CustomLogger("improve_joker", filename=f"{AGENTS_DIR}/improve_joker.log")
-        llm = ChatLlamaCpp(logger=logger_improve_joker, agent_name="improve_joker")
+        llm = ChatLlamaCpp(logger=logger_local, agent_name="improve_joker")
         msg = llm.invoke(f"Make this joke funnier by adding wordplay: {state['joke']}")
         return {"improved_joke": msg.content}
 
@@ -232,8 +231,7 @@ def example_2_memory_aware_joke():
             f"Write a short joke about {state['topic']}, "
             f"different from: {prior_text}"
         )
-        logger_memory_joker = CustomLogger("memory_joker", filename=f"{AGENTS_DIR}/memory_joker.log")
-        llm = ChatLlamaCpp(logger=logger_memory_joker, agent_name="memory_joker")
+        llm = ChatLlamaCpp(logger=logger_local, agent_name="memory_joker")
         msg = llm.invoke(prompt)
         store.put(namespace, "last_joke", {"joke": msg.content})
         return {"joke": msg.content}
@@ -358,8 +356,10 @@ def example_3_structured_tools():
     workflow = StateGraph(AgentState)
     workflow.add_node("select_tools", select_relevant_tools)
     workflow.add_node("agent", lambda state: build_agent(
+        name="selected_tools",
         tools=state.get("selected_tools", []),
-        model="qwen3-instruct-2507:4b"
+        model="qwen3-instruct-2507:4b",
+        logger=logger_local,
     ).invoke({"messages": state["messages"]}))
     workflow.add_edge(START, "select_tools")
     workflow.add_edge("select_tools", "agent")
@@ -402,11 +402,13 @@ def example_4_rag_retrieval():
     ]
     docs = [WebBaseLoader(url).load() for url in urls]
     docs_list = [item for sublist in docs for item in sublist]
+    save_file(docs_list, f"{str(BASE_OUTPUT_DIR)}/searched_docs.json")
 
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         chunk_size=2000, chunk_overlap=50
     )
     doc_splits = text_splitter.split_documents(docs_list)
+    save_file(doc_splits, f"{str(BASE_OUTPUT_DIR)}/searched_chunks.json")
 
     vectorstore = InMemoryVectorStore.from_documents(documents=doc_splits, embedding=embeddings)
     retriever = vectorstore.as_retriever()
@@ -415,6 +417,7 @@ def example_4_rag_retrieval():
     )
     tools = [retriever_tool]
     tools_by_name = {tool.name: tool for tool in tools}
+    llm = ChatLlamaCpp(logger=logger_local, agent_name="web_retriever")
     llm_with_tools = llm.bind_tools(tools)
 
     rag_prompt = """You are a helpful assistant tasked with retrieving information from a series of technical blog posts by Lilian Weng.
@@ -434,7 +437,7 @@ proceed until you have sufficient context to answer the user's research request.
         ]
         history_text = "\n".join(history_lines)
 
-        MAX_CTX = 3000
+        MAX_CTX = 4000
         SAFETY_BUFFER = 600
         BUDGET = MAX_CTX - SAFETY_BUFFER
         static_parts = rag_prompt + "\n\nContext:\nDocuments:\n\nHistory:\n" + history_text + "\n\nQuestion: " + user_query
@@ -451,12 +454,40 @@ proceed until you have sufficient context to answer the user's research request.
                 break
 
         doc_text = "\n\n".join(selected_docs) if selected_docs else ""
+        doc_text_tokens = count_tokens(doc_text, model="qwen3-instruct-2507:4b")
         final_context = f"Documents:\n{doc_text}\n\nHistory:\n{history_text}"
+        final_context_tokens = count_tokens(final_context, model="qwen3-instruct-2507:4b")
         final_prompt = f"{rag_prompt}\n\nContext:\n{final_context}\nQuestion: {user_query}"
+        final_prompt_tokens = count_tokens(final_prompt, model="qwen3-instruct-2507:4b")
         total_tokens = count_tokens(final_prompt, model="qwen3-instruct-2507:4b")
         logger_local.log("final_prompt_tokens: ", total_tokens, colors=["INFO", "DEBUG"])
 
+        (Path(example_dir) / "selected_docs.json").write_text(
+            json.dumps(make_serializable(selected_docs), indent=2)
+        )
+        (Path(example_dir) / "doc_text.md").write_text(
+            json.dumps(make_serializable(doc_text), indent=2)
+        )
+        (Path(example_dir) / "final_context.md").write_text(
+            json.dumps(make_serializable(final_context), indent=2)
+        )
+        (Path(example_dir) / "final_prompt.md").write_text(
+            json.dumps(make_serializable(final_prompt), indent=2)
+        )
+        (Path(example_dir) / "tokens_info.json").write_text(
+            json.dumps(make_serializable({
+                "doc_text": doc_text_tokens,
+                "final_context": final_context_tokens,
+                "final_prompt": final_prompt_tokens,
+                "total": total_tokens,
+            }), indent=2)
+        )
+
         response = llm_with_tools.invoke([SystemMessage(content=final_prompt)])
+        (Path(example_dir) / "response.json").write_text(
+            json.dumps(make_serializable(response), indent=2)
+        )
+
         return {"messages": [response]}
 
     def tool_node(state: dict):
@@ -506,9 +537,9 @@ proceed until you have sufficient context to answer the user's research request.
 # === ADD MAIN BLOCK ===
 if __name__ == "__main__":
     logger.magenta("Running all context engineering examples...")
-    example_1_basic_joke()
-    example_2_memory_aware_joke()
-    example_3_structured_tools()
+    # example_1_basic_joke()
+    # example_2_memory_aware_joke()
+    # example_3_structured_tools()
     example_4_rag_retrieval()
     logger.green("All examples completed. Check generated/example_* folders.")
 
