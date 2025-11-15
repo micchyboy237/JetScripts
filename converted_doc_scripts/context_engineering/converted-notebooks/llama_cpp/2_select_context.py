@@ -540,4 +540,3 @@ if __name__ == "__main__":
     example_3_structured_tools()
     example_4_rag_retrieval()
     logger.green("All examples completed. Check generated/example_* folders.")
-
