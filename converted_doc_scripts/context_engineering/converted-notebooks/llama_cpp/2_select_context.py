@@ -465,15 +465,9 @@ proceed until you have sufficient context to answer the user's research request.
         (Path(example_dir) / "selected_docs.json").write_text(
             json.dumps(make_serializable(selected_docs), indent=2)
         )
-        (Path(example_dir) / "doc_text.md").write_text(
-            json.dumps(make_serializable(doc_text), indent=2)
-        )
-        (Path(example_dir) / "final_context.md").write_text(
-            json.dumps(make_serializable(final_context), indent=2)
-        )
-        (Path(example_dir) / "final_prompt.md").write_text(
-            json.dumps(make_serializable(final_prompt), indent=2)
-        )
+        (Path(example_dir) / "doc_text.md").write_text(doc_text)
+        (Path(example_dir) / "final_context.md").write_text(final_context)
+        (Path(example_dir) / "final_prompt.md").write_text(final_prompt)
         (Path(example_dir) / "tokens_info.json").write_text(
             json.dumps(make_serializable({
                 "doc_text": doc_text_tokens,
