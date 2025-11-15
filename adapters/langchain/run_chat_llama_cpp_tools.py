@@ -92,8 +92,8 @@ if __name__ == "__main__":
         if result["has_tool_call"]:
             for i, call in enumerate(result["tool_calls"]):
                 logger.debug(f"Tool Call {i+1}:")
-                logger.sucess(f"  Name: {call.get('name')}")
-                logger.sucess(f"  Args: {call.get('args')}")
+                logger.success(f"  Name: {call.get('name')}")
+                logger.success(f"  Args: {call.get('args')}")
         else:
             logger.warning("No tool calls made.")
             logger.warning(f"Direct response: {result['content']}")
