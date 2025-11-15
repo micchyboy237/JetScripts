@@ -1,10 +1,11 @@
 import json
+import logging
 from pathlib import Path
 # JetScripts/converted_doc_scripts/context_engineering/converted-notebooks/llama_cpp/1_write_context.py
 import shutil
 from typing import TypedDict
+from jet.transformers.formatters import format_json
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
-from rich.pretty import pprint
 from jet.visualization.terminal import display_iterm2_image
 import os
 from jet.logger import logger
@@ -98,7 +99,7 @@ def example_1_basic_joke_generation():
     example_dir = Path(BASE_OUTPUT_DIR) / "example_1_basic_joke_generation"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
     logger.orange(f"Example 1 logs: {log_file}")
 
     workflow = StateGraph(State)
@@ -115,14 +116,14 @@ def example_1_basic_joke_generation():
     (example_dir / "result.json").write_text(json.dumps(result, indent=2))
 
     logger.blue("\nExample 1 - Joke Generator State:")
-    pprint(result)
+    logger.success(format_json(result))
 
 def example_2_memory_store_write_read():
     """Example 2: Write joke to memory store and retrieve it."""
     example_dir = Path(BASE_OUTPUT_DIR) / "example_2_memory_store_write_read"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
     logger.orange(f"Example 2 logs: {log_file}")
 
     # Use result from example 1
@@ -138,14 +139,14 @@ def example_2_memory_store_write_read():
     (example_dir / "stored_items.json").write_text(json.dumps([item.value for item in stored_items], indent=2))
 
     logger.green("\nExample 2 - Stored Items in Memory:")
-    pprint(stored_items)
+    logger.success(format_json(stored_items))
 
 def example_3_thread_isolated_memory():
     """Example 3: Thread-isolated joke generation with memory."""
     example_dir = Path(BASE_OUTPUT_DIR) / "example_3_thread_isolated_memory"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
     logger.orange(f"Example 3 logs: {log_file}")
 
     workflow = StateGraph(State)
@@ -170,11 +171,11 @@ def example_3_thread_isolated_memory():
     (example_dir / "thread2_result.json").write_text(json.dumps(result2, indent=2))
 
     logger.cyan("\nExample 3 - Thread 1:")
-    pprint(result1)
+    logger.success(format_json(result1))
     logger.magenta("\nExample 3 - Thread 1 Latest State:")
-    pprint(latest_state)
+    logger.success(format_json(latest_state))
     logger.yellow("\nExample 3 - Thread 2:")
-    pprint(result2)
+    logger.success(format_json(result2))
 
 if __name__ == "__main__":
     logger.magenta("Running 1_write_context.py examples...")

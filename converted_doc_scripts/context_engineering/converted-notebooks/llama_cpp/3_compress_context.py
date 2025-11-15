@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 import shutil
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
@@ -197,7 +198,7 @@ def example_1_rag_with_compression_and_summary():
     example_dir = Path(BASE_OUTPUT_DIR) / "example_1_rag_with_compression_and_summary"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
     logger.orange(f"Example 1 logs: {log_file}")
 
     agent = agent_builder.compile()
@@ -222,10 +223,10 @@ def example_1_rag_with_compression_and_summary():
 
     logger.magenta("\nExample 1 - Final Messages:")
     for msg in result["messages"]:
-        logger.white(msg)
+        logger.debug(msg)
     if "summary" in result:
-        logger.cyan("\nExample 1 - Conversation Summary:")
-        logger.white(result["summary"])
+        logger.info("\nExample 1 - Conversation Summary:")
+        logger.success(result["summary"])
 
 
 if __name__ == "__main__":

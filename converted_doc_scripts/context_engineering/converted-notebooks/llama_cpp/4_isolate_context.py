@@ -1,8 +1,9 @@
 import json
+import logging
 from pathlib import Path
 import shutil
+from jet.transformers.formatters import format_json
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
-from rich.pretty import pprint
 from langchain_openai import ChatOpenAI
 from langgraph_supervisor import create_supervisor
 from jet.visualization.terminal import display_iterm2_image
@@ -134,7 +135,7 @@ def example_1_supervisor_routing():
     example_dir = Path(BASE_OUTPUT_DIR) / "example_1_supervisor_routing"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
     logger.orange(f"Example 1 logs: {log_file}")
 
     app = workflow.compile()
@@ -151,14 +152,14 @@ def example_1_supervisor_routing():
     (example_dir / "result.json").write_text(json.dumps(result, indent=2))
 
     logger.blue("\nExample 1 - Multi-Agent Workflow State:")
-    pprint(result)
+    logger.success(format_json(result))
 
 def example_2_sandbox_execution():
     """Example 2: React agent with Pyodide sandbox for safe code execution."""
     example_dir = Path(BASE_OUTPUT_DIR) / "example_2_sandbox_execution"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
     logger.orange(f"Example 2 logs: {log_file}")
 
     code_query = "what's 5 + 7?"
@@ -173,7 +174,7 @@ def example_2_sandbox_execution():
     display_iterm2_image(final_png)
 
     logger.blue("\nExample 2 - React agent with sandbox result:")
-    pprint(result)
+    logger.success(format_json(result))
 
 if __name__ == "__main__":
     logger.magenta("Running 4_isolate_context.py examples...")

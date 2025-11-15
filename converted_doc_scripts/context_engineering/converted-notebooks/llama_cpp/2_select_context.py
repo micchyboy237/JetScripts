@@ -6,8 +6,8 @@ from pathlib import Path
 
 import shutil
 from typing import TypedDict
+from jet.transformers.formatters import format_json
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
-from rich.pretty import pprint
 from jet.visualization.terminal import display_iterm2_image
 import os
 from jet.logger import logger
@@ -197,7 +197,7 @@ def example_1_basic_joke():
     # Save final result
     (Path(example_dir) / "result.json").write_text(json.dumps(result, indent=2))
     logger.green("\nExample 1 Result:")
-    pprint(result)
+    logger.success(format_json(result))
 
 
 def example_2_memory_aware_joke():
@@ -280,7 +280,7 @@ def example_3_structured_tools():
     all_tools = all_tools[:30]
 
     logger.purple("\nAll Tools:")
-    pprint(all_tools)
+    logger.success(format_json(all_tools))
     # === SAVE TOOLS LIST ===
     tools_info = [{"name": t.name, "description": t.description} for t in all_tools]
     (Path(example_dir) / "tools.json").write_text(json.dumps(tools_info, indent=2))
@@ -376,7 +376,7 @@ def example_3_structured_tools():
     (Path(example_dir) / "agent_result.json").write_text(json.dumps(result_clean, indent=2))
 
     logger.purple("\nAgent tool result:")
-    pprint(result)
+    logger.success(format_json(result))
 
 
 def example_4_rag_retrieval():
@@ -493,7 +493,7 @@ proceed until you have sufficient context to answer the user's research request.
     (Path(example_dir) / "rag_result.json").write_text(json.dumps(result_clean, indent=2))
 
     logger.purple("\nAgent query result:")
-    pprint(result)
+    logger.success(format_json(result))
 
 
 # === ADD MAIN BLOCK ===
