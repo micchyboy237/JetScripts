@@ -1,5 +1,4 @@
 import json
-import logging
 from pathlib import Path
 # JetScripts/converted_doc_scripts/context_engineering/converted-notebooks/llama_cpp/1_write_context.py
 import shutil
@@ -9,7 +8,7 @@ from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.visualization.terminal import display_iterm2_image
 import os
-from jet.logger import logger
+from jet.logger import CustomLogger
 
 BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
@@ -28,14 +27,9 @@ class State(TypedDict):
 
 # === Imports and LLM setup ===
 from langgraph.graph import END, START, StateGraph
-from langchain_openai import ChatOpenAI
+from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 
-llm = ChatOpenAI(
-    model="qwen3-instruct-2507:4b",
-    temperature=0.0,
-    base_url="http://shawn-pc.local:8080/v1",
-    verbosity="high",
-)
+llm = ChatLlamaCpp()
 
 # === Simple joke generation node ===
 def generate_joke(state: State) -> dict[str, str]:
@@ -84,6 +78,10 @@ def generate_joke_with_memory(state: State, store: BaseStore) -> dict[str, str]:
     Returns:
         Dictionary with the generated joke
     """
+    example_dir = Path(BASE_OUTPUT_DIR) / "example_3_thread_isolated_memory"
+    log_file = example_dir / "main.log"
+    logger = CustomLogger("example_3_thread_isolated_memory", filename=str(log_file))
+
     existing_jokes = list(store.search(namespace))
     if existing_jokes:
         existing_joke = existing_jokes[0].value
@@ -100,7 +98,7 @@ def example_1_basic_joke_generation():
     example_dir = Path(BASE_OUTPUT_DIR) / "example_1_basic_joke_generation"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
+    logger = CustomLogger("example_1_basic_joke_generation", filename=str(log_file))
     logger.orange(f"Example 1 logs: {log_file}")
 
     workflow = StateGraph(State)
@@ -124,7 +122,7 @@ def example_2_memory_store_write_read():
     example_dir = Path(BASE_OUTPUT_DIR) / "example_2_memory_store_write_read"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
+    logger = CustomLogger("example_2_memory_store_write_read", filename=str(log_file))
     logger.orange(f"Example 2 logs: {log_file}")
 
     # Use result from example 1
@@ -147,7 +145,7 @@ def example_3_thread_isolated_memory():
     example_dir = Path(BASE_OUTPUT_DIR) / "example_3_thread_isolated_memory"
     example_dir.mkdir(parents=True, exist_ok=True)
     log_file = example_dir / "main.log"
-    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
+    logger = CustomLogger("example_3_thread_isolated_memory", filename=str(log_file))
     logger.orange(f"Example 3 logs: {log_file}")
 
     workflow = StateGraph(State)

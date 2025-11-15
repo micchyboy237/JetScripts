@@ -1,20 +1,19 @@
 # === REFACTOR: Per-example output directories and modular functions ===
 
 import json
-import logging
 from pathlib import Path
 
 import shutil
 from typing import TypedDict
+from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 from jet.transformers.formatters import format_json
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.visualization.terminal import display_iterm2_image
 import os
-from jet.logger import logger
+from jet.logger import logger, CustomLogger
 
 from langgraph.graph import END, START, StateGraph
 
-from langchain_openai import ChatOpenAI
 from langgraph.store.memory import InMemoryStore
 from jet.models.utils import get_embedding_size
 from jet.adapters.langchain.embed_llama_cpp import EmbedLlamaCpp
@@ -49,12 +48,7 @@ BASE_OUTPUT_DIR = os.path.join(
 )
 shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
 embeddings = EmbedLlamaCpp(model="embeddinggemma")
-llm = ChatOpenAI(
-    model="qwen3-instruct-2507:4b",
-    temperature=0.0,
-    base_url="http://shawn-pc.local:8080/v1",
-    verbosity="high",
-)
+llm = ChatLlamaCpp()
 
 # -------- Tool convert from math functions
 def safe_tool_from_function(func) -> StructuredTool | None:
@@ -163,8 +157,8 @@ def example_1_basic_joke():
     example_dir = os.path.join(BASE_OUTPUT_DIR, "example_1_basic_joke")
     os.makedirs(example_dir, exist_ok=True)
     log_file = f"{example_dir}/main.log"
-    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
-    logger.orange(f"Example 1 logs: {log_file}")
+    logger_local = CustomLogger("example_1_basic_joke", filename=str(log_file))
+    logger_local.orange(f"Example 1 logs: {log_file}")
     
     class State(TypedDict):
         topic: str
@@ -196,8 +190,8 @@ def example_1_basic_joke():
     result = chain.invoke({"topic": "quantum physics"})
     # Save final result
     (Path(example_dir) / "result.json").write_text(json.dumps(result, indent=2))
-    logger.green("\nExample 1 Result:")
-    logger.success(format_json(result))
+    logger_local.green("\nExample 1 Result:")
+    logger_local.success(format_json(result))
 
 
 def example_2_memory_aware_joke():
@@ -205,8 +199,8 @@ def example_2_memory_aware_joke():
     example_dir = os.path.join(BASE_OUTPUT_DIR, "example_2_memory_aware_joke")
     os.makedirs(example_dir, exist_ok=True)
     log_file = f"{example_dir}/main.log"
-    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
-    logger.orange(f"Example 2 logs: {log_file}")
+    logger_local = CustomLogger("example_2_memory_aware_joke", filename=str(log_file))
+    logger_local.orange(f"Example 2 logs: {log_file}")
     
     class State(TypedDict):
         topic: str
@@ -243,15 +237,15 @@ def example_2_memory_aware_joke():
     display_iterm2_image(png_data)
 
     # Run twice to show memory effect
-    logger.cyan("\nFirst run:")
+    logger_local.cyan("\nFirst run:")
     result1 = chain.invoke({"topic": "AI"}, config={"configurable": {"thread_id": "joke_thread"}})
     (Path(example_dir) / "run1_result.json").write_text(json.dumps(result1, indent=2))
-    logger.cyan(str(result1))
+    logger_local.cyan(str(result1))
 
-    logger.cyan("\nSecond run (should be different):")
+    logger_local.cyan("\nSecond run (should be different):")
     result2 = chain.invoke({"topic": "AI"}, config={"configurable": {"thread_id": "joke_thread"}})
     (Path(example_dir) / "run2_result.json").write_text(json.dumps(result2, indent=2))
-    logger.cyan(str(result2))
+    logger_local.cyan(str(result2))
 
 
 def example_3_structured_tools():
@@ -267,8 +261,8 @@ def example_3_structured_tools():
     example_dir = os.path.join(BASE_OUTPUT_DIR, "example_3_structured_tools")
     os.makedirs(example_dir, exist_ok=True)
     log_file = f"{example_dir}/main.log"
-    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
-    logger.orange(f"Example 3 logs: {log_file}")
+    logger_local = CustomLogger("example_3_structured_tools", filename=str(log_file))
+    logger_local.orange(f"Example 3 logs: {log_file}")
 
     all_tools = []
     for function_name in tqdm(dir(math), desc="Building tools"):
@@ -279,8 +273,8 @@ def example_3_structured_tools():
                 all_tools.append(tool)
     all_tools = all_tools[:30]
 
-    logger.purple("\nAll Tools:")
-    logger.success(format_json(all_tools))
+    logger_local.purple("\nAll Tools:")
+    logger_local.success(format_json(all_tools))
     # === SAVE TOOLS LIST ===
     tools_info = [{"name": t.name, "description": t.description} for t in all_tools]
     (Path(example_dir) / "tools.json").write_text(json.dumps(tools_info, indent=2))
@@ -327,7 +321,7 @@ def example_3_structured_tools():
         results = [item for item in all_results if item.key in tool_registry][:5]
 
         if not results:
-            logger.yellow("No relevant tools found. Using fallback.")
+            logger_local.yellow("No relevant tools found. Using fallback.")
             selected_tools = all_tools[:3]
         else:
             selected_tool_ids = [item.key for item in results]
@@ -375,8 +369,8 @@ def example_3_structured_tools():
     }
     (Path(example_dir) / "agent_result.json").write_text(json.dumps(result_clean, indent=2))
 
-    logger.purple("\nAgent tool result:")
-    logger.success(format_json(result))
+    logger_local.purple("\nAgent tool result:")
+    logger_local.success(format_json(result))
 
 
 def example_4_rag_retrieval():
@@ -384,8 +378,8 @@ def example_4_rag_retrieval():
     example_dir = os.path.join(BASE_OUTPUT_DIR, "example_4_rag_retrieval")
     os.makedirs(example_dir, exist_ok=True)
     log_file = f"{example_dir}/main.log"
-    logger.basicConfig(filename=log_file, level=logging.INFO, force=True)
-    logger.orange(f"Example 4 logs: {log_file}")
+    logger_local = CustomLogger("example_4_rag_retrieval", filename=str(log_file))
+    logger_local.orange(f"Example 4 logs: {log_file}")
     
     urls = [
         "https://lilianweng.github.io/posts/2025-05-01-thinking/",
@@ -447,7 +441,7 @@ proceed until you have sufficient context to answer the user's research request.
         final_context = f"Documents:\n{doc_text}\n\nHistory:\n{history_text}"
         final_prompt = f"{rag_prompt}\n\nContext:\n{final_context}\nQuestion: {user_query}"
         total_tokens = count_tokens(final_prompt, model="qwen3-instruct-2507:4b")
-        logger.log("final_prompt_tokens: ", total_tokens, colors=["INFO", "DEBUG"])
+        logger_local.log("final_prompt_tokens: ", total_tokens, colors=["INFO", "DEBUG"])
 
         response = llm_with_tools.invoke([SystemMessage(content=final_prompt)])
         return {"messages": [response]}
@@ -492,8 +486,8 @@ proceed until you have sufficient context to answer the user's research request.
     }
     (Path(example_dir) / "rag_result.json").write_text(json.dumps(result_clean, indent=2))
 
-    logger.purple("\nAgent query result:")
-    logger.success(format_json(result))
+    logger_local.purple("\nAgent query result:")
+    logger_local.success(format_json(result))
 
 
 # === ADD MAIN BLOCK ===
