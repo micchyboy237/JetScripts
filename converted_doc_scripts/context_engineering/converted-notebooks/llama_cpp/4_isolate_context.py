@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 from jet.transformers.formatters import format_json
+from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langgraph_supervisor import create_supervisor
 from jet.visualization.terminal import display_iterm2_image
@@ -20,6 +21,8 @@ os.makedirs(str(BASE_OUTPUT_DIR), exist_ok=True)
 log_file = os.path.join(str(BASE_OUTPUT_DIR), "main.log")
 logger.basicConfig(filename=log_file)
 logger.orange(f"Logs: {log_file}")
+
+AGENTS_DIR = f"{str(BASE_OUTPUT_DIR)}/agents"
 
 def add(a: float, b: float) -> float:
     """Add two numbers.
@@ -57,28 +60,30 @@ def web_search(query: str) -> str:
         "5. **Google (Alphabet)**: 181,269 employees."
     )
 
-llm_math = ChatLlamaCpp(
-    model="qwen3-instruct-2507:4b",
-    temperature=0.0,
-    base_url="http://shawn-pc.local:8080/v1",
-    verbosity="high",
-    agent_name="math",
-)
+# llm_math = ChatLlamaCpp(
+#     model="qwen3-instruct-2507:4b",
+#     temperature=0.0,
+#     base_url="http://shawn-pc.local:8080/v1",
+#     verbosity="high",
+#     agent_name="math",
+# )
 
-llm_research = ChatLlamaCpp(
-    model="qwen3-instruct-2507:4b",
-    temperature=0.0,
-    base_url="http://shawn-pc.local:8080/v1",
-    verbosity="high",
-    agent_name="research",
-)
+# llm_research = ChatLlamaCpp(
+#     model="qwen3-instruct-2507:4b",
+#     temperature=0.0,
+#     base_url="http://shawn-pc.local:8080/v1",
+#     verbosity="high",
+#     agent_name="research",
+# )
 
+logger_supervisor = CustomLogger("supervisor", filename=f"{AGENTS_DIR}/supervisor.log")
 llm_supervisor = ChatLlamaCpp(
     model="qwen3-instruct-2507:4b",
     temperature=0.0,
     base_url="http://shawn-pc.local:8080/v1",
     verbosity="high",
     agent_name="supervisor",
+    logger=logger_supervisor,
 )
 
 # ------------------------------------------------------------------
@@ -94,18 +99,20 @@ llm_supervisor = ChatLlamaCpp(
 math_prompt = "You are a math expert. Always use one tool at a time."
 math_agent = build_agent(
     tools=[add, multiply],
-    model=llm_math,
+    model="qwen3-instruct-2507:4b",
     system_prompt=math_prompt,
     name="math_expert",
+    log_dir=AGENTS_DIR,
 )
 
 # ---- Research agent ------------------------------------------------
 research_prompt = "You are a world class researcher with access to web search. Do not do any math."
 research_agent = build_agent(
     tools=[web_search],
-    model=llm_research,
+    model="qwen3-instruct-2507:4b",
     system_prompt=research_prompt,
     name="research_expert",
+    log_dir=AGENTS_DIR,
 )
 
 # Supervisor with context isolation via token counting
@@ -123,12 +130,14 @@ workflow = create_supervisor(
 from langchain_sandbox import PyodideSandboxTool
 from langgraph.prebuilt import create_react_agent as create_react_agent_raw
 
+logger_sandbox = CustomLogger("sandbox", filename=f"{AGENTS_DIR}/sandbox.log")
 llm_sandbox = ChatLlamaCpp(
     model="qwen3-instruct-2507:4b",
     temperature=0.0,
     base_url="http://shawn-pc.local:8080/v1",
     verbosity="high",
     agent_name="sandbox",
+    logger=logger_sandbox,
 )
 
 tool = PyodideSandboxTool(allow_net=True)
@@ -156,7 +165,7 @@ def example_1_supervisor_routing():
     logger_local.log(f"User query tokens: {query_tokens}", colors=["INFO", "YELLOW"])
 
     result = app.invoke({"messages": [{"role": "user", "content": query}]})
-    (example_dir / "result.json").write_text(json.dumps(result, indent=2))
+    (example_dir / "result.json").write_text(json.dumps(make_serializable(result), indent=2))
 
     logger_local.blue("\nExample 1 - Multi-Agent Workflow State:")
     logger_local.success(format_json(result))
@@ -174,7 +183,7 @@ def example_2_sandbox_execution():
     logger_local.log(f"Sandbox query tokens: {code_tokens}", colors=["INFO", "YELLOW"])
 
     result = sandbox_agent.invoke({"messages": [{"role": "user", "content": code_query}]})
-    (example_dir / "code_result.json").write_text(json.dumps(result, indent=2))
+    (example_dir / "code_result.json").write_text(json.dumps(make_serializable(result), indent=2))
 
     png_path = example_dir / "sandbox_agent_graph.png"
     final_png = render_mermaid_graph(sandbox_agent, output_filename=str(png_path))

@@ -19,6 +19,8 @@ log_file = os.path.join(str(BASE_OUTPUT_DIR), "main.log")
 logger.basicConfig(filename=log_file)
 logger.orange(f"Logs: {log_file}")
 
+AGENTS_DIR = f"{str(BASE_OUTPUT_DIR)}/agents"
+
 # === State definition ===
 class State(TypedDict):
     """State schema for the joke generator workflow.
@@ -33,8 +35,6 @@ class State(TypedDict):
 from langgraph.graph import END, START, StateGraph
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 
-llm = ChatLlamaCpp()
-
 # === Simple joke generation node ===
 def generate_joke(state: State) -> dict[str, str]:
     """Generate a joke about the specified topic.
@@ -43,6 +43,8 @@ def generate_joke(state: State) -> dict[str, str]:
     Returns:
         Dictionary with the generated joke
     """
+    logger_simple_joker = CustomLogger("simple_joker", filename=f"{AGENTS_DIR}/simple_joker.log")
+    llm = ChatLlamaCpp(logger=logger_simple_joker, agent_name="simple_joker")
     msg = llm.invoke(f"Write a short joke about {state['topic']}")
     return {"joke": msg.content}
 
@@ -93,6 +95,8 @@ def generate_joke_with_memory(state: State, store: BaseStore) -> dict[str, str]:
     else:
         logger_local.debug("Existing joke: No existing joke")
 
+    logger_memory_joker = CustomLogger("memory_joker", filename=f"{AGENTS_DIR}/memory_joker.log")
+    llm = ChatLlamaCpp(logger=logger_memory_joker, agent_name="memory_joker")
     msg = llm.invoke(f"Write a short joke about {state['topic']}")
     store.put(namespace, "last_joke", {"joke": msg.content})
     return {"joke": msg.content}
@@ -116,7 +120,7 @@ def example_1_basic_joke_generation():
     display_iterm2_image(png_data)
 
     result = chain.invoke({"topic": "cats"})
-    (example_dir / "result.json").write_text(json.dumps(result, indent=2))
+    (example_dir / "result.json").write_text(json.dumps(make_serializable(result), indent=2))
 
     logger_local.blue("\nExample 1 - Joke Generator State:")
     logger_local.success(format_json(result))
@@ -139,7 +143,7 @@ def example_2_memory_store_write_read():
     store.put(namespace, "last_joke", {"joke": prior_joke})
     stored_items = list(store.search(namespace))
 
-    (example_dir / "stored_items.json").write_text(json.dumps([item.value for item in stored_items], indent=2))
+    (example_dir / "stored_items.json").write_text(json.dumps(make_serializable(stored_items), indent=2))
 
     logger_local.green("\nExample 2 - Stored Items in Memory:")
     logger_local.success(format_json(stored_items))
@@ -164,14 +168,14 @@ def example_3_thread_isolated_memory():
 
     config1 = {"configurable": {"thread_id": "1"}}
     result1 = chain.invoke({"topic": "cats"}, config1)
-    (example_dir / "thread1_result.json").write_text(json.dumps(result1, indent=2))
+    (example_dir / "thread1_result.json").write_text(json.dumps(make_serializable(result1), indent=2))
 
     latest_state = chain.get_state(config1)
     (example_dir / "thread1_latest_state.json").write_text(json.dumps(make_serializable(latest_state), indent=2, default=str))
 
     config2 = {"configurable": {"thread_id": "2"}}
     result2 = chain.invoke({"topic": "cats"}, config2)
-    (example_dir / "thread2_result.json").write_text(json.dumps(result2, indent=2))
+    (example_dir / "thread2_result.json").write_text(json.dumps(make_serializable(result2), indent=2))
 
     logger_local.cyan("\nExample 3 - Thread 1:")
     logger_local.success(format_json(result1))

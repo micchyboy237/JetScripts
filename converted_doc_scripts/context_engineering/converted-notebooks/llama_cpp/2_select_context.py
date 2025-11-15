@@ -7,6 +7,7 @@ import shutil
 from typing import TypedDict
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 from jet.transformers.formatters import format_json
+from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from jet.visualization.terminal import display_iterm2_image
 import os
@@ -52,8 +53,9 @@ log_file = os.path.join(str(BASE_OUTPUT_DIR), "main.log")
 logger.basicConfig(filename=log_file)
 logger.orange(f"Logs: {log_file}")
 
+AGENTS_DIR = f"{str(BASE_OUTPUT_DIR)}/agents"
+
 embeddings = EmbedLlamaCpp(model="embeddinggemma")
-llm = ChatLlamaCpp()
 
 # -------- Tool convert from math functions
 def safe_tool_from_function(func) -> StructuredTool | None:
@@ -171,11 +173,15 @@ def example_1_basic_joke():
         improved_joke: str
 
     def generate_joke(state: State) -> dict[str, str]:
+        logger_simple_joker = CustomLogger("simple_joker", filename=f"{AGENTS_DIR}/simple_joker.log")
+        llm = ChatLlamaCpp(logger=logger_simple_joker, agent_name="simple_joker")
         msg = llm.invoke(f"Write a short joke about {state['topic']}")
         return {"joke": msg.content}
 
     def improve_joke(state: State) -> dict[str, str]:
         print(f"Initial joke: {state['joke']}")
+        logger_improve_joker = CustomLogger("improve_joker", filename=f"{AGENTS_DIR}/improve_joker.log")
+        llm = ChatLlamaCpp(logger=logger_improve_joker, agent_name="improve_joker")
         msg = llm.invoke(f"Make this joke funnier by adding wordplay: {state['joke']}")
         return {"improved_joke": msg.content}
 
@@ -194,7 +200,7 @@ def example_1_basic_joke():
 
     result = chain.invoke({"topic": "quantum physics"})
     # Save final result
-    (Path(example_dir) / "result.json").write_text(json.dumps(result, indent=2))
+    (Path(example_dir) / "result.json").write_text(json.dumps(make_serializable(result), indent=2))
     logger_local.green("\nExample 1 Result:")
     logger_local.success(format_json(result))
 
@@ -226,6 +232,8 @@ def example_2_memory_aware_joke():
             f"Write a short joke about {state['topic']}, "
             f"different from: {prior_text}"
         )
+        logger_memory_joker = CustomLogger("memory_joker", filename=f"{AGENTS_DIR}/memory_joker.log")
+        llm = ChatLlamaCpp(logger=logger_memory_joker, agent_name="memory_joker")
         msg = llm.invoke(prompt)
         store.put(namespace, "last_joke", {"joke": msg.content})
         return {"joke": msg.content}
@@ -244,12 +252,12 @@ def example_2_memory_aware_joke():
     # Run twice to show memory effect
     logger_local.cyan("\nFirst run:")
     result1 = chain.invoke({"topic": "AI"}, config={"configurable": {"thread_id": "joke_thread"}})
-    (Path(example_dir) / "run1_result.json").write_text(json.dumps(result1, indent=2))
+    (Path(example_dir) / "run1_result.json").write_text(json.dumps(make_serializable(result1), indent=2))
     logger_local.cyan(str(result1))
 
     logger_local.cyan("\nSecond run (should be different):")
     result2 = chain.invoke({"topic": "AI"}, config={"configurable": {"thread_id": "joke_thread"}})
-    (Path(example_dir) / "run2_result.json").write_text(json.dumps(result2, indent=2))
+    (Path(example_dir) / "run2_result.json").write_text(json.dumps(make_serializable(result2), indent=2))
     logger_local.cyan(str(result2))
 
 
@@ -282,7 +290,7 @@ def example_3_structured_tools():
     logger_local.success(format_json(all_tools))
     # === SAVE TOOLS LIST ===
     tools_info = [{"name": t.name, "description": t.description} for t in all_tools]
-    (Path(example_dir) / "tools.json").write_text(json.dumps(tools_info, indent=2))
+    (Path(example_dir) / "tools.json").write_text(json.dumps(make_serializable(tools_info), indent=2))
 
     tool_registry = {str(uuid.uuid4()): tool for tool in all_tools}
     # === INDEX TOOL DESCRIPTIONS IN VECTOR STORE ===
@@ -310,7 +318,7 @@ def example_3_structured_tools():
         {"id": tid, "name": tool_registry[tid].name, "description": tool_registry[tid].description}
         for tid in tool_registry
     ]
-    (Path(example_dir) / "indexed_tools.json").write_text(json.dumps(indexed_tools, indent=2))
+    (Path(example_dir) / "indexed_tools.json").write_text(json.dumps(make_serializable(indexed_tools), indent=2))
 
     # === DYNAMIC TOOL SELECTION AGENT ===
     def select_relevant_tools(state: AgentState) -> AgentState:
@@ -334,13 +342,13 @@ def example_3_structured_tools():
 
         # Save selection
         (Path(example_dir) / "retrieved_tool_ids.json").write_text(
-            json.dumps([item.key for item in all_results], indent=2)
+            json.dumps(make_serializable([item.key for item in all_results]), indent=2)
         )
         (Path(example_dir) / "selected_tool_ids.json").write_text(
-            json.dumps([item.key for item in results], indent=2)
+            json.dumps(make_serializable([item.key for item in results]), indent=2)
         )
         (Path(example_dir) / "selected_tool_names.json").write_text(
-            json.dumps([t.name for t in selected_tools], indent=2)
+            json.dumps(make_serializable([t.name for t in selected_tools]), indent=2)
         )
 
         # Preserve the incoming messages for the next node
@@ -372,7 +380,7 @@ def example_3_structured_tools():
         "selected_tools": [t.name for t in result.get("selected_tools", [])],
         "final_answer": result.get("messages", [-1])[-1].content if result.get("messages") else ""
     }
-    (Path(example_dir) / "agent_result.json").write_text(json.dumps(result_clean, indent=2))
+    (Path(example_dir) / "agent_result.json").write_text(json.dumps(make_serializable(result_clean), indent=2))
 
     logger_local.purple("\nAgent tool result:")
     logger_local.success(format_json(result))
@@ -489,7 +497,7 @@ proceed until you have sufficient context to answer the user's research request.
             ""
         )
     }
-    (Path(example_dir) / "rag_result.json").write_text(json.dumps(result_clean, indent=2))
+    (Path(example_dir) / "rag_result.json").write_text(json.dumps(make_serializable(result_clean), indent=2))
 
     logger_local.purple("\nAgent query result:")
     logger_local.success(format_json(result))
