@@ -1,4 +1,6 @@
-# JetScripts/converted_doc_scripts/context_engineering/converted-notebooks/llama_cpp/3_compress_context.py
+import json
+from pathlib import Path
+import shutil
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain_core.tools import create_retriever_tool
 from langchain_community.document_loaders import WebBaseLoader
@@ -9,15 +11,15 @@ from jet.adapters.llama_cpp.tokens import count_tokens
 from jet.logger import logger
 from jet.adapters.langchain.chat_agent_utils import compress_context
 from jet.visualization.terminal import display_iterm2_image
+from rich.console import Console
+from rich.markdown import Markdown
 import os
-import shutil
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = f"{OUTPUT_DIR}/main.log"
-logger.basicConfig(filename=log_file)
-logger.orange(f"Main logs: {log_file}")
+BASE_OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
+)
+shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
+console = Console()
 
 # -------------------------------------------------
 # 1. Load & chunk documents
@@ -193,26 +195,43 @@ agent_builder.add_conditional_edges(
 agent_builder.add_edge("environment", "llm_call")
 agent_builder.add_edge("summary_node", END)
 
-agent = agent_builder.compile()
-# display(Image(agent.get_graph(xray=True).draw_mermaid_png()))
-png_data = render_mermaid_graph(
-    agent, xray=True, output_filename=f"{OUTPUT_DIR}/agent_graph.png")
-display_iterm2_image(png_data)
+def example_1_rag_with_compression_and_summary():
+    """Example 1: RAG agent with context compression and final summary."""
+    example_dir = Path(BASE_OUTPUT_DIR) / "example_1_rag_with_compression_and_summary"
+    example_dir.mkdir(parents=True, exist_ok=True)
+    log_file = example_dir / "main.log"
+    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.orange(f"Example 1 logs: {log_file}")
 
-# -------------------------------------------------
-# 8. Example run
-# -------------------------------------------------
-query = "Why does RL improve LLM reasoning according to the blogs?"
-result = agent.invoke({"messages": [HumanMessage(content=query)]})
+    agent = agent_builder.compile()
 
-# (Optional) pretty-print results – adapt `format_messages` if available
-from rich.console import Console
-from rich.markdown import Markdown
-console = Console()
-console.print("\n[bold magenta]Agent final messages:[/bold magenta]")
-for msg in result["messages"]:
-    console.print(msg)
+    png_path = example_dir / "agent_graph.png"
+    png_data = render_mermaid_graph(agent, xray=True, output_filename=str(png_path))
+    display_iterm2_image(png_data)
 
-if "summary" in result:
-    console.print("\n[bold cyan]Conversation summary:[/bold cyan]")
-    console.print(Markdown(result["summary"]))
+    query = "Why does RL improve LLM reasoning according to the blogs?"
+    result = agent.invoke({"messages": [HumanMessage(content=query)]})
+
+    # Save full result
+    result_clean = {
+        "messages": [m.dict() if hasattr(m, "dict") else str(m) for m in result["messages"]],
+        "summary": result.get("summary", "")
+    }
+    (example_dir / "result.json").write_text(json.dumps(result_clean, indent=2))
+
+    # Save summary as markdown
+    if "summary" in result:
+        (example_dir / "summary.md").write_text(result["summary"])
+
+    console.print("\n[bold magenta]Example 1 - Final Messages:[/bold magenta]")
+    for msg in result["messages"]:
+        console.print(msg)
+    if "summary" in result:
+        console.print("\n[bold cyan]Example 1 - Conversation Summary:[/bold cyan]")
+        console.print(Markdown(result["summary"]))
+
+
+if __name__ == "__main__":
+    console.print("[bold magenta]Running 3_compress_context.py example...[/bold magenta]")
+    example_1_rag_with_compression_and_summary()
+    console.print("[bold green]Example completed.[/bold green]")

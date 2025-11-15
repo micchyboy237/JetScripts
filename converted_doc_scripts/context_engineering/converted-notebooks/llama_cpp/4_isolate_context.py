@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+import shutil
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from rich.console import Console
 from rich.pretty import pprint
@@ -8,15 +11,12 @@ from jet.adapters.langchain.chat_agent_utils import build_agent
 from jet.adapters.llama_cpp.tokens import count_tokens
 
 import os
-import shutil
 from jet.logger import logger
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-log_file = f"{OUTPUT_DIR}/main.log"
-logger.basicConfig(filename=log_file)
-logger.orange(f"Main logs: {log_file}")
+BASE_OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
+)
+shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
 
 console = Console()
 
@@ -116,26 +116,6 @@ workflow = create_supervisor(
     supervisor_name="supervisor_jet"
 )
 
-app = workflow.compile()
-png_data = render_mermaid_graph(
-    app, output_filename=f"{OUTPUT_DIR}/supervisor_graph.png")
-display_iterm2_image(png_data)
-
-# Context-aware invocation with token logging
-query = "what's the combined headcount of the FAANG companies in 2024?"
-query_tokens = count_tokens([query], model="qwen3-instruct-2507:4b")
-logger.log(f"User query tokens: {query_tokens}", colors=["INFO", "YELLOW"])
-
-result = app.invoke({
-    "messages": [
-        {"role": "user", "content": query}
-    ]
-})
-
-console.print("\n[bold blue]Multi-Agent Workflow State:[/bold blue]")
-pprint(result)
-
-# Sandbox tool with async isolation
 from langchain_sandbox import PyodideSandboxTool
 from langgraph.prebuilt import create_react_agent as create_react_agent_raw
 
@@ -152,18 +132,54 @@ sandbox_agent = create_react_agent_raw(
     tools=[tool],
 )
 
-code_query = "what's 5 + 7?"
-code_tokens = count_tokens([code_query], model="qwen3-instruct-2507:4b")
-logger.log(f"Sandbox query tokens: {code_tokens}", colors=["INFO", "YELLOW"])
+def example_1_supervisor_routing():
+    """Example 1: Supervisor routes between research and math agents."""
+    example_dir = Path(BASE_OUTPUT_DIR) / "example_1_supervisor_routing"
+    example_dir.mkdir(parents=True, exist_ok=True)
+    log_file = example_dir / "main.log"
+    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.orange(f"Example 1 logs: {log_file}")
 
-result = sandbox_agent.invoke(
-    {"messages": [{"role": "user", "content": code_query}]},
-)
+    app = workflow.compile()
 
-console.print("\n[bold blue]React agent with sandbox tool result:[/bold blue]")
-pprint(result)
+    png_path = example_dir / "supervisor_graph.png"
+    png_data = render_mermaid_graph(app, output_filename=str(png_path))
+    display_iterm2_image(png_data)
 
-# Final graph visualization
-final_png = render_mermaid_graph(
-    sandbox_agent, output_filename=f"{OUTPUT_DIR}/sandbox_agent_graph.png")
-display_iterm2_image(final_png)
+    query = "what's the combined headcount of the FAANG companies in 2024?"
+    query_tokens = count_tokens([query], model="qwen3-instruct-2507:4b")
+    logger.log(f"User query tokens: {query_tokens}", colors=["INFO", "YELLOW"])
+
+    result = app.invoke({"messages": [{"role": "user", "content": query}]})
+    (example_dir / "result.json").write_text(json.dumps(result, indent=2))
+
+    console.print("\n[bold blue]Example 1 - Multi-Agent Workflow State:[/bold blue]")
+    pprint(result)
+
+def example_2_sandbox_execution():
+    """Example 2: React agent with Pyodide sandbox for safe code execution."""
+    example_dir = Path(BASE_OUTPUT_DIR) / "example_2_sandbox_execution"
+    example_dir.mkdir(parents=True, exist_ok=True)
+    log_file = example_dir / "main.log"
+    logger.basicConfig(filename=log_file, level=logger.INFO, force=True)
+    logger.orange(f"Example 2 logs: {log_file}")
+
+    code_query = "what's 5 + 7?"
+    code_tokens = count_tokens([code_query], model="qwen3-instruct-2507:4b")
+    logger.log(f"Sandbox query tokens: {code_tokens}", colors=["INFO", "YELLOW"])
+
+    result = sandbox_agent.invoke({"messages": [{"role": "user", "content": code_query}]})
+    (example_dir / "code_result.json").write_text(json.dumps(result, indent=2))
+
+    png_path = example_dir / "sandbox_agent_graph.png"
+    final_png = render_mermaid_graph(sandbox_agent, output_filename=str(png_path))
+    display_iterm2_image(final_png)
+
+    console.print("\n[bold blue]Example 2 - React agent with sandbox result:[/bold blue]")
+    pprint(result)
+
+if __name__ == "__main__":
+    console.print("[bold magenta]Running 4_isolate_context.py examples...[/bold magenta]")
+    example_1_supervisor_routing()
+    example_2_sandbox_execution()
+    console.print("[bold green]All examples completed.[/bold green]")
