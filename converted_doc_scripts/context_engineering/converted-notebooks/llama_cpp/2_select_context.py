@@ -7,7 +7,6 @@ from pathlib import Path
 import shutil
 from typing import TypedDict
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
-from rich.console import Console
 from rich.pretty import pprint
 from jet.visualization.terminal import display_iterm2_image
 import os
@@ -45,7 +44,6 @@ from typing_extensions import Literal
 from jet.adapters.llama_cpp.tokens import count_tokens
 
 # ------ Global objects
-console = Console()
 BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
@@ -198,7 +196,7 @@ def example_1_basic_joke():
     result = chain.invoke({"topic": "quantum physics"})
     # Save final result
     (Path(example_dir) / "result.json").write_text(json.dumps(result, indent=2))
-    console.print("\n[bold green]Example 1 Result:[/bold green]")
+    logger.green("\nExample 1 Result:")
     pprint(result)
 
 
@@ -245,15 +243,15 @@ def example_2_memory_aware_joke():
     display_iterm2_image(png_data)
 
     # Run twice to show memory effect
-    console.print("\n[bold cyan]First run:[/bold cyan]")
+    logger.cyan("\nFirst run:")
     result1 = chain.invoke({"topic": "AI"}, config={"configurable": {"thread_id": "joke_thread"}})
     (Path(example_dir) / "run1_result.json").write_text(json.dumps(result1, indent=2))
-    console.print(result1)
+    logger.cyan(str(result1))
 
-    console.print("\n[bold cyan]Second run (should be different):[/bold cyan]")
+    logger.cyan("\nSecond run (should be different):")
     result2 = chain.invoke({"topic": "AI"}, config={"configurable": {"thread_id": "joke_thread"}})
     (Path(example_dir) / "run2_result.json").write_text(json.dumps(result2, indent=2))
-    console.print(result2)
+    logger.cyan(str(result2))
 
 
 def example_3_structured_tools():
@@ -281,7 +279,7 @@ def example_3_structured_tools():
                 all_tools.append(tool)
     all_tools = all_tools[:30]
 
-    console.print("\n[bold pink]All Tools:[/bold pink]")
+    logger.purple("\nAll Tools:")
     pprint(all_tools)
     # === SAVE TOOLS LIST ===
     tools_info = [{"name": t.name, "description": t.description} for t in all_tools]
@@ -329,7 +327,7 @@ def example_3_structured_tools():
         results = [item for item in all_results if item.key in tool_registry][:5]
 
         if not results:
-            console.print("[yellow]No relevant tools found. Using fallback.[/yellow]")
+            logger.yellow("No relevant tools found. Using fallback.")
             selected_tools = all_tools[:3]
         else:
             selected_tool_ids = [item.key for item in results]
@@ -377,7 +375,7 @@ def example_3_structured_tools():
     }
     (Path(example_dir) / "agent_result.json").write_text(json.dumps(result_clean, indent=2))
 
-    console.print("\n[bold pink]Agent tool result:[/bold pink]")
+    logger.purple("\nAgent tool result:")
     pprint(result)
 
 
@@ -494,16 +492,16 @@ proceed until you have sufficient context to answer the user's research request.
     }
     (Path(example_dir) / "rag_result.json").write_text(json.dumps(result_clean, indent=2))
 
-    console.print("\n[bold pink]Agent query result:[/bold pink]")
+    logger.purple("\nAgent query result:")
     pprint(result)
 
 
 # === ADD MAIN BLOCK ===
 if __name__ == "__main__":
-    console.print("[bold magenta]Running all context engineering examples...[/bold magenta]")
+    logger.magenta("Running all context engineering examples...")
     example_1_basic_joke()
     example_2_memory_aware_joke()
     example_3_structured_tools()
     example_4_rag_retrieval()
-    console.print("[bold green]All examples completed. Check generated/example_* folders.[/bold green]")
+    logger.green("All examples completed. Check generated/example_* folders.")
 

@@ -11,15 +11,12 @@ from jet.adapters.llama_cpp.tokens import count_tokens
 from jet.logger import logger
 from jet.adapters.langchain.chat_agent_utils import compress_context
 from jet.visualization.terminal import display_iterm2_image
-from rich.console import Console
-from rich.markdown import Markdown
 import os
 
 BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
 shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
-console = Console()
 
 # -------------------------------------------------
 # 1. Load & chunk documents
@@ -223,15 +220,15 @@ def example_1_rag_with_compression_and_summary():
     if "summary" in result:
         (example_dir / "summary.md").write_text(result["summary"])
 
-    console.print("\n[bold magenta]Example 1 - Final Messages:[/bold magenta]")
+    logger.magenta("\nExample 1 - Final Messages:")
     for msg in result["messages"]:
-        console.print(msg)
+        logger.white(msg)
     if "summary" in result:
-        console.print("\n[bold cyan]Example 1 - Conversation Summary:[/bold cyan]")
-        console.print(Markdown(result["summary"]))
+        logger.cyan("\nExample 1 - Conversation Summary:")
+        logger.white(result["summary"])
 
 
 if __name__ == "__main__":
-    console.print("[bold magenta]Running 3_compress_context.py example...[/bold magenta]")
+    logger.magenta("Running 3_compress_context.py example...")
     example_1_rag_with_compression_and_summary()
-    console.print("[bold green]Example completed.[/bold green]")
+    logger.green("Example completed.")

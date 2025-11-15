@@ -4,7 +4,6 @@ from pathlib import Path
 import shutil
 from typing import TypedDict
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
-from rich.console import Console
 from rich.pretty import pprint
 from jet.visualization.terminal import display_iterm2_image
 import os
@@ -14,8 +13,6 @@ BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
 shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
-
-console = Console()
 
 # === State definition ===
 class State(TypedDict):
@@ -88,9 +85,9 @@ def generate_joke_with_memory(state: State, store: BaseStore) -> dict[str, str]:
     existing_jokes = list(store.search(namespace))
     if existing_jokes:
         existing_joke = existing_jokes[0].value
-        console.print(f"[dim]Existing joke:[/dim] {existing_joke['joke']}")
+        logger.debug(f"Existing joke: {existing_joke['joke']}")
     else:
-        console.print("[dim]Existing joke:[/dim] No existing joke")
+        logger.debug("Existing joke: No existing joke")
 
     msg = llm.invoke(f"Write a short joke about {state['topic']}")
     store.put(namespace, "last_joke", {"joke": msg.content})
@@ -117,7 +114,7 @@ def example_1_basic_joke_generation():
     result = chain.invoke({"topic": "cats"})
     (example_dir / "result.json").write_text(json.dumps(result, indent=2))
 
-    console.print("\n[bold blue]Example 1 - Joke Generator State:[/bold blue]")
+    logger.blue("\nExample 1 - Joke Generator State:")
     pprint(result)
 
 def example_2_memory_store_write_read():
@@ -140,7 +137,7 @@ def example_2_memory_store_write_read():
 
     (example_dir / "stored_items.json").write_text(json.dumps([item.value for item in stored_items], indent=2))
 
-    console.print("\n[bold green]Example 2 - Stored Items in Memory:[/bold green]")
+    logger.green("\nExample 2 - Stored Items in Memory:")
     pprint(stored_items)
 
 def example_3_thread_isolated_memory():
@@ -172,16 +169,16 @@ def example_3_thread_isolated_memory():
     result2 = chain.invoke({"topic": "cats"}, config2)
     (example_dir / "thread2_result.json").write_text(json.dumps(result2, indent=2))
 
-    console.print("\n[bold cyan]Example 3 - Thread 1:[/bold cyan]")
+    logger.cyan("\nExample 3 - Thread 1:")
     pprint(result1)
-    console.print("\n[bold magenta]Example 3 - Thread 1 Latest State:[/bold magenta]")
+    logger.magenta("\nExample 3 - Thread 1 Latest State:")
     pprint(latest_state)
-    console.print("\n[bold yellow]Example 3 - Thread 2:[/bold yellow]")
+    logger.yellow("\nExample 3 - Thread 2:")
     pprint(result2)
 
 if __name__ == "__main__":
-    console.print("[bold magenta]Running 1_write_context.py examples...[/bold magenta]")
+    logger.magenta("Running 1_write_context.py examples...")
     example_1_basic_joke_generation()
     example_2_memory_store_write_read()
     example_3_thread_isolated_memory()
-    console.print("[bold green]All examples completed.[/bold green]")
+    logger.green("All examples completed.")

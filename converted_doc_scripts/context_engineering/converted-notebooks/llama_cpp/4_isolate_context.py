@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 import shutil
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
-from rich.console import Console
 from rich.pretty import pprint
 from langchain_openai import ChatOpenAI
 from langgraph_supervisor import create_supervisor
@@ -17,8 +16,6 @@ BASE_OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
 shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
-
-console = Console()
 
 def add(a: float, b: float) -> float:
     """Add two numbers.
@@ -153,7 +150,7 @@ def example_1_supervisor_routing():
     result = app.invoke({"messages": [{"role": "user", "content": query}]})
     (example_dir / "result.json").write_text(json.dumps(result, indent=2))
 
-    console.print("\n[bold blue]Example 1 - Multi-Agent Workflow State:[/bold blue]")
+    logger.blue("\nExample 1 - Multi-Agent Workflow State:")
     pprint(result)
 
 def example_2_sandbox_execution():
@@ -175,11 +172,11 @@ def example_2_sandbox_execution():
     final_png = render_mermaid_graph(sandbox_agent, output_filename=str(png_path))
     display_iterm2_image(final_png)
 
-    console.print("\n[bold blue]Example 2 - React agent with sandbox result:[/bold blue]")
+    logger.blue("\nExample 2 - React agent with sandbox result:")
     pprint(result)
 
 if __name__ == "__main__":
-    console.print("[bold magenta]Running 4_isolate_context.py examples...[/bold magenta]")
+    logger.magenta("Running 4_isolate_context.py examples...")
     example_1_supervisor_routing()
     example_2_sandbox_execution()
-    console.print("[bold green]All examples completed.[/bold green]")
+    logger.green("All examples completed.")
