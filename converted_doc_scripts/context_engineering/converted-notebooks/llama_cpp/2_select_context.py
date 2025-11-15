@@ -537,9 +537,9 @@ proceed until you have sufficient context to answer the user's research request.
 # === ADD MAIN BLOCK ===
 if __name__ == "__main__":
     logger.magenta("Running all context engineering examples...")
-    # example_1_basic_joke()
-    # example_2_memory_aware_joke()
-    # example_3_structured_tools()
+    example_1_basic_joke()
+    example_2_memory_aware_joke()
+    example_3_structured_tools()
     example_4_rag_retrieval()
     logger.green("All examples completed. Check generated/example_* folders.")
 
