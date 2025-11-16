@@ -1,15 +1,12 @@
-import json
-import numpy as np
-import os
 import re
 import requests
 from typing import List, Dict, Any
 from urllib.parse import quote_plus
 from jet.file.utils import save_file
 from helpers import (
-    setup_config, initialize_mlx, generate_embeddings,
-    load_validation_data, generate_ai_response,
-    load_json_data, SearchResult, SimpleVectorStore, DATA_DIR, DOCS_PATH, LLM_MODEL
+    setup_config, initialize_llm, generate_embeddings,
+    generate_ai_response,
+    load_json_data, SimpleVectorStore, DOCS_PATH
 )
 
 
@@ -53,22 +50,22 @@ def process_document(pages: List[Dict[str, Any]], embed_func, chunk_size: int = 
     return vector_store
 
 
-def evaluate_document_relevance(query: str, document: str, mlx, model: str = LLM_MODEL) -> float:
+def evaluate_document_relevance(query: str, document: str, llm, model: str = "llama-3.2-3b-instruct-4bit") -> float:
     """Evaluate document relevance to query."""
     system_prompt = "You are an objective evaluator. Rate the relevance of the document to the query on a scale from 0 to 1, where 0 is irrelevant and 1 is highly relevant. Return only the numerical score."
     user_prompt = f"Query: {query}\n\nDocument: {document}"
 
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        model=model,
         temperature=0,
         max_tokens=5
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     score_text = response
@@ -107,52 +104,52 @@ def duck_duck_go_search(query: str, num_results: int = 3) -> tuple[str, List[Dic
     return results_text, sources
 
 
-def rewrite_search_query(query: str, mlx, model: str = LLM_MODEL) -> str:
+def rewrite_search_query(query: str, llm, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Rewrite query for optimized web search."""
     system_prompt = "You are a helpful assistant. Rewrite the query to optimize it for a web search, making it more specific and concise."
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Original query: {query}\n\nRewritten query:"}
         ],
-        model=model,
         temperature=0.3,
         max_tokens=50
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     return response
 
 
-def perform_web_search(query: str, mlx, model: str = LLM_MODEL) -> tuple[str, List[Dict[str, str]]]:
+def perform_web_search(query: str, llm, model: str = "llama-3.2-3b-instruct-4bit") -> tuple[str, List[Dict[str, str]]]:
     """Perform web search with rewritten query."""
-    rewritten_query = rewrite_search_query(query, mlx, model)
+    rewritten_query = rewrite_search_query(query, llm, model)
     logger.debug(f"Rewritten search query: {rewritten_query}")
     results_text, sources = duck_duck_go_search(rewritten_query)
     return results_text, sources
 
 
-def refine_knowledge(text: str, mlx, model: str = LLM_MODEL) -> str:
+def refine_knowledge(text: str, llm, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Refine text to be concise and relevant."""
     system_prompt = "You are a helpful assistant. Refine the provided text to make it concise, clear, and relevant, removing any redundant or irrelevant information."
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Text to refine:\n\n{text}"}
         ],
-        model=model,
         temperature=0.3
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     return response
 
 
-def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k: int = 3, model: str = LLM_MODEL) -> Dict[str, Any]:
+def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, llm, k: int = 3, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run CRAG pipeline."""
     logger.debug(f"\n=== Processing query with CRAG: {query} ===\n")
     logger.debug("Retrieving initial documents...")
@@ -161,7 +158,7 @@ def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k
     logger.debug("Evaluating document relevance...")
     relevance_scores = []
     for doc in retrieved_docs:
-        score = evaluate_document_relevance(query, doc["text"], mlx, model)
+        score = evaluate_document_relevance(query, doc["text"], llm, model)
         relevance_scores.append(score)
         doc["relevance"] = score
         logger.debug(f"Document scored {score:.2f} relevance")
@@ -179,16 +176,16 @@ def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k
     elif max_score < 0.3:
         logger.debug(
             f"Low relevance ({max_score:.2f}) - Performing web search")
-        web_results, web_sources = perform_web_search(query, mlx, model)
-        final_knowledge = refine_knowledge(web_results, mlx, model)
+        web_results, web_sources = perform_web_search(query, llm, model)
+        final_knowledge = refine_knowledge(web_results, llm, model)
         sources.extend(web_sources)
     else:
         logger.debug(
             f"Medium relevance ({max_score:.2f}) - Combining document with web search")
         best_doc = retrieved_docs[best_doc_idx]["text"]
-        refined_doc = refine_knowledge(best_doc, mlx, model)
-        web_results, web_sources = perform_web_search(query, mlx, model)
-        refined_web = refine_knowledge(web_results, mlx, model)
+        refined_doc = refine_knowledge(best_doc, llm, model)
+        web_results, web_sources = perform_web_search(query, llm, model)
+        refined_web = refine_knowledge(web_results, llm, model)
         final_knowledge = f"From document:\n{refined_doc}\n\nFrom web search:\n{refined_web}"
         sources.append({"title": "Document", "url": ""})
         sources.extend(web_sources)
@@ -199,9 +196,8 @@ def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k
         query,
         f"You are a helpful AI assistant. Answer the question based on the provided knowledge and cite sources where applicable.\n\nKnowledge:\n{final_knowledge}\n\nSources:\n{sources_text}",
         retrieved_docs,
-        mlx,
+        llm,
         logger,
-        model=model,
         temperature=0.2
     )
     return {
@@ -215,32 +211,32 @@ def crag_process(query: str, vector_store: SimpleVectorStore, embed_func, mlx, k
     }
 
 
-def evaluate_crag_response(query: str, response: str, reference_answer: str = None, mlx=None, model: str = LLM_MODEL) -> str:
+def evaluate_crag_response(query: str, response: str, reference_answer: str = None, llm=None, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Evaluate CRAG response."""
     system_prompt = "You are an objective evaluator. Assess the response for accuracy, completeness, and relevance to the query. If a reference answer is provided, compare against it. Provide a concise evaluation."
     user_prompt = f"Query: {query}\n\nResponse: {response}"
     if reference_answer:
         user_prompt += f"\n\nReference Answer: {reference_answer}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        model=model,
         temperature=0
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     return response
 
 
-def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, mlx, reference_answer: str = None, model: str = LLM_MODEL) -> Dict[str, Any]:
+def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, embed_func, llm, reference_answer: str = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Compare CRAG and standard RAG approaches."""
     logger.debug("\n=== Running CRAG ===")
     crag_result = crag_process(
-        query, vector_store, embed_func, mlx, model=model)
+        query, vector_store, embed_func, llm, model=model)
     crag_response = crag_result["response"]
     logger.debug("\n=== Running standard RAG ===")
     query_embedding = embed_func(query)
@@ -249,20 +245,19 @@ def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, em
         query,
         "You are a helpful AI assistant. Answer the question based on the provided context. If the context is insufficient, acknowledge the limitation.",
         retrieved_docs,
-        mlx,
+        llm,
         logger,
-        model=model,
         temperature=0.2
     )
     logger.debug("\n=== Evaluating CRAG response ===")
     crag_eval = evaluate_crag_response(
-        query, crag_response, reference_answer, mlx, model)
+        query, crag_response, reference_answer, llm, model)
     logger.debug("\n=== Evaluating standard RAG response ===")
     standard_eval = evaluate_crag_response(
-        query, standard_response, reference_answer, mlx, model)
+        query, standard_response, reference_answer, llm, model)
     logger.debug("\n=== Comparing approaches ===")
     comparison = compare_responses(
-        query, crag_response, standard_response, reference_answer, mlx, model)
+        query, crag_response, standard_response, reference_answer, llm, model)
     return {
         "query": query,
         "crag_response": crag_response,
@@ -274,28 +269,28 @@ def compare_crag_vs_standard_rag(query: str, vector_store: SimpleVectorStore, em
     }
 
 
-def compare_responses(query: str, crag_response: str, standard_response: str, reference_answer: str = None, mlx=None, model: str = LLM_MODEL) -> str:
+def compare_responses(query: str, crag_response: str, standard_response: str, reference_answer: str = None, llm=None, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Compare CRAG and standard RAG responses."""
     system_prompt = "You are an objective evaluator. Compare the CRAG and standard RAG responses to the query, assessing their accuracy, completeness, and relevance. If a reference answer is provided, use it to evaluate correctness. Provide a concise comparison."
     user_prompt = f"Query: {query}\n\nCRAG Response: {crag_response}\n\nStandard RAG Response: {standard_response}"
     if reference_answer:
         user_prompt += f"\n\nReference Answer: {reference_answer}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        model=model,
         temperature=0
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     return response
 
 
-def run_crag_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, mlx, reference_answers: List[str] = None, model: str = LLM_MODEL) -> Dict[str, Any]:
+def run_crag_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], embed_func, llm, reference_answers: List[str] = None, model: str = "llama-3.2-3b-instruct-4bit") -> Dict[str, Any]:
     """Run evaluation of CRAG vs standard RAG."""
     vector_store = process_document(pages, embed_func)
     results = []
@@ -307,18 +302,18 @@ def run_crag_evaluation(pages: List[Dict[str, Any]], test_queries: List[str], em
         if reference_answers and i < len(reference_answers):
             reference = reference_answers[i]
         result = compare_crag_vs_standard_rag(
-            query, vector_store, embed_func, mlx, reference, model)
+            query, vector_store, embed_func, llm, reference, model)
         results.append(result)
         logger.debug("\n=== Comparison ===")
         logger.debug(result["comparison"])
-    overall_analysis = generate_overall_analysis(results, mlx, model)
+    overall_analysis = generate_overall_analysis(results, llm, model)
     return {
         "results": results,
         "overall_analysis": overall_analysis
     }
 
 
-def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = LLM_MODEL) -> str:
+def generate_overall_analysis(results: List[Dict[str, Any]], llm, model: str = "llama-3.2-3b-instruct-4bit") -> str:
     """Generate overall analysis of CRAG vs standard RAG."""
     evaluations_summary = ""
     for i, result in enumerate(results):
@@ -327,15 +322,15 @@ def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = L
     system_prompt = "Provide an overall analysis of the performance of CRAG versus standard RAG based on the provided summaries."
     user_prompt = f"Evaluations Summary:\n{evaluations_summary}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        model=model,
         temperature=0
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     return response
@@ -343,7 +338,7 @@ def generate_overall_analysis(results: List[Dict[str, Any]], mlx, model: str = L
 
 if __name__ == "__main__":
     script_dir, generated_dir, log_file, logger = setup_config(__file__)
-    mlx, embed_func = initialize_mlx(logger)
+    llm, embed_func = initialize_llm(logger)
     formatted_texts, original_chunks = load_json_data(DOCS_PATH, logger)
     logger.info("Loaded pre-chunked data from DOCS_PATH")
     # Adapt chunks to match expected page structure
@@ -368,7 +363,7 @@ if __name__ == "__main__":
         pages=pages,
         test_queries=test_queries,
         embed_func=embed_func,
-        mlx=mlx,
+        llm=llm,
         reference_answers=reference_answers
     )
     save_file(evaluation_results, f"{generated_dir}/evaluation_results.json")

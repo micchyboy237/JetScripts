@@ -1,19 +1,16 @@
 import os
 import json
 import numpy as np
-import fitz
+import pymupdf as fitz
 from typing import List, Dict, Any, Callable, Optional, Tuple, TypedDict
-from jet.code.markdown_types.markdown_parsed_types import HeaderSearchResult
-from jet.file.utils import load_file, save_file
-from jet.llm.mlx.base import MLX
-from jet.llm.mlx.mlx_types import LLMModelType
-from jet.llm.utils.transformer_embeddings import get_embedding_function
+from jet.adapters.llama_cpp.llm import LlamacppLLM
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.logger import CustomLogger
 import re
 
 DATA_DIR = f"{os.path.dirname(__file__)}/data"
 # DOCS_PATH = f"{DATA_DIR}/search_results.json"
-DOCS_PATH = f"{DATA_DIR}/AI_Information.pdf"
+DOCS_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/data/AI_Information.pdf"
 # LLM_MODEL = "llama-3.2-3b-instruct-4bit"
 LLM_MODEL = None
 
@@ -68,23 +65,7 @@ def setup_config(script_path: str) -> Tuple[str, str, str, CustomLogger]:
     return script_dir, generated_dir, log_file, logger
 
 
-def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], List[HeaderSearchResult]]:
-    # with open(data_path, 'r') as f:
-    #     data: List[HeaderSearchResult] = json.load(f)["results"]
-    # formatted_chunks = []
-    # for chunk in data:
-    #     text = f"{chunk['header']}\n{chunk['content']}"
-    #     chunk['text'] = text
-    #     metadata = chunk["metadata"]
-    #     meta_str = f"[doc_index: {metadata['doc_index']}]\n"
-    #     # Add chunk_idx to meta_str
-    #     meta_str += f"[chunk_idx: {metadata['chunk_idx']}]\n"
-    #     # Use parent_header if header_level is not 1
-    #     if metadata.get('level', 1) != 1:
-    #         meta_str += f"[parent_header: {chunk.get('parent_header', '')}]\n"
-    #     meta_str += f"[header: {chunk['header']}]"
-
-    #     formatted_chunks.append(f"{meta_str.strip()}\n\n{text}")
+def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], List[Chunk]]:
     chunks = chunk_document(data_path)
     logger.debug(f"Number of text chunks: {len(chunks)}")
     logger.debug("\nFirst text chunk:")
@@ -92,11 +73,21 @@ def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], Lis
     return [chunk["text"] for chunk in chunks], chunks
 
 
-def initialize_mlx(logger: CustomLogger) -> Tuple[MLX, Callable[[str | List[str]], List[float] | List[List[float]]]]:
-    logger.info("Initializing MLX and embedding function")
-    mlx = MLX()
-    embed_func = get_embedding_function("mxbai-embed-large")
-    return mlx, embed_func
+def initialize_llm(logger: CustomLogger) -> Tuple[LlamacppLLM, Callable[[str | List[str]], List[float] | List[List[float]]]]:
+    logger.info("Initializing Llama.cpp LLM and embedding function")
+    llm = LlamacppLLM(
+        model="llama-3.2-3b-instruct-4bit",
+        base_url="http://shawn-pc.local:8080/v1",
+        verbose=False
+    )
+    embed_client = LlamacppEmbedding(
+        model="embeddinggemma",
+        base_url="http://shawn-pc.local:8081/v1",
+        use_cache=True,
+        cache_backend="sqlite"
+    )
+    embed_func = embed_client.get_embedding_function(return_format="numpy")
+    return llm, embed_func
 
 
 def generate_embeddings(
@@ -129,9 +120,9 @@ def generate_ai_response(
     query: str,
     system_prompt: str,
     retrieved_chunks: List[SearchResult],
-    mlx: MLX,
+    llm: LlamacppLLM,
     logger: CustomLogger,
-    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
+    model: str = "llama-3.2-3b-instruct-4bit",
     **kwargs
 ) -> str:
     logger.info("Generating AI response")
@@ -141,15 +132,15 @@ def generate_ai_response(
     ])
     user_prompt = f"{context}\nQuestion: {query}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt}
         ],
-        model=model,
         **kwargs
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     logger.success(f"AI Response:\n{response}")
@@ -160,9 +151,9 @@ def evaluate_ai_response(
     question: str,
     response: str,
     true_answer: str,
-    mlx: MLX,
+    llm: LlamacppLLM,
     logger: CustomLogger,
-    model: LLMModelType = "llama-3.2-3b-instruct-4bit",
+    model: str = "llama-3.2-3b-instruct-4bit",
     **kwargs
 ) -> Tuple[float, str]:
     logger.info("Evaluating response")
@@ -180,15 +171,15 @@ def evaluate_ai_response(
         raise ValueError(f"No valid float found in text: {text}")
     evaluation_prompt = f"User Query: {question}\nAI Response:\n{response}\nTrue Response: {true_answer}\n{evaluate_system_prompt}"
     response = ""
-    for chunk in mlx.stream_chat(
+    for chunk in llm.chat_stream(
         messages=[
             {"role": "system", "content": "You are an objective evaluator. Return ONLY the numerical score."},
             {"role": "user", "content": evaluation_prompt}
         ],
-        model=model,
         **kwargs
     ):
-        content = chunk["choices"][0]["message"]["content"]
+        delta = chunk.choices[0].delta
+        content = delta.content if delta.content is not None else ""
         response += content
         logger.success(content, flush=True)
     try:
