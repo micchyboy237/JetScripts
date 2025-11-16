@@ -7,7 +7,7 @@ from jet.llm.models import OLLAMA_MODEL_NAMES
 from jet.scrapers.utils import search_data
 from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.search_docs import search_docs
-from jet.wordnet.text_chunker import ChunkResult, chunk_texts_with_data
+from jet.wordnet.text_chunker import ChunkResult
 from typing import List, Optional, TypedDict
 from jet.file.utils import save_file
 from jet.search.playwright.playwright_extract import PlaywrightExtract, convert_html_to_markdown
@@ -111,8 +111,10 @@ async def async_example(urls):
 def extract_doc_chunks(html: str, url: str, chunk_size: int = 200, chunk_overlap: int = 50, model: Optional[OLLAMA_MODEL_NAMES] = None) -> List[ChunkResult]:
     md_content = convert_html_to_markdown(html, ignore_links=True)
     # original_docs = derive_by_header_hierarchy(md_content, ignore_links=True)
-    chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
-    return chunks
+    # chunks = chunk_texts_with_data(md_content, chunk_size=chunk_size, chunk_overlap=chunk_overlap, model=model)
+    headings = derive_by_header_hierarchy(md_content, ignore_links=True)
+    docs = [f"{header["header"]}\n{header["content"]}" for header in headings if header['content']]
+    return docs
 
 def extract_topics(
     query: str,

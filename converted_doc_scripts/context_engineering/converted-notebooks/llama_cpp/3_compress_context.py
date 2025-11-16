@@ -90,6 +90,7 @@ def retrieve_relevant_urls(
         exclude_sites=exclude_sites,
         use_cache=True,
     )
+    save_file(raw_results, f"{str(BASE_OUTPUT_DIR)}/web_all_searxng_results.json")
 
     # ------------------------------------------------------------------
     # Filter valid, useful results
@@ -101,6 +102,7 @@ def retrieve_relevant_urls(
         if len(res["content"]) < 50:                     # skip tiny snippets
             continue
         filtered.append(res)
+    save_file(filtered, f"{str(BASE_OUTPUT_DIR)}/web_filtered_searxng_results.json")
 
     # ------------------------------------------------------------------
     # Composite ranking function
@@ -127,6 +129,7 @@ def retrieve_relevant_urls(
         return base + recency + length_boost
 
     filtered.sort(key=composite_rank, reverse=True)
+    save_file(filtered, f"{str(BASE_OUTPUT_DIR)}/web_sorted_searxng_results.json")
 
     # Return only URLs
     return [res["url"] for res in filtered[:count]]

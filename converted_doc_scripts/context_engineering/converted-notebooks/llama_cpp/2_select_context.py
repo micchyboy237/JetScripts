@@ -291,6 +291,8 @@ def example_3_structured_tools():
     (Path(example_dir) / "tools.json").write_text(json.dumps(make_serializable(tools_info), indent=2))
 
     tool_registry = {str(uuid.uuid4()): tool for tool in all_tools}
+    save_file(tool_registry, f"{str(example_dir)}/tool_registry.json")
+
     # === INDEX TOOL DESCRIPTIONS IN VECTOR STORE ===
     tool_store = InMemoryStore(
         index={
@@ -327,9 +329,17 @@ def example_3_structured_tools():
             query=query,
             limit=20
         )
+        save_file({
+            "query": query,
+            "tools": all_results,
+        }, f"{str(example_dir)}/tool_all_results.json")
         
         # No need to filter by namespace — already scoped
         results = [item for item in all_results if item.key in tool_registry][:5]
+        save_file({
+            "query": query,
+            "tools": results,
+        }, f"{str(example_dir)}/tool_filtered_results.json")
 
         if not results:
             logger_local.yellow("No relevant tools found. Using fallback.")
@@ -337,17 +347,10 @@ def example_3_structured_tools():
         else:
             selected_tool_ids = [item.key for item in results]
             selected_tools = [tool_registry[tid] for tid in selected_tool_ids]
-
-        # Save selection
-        (Path(example_dir) / "retrieved_tool_ids.json").write_text(
-            json.dumps(make_serializable([item.key for item in all_results]), indent=2)
-        )
-        (Path(example_dir) / "selected_tool_ids.json").write_text(
-            json.dumps(make_serializable([item.key for item in results]), indent=2)
-        )
-        (Path(example_dir) / "selected_tool_names.json").write_text(
-            json.dumps(make_serializable([t.name for t in selected_tools]), indent=2)
-        )
+        save_file({
+            "query": query,
+            "tools": selected_tools,
+        }, f"{str(example_dir)}/tool_selected_results.json")
 
         # Preserve the incoming messages for the next node
         return {"selected_tools": selected_tools, "messages": state["messages"]}
@@ -584,8 +587,8 @@ proceed until you have sufficient context to answer the user's research request.
 # === ADD MAIN BLOCK ===
 if __name__ == "__main__":
     logger.magenta("Running all context engineering examples...")
-    # example_1_basic_joke()
-    # example_2_memory_aware_joke()
-    # example_3_structured_tools()
+    example_1_basic_joke()
+    example_2_memory_aware_joke()
+    example_3_structured_tools()
     example_4_rag_retrieval()
     logger.green("All examples completed. Check generated/example_* folders.")

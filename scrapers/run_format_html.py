@@ -1,11 +1,13 @@
 import os
 import shutil
+from typing import List
 from jet.code.html_utils import clean_html, convert_dl_blocks_to_md, preprocess_html
 from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
 from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.scrapers.text_nodes import extract_text_nodes
 from jet.file.utils import load_file, save_file
 from jet.scrapers.utils import extract_by_heading_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_common_class, print_html
@@ -14,7 +16,7 @@ from jet.transformers.formatters import format_html
 
 if __name__ == "__main__":
 
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__), "generated", os.path.splitext(
@@ -30,7 +32,7 @@ if __name__ == "__main__":
     save_file(html_str, f"{output_dir}/doc.html")
 
     preprocessed_html_str = convert_dl_blocks_to_md(html_str)
-    preprocessed_html_str = preprocess_html(preprocessed_html_str, excludes=["head", "nav", "footer", "script", "style"])
+    preprocessed_html_str = preprocess_html(preprocessed_html_str, excludes=["head", "nav", "footer", "script", "style", "button"])
     save_file(preprocessed_html_str, f"{output_dir}/doc_preprocessed.html")
 
     html_str = preprocessed_html_str
@@ -49,14 +51,17 @@ if __name__ == "__main__":
     save_file(text_nodes, f"{output_dir}/text_nodes.json")
 
     # Headings
-    headings = extract_by_heading_hierarchy(html_str)
+    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings2 = derive_by_header_hierarchy(doc_markdown, ignore_links=True)
+    headings2 = extract_by_heading_hierarchy(html_str)
     save_file(headings2, f"{output_dir}/headings2.json")
 
-    headings3 = get_md_header_contents(html_str, ignore_links=True)
+    headings3 = derive_by_header_hierarchy(doc_markdown, ignore_links=True)
     save_file(headings3, f"{output_dir}/headings3.json")
+
+    headings4 = get_md_header_contents(html_str, ignore_links=True)
+    save_file(headings4, f"{output_dir}/headings4.json")
 
     header_texts = []
     for idx, node in enumerate(headings):
