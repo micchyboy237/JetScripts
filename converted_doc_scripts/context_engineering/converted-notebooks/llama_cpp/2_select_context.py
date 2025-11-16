@@ -410,7 +410,12 @@ def example_4_rag_retrieval():
     doc_splits = text_splitter.split_documents(docs_list)
     save_file(doc_splits, f"{str(BASE_OUTPUT_DIR)}/web_chunks.json")
 
-    vectorstore = InMemoryVectorStore.from_documents(documents=doc_splits, embedding=embeddings)
+    # ------------------------------------------------------------------
+    # Build the in-memory vector store (once)
+    # ------------------------------------------------------------------
+    vectorstore: InMemoryVectorStore = InMemoryVectorStore.from_documents(
+        documents=doc_splits, embedding=embeddings
+    )
     retriever = vectorstore.as_retriever()
     retriever_tool = create_retriever_tool(
         retriever, "retrieve_blog_posts", "Search and return information about Lilian Weng blog posts."
@@ -427,11 +432,31 @@ proceed until you have sufficient context to answer the user's research request.
     def llm_call(state: MessagesState):
         messages = state["messages"]
         user_query = messages[-1].content
+
+        # ------------------------------------------------------------------
+        # 1. Perform a *raw* similarity search that returns scores
+        # ------------------------------------------------------------------
+        raw_results = vectorstore.similarity_search_with_score(
+            query=user_query,
+            k=10,                     # you can change the number of neighbours here
+        )
+
+        # Keep the original retriever behaviour for the tool (no scores)
         retrieved = retriever.invoke(user_query)
+
         save_file({
             "query": user_query,
-            "results": retrieved,
+            "results": retrieved,                     # original tool output
+            "results_with_score": [
+                {
+                    "content": doc.page_content,
+                    "metadata": doc.metadata,
+                    "score": float(score),        # cosine similarity (higher = more similar)
+                }
+                for doc, score in raw_results
+            ],
         }, f"{str(example_dir)}/vector_rag_result.json")
+
         doc_texts = [doc.page_content for doc in retrieved[:4]]
         doc_token_counts = count_tokens(doc_texts, model="qwen3-instruct-2507:4b", prevent_total=True, add_special_tokens=False)
 
@@ -531,12 +556,36 @@ proceed until you have sufficient context to answer the user's research request.
     logger_local.purple("\nAgent query result:")
     logger_local.success(format_json(result))
 
+    # ------------------------------------------------------------------
+    # 2. Persist the raw similarity-search results *with scores*
+    # ------------------------------------------------------------------
+    raw_results = vectorstore.similarity_search_with_score(
+        query=query,
+        k=10,
+    )
+
+    results_with_score = [
+        {
+            "content": doc.page_content,
+            "metadata": doc.metadata,
+            "score": float(score),   # cosine similarity, higher = more similar
+        }
+        for doc, score in raw_results
+    ]
+
+    (Path(example_dir) / "vector_search_with_scores.json").write_text(
+        json.dumps(make_serializable(results_with_score), indent=2)
+    )
+
+    logger_local.green("\nVector search with scores saved to:")
+    logger_local.success(f"{example_dir}/vector_search_with_scores.json")
+
 
 # === ADD MAIN BLOCK ===
 if __name__ == "__main__":
     logger.magenta("Running all context engineering examples...")
-    example_1_basic_joke()
-    example_2_memory_aware_joke()
-    example_3_structured_tools()
+    # example_1_basic_joke()
+    # example_2_memory_aware_joke()
+    # example_3_structured_tools()
     example_4_rag_retrieval()
     logger.green("All examples completed. Check generated/example_* folders.")

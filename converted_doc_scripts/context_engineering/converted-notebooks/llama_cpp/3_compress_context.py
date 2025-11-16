@@ -184,6 +184,7 @@ def example_1_rag_with_compression_and_summary(
     # 2. Load & chunk the retrieved pages
     # -------------------------------------------------
     docs_list = load_documents_from_urls(urls)
+    save_file(docs_list, f"{str(example_dir)}/docs.json")
 
     # Split large documents to avoid embedding token limit
     chunked_docs = chunk_documents(docs_list, chunk_size=1500, chunk_overlap=200)
