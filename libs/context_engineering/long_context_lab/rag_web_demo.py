@@ -26,6 +26,9 @@ from sentence_transformers import SentenceTransformer
 import requests
 from bs4 import BeautifulSoup
 
+# --- ADD IMPORT ---
+from jet.search.searxng import search_searxng
+
 # --- Import from long_context_lab.py (same directory) ---
 from long_context_lab import (
     ContextProcessor,
@@ -51,6 +54,9 @@ RESULTS_FILE = OUTPUT_DIR / "rag_retrieval_results.json"
 # --- Add to CONFIGURATION section (after RESULTS_FILE) ---
 CHUNKS_FILE = OUTPUT_DIR / "indexed_chunks.json"
 MEMORY_FILE = OUTPUT_DIR / "memory_state.json"
+
+# --- ADD CONSTANTS (after OUTPUT_DIR setup) ---
+DEFAULT_SEARCH_QUERY = "long context attention mechanisms site:arxiv.org OR site:huggingface.co OR site:wikipedia.org"
 
 # Ensure directories
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -286,15 +292,38 @@ def save_memory_state(memory: EnhancedHierarchicalMemory, filepath: Path):
 def main():
     print("RAG Web Demo - Initializing...")
 
-    # 1. Load URLs
-    if not INPUT_URLS_FILE.exists():
-        sample_urls = [
+    # Prompt for search query
+    search_query = input("\nEnter search query for URLs (press Enter for default): ").strip()
+    if not search_query:
+        search_query = DEFAULT_SEARCH_QUERY
+        print(f"Using default query: {search_query}")
+
+    print("\nSearching for URLs using SearXNG...")
+    try:
+        search_results = search_searxng(
+            query=search_query,
+            count=10,
+            use_cache=True
+        )
+        urls = [result["url"] for result in search_results if result.get("url")]
+        if not urls:
+            print("No URLs found from search. Falling back to sample URLs.")
+            urls = [
+                "https://en.wikipedia.org/wiki/Attention_(machine_learning)",
+                "https://arxiv.org/abs/2305.13245",
+                "https://huggingface.co/docs/transformers/main/en/model_doc/longformer"
+            ]
+    except Exception as e:
+        print(f"Search failed ({e}). Using sample URLs.")
+        urls = [
             "https://en.wikipedia.org/wiki/Attention_(machine_learning)",
             "https://arxiv.org/abs/2305.13245",
             "https://huggingface.co/docs/transformers/main/en/model_doc/longformer"
         ]
-        INPUT_URLS_FILE.write_text("\n".join(sample_urls))
-        print(f"Created sample {INPUT_URLS_FILE}")
+
+    # Write URLs to file
+    INPUT_URLS_FILE.write_text("\n".join(urls))
+    print(f"Generated {len(urls)} URLs → {INPUT_URLS_FILE}")
 
     urls = [line.strip() for line in INPUT_URLS_FILE.read_text().splitlines() if line.strip()]
     print(f"Found {len(urls)} URLs to index")
@@ -332,9 +361,10 @@ def main():
     print(f"  Short: {stats['short']}, Medium: {stats['medium']}, Long: {stats['long']} tokens")
 
     # 4. Query & Retrieve
-    query = input("\nEnter your question: ").strip()
-    if not query:
-        query = "What are efficient attention mechanisms for long sequences?"
+    # query = input("\nEnter your question: ").strip()
+    # if not query:
+    #     query = "What are efficient attention mechanisms for long sequences?"
+    query = search_query
 
     print(f"\nRetrieving context for: '{query}'")
     query_emb = embedder.encode(query, convert_to_numpy=True).reshape(1, -1)
