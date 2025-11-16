@@ -15,7 +15,8 @@ from jet.transformers.formatters import format_html
 
 
 if __name__ == "__main__":
-
+    # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html"
+    # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
     html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
@@ -51,10 +52,10 @@ if __name__ == "__main__":
     save_file(text_nodes, f"{output_dir}/text_nodes.json")
 
     # Headings
-    headings: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
+    headings = extract_by_heading_hierarchy(html_str)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings2 = extract_by_heading_hierarchy(html_str)
+    headings2: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
     save_file(headings2, f"{output_dir}/headings2.json")
 
     headings3 = derive_by_header_hierarchy(doc_markdown, ignore_links=True)
@@ -66,7 +67,7 @@ if __name__ == "__main__":
     header_texts = []
     for idx, node in enumerate(headings):
         texts = [
-            f"Document {idx + 1} | Tag ({node["element"]["tag"]}) | Depth ({node["depth"]})"
+            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"
         ]
         if node.parent_id:
             texts.append(f"Parent ({node.parent_id})")
