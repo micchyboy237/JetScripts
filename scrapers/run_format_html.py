@@ -66,7 +66,7 @@ if __name__ == "__main__":
     header_texts = []
     for idx, node in enumerate(headings):
         texts = [
-            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"
+            f"Document {idx + 1} | Tag ({node["element"]["tag"]}) | Depth ({node["depth"]})"
         ]
         if node.parent_id:
             texts.append(f"Parent ({node.parent_id})")
