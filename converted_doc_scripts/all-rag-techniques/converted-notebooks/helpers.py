@@ -11,8 +11,7 @@ import re
 DATA_DIR = f"{os.path.dirname(__file__)}/data"
 # DOCS_PATH = f"{DATA_DIR}/search_results.json"
 DOCS_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts/all-rag-techniques/data/AI_Information.pdf"
-# LLM_MODEL = "llama-3.2-3b-instruct-4bit"
-LLM_MODEL = None
+LLM_MODEL = "qwen3-instruct-2507:4b"
 
 
 class SearchResult(TypedDict):
@@ -76,7 +75,7 @@ def load_json_data(data_path: str, logger: CustomLogger) -> Tuple[List[str], Lis
 def initialize_llm(logger: CustomLogger) -> Tuple[LlamacppLLM, Callable[[str | List[str]], List[float] | List[List[float]]]]:
     logger.info("Initializing Llama.cpp LLM and embedding function")
     llm = LlamacppLLM(
-        model="llama-3.2-3b-instruct-4bit",
+        model=LLM_MODEL,
         base_url="http://shawn-pc.local:8080/v1",
         verbose=False
     )
@@ -122,7 +121,7 @@ def generate_ai_response(
     retrieved_chunks: List[SearchResult],
     llm: LlamacppLLM,
     logger: CustomLogger,
-    model: str = "llama-3.2-3b-instruct-4bit",
+    model: str = LLM_MODEL,
     **kwargs
 ) -> str:
     logger.info("Generating AI response")
@@ -153,7 +152,7 @@ def evaluate_ai_response(
     true_answer: str,
     llm: LlamacppLLM,
     logger: CustomLogger,
-    model: str = "llama-3.2-3b-instruct-4bit",
+    model: str = LLM_MODEL,
     **kwargs
 ) -> Tuple[float, str]:
     logger.info("Evaluating response")
