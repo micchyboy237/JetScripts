@@ -541,7 +541,6 @@ def main():
     save_file(query, llm_dir / "query.md")
     save_file(context, llm_dir / "context.md")
 
-    print("Final Answer:\n")
     chunks = list(llm.chat(messages, temperature=0.1, stream=True))
     response = "".join(chunks)
 
@@ -554,6 +553,8 @@ def main():
     }
 
     save_file(info, llm_dir / "info.json")
+
+    print("Final Answer:")
     save_file(response, llm_dir / "response.md")
     
     print(f"\n\nGeneration complete! Full results saved to {llm_dir}")
