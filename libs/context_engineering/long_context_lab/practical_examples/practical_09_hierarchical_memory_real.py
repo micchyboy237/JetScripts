@@ -19,8 +19,9 @@ def practical_09_hierarchical_memory_real():
     logger = get_logger("hierarchical", example_dir)
     logger.info("PRACTICAL 9: Hierarchical Memory with Real Embeddings")
 
-    embedder = LlamacppEmbedding(model="embeddinggemma")
-    llm = LlamacppLLM(verbose=True)
+    embedder = LlamacppEmbedding(model="embeddinggemma", logger=logger)
+    llm = LlamacppLLM(verbose=True, logger=logger)
+
     memory = HierarchicalMemory(d_model=768, short_term_size=1024, medium_term_size=2048)
 
     # Simulate long conversation

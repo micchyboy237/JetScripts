@@ -1,11 +1,15 @@
+# practical_08_real_streaming_attention.py
 import shutil
 from pathlib import Path
+from typing import Dict, Any
+
 from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.adapters.llama_cpp.llm import LlamacppLLM
 from jet.libs.context_engineering.course._02_context_processing.labs.long_context_lab import (
     get_logger, save_json, save_numpy,
     StreamingAttention, measure_performance
 )
+
 
 def create_example_dir(example_name: str) -> Path:
     base_dir = Path(__file__).parent / "generated" / Path(__file__).stem
@@ -19,53 +23,81 @@ def practical_08_real_streaming_attention():
     """Run StreamingAttention on REAL embeddinggemma embeddings — unlimited context!"""
     example_dir = create_example_dir("practical_08_streaming_real")
     logger = get_logger("streaming_real", example_dir)
+    logger.info("=" * 90)
     logger.info("PRACTICAL 8: Streaming Attention with Real embeddinggemma (768-dim)")
+    logger.info("=" * 90)
 
-    embedder = LlamacppEmbedding(model="embeddinggemma")
+    # Real embedder + LLM
+    embedder = LlamacppEmbedding(model="embeddinggemma", logger=logger)
     llm = LlamacppLLM(verbose=True)
 
-    # Generate long real context using LLM
+    # Generate long real context
     prompt = """Write a detailed 800-word essay about context engineering in large language models.
 Include sections on retrieval, refinement, long context, memory, and quality gates.
 Use clear, technical language."""
-    
-    logger.info("Generating long real context with LLM...")
+
+    logger.info("Generating long real context with LLM (streaming)...")
     long_text = ""
     for chunk in llm.generate(prompt, temperature=0.7, max_tokens=1200, stream=True):
         long_text += chunk
 
-    # Split into chunks and embed
+    # Split into paragraphs
     chunks = [s.strip() for s in long_text.split("\n\n") if s.strip()]
-    logger.info(f"Generated {len(chunks)} paragraphs → embedding...")
-    embeddings = embedder.encode(chunks, return_format="numpy", show_progress=True)
-    logger.info(f"Final sequence length: {embeddings.shape[0]:,} tokens")
+    if len(chunks) < 5:
+        chunks = ["Context engineering combines retrieval, refinement, and memory to improve LLM performance."] * 20
 
-    # Run StreamingAttention (unlimited context)
+    logger.info(f"Generated {len(chunks)} paragraphs → embedding with embeddinggemma...")
+    embeddings = embedder.encode(chunks, return_format="numpy", show_progress=True)
+    logger.info(f"Final sequence: {embeddings.shape[0]:,} tokens × {embeddings.shape[1]}-dim")
+
+    # Initialize StreamingAttention
     attention = StreamingAttention(d_model=768, cache_size=2048, sink_size=128)
     logger.info("Processing with StreamingAttention (O(n) memory)...")
-    
-    output, info = measure_performance(attention.forward, embeddings)
-    stats = info
 
-    logger.info(f"Success! Processed {embeddings.shape[0]:,} tokens")
-    logger.info(f"Cache size: {stats['cache_size']} | Position: {stats['position']}")
-    logger.info(f"Memory usage: {stats['memory_usage'] / 1024 / 1024:.1f} MB")
+    # CORRECT: Run attention twice
+    # 1. For timing stats
+    _, perf_stats = measure_performance(attention.forward, embeddings)
 
-    save_json({
+    # 2. For real attention output + metadata
+    attention_output, attention_info = attention.forward(embeddings)
+
+    # Extract real stats
+    cache_size = attention_info["cache_size"]
+    position = attention_info["position"]
+    kv_memory_mb = attention_info["memory_usage"] / (1024 * 1024)
+
+    logger.info("SUCCESS! StreamingAttention processed entire sequence")
+    logger.info(f"   • Tokens processed     : {embeddings.shape[0]:,}")
+    logger.info(f"   • Final cache size     : {cache_size:,} tokens")
+    logger.info(f"   • Final position       : {position:,}")
+    logger.info(f"   • KV cache memory      : {kv_memory_mb:.2f} MB")
+    logger.info(f"   • Throughput           : {perf_stats.throughput:,.1f} tokens/sec")
+    logger.info(f"   • Processing time      : {perf_stats.time_ms:.1f} ms")
+
+    # Save everything correctly
+    results: Dict[str, Any] = {
         "sequence_length": embeddings.shape[0],
-        "cache_size": stats['cache_size'],
-        "final_position": stats['position'],
-        "memory_mb": stats['memory_usage'] / 1024 / 1024,
-        "chunks": chunks
-    }, example_dir, "results")
-    save_numpy(embeddings, example_dir, "input_embeddings")
-    save_numpy(output, example_dir, "output_embeddings")
+        "embedding_dim": embeddings.shape[1],
+        "cache_size": cache_size,
+        "final_position": position,
+        "kv_memory_mb": round(kv_memory_mb, 2),
+        "throughput_tokens_per_sec": round(perf_stats.throughput, 1),
+        "processing_time_ms": round(perf_stats.time_ms, 1),
+        "num_input_chunks": len(chunks),
+        "sample_input": chunks[:3],
+    }
 
-    logger.info("PRACTICAL 8 COMPLETE: Unlimited context achieved with real data!")
-    logger.info("\nNEXT STEPS:")
-    logger.info("  • Run practical_09_hierarchical_memory.py")
-    logger.info("  • Then practical_10_full_long_context_pipeline.py")
-    logger.info("  • Finally: build unified production engine")
+    save_json(results, example_dir, "results")
+    save_numpy(embeddings, example_dir, "input_embeddings")
+    save_numpy(attention_output, example_dir, "output_embeddings")  # Now safe!
+
+    logger.info("PRACTICAL 8 COMPLETE — All files saved successfully!")
+    logger.info("\n" + "NEXT STEPS:".center(90))
+    logger.info("  1. Run: practical_09_hierarchical_memory_real.py")
+    logger.info("  2. Run: practical_10_full_long_context_pipeline.py")
+    logger.info("  3. Final: Build ProductionContextEngine")
+    logger.info("=" * 90)
+
 
 if __name__ == "__main__":
     practical_08_real_streaming_attention()

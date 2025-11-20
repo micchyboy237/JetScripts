@@ -19,8 +19,8 @@ def practical_10_full_long_context_pipeline():
     logger = get_logger("full_pipeline", example_dir)
     logger.info("PRACTICAL 10: Full Long Context Pipeline (Real Data + Streaming + Memory)")
 
-    embedder = LlamacppEmbedding(model="embeddinggemma")
-    llm = LlamacppLLM(verbose=False)
+    embedder = LlamacppEmbedding(model="embeddinggemma", logger=logger)
+    llm = LlamacppLLM(verbose=True, logger=logger)
 
     # Generate very long document
     prompt = """Write a 2000-word technical report on "Advanced Context Engineering for Production LLMs".
