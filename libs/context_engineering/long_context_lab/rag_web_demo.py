@@ -30,7 +30,7 @@ from bs4 import BeautifulSoup
 from jet.search.searxng import search_searxng
 
 # --- Import from long_context_lab.py (same directory) ---
-from long_context_lab import (
+from jet.libs.context_engineering.course._02_context_processing.labs.long_context_lab import (
     ContextProcessor,
     HierarchicalMemory
 )
