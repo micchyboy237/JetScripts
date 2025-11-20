@@ -63,6 +63,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 OUTPUT_DIR = Path(OUTPUT_DIR)
 INPUT_URLS_FILE = OUTPUT_DIR / "urls.txt"
+LLM_DIR = OUTPUT_DIR / "llm"
 RESULTS_DIR = OUTPUT_DIR / "results"
 RESULTS_FILE = RESULTS_DIR / "rag_retrieval_results.json"
 
@@ -76,6 +77,7 @@ DEFAULT_SEARCH_QUERY = "top RAG context engineering tips reddit 2025"
 
 # Ensure directories
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
+LLM_DIR.mkdir(exist_ok=True)
 RESULTS_DIR.mkdir(exist_ok=True)
 INPUT_URLS_FILE.parent.mkdir(exist_ok=True)
 
@@ -246,25 +248,8 @@ def scrape_urls_playwright(urls: List[str]) -> Iterator[Tuple[str, str]]:
             yield url, ""  # still yield so indexing continues
 
 # ================================
-# Save Results & Index
+# Save Index & Memory
 # ================================
-
-def save_retrieval_result(
-    query: str,
-    context: str,
-    response: str,
-    metadata: List[Dict],
-    info: Dict,
-    result_dir: Path,
-):
-    save_file(info, result_dir / "info.json")
-    save_file(metadata, result_dir / "metadata.json")
-    
-    llm_results_dir = result_dir / "llm"
-    llm_results_dir.mkdir(exist_ok=True)
-    save_file(query, llm_results_dir / "query.md")
-    save_file(context, llm_results_dir / "context.md")
-    save_file(response, llm_results_dir / "response.md")
 
 def save_indexed_chunks(chunks: List[Tuple[np.ndarray, str, str, int]], filepath: Path):
     serializable = []
@@ -426,7 +411,7 @@ def main():
         chunk_texts,
         return_format="numpy",
         batch_size=128,
-        show_progress=False
+        show_progress=True
     )
     if chunk_embeddings.ndim == 1:
         chunk_embeddings = chunk_embeddings.reshape(1, -1)
@@ -546,13 +531,20 @@ def main():
         model=LLM_MODEL,
         verbose=True,
     )
-    
+
+    llm_dir = LLM_DIR
+    result_dir = RESULTS_DIR
     messages = build_rag_prompt(query, context, metadata)
+
+    save_file(messages, llm_dir / "messages.json")
+    save_file(metadata, llm_dir / "metadata.json")
+    save_file(query, llm_dir / "query.md")
+    save_file(context, llm_dir / "context.md")
+
     print("Final Answer:\n")
     chunks = list(llm.chat(messages, temperature=0.1, stream=True))
     response = "".join(chunks)
-    
-    result_dir = RESULTS_DIR
+
     info = {
         "indexed_chunks_file": str(CHUNKS_FILE),
         "memory_state_file": str(MEMORY_FILE),
@@ -560,11 +552,11 @@ def main():
         "memory_stats": stats,
         "llm_model": LLM_MODEL,
     }
+
+    save_file(info, llm_dir / "info.json")
+    save_file(response, llm_dir / "response.md")
     
-    # Fixed save_retrieval_result call (query and response swapped in original)
-    save_retrieval_result(query, context, response, metadata, info, result_dir)
-    
-    print(f"\n\nGeneration complete! Full results saved to {result_dir}")
+    print(f"\n\nGeneration complete! Full results saved to {llm_dir}")
 
 if __name__ == "__main__":
     main()
