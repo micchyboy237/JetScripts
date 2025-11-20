@@ -56,7 +56,7 @@ LLM_MODEL = "qwen3-instruct-2507:4b"       # or any model you have in llama-serv
 
 CHUNK_SIZE = 256                          # Approx tokens per chunk
 CHUNK_OVERLAP = 32                        # Approx overlapped tokens between chunks
-MAX_RETRIEVAL_TOKENS = 1024               # Context budget for LLM
+MAX_RETRIEVAL_TOKENS = 768                # Context budget for LLM
 
 OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
