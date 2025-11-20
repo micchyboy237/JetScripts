@@ -70,7 +70,8 @@ CHUNKS_FILE = OUTPUT_DIR / "indexed_chunks.json"
 MEMORY_FILE = OUTPUT_DIR / "memory_state.json"
 
 # --- ADD CONSTANTS (after OUTPUT_DIR setup) ---
-DEFAULT_SEARCH_QUERY = "long context attention mechanisms site:arxiv.org OR site:huggingface.co OR site:wikipedia.org"
+# DEFAULT_SEARCH_QUERY = "long context attention mechanisms site:arxiv.org OR site:huggingface.co OR site:wikipedia.org"
+DEFAULT_SEARCH_QUERY = "top RAG context engineering tips reddit 2025"
 
 # Ensure directories
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -214,7 +215,7 @@ def scrape_urls_playwright(urls: List[str]) -> Iterator[Tuple[str, str]]:
         timeout=15000,           # increased slightly for JS-heavy pages
         max_retries=2,
         wait_for_js=True,
-        with_screenshot=True,    # not needed for RAG
+        with_screenshot=False,   # not needed for RAG
         use_cache=True,
         show_progress=True
     ):
@@ -414,11 +415,16 @@ def main():
         chunks = [chunk["content"] for chunk in chunks_with_data]
         token_counts = [chunk["num_tokens"] for chunk in chunks_with_data]
 
+        all_chunks_sentences = []
         for chunk_idx, text in tqdm(enumerate(chunks), desc="Processing chunks"):   # ← include chunk_idx
             all_chunks.append(text)
-            chunk_sentences = extract_sentences(text, use_gpu=True, verbose=True)
-            all_sentences.extend(chunk_sentences)
-            all_indexed_sentences.extend((sent_text, url, chunk_idx) for sent_text in chunk_sentences)
+            # chunk_sentences = extract_sentences(text, use_gpu=True, verbose=True)
+            # all_sentences.extend(chunk_sentences)
+            all_sentences.append(text)
+            # all_chunks_sentences.extend(chunk_sentences)
+            all_chunks_sentences.append(text)
+            # all_indexed_sentences.extend((sent_text, url, chunk_idx) for sent_text in chunk_sentences)
+            all_indexed_sentences.append((text, url, chunk_idx))
 
         sub_dir = f"{OUTPUT_DIR}/{format_sub_source_dir(url)}"
         save_file({
@@ -432,6 +438,7 @@ def main():
             },
         }, f"{sub_dir}/info.json")
         save_file(chunks_with_data, f"{sub_dir}/chunks.json")
+        save_file(all_chunks_sentences, f"{sub_dir}/sentences.json")
     
     save_file(all_chunks, f"{OUTPUT_DIR}/all_chunks.json")
     save_file(all_sentences, f"{OUTPUT_DIR}/all_sentences.json")
@@ -455,7 +462,10 @@ def main():
     ]
     save_indexed_chunks(all_indexed_sentences, CHUNKS_FILE)
 
+    current_embs = []
     for (sent_emb, sent_text, url, chunk_idx) in all_indexed_sentences:
+        current_embs.append(sent_emb)
+        sent_emb = np.stack(current_embs, axis=0)
         # Routing chunk_index to add_context, but not directly through process_chunk (legacy keeps process_chunk call optional chunk_index)
         processor.memory.add_context(sent_emb, sent_text, url, chunk_idx)
     save_memory_state(processor.memory, MEMORY_FILE)
