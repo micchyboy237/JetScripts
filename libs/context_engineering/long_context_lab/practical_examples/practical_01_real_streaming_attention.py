@@ -1,4 +1,4 @@
-# practical_08_real_streaming_attention.py
+# practical_01_real_streaming_attention.py
 import shutil
 from pathlib import Path
 from typing import Dict, Any
@@ -9,6 +9,7 @@ from jet.libs.context_engineering.course._02_context_processing.labs.long_contex
     get_logger, save_json, save_numpy,
     StreamingAttention, measure_performance
 )
+from jet.file.utils import save_file
 
 
 def create_example_dir(example_name: str) -> Path:
@@ -19,12 +20,12 @@ def create_example_dir(example_name: str) -> Path:
     return example_dir
 
 
-def practical_08_real_streaming_attention():
+def practical_01_real_streaming_attention():
     """Run StreamingAttention on REAL embeddinggemma embeddings — unlimited context!"""
-    example_dir = create_example_dir("practical_08_streaming_real")
+    example_dir = create_example_dir("practical_01_streaming_real")
     logger = get_logger("streaming_real", example_dir)
     logger.info("=" * 90)
-    logger.info("PRACTICAL 8: Streaming Attention with Real embeddinggemma (768-dim)")
+    logger.info("PRACTICAL 1: Streaming Attention with Real embeddinggemma (768-dim)")
     logger.info("=" * 90)
 
     # Real embedder + LLM
@@ -35,14 +36,18 @@ def practical_08_real_streaming_attention():
     prompt = """Write a detailed 800-word essay about context engineering in large language models.
 Include sections on retrieval, refinement, long context, memory, and quality gates.
 Use clear, technical language."""
+    save_file(prompt, str(example_dir / "llm" / "prompt.md"))
 
     logger.info("Generating long real context with LLM (streaming)...")
     long_text = ""
     for chunk in llm.generate(prompt, temperature=0.7, max_tokens=1200, stream=True):
         long_text += chunk
+    save_file(long_text, str(example_dir / "llm" / "response.md"))
 
     # Split into paragraphs
     chunks = [s.strip() for s in long_text.split("\n\n") if s.strip()]
+    save_file(chunks, str(example_dir / "chunks.json"))
+
     if len(chunks) < 5:
         chunks = ["Context engineering combines retrieval, refinement, and memory to improve LLM performance."] * 20
 
@@ -100,4 +105,4 @@ Use clear, technical language."""
 
 
 if __name__ == "__main__":
-    practical_08_real_streaming_attention()
+    practical_01_real_streaming_attention()

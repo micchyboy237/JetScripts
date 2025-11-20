@@ -5,6 +5,8 @@ from jet.adapters.llama_cpp.llm import LlamacppLLM
 from jet.libs.context_engineering.course._02_context_processing.labs.long_context_lab import (
     get_logger, save_json, save_numpy, HierarchicalMemory
 )
+from jet.utils.text import format_file_path
+from jet.file.utils import save_file
 
 def create_example_dir(example_name: str) -> Path:
     base_dir = Path(__file__).parent / "generated" / Path(__file__).stem
@@ -13,11 +15,11 @@ def create_example_dir(example_name: str) -> Path:
     example_dir.mkdir(parents=True, exist_ok=True)
     return example_dir
 
-def practical_09_hierarchical_memory_real():
+def practical_02_hierarchical_memory_real():
     """Test HierarchicalMemory with real embeddinggemma embeddings"""
-    example_dir = create_example_dir("practical_09_hierarchical_memory")
+    example_dir = create_example_dir("practical_02_hierarchical_memory")
     logger = get_logger("hierarchical", example_dir)
-    logger.info("PRACTICAL 9: Hierarchical Memory with Real Embeddings")
+    logger.info("PRACTICAL 2: Hierarchical Memory with Real Embeddings")
 
     embedder = LlamacppEmbedding(model="embeddinggemma", logger=logger)
     llm = LlamacppLLM(verbose=True, logger=logger)
@@ -29,15 +31,19 @@ def practical_09_hierarchical_memory_real():
         "context engineering", "RAG systems", "self-refinement", "long context models",
         "sparse attention", "streaming attention", "quality gates", "LLM judges"
     ]
+    save_file(topics, str(example_dir / "topics.json"))
 
     logger.info("Simulating long conversation across 8 topics...")
     all_stats = []
 
     for i, topic in enumerate(topics):
         prompt = f"Write 3 detailed paragraphs about {topic} in context engineering."
+        save_file(prompt, str(example_dir / format_file_path(topic) / "llm" / "prompt.md"))
+
         text = ""
         for chunk in llm.generate(prompt, temperature=0.7, max_tokens=600, stream=True):
             text += chunk
+        save_file(text, str(example_dir / format_file_path(topic) / "llm" / "response.md"))
 
         paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
         embs = embedder.encode(paragraphs, return_format="numpy")
@@ -45,6 +51,14 @@ def practical_09_hierarchical_memory_real():
         for emb in embs:
             stats = memory.add_context(emb[None, :])  # Add one token at a time
             all_stats.append(stats)
+
+        save_file({
+            "topic": topic,
+            "paragraphs_count": len(paragraphs),
+        }, str(example_dir / format_file_path(topic) / "info.json"))
+
+        save_file(paragraphs, str(example_dir / format_file_path(topic) / "paragraphs.json"))
+        save_file(stats, str(example_dir / format_file_path(topic) / "stats.json"))
 
         logger.info(f"Topic {i+1}/8: {topic} → "
                     f"Short: {stats['short_term']}, "
@@ -55,6 +69,11 @@ def practical_09_hierarchical_memory_real():
     query = "What is the best way to handle long context?"
     query_emb = embedder.encode([query], return_format="numpy")
     retrieved = memory.retrieve_relevant(query_emb, max_tokens=512)
+
+    save_file(query, str(example_dir / format_file_path(topic) / "retrieval" / "query.md"))
+    save_file({
+        "retrieved_shape": retrieved.shape,
+    }, str(example_dir / format_file_path(topic) / "retrieval" / "retrieved.json"))
 
     logger.info(f"Query: {query}")
     logger.info(f"Retrieved {retrieved.shape[0]} relevant tokens from memory")
@@ -68,8 +87,8 @@ def practical_09_hierarchical_memory_real():
     }, example_dir, "results")
     save_numpy(retrieved, example_dir, "retrieved_context")
 
-    logger.info("PRACTICAL 9 COMPLETE: Hierarchical memory works with real data!")
+    logger.info("PRACTICAL 2 COMPLETE: Hierarchical memory works with real data!")
     logger.info("\nNEXT STEP: Run practical_10_full_long_context_pipeline.py")
 
 if __name__ == "__main__":
-    practical_09_hierarchical_memory_real()
+    practical_02_hierarchical_memory_real()
