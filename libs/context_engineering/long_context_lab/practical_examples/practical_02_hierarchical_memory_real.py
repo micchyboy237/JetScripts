@@ -37,13 +37,14 @@ def practical_02_hierarchical_memory_real():
     all_stats = []
 
     for i, topic in enumerate(topics):
+        topic_dir = f"topic_{format_file_path(topic)}"
         prompt = f"Write 3 detailed paragraphs about {topic} in context engineering."
-        save_file(prompt, str(example_dir / format_file_path(topic) / "llm" / "prompt.md"))
+        save_file(prompt, str(example_dir / topic_dir / "llm" / "prompt.md"))
 
         text = ""
         for chunk in llm.generate(prompt, temperature=0.7, max_tokens=600, stream=True):
             text += chunk
-        save_file(text, str(example_dir / format_file_path(topic) / "llm" / "response.md"))
+        save_file(text, str(example_dir / topic_dir / "llm" / "response.md"))
 
         paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
         embs = embedder.encode(paragraphs, return_format="numpy")
@@ -55,10 +56,10 @@ def practical_02_hierarchical_memory_real():
         save_file({
             "topic": topic,
             "paragraphs_count": len(paragraphs),
-        }, str(example_dir / format_file_path(topic) / "info.json"))
+        }, str(example_dir / topic_dir / "info.json"))
 
-        save_file(paragraphs, str(example_dir / format_file_path(topic) / "paragraphs.json"))
-        save_file(stats, str(example_dir / format_file_path(topic) / "stats.json"))
+        save_file(paragraphs, str(example_dir / topic_dir / "paragraphs.json"))
+        save_file(stats, str(example_dir / topic_dir / "stats.json"))
 
         logger.info(f"Topic {i+1}/8: {topic} → "
                     f"Short: {stats['short_term']}, "
@@ -70,10 +71,10 @@ def practical_02_hierarchical_memory_real():
     query_emb = embedder.encode([query], return_format="numpy")
     retrieved = memory.retrieve_relevant(query_emb, max_tokens=512)
 
-    save_file(query, str(example_dir / format_file_path(topic) / "retrieval" / "query.md"))
+    save_file(query, str(example_dir / topic_dir / "retrieval" / "query.md"))
     save_file({
         "retrieved_shape": retrieved.shape,
-    }, str(example_dir / format_file_path(topic) / "retrieval" / "retrieved.json"))
+    }, str(example_dir / topic_dir / "retrieval" / "retrieved.json"))
 
     logger.info(f"Query: {query}")
     logger.info(f"Retrieved {retrieved.shape[0]} relevant tokens from memory")
