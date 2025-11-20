@@ -14,6 +14,7 @@ Features:
 import json
 import os
 import shutil
+import uuid
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Iterator
@@ -313,9 +314,12 @@ def build_rag_prompt(query: str, context: str, metadata: List[Dict]) -> List[Dic
         f"- [{m['level'].upper()}] {m['source']} (score: {m['score']:.3f})"
         for m in metadata[:10]
     )
-    prompt = f"""You are an expert assistant. Answer the user's question using ONLY the information from the provided context.
+    system_msg = """
+You are an expert assistant. Answer the user's question using ONLY the information from the provided context.
 If the context does not contain enough information to answer confidently, say so.
+""".strip()
 
+    prompt = f"""\
 Context:
 {context.strip()}
 
@@ -323,22 +327,23 @@ Sources:
 {sources}
 
 Question: {query.strip()}
+Answer: """
 
-Answer (be concise but complete):"""
-    return [{"role": "user", "content": prompt}]
+    return [
+        {"role": "system", "content": system_msg},
+        {"role": "user", "content": prompt},
+    ]
 
 # ================================
 # Main Demo
 # ================================
 def main():
     print("RAG Web Demo - Initializing...")
-
-    # Prompt for search query
     search_query = input("\nEnter search query for URLs (press Enter for default): ").strip()
     if not search_query:
         search_query = DEFAULT_SEARCH_QUERY
         print(f"Using default query: {search_query}")
-
+    
     print("\nSearching for URLs using SearXNG...")
     try:
         search_results = search_searxng(
@@ -361,165 +366,192 @@ def main():
             "https://arxiv.org/abs/2305.13245",
             "https://huggingface.co/docs/transformers/main/en/model_doc/longformer"
         ]
-
-    # Write URLs to file
+    
     INPUT_URLS_FILE.write_text("\n".join(urls))
     print(f"Generated {len(urls)} URLs → {INPUT_URLS_FILE}")
-
+    
     urls = [line.strip() for line in INPUT_URLS_FILE.read_text().splitlines() if line.strip()]
     print(f"Found {len(urls)} URLs to index")
-
-    # 2. Initialize
+    
     embedder = LlamacppEmbedding(
         model=EMBED_MODEL,
         use_cache=True,
         verbose=True
     )
-    # --- Optional: Check connection to embedding server
+    
     try:
         test_emb = embedder.encode("test", show_progress=False)
         print(f" ✓ Connected to llama.cpp embedding server (dim={test_emb.shape[-1]})")
     except Exception as e:
         print(f" ✗ Could not connect to embedding server: {e}")
-        print("    Make sure `llama-server --model embeddinggemma ... --port 8081` is running")
+        print(" Make sure `llama-server --model embeddinggemma ... --port 8081` is running")
         exit(1)
-    processor = RAGContextProcessor(d_model=768, mechanism='streaming')  # <- changed from 384 to 768
-
-    # 3. Index Web Pages (collect all chunks with source and chunk index)
-    print("\nIndexing web content...")
-    all_indexed_sentences = []
-    all_chunks = []
-    all_sentences = []
     
-    # NEW: Use Playwright-based scraper
+    processor = RAGContextProcessor(d_model=768, mechanism='streaming')
+    
+    # Scrape URLs and collect documents
+    all_docs = []
     for url, raw_text in scrape_urls_playwright(urls):
         if not raw_text.strip():
-            print(f"  Skipping {url} (no content)")
+            print(f" Skipping {url} (no content)")
             continue
+        all_docs.append({
+            "id": str(uuid.uuid4()),
+            "url": url,
+            "text": raw_text,
+        })
+        sub_dir = f"{OUTPUT_DIR}/{format_sub_source_dir(url)}"
+        save_file(raw_text, f"{sub_dir}/doc.md")
+    
+    print(f"\nScraped {len(all_docs)} documents. Starting chunking...")
+    
+    # Chunk all documents using chunk_texts_with_data
+    doc_ids = [doc["id"] for doc in all_docs]
+    doc_texts = [doc["text"] for doc in all_docs]
+    
+    chunks_with_data = chunk_texts_with_data(
+        doc_texts,
+        chunk_size=CHUNK_SIZE,
+        chunk_overlap=CHUNK_OVERLAP,
+        model=EMBED_MODEL,
+        strict_sentences=True,
+        ids=doc_ids,
+    )
+    
+    # Filter out empty chunks
+    chunks_with_data = [chunk for chunk in chunks_with_data if chunk["content"].strip()]
 
-        print(f"  Chunking content from {url}")
-        chunks_with_data = chunk_texts_with_data(
-            raw_text,
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP,
-            model=EMBED_MODEL,
-            strict_sentences=True
-        )
-        print(f"    → {len(chunks_with_data)} chunks generated")
+    chunk_texts = [chunk["content"] for chunk in chunks_with_data]
+    chunk_embeddings = embedder.encode(
+        chunk_texts,
+        return_format="numpy",
+        batch_size=128,
+        show_progress=False
+    )
+    if chunk_embeddings.ndim == 1:
+        chunk_embeddings = chunk_embeddings.reshape(1, -1)
+    
+    chunk_embeddings_mappings = {chunk["id"]: chunk_emb for chunk_emb, chunk in zip(chunk_embeddings, chunks_with_data)}
+    
+    print(f"Generated {len(chunks_with_data)} chunks from {len(all_docs)} documents")
+    
+    # Create document-to-chunk mapping
+    chunk_doc_mappings = {}
+    for chunk in chunks_with_data:
+        doc_id = chunk["doc_id"]
+        if doc_id not in chunk_doc_mappings:
+            chunk_doc_mappings[doc_id] = []
+        chunk_doc_mappings[doc_id].append(chunk)
+    
+    # Process each document's chunks
+    all_indexed_sentences = []
+    all_chunks = []
+    
+    for doc_idx, doc in enumerate(all_docs):
+        doc_id = doc["id"]
+        url = doc["url"]
+        raw_text = doc["text"]
         
-        # Filter out empty chunks
-        chunks_with_data = [chunk for chunk in chunks_with_data if chunk["content"].strip()]
-        for chunk_idx, chunk in enumerate(chunks_with_data):
-            chunk["chunk_index"] = chunk_idx
-
-        chunks = [chunk["content"] for chunk in chunks_with_data]
-        token_counts = [chunk["num_tokens"] for chunk in chunks_with_data]
-
-        all_chunks_sentences = []
-        for chunk_idx, text in tqdm(enumerate(chunks), desc="Processing chunks"):   # ← include chunk_idx
-            all_chunks.append(text)
-            # chunk_sentences = extract_sentences(text, use_gpu=True, verbose=True)
-            # all_sentences.extend(chunk_sentences)
-            all_sentences.append(text)
-            # all_chunks_sentences.extend(chunk_sentences)
-            all_chunks_sentences.append(text)
-            # all_indexed_sentences.extend((sent_text, url, chunk_idx) for sent_text in chunk_sentences)
-            all_indexed_sentences.append((text, url, chunk_idx))
-
+        # Get chunks for this document
+        doc_chunks = chunk_doc_mappings.get(doc_id, [])
+        if not doc_chunks:
+            print(f" → No chunks found for {url}")
+            continue
+            
+        print(f" → Processing {len(doc_chunks)} chunks for {url}")
+        
+        # Re-index chunks for this document (0-based for document)
+        for chunk_idx, chunk in enumerate(doc_chunks):
+            chunk["doc_chunk_index"] = chunk_idx  # Add document-specific index
+            
+        # Extract content and metadata for embedding
+        doc_chunk_texts = [chunk["content"] for chunk in doc_chunks]
+        doc_token_counts = [chunk["num_tokens"] for chunk in doc_chunks]
+        
+        # Move this out for only 1 call to encode
+        # chunk_embeddings = embedder.encode(
+        #     doc_chunk_texts,
+        #     return_format="numpy",
+        #     batch_size=128,
+        #     show_progress=False
+        # )
+        
+        # if chunk_embeddings.ndim == 1:
+        #     chunk_embeddings = chunk_embeddings.reshape(1, -1)
+        
+        # Store embeddings and metadata for this document
+        for emb_idx, chunk in enumerate(doc_chunks):
+            chunk_emb = chunk_embeddings_mappings[chunk["id"]]
+            all_indexed_sentences.append((
+                chunk_emb, 
+                chunk["content"], 
+                url, 
+                chunk["chunk_index"],  # Global chunk index from chunker
+                chunk_idx             # Document-specific chunk index
+            ))
+            all_chunks.append(chunk["content"])
+        
+        # Save document-specific files
         sub_dir = f"{OUTPUT_DIR}/{format_sub_source_dir(url)}"
         save_file({
             "url": url,
-            "count": len(chunks),
+            "doc_id": doc_id,
+            "chunk_count": len(doc_chunks),
             "tokens": {
-                "min": min(token_counts),
-                "ave": sum(token_counts) // len(token_counts),
-                "max": max(token_counts),
-                "total": sum(token_counts),
+                "min": min(doc_token_counts) if doc_token_counts else 0,
+                "ave": sum(doc_token_counts) // len(doc_token_counts) if doc_token_counts else 0,
+                "max": max(doc_token_counts) if doc_token_counts else 0,
+                "total": sum(doc_token_counts),
             },
         }, f"{sub_dir}/info.json")
-        save_file(chunks_with_data, f"{sub_dir}/chunks.json")
-        save_file(all_chunks_sentences, f"{sub_dir}/sentences.json")
+        
+        save_file(doc_chunks, f"{sub_dir}/chunks.json")
+        save_file(doc_chunk_texts, f"{sub_dir}/sentences.json")
     
+    # Save global files
     save_file(all_chunks, f"{OUTPUT_DIR}/all_chunks.json")
-    save_file(all_sentences, f"{OUTPUT_DIR}/all_sentences.json")
-
-    sentence_embeddings = embedder.encode(
-        all_sentences,
-        return_format="numpy",
-        batch_size=128,
-        show_progress=True
-    )  # shape: (n_sentences, d_model)
-
-    # Ensure correct shape
-    if sentence_embeddings.ndim == 1:
-        sentence_embeddings = sentence_embeddings.reshape(1, -1)
-
-    # After indexing, save chunks and memory
-    all_indexed_sentences = [
-        (sent_emb, sent_text, url, chunk_idx)
-        for sent_emb, (sent_text, url, chunk_idx)
-        in zip(sentence_embeddings, all_indexed_sentences)
-    ]
-    save_indexed_chunks(all_indexed_sentences, CHUNKS_FILE)
-
-    current_embs = []
-    for (sent_emb, sent_text, url, chunk_idx) in all_indexed_sentences:
-        current_embs.append(sent_emb)
-        sent_emb = np.stack(current_embs, axis=0)
-        # Routing chunk_index to add_context, but not directly through process_chunk (legacy keeps process_chunk call optional chunk_index)
-        processor.memory.add_context(sent_emb, sent_text, url, chunk_idx)
+    
+    # Add embeddings to memory (fixed accumulation)
+    print(f"\nStoring {len(all_indexed_sentences)} chunks in hierarchical memory...")
+    for idx, (chunk_emb, chunk_text, url, global_idx, doc_idx) in enumerate(
+        tqdm(all_indexed_sentences, desc="Building memory")
+    ):
+        # Ensure embedding is 2D (1, embedding_dim)
+        if chunk_emb.ndim == 1:
+            chunk_emb = chunk_emb.reshape(1, -1)
+        processor.memory.add_context(chunk_emb, chunk_text, url, doc_idx)
+    
     save_memory_state(processor.memory, MEMORY_FILE)
-
+    
     print("Indexing complete. Memory stats:")
     stats = {
         "short": processor.memory._total_tokens(processor.memory.short_term),
         "medium": processor.memory._total_tokens(processor.memory.medium_term),
         "long": processor.memory._total_tokens(processor.memory.long_term)
     }
-    print(f"  Short: {stats['short']}, Medium: {stats['medium']}, Long: {stats['long']} tokens")
-
-    # 4. Query & Retrieve
-    # query = input("\nEnter your question: ").strip()
-    # if not query:
-    #     query = "What are efficient attention mechanisms for long sequences?"
+    print(f" Short: {stats['short']}, Medium: {stats['medium']}, Long: {stats['long']} tokens")
+    
+    # Query processing (unchanged)
     query = search_query
-
     print(f"\nRetrieving context for: '{query}'")
     query_emb = embedder.encode(query, return_format="numpy")
     if query_emb.ndim == 1:
         query_emb = query_emb.reshape(1, -1)
+    
     _, context, metadata = processor.memory.retrieve_relevant(query_emb, MAX_RETRIEVAL_TOKENS)
-
-    # --- LLM answer generation with immediate streaming and saving ---
     print(f"\nRetrieved ~{len(context.split())} words from memory. Generating answer...\n")
+    
     logger.info("Initializing LLM for final answer generation...")
-
     llm = LlamacppLLM(
         model=LLM_MODEL,
         verbose=True,
     )
-
+    
     messages = build_rag_prompt(query, context, metadata)
-
     print("Final Answer:\n")
-    answer_chunks = []
-    try:
-        for chunk in llm.chat(
-            messages=messages,
-            temperature=0.1,
-            max_tokens=1024,
-            stream=True
-        ):
-            print(chunk, end="", flush=True)
-            answer_chunks.append(chunk)
-    except Exception as e:
-        logger.error(f"LLM streaming failed: {e}")
-        final_answer = "[Error during generation]"
-    else:
-        final_answer = "".join(answer_chunks)
-    response = final_answer.strip()
-
-    # Save both retrieval + generation
+    chunks = list(llm.chat(messages, temperature=0.1, stream=True))
+    response = "".join(chunks)
+    
     result_dir = RESULTS_DIR
     info = {
         "indexed_chunks_file": str(CHUNKS_FILE),
@@ -528,8 +560,10 @@ def main():
         "memory_stats": stats,
         "llm_model": LLM_MODEL,
     }
-    save_retrieval_result(query, response, context, metadata, info, result_dir)
-
+    
+    # Fixed save_retrieval_result call (query and response swapped in original)
+    save_retrieval_result(query, context, response, metadata, info, result_dir)
+    
     print(f"\n\nGeneration complete! Full results saved to {result_dir}")
 
 if __name__ == "__main__":
