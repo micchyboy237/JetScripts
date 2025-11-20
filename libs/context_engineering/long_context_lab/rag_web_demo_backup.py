@@ -14,11 +14,11 @@ Features:
 import json
 import os
 import shutil
+import time
 import numpy as np
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Iterator
 from pathlib import Path
-from tqdm import tqdm
 
 # --- External Dependencies (install once) ---
 # pip install beautifulsoup4 playwright
@@ -30,8 +30,6 @@ from jet.scrapers.playwright_utils import scrape_urls_sync
 from bs4 import BeautifulSoup
 
 from jet.search.searxng import search_searxng
-from jet.wordnet.text_chunker import chunk_texts_with_data
-from jet.code.extraction import extract_sentences
 from jet.utils.text import format_sub_source_dir
 from jet.file.utils import save_file
 
@@ -41,18 +39,11 @@ from jet.libs.context_engineering.course._02_context_processing.labs.long_contex
     HierarchicalMemory
 )
 
-# === LLM imports ===
-from jet.adapters.llama_cpp.llm import LlamacppLLM
-from jet.logger import logger
-
 # ================================
 # CONFIGURATION (Easy to tweak)
 # ================================
-EMBED_MODEL = "embeddinggemma"         # Fast, 768-dim
-LLM_MODEL = "qwen3-instruct-2507:4b"       # or any model you have in llama-server --model
-
-CHUNK_SIZE = 256                          # Approx tokens per chunk
-CHUNK_OVERLAP = 32                        # Approx overlapped tokens between chunks
+EMBEDDER_MODEL = "embeddinggemma"        # Fast, 384-dim
+CHUNK_SIZE_TOKENS = 256                   # Approx tokens per chunk
 MAX_RETRIEVAL_TOKENS = 1024               # Context budget for LLM
 SENTENCE_MIN_CHARS = 50                   # Filter noise
 
@@ -62,8 +53,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 OUTPUT_DIR = Path(OUTPUT_DIR)
 INPUT_URLS_FILE = OUTPUT_DIR / "urls.txt"
-RESULTS_DIR = OUTPUT_DIR / "results"
-RESULTS_FILE = RESULTS_DIR / "rag_retrieval_results.json"
+RESULTS_FILE = OUTPUT_DIR / "rag_retrieval_results.json"
 
 # --- Add to CONFIGURATION section (after RESULTS_FILE) ---
 CHUNKS_FILE = OUTPUT_DIR / "indexed_chunks.json"
@@ -74,7 +64,6 @@ DEFAULT_SEARCH_QUERY = "long context attention mechanisms site:arxiv.org OR site
 
 # Ensure directories
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
-RESULTS_DIR.mkdir(exist_ok=True)
 INPUT_URLS_FILE.parent.mkdir(exist_ok=True)
 
 # ================================
@@ -243,26 +232,88 @@ def scrape_urls_playwright(urls: List[str]) -> Iterator[Tuple[str, str]]:
             print(f"  ✗ Failed to scrape: {url} [{status}]")
             yield url, ""  # still yield so indexing continues
 
+def chunk_text(text: str, embedder: LlamacppEmbedding) -> List[Tuple[np.ndarray, str, int]]:
+    """
+    Chunk text into token-limited chunks using sentence boundaries.
+    Now uses batched embedding via LlamacppEmbedding (one API call per document).
+    Returns a list of (embedding, chunk_text, chunk_index).
+    """
+    # Step 1: Extract clean sentences
+    raw_sentences = [s.strip() for s in text.split('.') if len(s.strip()) > SENTENCE_MIN_CHARS // 10]
+    sentences = [s + "." for s in raw_sentences if s]
+
+    if not sentences:
+        return []
+
+    # Step 2: Encode ALL sentences in ONE batched call
+    print(f"   → Encoding {len(sentences)} sentences in one batch...")
+    sentence_embeddings = embedder.encode(
+        sentences,
+        return_format="numpy",
+        batch_size=64,
+        show_progress=True
+    )  # shape: (n_sentences, d_model)
+
+    # Ensure correct shape
+    if sentence_embeddings.ndim == 1:
+        sentence_embeddings = sentence_embeddings.reshape(1, -1)
+
+    # Step 3: Rebuild chunks using pre-computed embeddings
+    chunks = []
+    current_texts = []
+    current_embs = []
+    chunk_idx = 0  # ← track index per document
+
+    for sent_text, sent_emb in zip(sentences, sentence_embeddings):
+        temp_texts = current_texts + [sent_text]
+        approx_tokens = sum(len(t.split()) for t in temp_texts) // 4 + 1
+
+        if approx_tokens > CHUNK_SIZE_TOKENS and current_texts:
+            chunk_text_str = " ".join(current_texts).strip()
+            if chunk_text_str:
+                chunk_emb = np.stack(current_embs, axis=0)
+                chunks.append((chunk_emb, chunk_text_str, chunk_idx))  # ← include index
+                chunk_idx += 1
+            current_texts = [sent_text]
+            current_embs = [sent_emb]
+        else:
+            current_texts.append(sent_text)
+            current_embs.append(sent_emb)
+
+    # Don't forget last chunk
+    if current_texts:
+        chunk_text_str = " ".join(current_texts).strip()
+        if chunk_text_str:
+            chunk_emb = np.stack(current_embs, axis=0)
+            chunks.append((chunk_emb, chunk_text_str, chunk_idx))
+            chunk_idx += 1
+
+    print(f"   → Generated {len(chunks)} chunks")
+    return chunks
+
 # ================================
 # Save Results & Index
 # ================================
 
 def save_retrieval_result(
     query: str,
-    context: str,
-    response: str,
+    context_text: str,
     metadata: List[Dict],
-    info: Dict,
-    result_dir: Path,
+    filepath: Path,
+    extra_data: Dict | None = None
 ):
-    save_file(info, result_dir / "info.json")
-    save_file(metadata, result_dir / "metadata.json")
-    
-    llm_results_dir = result_dir / "llm"
-    llm_results_dir.mkdir(exist_ok=True)
-    save_file(query, llm_results_dir / "query.md")
-    save_file(context, llm_results_dir / "context.md")
-    save_file(response, llm_results_dir / "response.md")
+    result = {
+        "query": query,
+        "retrieved_context": context_text,
+        "sources": metadata,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "total_sources": len(metadata)
+    }
+    if extra_data:
+        result.update(extra_data)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(result, f, indent=2, ensure_ascii=False)
+    print(f"Results saved to {filepath}")
 
 def save_indexed_chunks(chunks: List[Tuple[np.ndarray, str, str, int]], filepath: Path):
     serializable = []
@@ -302,29 +353,6 @@ def save_memory_state(memory: EnhancedHierarchicalMemory, filepath: Path):
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(state, f, indent=2, ensure_ascii=False)
     print(f"Memory state saved to {filepath}")
-
-# ================================
-# RAG Prompt Template
-# ================================
-def build_rag_prompt(query: str, context: str, metadata: List[Dict]) -> List[Dict[str, str]]:
-    """Build a clean, effective RAG prompt for streaming LLMs."""
-    sources = "\n".join(
-        f"- [{m['level'].upper()}] {m['source']} (score: {m['score']:.3f})"
-        for m in metadata[:10]
-    )
-    prompt = f"""You are an expert assistant. Answer the user's question using ONLY the information from the provided context.
-If the context does not contain enough information to answer confidently, say so.
-
-Context:
-{context.strip()}
-
-Sources:
-{sources}
-
-Question: {query.strip()}
-
-Answer (be concise but complete):"""
-    return [{"role": "user", "content": prompt}]
 
 # ================================
 # Main Demo
@@ -370,7 +398,7 @@ def main():
 
     # 2. Initialize
     embedder = LlamacppEmbedding(
-        model=EMBED_MODEL,
+        model=EMBEDDER_MODEL,
         use_cache=True,
         verbose=True
     )
@@ -386,9 +414,7 @@ def main():
 
     # 3. Index Web Pages (collect all chunks with source and chunk index)
     print("\nIndexing web content...")
-    all_indexed_sentences = []
-    all_chunks = []
-    all_sentences = []
+    all_indexed_chunks = []  # now stores (emb, text, url, chunk_idx)
     
     # NEW: Use Playwright-based scraper
     for url, raw_text in scrape_urls_playwright(urls):
@@ -397,67 +423,25 @@ def main():
             continue
 
         print(f"  Chunking content from {url}")
-        chunks_with_data = chunk_texts_with_data(
-            raw_text,
-            chunk_size=CHUNK_SIZE,
-            chunk_overlap=CHUNK_OVERLAP,
-            model=EMBED_MODEL,
-            strict_sentences=True
-        )
-        print(f"    → {len(chunks_with_data)} chunks generated")
-        
-        # Filter out empty chunks
-        chunks_with_data = [chunk for chunk in chunks_with_data if chunk["content"].strip()]
-        for chunk_idx, chunk in enumerate(chunks_with_data):
-            chunk["chunk_index"] = chunk_idx
+        chunks = chunk_text(raw_text, embedder)
+        print(f"    → {len(chunks)} chunks generated")
 
-        chunks = [chunk["content"] for chunk in chunks_with_data]
-        token_counts = [chunk["num_tokens"] for chunk in chunks_with_data]
-
-        for chunk_idx, text in tqdm(enumerate(chunks), desc="Processing chunks"):   # ← include chunk_idx
-            all_chunks.append(text)
-            chunk_sentences = extract_sentences(text, use_gpu=True, verbose=True)
-            all_sentences.extend(chunk_sentences)
-            all_indexed_sentences.extend((sent_text, url, chunk_idx) for sent_text in chunk_sentences)
+        for emb, text, chunk_idx in chunks:   # ← include chunk_idx
+            all_indexed_chunks.append((emb, text, url, chunk_idx))
+            # Routing chunk_index to add_context, but not directly through process_chunk (legacy keeps process_chunk call optional chunk_index)
+            processor.memory.add_context(emb, text, url, chunk_idx)
 
         sub_dir = f"{OUTPUT_DIR}/{format_sub_source_dir(url)}"
         save_file({
             "url": url,
             "count": len(chunks),
-            "tokens": {
-                "min": min(token_counts),
-                "ave": sum(token_counts) // len(token_counts),
-                "max": max(token_counts),
-                "total": sum(token_counts),
-            },
         }, f"{sub_dir}/info.json")
-        save_file(chunks_with_data, f"{sub_dir}/chunks.json")
+        save_file([item[1] for item in chunks], f"{sub_dir}/chunks.json")
     
-    save_file(all_chunks, f"{OUTPUT_DIR}/all_chunks.json")
-    save_file(all_sentences, f"{OUTPUT_DIR}/all_sentences.json")
-
-    sentence_embeddings = embedder.encode(
-        all_sentences,
-        return_format="numpy",
-        batch_size=128,
-        show_progress=True
-    )  # shape: (n_sentences, d_model)
-
-    # Ensure correct shape
-    if sentence_embeddings.ndim == 1:
-        sentence_embeddings = sentence_embeddings.reshape(1, -1)
+    save_file([item[1] for item in all_indexed_chunks], f"{OUTPUT_DIR}/all_chunks.json")
 
     # After indexing, save chunks and memory
-    all_indexed_sentences = [
-        (sent_emb, sent_text, url, chunk_idx)
-        for sent_emb, (sent_text, url, chunk_idx)
-        in zip(sentence_embeddings, all_indexed_sentences)
-    ]
-    save_indexed_chunks(all_indexed_sentences, CHUNKS_FILE)
-
-    for (sent_emb, sent_text, url, chunk_idx) in all_indexed_sentences:
-        # Routing chunk_index to add_context, but not directly through process_chunk (legacy keeps process_chunk call optional chunk_index)
-        processor.memory.add_context(sent_emb, sent_text, url, chunk_idx)
+    save_indexed_chunks(all_indexed_chunks, CHUNKS_FILE)
     save_memory_state(processor.memory, MEMORY_FILE)
 
     print("Indexing complete. Memory stats:")
@@ -478,49 +462,23 @@ def main():
     query_emb = embedder.encode(query, return_format="numpy")
     if query_emb.ndim == 1:
         query_emb = query_emb.reshape(1, -1)
-    _, context, metadata = processor.memory.retrieve_relevant(query_emb, MAX_RETRIEVAL_TOKENS)
+    _, context_text, metadata = processor.memory.retrieve_relevant(query_emb, MAX_RETRIEVAL_TOKENS)
 
-    # --- LLM answer generation with immediate streaming and saving ---
-    print(f"\nRetrieved ~{len(context.split())} words from memory. Generating answer...\n")
-    logger.info("Initializing LLM for final answer generation...")
-
-    llm = LlamacppLLM(
-        model=LLM_MODEL,
-        verbose=True,
-    )
-
-    messages = build_rag_prompt(query, context, metadata)
-
-    print("Final Answer:\n")
-    answer_chunks = []
-    try:
-        for chunk in llm.chat(
-            messages=messages,
-            temperature=0.1,
-            max_tokens=1024,
-            stream=True
-        ):
-            print(chunk, end="", flush=True)
-            answer_chunks.append(chunk)
-    except Exception as e:
-        logger.error(f"LLM streaming failed: {e}")
-        final_answer = "[Error during generation]"
-    else:
-        final_answer = "".join(answer_chunks)
-    response = final_answer.strip()
-
-    # Save both retrieval + generation
-    result_dir = RESULTS_DIR
-    info = {
+    # 5. Save Results (with extra data)
+    result_file = RESULTS_FILE
+    extra = {
         "indexed_chunks_file": str(CHUNKS_FILE),
         "memory_state_file": str(MEMORY_FILE),
-        "total_indexed_chunks": len(all_indexed_sentences),
-        "memory_stats": stats,
-        "llm_model": LLM_MODEL,
+        "total_indexed_chunks": len(all_indexed_chunks),
+        "memory_stats": stats
     }
-    save_retrieval_result(query, response, context, metadata, info, result_dir)
+    save_retrieval_result(query, context_text, metadata, result_file, extra_data=extra)
+    print("\nTop sources retrieved:")
+    for item in metadata[:3]:
+        print(f"  • [{item['level'].upper()}] {item['source'][:60]}... (score: {item['score']:.3f})")
 
-    print(f"\n\nGeneration complete! Full results saved to {result_dir}")
+    print(f"\nContext length: ~{len(context_text.split())} words")
+    print("Use this context in your LLM prompt!")
 
 if __name__ == "__main__":
     main()
