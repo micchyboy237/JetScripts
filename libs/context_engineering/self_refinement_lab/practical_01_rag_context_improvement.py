@@ -20,7 +20,7 @@ def create_example_dir(example_name: str) -> Path:
 # ===================================================================
 # PRACTICAL APPLICATION 1: Automated Content Improvement for RAG
 # ===================================================================
-def practical_01_rag_context_improvement_flexible(
+def practical_01_rag_context_improvement(
     query: str,
     chunks: List[str],
     embedder: Optional[LlamacppEmbedding] = None,
@@ -99,7 +99,7 @@ def practical_01_rag_context_improvement_flexible(
 
 if __name__ == "__main__":
     # Local + fast (embeddinggemma, Llama.cpp only)
-    practical_01_rag_context_improvement_flexible(
+    practical_01_rag_context_improvement(
         query="What is context engineering?",
         chunks=[
             "Context engineering is the art of building high-quality prompts.",
