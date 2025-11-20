@@ -16,6 +16,7 @@ import os
 import shutil
 import uuid
 import numpy as np
+import tiktoken
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Iterator
 from pathlib import Path
@@ -33,6 +34,7 @@ from bs4 import BeautifulSoup
 from jet.search.searxng import search_searxng
 from jet.wordnet.text_chunker import chunk_texts_with_data
 from jet.code.extraction import extract_sentences
+from jet._token.token_utils import token_counter
 from jet.utils.text import format_sub_source_dir
 from jet.file.utils import save_file
 
@@ -54,8 +56,7 @@ LLM_MODEL = "qwen3-instruct-2507:4b"       # or any model you have in llama-serv
 
 CHUNK_SIZE = 256                          # Approx tokens per chunk
 CHUNK_OVERLAP = 32                        # Approx overlapped tokens between chunks
-MAX_RETRIEVAL_TOKENS = 1024               # Context budget for LLM
-SENTENCE_MIN_CHARS = 50                   # Filter noise
+MAX_RETRIEVAL_TOKENS = 384                # Context budget for LLM
 
 OUTPUT_DIR = os.path.join(os.path.dirname(
     __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -105,8 +106,13 @@ class EnhancedHierarchicalMemory(HierarchicalMemory):
         self.compress_medium = np.random.randn(d_model, d_model) * 0.02
         self.compress_long = np.random.randn(d_model, d_model) * 0.02
 
+    def _token_count(self, text: str, model: str = "gpt-4o") -> int:
+        """Return token count for a single string."""
+        enc = tiktoken.encoding_for_model(model)   # automatically picks cl100k_base or o200k_base
+        return len(enc.encode(text))
+
     def add_context(self, embedding: np.ndarray, text: str, source: str, chunk_index: int) -> Dict[str, int]:
-        token_count = max(1, len(text.split()) // 4)  # Rough estimate
+        token_count = self._token_count(text)
         chunk = MemoryChunk(embedding, text, source, token_count, chunk_index)  # include chunk_index
         self.short_term.append(chunk)
 
@@ -159,15 +165,19 @@ class EnhancedHierarchicalMemory(HierarchicalMemory):
                     "source": chunk.source,
                     "level": level,
                     "score": float(score),
-                    "tokens": chunk.token_count,
-                    "chunk_index": chunk.chunk_index  # ← NOW INCLUDED
+                    "tokens": chunk.token_count,  # Now accurate!
+                    "chunk_index": chunk.chunk_index
                 })
                 total_tokens += chunk.token_count
             else:
-                break
+                break  # Strictly enforce max_tokens
 
         combined_emb = np.concatenate(selected_embs, axis=0) if selected_embs else np.zeros((0, self.d_model))
         combined_text = "\n\n".join(selected_texts)
+        
+        # Optional: log how close we got
+        print(f"Retrieved context: {total_tokens}/{max_tokens} tokens used")
+        
         return combined_emb, combined_text, selected_meta
 
     def _total_tokens(self, memory_list: List[MemoryChunk]) -> int:
@@ -216,7 +226,7 @@ def scrape_urls_playwright(urls: List[str]) -> Iterator[Tuple[str, str]]:
         urls=urls,
         num_parallel=10,
         timeout=15000,           # increased slightly for JS-heavy pages
-        max_retries=2,
+        max_retries=1,
         wait_for_js=True,
         with_screenshot=False,   # not needed for RAG
         use_cache=True,
@@ -553,6 +563,10 @@ def main():
     }
 
     save_file(info, llm_dir / "info.json")
+    save_file({
+        "prompt": token_counter(messages, model=LLM_MODEL),
+        "response": token_counter(response, model=LLM_MODEL),
+    }, llm_dir / "tokens.json")
 
     print("Final Answer:")
     save_file(response, llm_dir / "response.md")
