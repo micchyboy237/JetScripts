@@ -1,5 +1,7 @@
 import os
 from typing import List
+from jet.adapters.llama_cpp.llm import LlamacppLLM
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.libs.context_engineering.course._02_context_processing.labs.self_refinement_lab import (
     create_example_dir, get_logger, ProductionRefinementSystem
 )
@@ -42,6 +44,8 @@ def practical_09_tool_use_quality_gate(
         }
     }]
 
+    save_file(tools, os.path.join(example_dir, "tools.json"))
+
     # Only if passes → allow tool use
     response = llm.chat_with_tools(
         messages=[{"role": "user", "content": query}],
@@ -49,13 +53,10 @@ def practical_09_tool_use_quality_gate(
         available_functions={"search_tool": search_tool},
         temperature=0.3,
     )
+    save_file(response, os.path.join(example_dir, "response.md"))
     return response
 
 if __name__ == "__main__":
-    import random
-    from jet.adapters.llama_cpp.llm import LlamacppLLM
-    from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
-
     def real_search_tool(query: str) -> str:
         knowledge = {
             "context engineering": "Context engineering improves prompt quality through retrieval, compression, refinement, and self-correction.",
