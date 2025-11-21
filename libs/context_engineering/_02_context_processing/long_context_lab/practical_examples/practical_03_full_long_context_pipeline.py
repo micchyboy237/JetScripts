@@ -10,7 +10,7 @@ from jet.libs.context_engineering.course._02_context_processing.labs.long_contex
 def create_example_dir(example_name: str) -> Path:
     base_dir = Path(__file__).parent / "generated" / Path(__file__).stem
     example_dir = base_dir / example_name
-    shutil.rmtree(example_dir, ignore_errors=True)
+    # shutil.rmtree(example_dir, ignore_errors=True)
     example_dir.mkdir(parents=True, exist_ok=True)
     return example_dir
 

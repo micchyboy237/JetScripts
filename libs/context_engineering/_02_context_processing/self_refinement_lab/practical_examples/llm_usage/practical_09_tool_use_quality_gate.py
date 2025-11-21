@@ -166,7 +166,7 @@ if __name__ == "__main__":
     ]
 
     for i, case in enumerate(test_cases, 1):
-        output_dir = create_example_dir("practical_09_tool_use_quality_gate") / f"test_case_{i + 1}"
+        output_dir = create_example_dir("practical_09_tool_use_quality_gate") / f"test_case_{i}"
         print(f"\n--- Test Case {i}: {case['name']} ---")
         response = practical_09_tool_use_quality_gate(
             query=case["query"],
