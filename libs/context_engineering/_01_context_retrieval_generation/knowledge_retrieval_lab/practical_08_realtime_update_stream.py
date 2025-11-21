@@ -19,7 +19,12 @@ def practical_08_realtime_update_stream():
         db.add_documents([doc], emb.reshape(1, -1))
         log.info(f"Indexed live: {doc_text[:50]}...")
 
-    save_file([d.title for d in db.documents], f"{example_dir}/documents.json")
+    save_file([{
+        "id": d.id,
+        "title": d.title,
+        "content": d.content,
+        "metadata": d.metadata,
+    } for d in db.documents], f"{example_dir}/documents.json")
     log.info("PRACTICAL 8 COMPLETE – Index stays fresh in real-time")
 
 if __name__ == "__main__":

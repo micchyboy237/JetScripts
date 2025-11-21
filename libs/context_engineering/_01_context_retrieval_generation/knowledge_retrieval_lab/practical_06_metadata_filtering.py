@@ -23,7 +23,13 @@ def practical_06_metadata_filtering():
         filter_metadata={"difficulty": "beginner"}
     )
 
-    save_file([d.title for d, _ in results], f"{example_dir}/filtered_results.json")
+    save_file([{
+        "id": d.id,
+        "score": score,
+        "title": d.title,
+        "content": d.content,
+        "metadata": d.metadata,
+    } for d, score in results], f"{example_dir}/searched_results.json")
     log.info("PRACTICAL 6 COMPLETE – Only beginner docs returned")
 
 if __name__ == "__main__":
