@@ -15,7 +15,8 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 if __name__ == "__main__":
     # 1. Specify preffered dimensions
     dimensions = None
-    model_name: OLLAMA_MODEL_NAMES = "embeddinggemma"
+    # model_name: OLLAMA_MODEL_NAMES = "embeddinggemma"
+    model_name: OLLAMA_MODEL_NAMES = "nomic-embed-text"
     # Same example queries
     queries = [
         "Top isekai anime 2025",

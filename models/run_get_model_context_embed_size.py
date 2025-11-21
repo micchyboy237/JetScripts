@@ -6,7 +6,7 @@ from jet.logger import logger
 
 if __name__ == "__main__":
     output_dir = os.path.join(os.path.dirname(__file__), "constants")
-    model_id: ModelType = "NousResearch/Hermes-3-Llama-3.1-8B"
+    model_id: ModelType = "nomic-ai/nomic-embed-text-v2-moe"
 
     max_context, max_embeddings = get_model_limits(model_id)
 

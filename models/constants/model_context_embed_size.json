@@ -1,5 +1,5 @@
 {
-  "model_id": "NousResearch/Hermes-3-Llama-3.1-8B",
-  "max_context": 131072,
-  "max_embeddings": 4096
+  "model_id": "nomic-ai/nomic-embed-text-v2-moe",
+  "max_context": 2048,
+  "max_embeddings": 768
 }
