@@ -3,7 +3,7 @@
 PRACTICAL 9: Quality Gate + Tool Guardrail
 Perfect production pattern: try fast fix → fail fast → protect downstream
 """
-from typing import List
+from typing import List, Optional
 from pathlib import Path
 
 from jet.adapters.llama_cpp.llm import LlamacppLLM
@@ -26,8 +26,9 @@ def practical_09_tool_use_quality_gate(
     llm: LlamacppLLM,
     embedder: LlamacppEmbedding,
     quality_threshold: float = 0.75,
+    output_dir: Optional[Path] = None
 ) -> str:
-    example_dir = create_example_dir("practical_09_tool_use_quality_gate")
+    example_dir = output_dir or create_example_dir("practical_09_tool_use_quality_gate")
     logger = get_logger("quality_gate", example_dir)
     logger.info("PRACTICAL 9: Quality Gate + Tool Guardrail")
 
@@ -165,6 +166,7 @@ if __name__ == "__main__":
     ]
 
     for i, case in enumerate(test_cases, 1):
+        output_dir = create_example_dir("practical_09_tool_use_quality_gate") / f"test_case_{i + 1}"
         print(f"\n--- Test Case {i}: {case['name']} ---")
         response = practical_09_tool_use_quality_gate(
             query=case["query"],
@@ -172,6 +174,7 @@ if __name__ == "__main__":
             llm=llm,
             embedder=embedder,
             quality_threshold=0.75,
+            output_dir=output_dir,
         )
         print(f"→ Decision: {response.split('.')[0].upper()}")
         print(f"   Expected: {case['expected']}")
