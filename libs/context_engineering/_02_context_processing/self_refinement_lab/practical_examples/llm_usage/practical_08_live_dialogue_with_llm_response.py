@@ -1,6 +1,8 @@
 import os
 import numpy as np
 from typing import Any, Dict, List
+from jet.adapters.llama_cpp.llm import LlamacppLLM
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from jet.libs.context_engineering.course._02_context_processing.labs.self_refinement_lab import (
     create_example_dir, get_logger, SelfRefinementPipeline
 )
@@ -48,9 +50,6 @@ def practical_08_live_dialogue_with_llm_response(
     return {"dialogue_history": history, "final_context": current_context}
 
 if __name__ == "__main__":
-    from jet.adapters.llama_cpp.llm import LlamacppLLM
-    from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
-
     llm = LlamacppLLM(model="qwen3-instruct-2507:4b")
     embedder = LlamacppEmbedding(model="embeddinggemma")
 
