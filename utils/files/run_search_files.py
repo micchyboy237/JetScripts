@@ -12,7 +12,7 @@ if __name__ == '__main__':
     base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/examples/Context-Engineering"
     includes = []
     excludes = []
-    include_contents = []
+    include_contents = ["*__main__*"]
     exclude_contents = []
     extensions = [".py", ".ipynb"]
     results = search_files(
