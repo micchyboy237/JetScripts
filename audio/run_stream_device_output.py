@@ -77,6 +77,7 @@ async def main():
     overlap_samples = int(SAMPLE_RATE * overlap_duration)
     all_chunks = []
     model_size: WhisperModelsType = "large-v3-turbo"
+    save_original_stream = False
 
     silence_threshold = calibrate_silence_threshold()
     # Only keep context transcriber for async
@@ -144,31 +145,37 @@ async def main():
         await transcription_queue.join()
         await worker_task
 
-    # After transcription, save consolidated file and metadata like before
-    # See original for full details; logic mostly unchanged except using refs
-    if all_chunks:
+    # ------------------------------------------------------------------
+    # Optional: save and transcribe the complete original stream
+    # ------------------------------------------------------------------
+    if all_chunks and save_original_stream:
         original_filename = f"{OUTPUT_DIR}/original_stream_{chunk_index:04d}.wav"
-        consolidated_chunks = [all_chunks[0]] + [chunk[overlap_samples:] for chunk in all_chunks[1:]]
+        # remove overlaps to get the true continuous stream
+        consolidated_chunks = [all_chunks[0]] + [c[overlap_samples:] for c in all_chunks[1:]]
         original_audio = np.concatenate(consolidated_chunks, axis=0)
         save_wav_file(original_filename, original_audio)
         original_duration = len(original_audio) / SAMPLE_RATE
-        logger.info(
-            f"Saved original stream to {original_filename}, duration: {original_duration:.2f}s"
-        )
+        logger.info(f"Saved original stream to {original_filename}, duration: {original_duration:.2f}s")
+
         original_transcription = await transcriber.transcribe_from_file(
             original_filename, f"{OUTPUT_DIR}/transcriptions"
         )
         concatenated_transcription = " ".join(
             meta["transcription"] for meta in chunks_metadata if meta.get("transcription")
         ).strip()
+
         if original_transcription and concatenated_transcription != original_transcription:
             logger.warning(
-                f"Original transcription differs from concatenated chunk transcriptions. "
-                f"Original: '{original_transcription}', Concatenated: '{concatenated_transcription}'")
+                "Original transcription differs from concatenated chunk transcriptions. "
+                f"Original: '{original_transcription}' | Concatenated: '{concatenated_transcription}'"
+            )
     else:
         original_filename = ""
         original_duration = 0.0
-        logger.warning("No chunks to save for original stream WAV")
+        if all_chunks:
+            logger.info("Skipping original stream WAV/transcription (save_original_stream=False)")
+        else:
+            logger.warning("No chunks recorded – nothing to save")
     metadata_file = os.path.join(OUTPUT_DIR, "chunks_info.json")
     with open(metadata_file, 'w') as f:
         json.dump({
@@ -176,8 +183,8 @@ async def main():
             "total_duration_s": round(total_samples / SAMPLE_RATE, 3),
             "original_wav": {
                 "filename": original_filename,
-                "duration_s": round(original_duration, 3),
-                "sample_count": len(original_audio) if all_chunks else 0
+                "duration_s": round(original_duration, 3) if save_original_stream else 0.0,
+                "sample_count": len(original_audio) if (all_chunks and save_original_stream) else 0
             },
             "chunks": chunks_metadata
         }, f, indent=2)

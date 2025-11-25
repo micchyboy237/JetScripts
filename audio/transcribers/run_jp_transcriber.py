@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from jet.audio.transcribers.jp_en.jp_transcriber import setup_logger, AudioConfig, TranscriberConfig, JapaneseTranscriber
+from jet.audio.utils import get_input_channels
 import sounddevice as sd
 
 OUTPUT_DIR = os.path.join(os.path.dirname(
@@ -15,15 +16,6 @@ print(sd.query_devices())
 
 # Select a device
 sd.default.device = 1
-
-def get_input_channels() -> int:
-    from jet.logger import logger
-
-    device_info = sd.query_devices(sd.default.device[0], 'input')
-    channels = device_info['max_input_channels']
-    logger.debug(f"Detected {channels} input channels")
-    return channels
-
 
 CHANNELS = min(2, get_input_channels())
 
