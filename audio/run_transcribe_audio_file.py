@@ -4,7 +4,7 @@ import shutil
 import sys
 import argparse
 
-from jet.audio.audio_file_transcriber import AudioFileTranscriber
+from jet.audio.transcribers.audio_file_transcriber import AudioFileTranscriber
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])

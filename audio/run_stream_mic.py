@@ -3,14 +3,11 @@ import os
 import json
 import soundfile as sf
 import shutil
-import sys
 import numpy as np
-from datetime import datetime
-from typing import List, Dict, Tuple, Optional
-from pathlib import Path
-from jet.audio.audio_file_transcriber import AudioFileTranscriber
-from jet.audio.audio_context_transcriber import AudioContextTranscriber
-from jet.audio.record_mic import save_wav_file, SAMPLE_RATE, detect_silence, calibrate_silence_threshold
+from typing import List, Dict, Optional
+from jet.audio.transcribers.audio_file_transcriber import AudioFileTranscriber
+from jet.audio.transcribers.audio_context_transcriber import AudioContextTranscriber
+from jet.audio.record_mic import save_wav_file, SAMPLE_RATE, calibrate_silence_threshold
 from jet.audio.stream_mic import save_chunk, stream_non_silent_audio
 from jet.logger import logger
 
