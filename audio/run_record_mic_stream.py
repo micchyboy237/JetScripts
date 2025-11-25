@@ -1,15 +1,15 @@
 import subprocess
+import shutil
 
 from datetime import datetime
 from pathlib import Path
 
 from jet.audio.record_mic_stream import record_mic_stream
 
-
 OUTPUT_DIR = Path(__file__).parent / "generated" / "run_record_mic_stream"
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_FILE = OUTPUT_DIR / \
-    f"recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
+OUTPUT_FILE = OUTPUT_DIR / f"recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
 
 
 def main():

@@ -1,15 +1,12 @@
 from typing import Generator, List, Optional
 import os
 import shutil
-import json
 import argparse
-from datetime import datetime
 import fnmatch
 from tqdm import tqdm
 from jet.file import traverse_directory
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.transformers.object import make_serializable
 
 
 def match_patterns(file_path: str, patterns: List[str]) -> bool:
@@ -39,6 +36,7 @@ def get_folder_sizes(folder_path):
 def find_large_folders(base_dir, includes, excludes, min_size_mb, delete_folders=False, depth: Optional[int] = 2, **kwargs) -> Generator[dict, None, List[dict]]:
     """Find folders larger than min_size_mb and optionally delete them."""
     results = []
+    base_dir = os.path.expanduser(base_dir)
     output_file = kwargs.pop("output_file", os.path.join(
         base_dir, "_large_folders.json"))
     save_results = kwargs.pop("save", False)
@@ -106,7 +104,7 @@ def get_command() -> str:
         arg_val = arg
         try:
             arg_val = int(arg)
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError):
             if not (isinstance(arg, str) and arg.startswith("-")):
                 arg_val = f'"{arg}"'
         transformed_args.append(str(arg_val))

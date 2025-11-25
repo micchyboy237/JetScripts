@@ -178,7 +178,7 @@ freeze() {
 
     local python_path=".venv/bin/python"
     local output_path="requirements-frozen.txt"
-    local default_python="$HOME/.cache/venv/base_venv/bin/python"
+    local default_python="$HOME/Desktop/External_Projects/Jet_Projects/jet_python_modules/.venv/bin/python"
 
     while [[ $# -gt 0 ]]; do
     case $1 in
@@ -366,6 +366,7 @@ large_folders() {
     # Example:
     # large_folders -b . -s 50 -d 3 --save
     # large_folders -b . -s 100 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3 --save
+    # large_folders -b ~/Desktop/External_Projects -i ".venv,venv" -d 0 --save
     # large_folders -b /Users/jethroestrada/.cache/huggingface/hub -s 200 -d 0 --save
 }
 

@@ -3,14 +3,11 @@ import os
 import json
 import soundfile as sf
 import shutil
-import sys
 import numpy as np
-from datetime import datetime
-from typing import List, Dict, Tuple, Optional
-from pathlib import Path
+from typing import List, Dict, Optional
 from jet.audio.audio_file_transcriber import AudioFileTranscriber
 from jet.audio.audio_context_transcriber import AudioContextTranscriber
-from jet.audio.record_mic import save_wav_file, SAMPLE_RATE, detect_silence, calibrate_silence_threshold
+from jet.audio.record_mic import save_wav_file, SAMPLE_RATE, calibrate_silence_threshold
 from jet.audio.stream_mic import save_chunk, stream_non_silent_audio
 from jet.logger import logger
 
@@ -33,8 +30,8 @@ async def main():
     chunks_metadata: List[Dict] = []
     total_samples = 0
     cumulative_duration = 0.0
-    min_chunk_duration = 1.0
-    overlap_duration = 1.0
+    min_chunk_duration = 5.0
+    overlap_duration = 2.0
     overlap_samples = int(SAMPLE_RATE * overlap_duration)
     all_chunks = []
     silence_threshold = calibrate_silence_threshold()

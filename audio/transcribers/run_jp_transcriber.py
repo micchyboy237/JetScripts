@@ -31,17 +31,16 @@ print(f"Channels: {CHANNELS}")
 
 # ============================= MAIN =============================
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Real-time Japanese → English with logging + progress")
-    parser.add_argument("--device", type=int, default=None, help="Audio device index listed in sd.query_devices()")
-    parser.add_argument("--model", type=str, default="turbo", choices=["tiny", "base", "small", "medium", "large-v3", "turbo"])
-    parser.add_argument("--chunk", type=float, default=3.0, help="Chunk duration in seconds")
-    parser.add_argument("--output-dir", type=str, default=f"{OUTPUT_DIR}/translations", help="Output directory")
-    parser.add_argument("--quiet", action="store_true", help="Minimal console output")
-    parser.add_argument("--no-progress", action="store_true", help="Hide tqdm progress bar")
+    parser = argparse.ArgumentParser(description="Japanese → English Real-time • Zero Loss • Max Quality")
+    parser.add_argument("--device", type=int, default=None, help="Audio device index")
+    parser.add_argument("--chunk", type=float, default=2.0, help="Audio chunk size in seconds (1.5–3.0 recommended)")
+    parser.add_argument("--output-dir", type=str, default=f"{OUTPUT_DIR}/translations")
+    parser.add_argument("--quiet", action="store_true")
+    parser.add_argument("--no-progress", action="store_true")
     args = parser.parse_args()
 
     output_path = Path(args.output_dir).expanduser().resolve()
-    logger = setup_logger(output_path, quiet=args.quiet)
+    logger = setup_logger(output_path, args.quiet)
 
     audio_cfg: AudioConfig = {
         "device": args.device,
@@ -50,15 +49,12 @@ def main() -> None:
         "channels": CHANNELS,
     }
 
-    # Initial compute_type (overridden in __init__ for Apple Silicon)
-    compute_type = "int8" if args.model in ("tiny", "base") else "float16"
-
     trans_cfg: TranscriberConfig = {
-        "model_size": args.model,
-        "compute_type": compute_type,
+        "model_size": "large-v3",
+        "compute_type": "int16",
         "language": "ja",
-        "task": "translate",
-        "device": "auto",  # Placeholder; detected in __init__
+        "task": "translate",   # ← This guarantees English output
+        "device": "auto",
     }
 
     transcriber = JapaneseTranscriber(
