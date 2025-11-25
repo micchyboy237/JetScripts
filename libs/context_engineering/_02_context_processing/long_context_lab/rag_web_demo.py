@@ -74,7 +74,8 @@ MEMORY_FILE = OUTPUT_DIR / "memory_state.json"
 
 # --- ADD CONSTANTS (after OUTPUT_DIR setup) ---
 # DEFAULT_SEARCH_QUERY = "long context attention mechanisms site:arxiv.org OR site:huggingface.co OR site:wikipedia.org"
-DEFAULT_SEARCH_QUERY = "top RAG context engineering tips reddit 2025"
+# DEFAULT_SEARCH_QUERY = "top RAG context engineering tips reddit 2025"
+DEFAULT_SEARCH_QUERY = "Thoughts on RAG context engineering reddit 2025"
 
 # Ensure directories
 OUTPUT_DIR.mkdir(exist_ok=True, parents=True)
@@ -397,6 +398,8 @@ def main():
         })
         sub_dir = f"{OUTPUT_DIR}/{format_sub_source_dir(url)}"
         save_file(raw_text, f"{sub_dir}/doc.md")
+
+    save_file(all_docs, f"{OUTPUT_DIR}/docs.json")
     
     print(f"\nScraped {len(all_docs)} documents. Starting chunking...")
     
@@ -415,6 +418,7 @@ def main():
     
     # Filter out empty chunks
     chunks_with_data = [chunk for chunk in chunks_with_data if chunk["content"].strip()]
+    save_file(chunks_with_data, f"{OUTPUT_DIR}/chunks.json")
 
     chunk_texts = [chunk["content"] for chunk in chunks_with_data]
     chunk_embeddings = embedder.encode(
