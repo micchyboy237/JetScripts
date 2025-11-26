@@ -1,83 +1,121 @@
+import os
 import shutil
-from jet.audio.transcribers.utils import transcribe_audio, segments_to_srt
-from jet.file.utils import save_file
+from faster_whisper import WhisperModel
+from datetime import datetime
 from pathlib import Path
-from typing import List  # for type hint
+from jet.file.utils import save_file
+from jet.logger import logger
 
-OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)  # recreate empty
 
-if __name__ == "__main__":
-    audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
+# ==============================
+# Configuration
+# ==============================
+audio_path = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav")
 
-    current_info = None
-    current_segments = []
-    current_chunk_idx = -1  # track which chunk we're collecting
+model_name = "large-v3"  # or "large-v3-turbo" if you want faster inference
 
-    all_segments: List = []  # ← NEW: collect globally
+# ==============================
+# Model Initialization
+# ==============================
+logger.info(f"Loading Whisper model: {model_name}")
+model = WhisperModel(model_name, device="cpu", compute_type="int8_float32")
+logger.info("Model loaded successfully")
 
-    for i, (segment, info, chunk_idx) in enumerate(transcribe_audio(
-        audio_path,
-        model_name="large-v3",
-        device="auto",
-        compute_type="int8_float32",
-        overlap_seconds=8.0,
-        chunk_length_seconds=30,
-        vad_filter=True,
-        word_timestamps=True,
-        language="ja",
-        task="translate",
-        beam_size=5,
-        temperature=[0.0],
-        repetition_penalty=1.1,
-        condition_on_previous_text=True,
-    ), 1):
-        if current_chunk_idx == -1:
-            current_chunk_idx = chunk_idx
-            current_info = info
+# ==============================
+# High-Accuracy Japanese → English Translation
+# ==============================
+logger.info(f"Starting translation of: {audio_path.name}")
 
-        # Save previous chunk data when chunk_idx changes
-        if current_chunk_idx != chunk_idx:
-            print(f"\nSaved chunk_{current_chunk_idx:04d} → {len(current_segments)} segments")
-            print(f" Language: {current_info.language} (prob: {current_info.language_probability:.3f})\n")
+segments, info = model.transcribe(
+    audio=str(audio_path),
+    language="ja",
+    task="translate",
 
-            # Reset for new chunk
-            current_chunk_idx = chunk_idx
-            current_info = info
-            current_segments = []
+    # Decoding: Maximum accuracy
+    beam_size=10,
+    patience=2.0,
+    temperature=0.0,
+    length_penalty=1.0,
+    best_of=1,
+    log_prob_threshold=-0.5,
 
-        # Update current state and accumulate global segments
-        current_segments.append(segment)
-        all_segments.append(segment)  # collect globally
+    # Context & consistency
+    condition_on_previous_text=True,
 
-        chunk_dir = OUTPUT_DIR / f"chunk_{current_chunk_idx:04d}"
-        chunk_dir.mkdir(parents=True, exist_ok=True)
-        save_file(current_info, chunk_dir / "info.json")
-        save_file(current_segments, chunk_dir / "segments.json")
+    # Japanese punctuation handling
+    prepend_punctuations="\"'“¿([{-『「（［",
+    append_punctuations="\"'.。,，!！?？:：”)]}、。」」！？",
 
-        # Save per-chunk SRT
-        srt_content = segments_to_srt(current_segments)
-        save_file(srt_content, chunk_dir / "subtitles.srt")
+    # Clean input
+    vad_filter=True,
+    vad_parameters=None,
 
-        print(f"{i:>3d}. [chunk {chunk_idx}] [{segment.start:.2f} → {segment.end:.2f}] {segment.text}")
+    # Output options
+    without_timestamps=False,
+    word_timestamps=False,
+    chunk_length=30,
+    log_progress=True,
+)
 
-    # Save the FINAL chunk after loop ends
-    if current_segments:
-        final_dir = OUTPUT_DIR / f"chunk_{current_chunk_idx:04d}"
-        final_dir.mkdir(parents=True, exist_ok=True)
-        save_file(current_info, final_dir / "info.json")
-        save_file(current_segments, final_dir / "segments.json")
+# ==============================
+# Log Key Metadata
+# ==============================
+logger.info("=" * 60)
+logger.info("TRANSCRIPTION / TRANSLATION COMPLETE")
+logger.info("=" * 60)
+logger.info(f"Detected Language       : {info.language} (probability: {info.language_probability:.3f})")
+logger.info(f"Original Duration       : {info.duration:.2f}s")
+logger.info("-" * 60)
 
-        srt_content = segments_to_srt(current_segments)
-        save_file(srt_content, final_dir / "subtitles.srt")
+# ==============================
+# Collect & Log Full Translated Text + Timestamps
+# ==============================
+full_translation = []
+all_segments = []
+for i, segment in enumerate(segments, start=1):
+    text = segment.text.strip()
+    start = segment.start
+    end = segment.end
 
-        print(f"\nSaved final chunk_{current_chunk_idx:04d} → {len(current_segments)} segments")
-        print(f" Language: {current_info.language} (prob: {current_info.language_probability:.3f})")
+    full_translation.append(text)
+    all_segments.append(segment)
 
-    # Save merged final SRT (all segments)
-    if all_segments:
-        final_srt_path = OUTPUT_DIR / "subtitles_all.srt"
-        save_file(segments_to_srt(all_segments), final_srt_path)
-        print(f"\nSaved complete subtitles → {final_srt_path}")
+    logger.info(f"[{i:3d}] {start:6.2f} → {end:6.2f} | {text}")
+
+# Final clean output
+final_text = " ".join(full_translation).strip()
+
+logger.info("=" * 60)
+logger.info("FINAL ENGLISH TRANSLATION")
+logger.info("=" * 60)
+logger.info(final_text)
+logger.info("=" * 60)
+
+# ==============================
+# Optional: Save to file
+# ==============================
+output_dir = Path(OUTPUT_DIR)
+output_dir.mkdir(exist_ok=True)
+
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+output_file = output_dir / f"{audio_path.stem}_translated_{timestamp}.txt"
+
+with open(output_file, "w", encoding="utf-8") as f:
+    f.write(f"Source File     : {audio_path.name}\n")
+    f.write(f"Model           : {model_name}\n")
+    f.write("Task            : translate (Japanese → English)\n")
+    f.write(f"Processed at    : {datetime.now().isoformat()}\n")
+    f.write(f"Duration        : {info.duration:.2f}s\n")
+    f.write(f"Segments        : {len(all_segments)}\n")
+    f.write("\n" + "="*60 + "\n")
+    f.write("FULL TRANSLATION\n")
+    f.write("="*60 + "\n")
+    f.write(final_text)
+
+save_file(info, f"{OUTPUT_DIR}/info.json")
+save_file(all_segments, f"{OUTPUT_DIR}/segments.json")
+
+logger.info(f"Translation saved to: {output_file}")
