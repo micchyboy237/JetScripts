@@ -11,7 +11,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 if __name__ == "__main__":
-    audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_022942.wav"
+    audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_211631.wav"
     
     # Load model (GPU example; use device="cpu" for CPU)
     model = WhisperModel("large-v3", device="cpu")

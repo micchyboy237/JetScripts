@@ -18,7 +18,7 @@ OUTPUT_FILE = OUTPUT_DIR / f"recording_{datetime.now().strftime('%Y%m%d_%H%M%S')
 
 def main():
     """Main function to demonstrate recording."""
-    duration_seconds = 35
+    duration_seconds = 70
 
     def print_countdown(total: int):
         """Print live countdown timer in place."""
