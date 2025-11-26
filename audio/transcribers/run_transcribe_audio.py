@@ -55,7 +55,7 @@ segments, info = model.transcribe(
 
     # Output options
     without_timestamps=False,
-    word_timestamps=False,
+    word_timestamps=True,
     chunk_length=30,
     log_progress=True,
 )
