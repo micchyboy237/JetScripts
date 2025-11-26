@@ -285,7 +285,7 @@ if __name__ == "__main__":
         compute_type="float16"
     )
 
-    audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_211631.wav"
+    audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
 
     segments_iter, info = transcriber.transcribe(
         audio_path,

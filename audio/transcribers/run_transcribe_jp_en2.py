@@ -40,7 +40,7 @@ if __name__ == "__main__":
     # One-time model setup (call once; safe to rerun)
     setup_argos_model()
 
-    sound_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_211631.wav"
+    sound_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
 
     # Choose model: "large-v3" for best accuracy, "large-v3-turbo" for speed
     device = "cuda" if platform.system() == "Windows" else "auto"  # Auto-detects Metal on M1
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     # Transcribe Japanese audio → Japanese text
     # segments_iter, info = model.transcribe(
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_211631.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav",
     #     language="ja",
     #     task="translate",
     #     beam_size=7,
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     #     log_progress=True,
     # )
     segments_iter, info = model.transcribe(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_211631.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav",
         beam_size=1,                   # greedy
         temperature=[0.0],
         vad_filter=True,

@@ -12,7 +12,7 @@ if __name__ == "__main__":
 
     # Transcribe Japanese audio → Japanese text
     segments, info = model.transcribe(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_211631.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav",
         language="ja",
         task="translate",
         beam_size=7,

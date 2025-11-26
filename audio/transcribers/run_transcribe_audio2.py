@@ -22,7 +22,7 @@ OUTPUT_DIR = Path(__file__).with_name("generated") / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-DEFAULT_AUDIO_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_211631.wav"
+DEFAULT_AUDIO_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
 
 def format_time(seconds: float) -> str:
     """Always return time with exactly 2 decimal places (e.g. 6.80, 18.60)"""
