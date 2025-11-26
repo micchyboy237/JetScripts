@@ -16,7 +16,7 @@ if __name__ == "__main__":
     # Load model (GPU example; use device="cpu" for CPU)
     model = WhisperModel("large-v3", device="cpu")
     segment_duration: float = 10.0
-    overlap_duration: float = 1.0
+    overlap_duration: float = 2.0
     sample_rate: int = 16000
 
     audio, sr = load_audio(audio_path)
