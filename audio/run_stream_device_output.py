@@ -76,7 +76,7 @@ async def main():
     overlap_duration = 2.0
     overlap_samples = int(SAMPLE_RATE * overlap_duration)
     all_chunks = []
-    model_size: WhisperModelsType = "large-v3-turbo"
+    model_size: WhisperModelsType = "large-v3"
     save_original_stream = False
 
     silence_threshold = calibrate_silence_threshold()
