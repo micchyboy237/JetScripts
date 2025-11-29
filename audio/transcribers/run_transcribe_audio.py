@@ -3,6 +3,7 @@ import shutil
 from faster_whisper import WhisperModel
 from datetime import datetime
 from pathlib import Path
+from jet.audio.transcribers.utils import segments_to_srt
 from jet.file.utils import save_file
 from jet.logger import logger
 
@@ -115,7 +116,11 @@ with open(output_file, "w", encoding="utf-8") as f:
     f.write("="*60 + "\n")
     f.write(final_text)
 
+# Format subtitles
+srt_content = segments_to_srt(all_segments)
+
 save_file(info, f"{OUTPUT_DIR}/info.json")
 save_file(all_segments, f"{OUTPUT_DIR}/segments.json")
+save_file(srt_content, f"{OUTPUT_DIR}/subtitles.srt")
 
 logger.info(f"Translation saved to: {output_file}")
