@@ -1,128 +1,177 @@
-import os
+# jet/audio/transcribers/faster_whisper_translator.py
+
+from __future__ import annotations
+
 import shutil
-from faster_whisper import WhisperModel
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
+from typing import List, Sequence, Union
+
+from faster_whisper import WhisperModel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from tqdm import tqdm
+
 from jet.audio.transcribers.utils import segments_to_srt
 from jet.file.utils import save_file
 from jet.logger import logger
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+# Supported audio extensions (common + comprehensive)
+AUDIO_EXTENSIONS = {
+    ".wav", ".mp3", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".webm", ".mp4", ".mkv", ".avi"
+}
+
+AudioInput = Union[str, Path, Sequence[Union[str, Path]]]
+
+
+def _resolve_audio_paths(audio_inputs: AudioInput) -> List[Path]:
+    """Resolve single/list/dir → flat list of existing audio file Paths (non-recursive)."""
+    inputs = [audio_inputs] if isinstance(audio_inputs, (str, Path)) else audio_inputs
+    resolved: List[Path] = []
+
+    for item in inputs:
+        path = Path(item)
+
+        if path.is_dir():
+            # Non-recursive: only direct children
+            audio_files = [
+                p for p in path.iterdir()
+                if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS
+            ]
+            if not audio_files:
+                logger.warning(f"No audio files found in directory: {path}")
+            resolved.extend(audio_files)
+        elif path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
+            resolved.append(path)
+        elif path.exists():
+            logger.warning(f"Skipping non-audio or unsupported file: {path}")
+        else:
+            logger.error(f"Path not found: {path}")
+
+    if not resolved:
+        raise ValueError("No valid audio files found from provided inputs.")
+
+    return resolved
+
+
+def translate_audio_files(
+    audio_inputs: AudioInput,
+    *,
+    model_name: str = "large-v3",
+    device: str = "cpu",
+    compute_type: str = "int8",
+    language: str = "ja",
+    task: str = "translate",
+    output_dir: Union[str, Path] | None = None,
+    vad_filter: bool = True,
+    word_timestamps: bool = True,
+    chunk_length: int = 30,
+) -> List[Path]:
+    """
+    Translate Japanese audio to English.
+
+    Now supports:
+      • Single file
+      • List of files
+      • Directory → scans non-recursively for audio files
+
+    Args:
+        audio_inputs: File path, list of paths, or directory
+        ... (other args unchanged)
+
+    Returns:
+        List of output directories (one per processed file)
+    """
+    audio_paths = _resolve_audio_paths(audio_inputs)
+
+    # Create base output directory
+    base_output = Path(output_dir) if output_dir else (
+        Path(__file__).parent / "generated" / f"translation_{datetime.now():%Y%m%d_%H%M%S}"
+    )
+    base_output.mkdir(parents=True, exist_ok=True)
+    shutil.rmtree(base_output, ignore_errors=True)
+    base_output.mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Loading Whisper model '{model_name}' on {device} ({compute_type})")
+    model = WhisperModel(model_name, device=device, compute_type=compute_type)
+    logger.success("Model loaded")
+
+    created_dirs: List[Path] = []
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]Processing {task.completed}/{task.total} files..."),
+        transient=False,
+    ) as progress:
+        task_id = progress.add_task("Translating", total=len(audio_paths))
+
+        for audio_path in tqdm(audio_paths, desc="Translating", unit="file", colour="cyan"):
+            stem = audio_path.stem
+            file_output_dir = base_output / f"{stem}_translated"
+            file_output_dir.mkdir(parents=True, exist_ok=True)
+            created_dirs.append(file_output_dir)
+
+            logger.info(f"Translating → {audio_path.name}")
+
+            segments, info = model.transcribe(
+                audio=str(audio_path),
+                language=language,
+                task=task,
+                vad_filter=vad_filter,
+                word_timestamps=word_timestamps,
+                chunk_length=chunk_length,
+                without_timestamps=False,
+                condition_on_previous_text=True,
+                log_progress=True
+            )
+
+            all_segments = list(segments)
+            full_text = " ".join(seg.text.strip() for seg in all_segments)
+
+            logger.info(f"Duration: {info.duration:.2f}s | Segments: {len(all_segments)}")
+
+            # Save full translation
+            txt_path = file_output_dir / "translation.txt"
+            with open(txt_path, "w", encoding="utf-8") as f:
+                f.write(
+                    f"Source: {audio_path.name}\n"
+                    f"Model: {model_name}\n"
+                    f"Task: Japanese → English Translation\n"
+                    f"Processed: {datetime.now().isoformat()}\n"
+                    f"Duration: {info.duration:.2f}s\n"
+                    f"Segments: {len(all_segments)}\n"
+                    f"{'='*60}\n"
+                    f"FULL ENGLISH TRANSLATION\n"
+                    f"{'='*60}\n\n"
+                    f"{full_text}\n"
+                )
+
+            # Save artifacts
+            srt_content = segments_to_srt(all_segments)
+            save_file(info, file_output_dir / "info.json", formatter=lambda x: x._asdict())
+            save_file(all_segments, file_output_dir / "segments.json", formatter=lambda s: [asdict(seg) for seg in s])
+            save_file(srt_content, file_output_dir / "subtitles.srt")
+
+            logger.success(f"Saved → {file_output_dir.name}")
+            progress.advance(task_id)
+
+    logger.success(f"All done! Outputs in:\n   → {base_output.resolve()}")
+    return created_dirs
+
 
 # ==============================
-# Configuration
+# Main Block — Now super flexible
 # ==============================
-# audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
-audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_stream_device_output/stream_chunk_0002.wav"
-audio_path = Path(audio_file)
+if __name__ == "__main__":
+    example_files = [
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_streaming_speech_analyzer",
+        # Add more files here for batch processing
+    ]
 
-model_name = "large-v3"  # or "large-v3-turbo" if you want faster inference
-
-# ==============================
-# Model Initialization
-# ==============================
-logger.info(f"Loading Whisper model: {model_name}")
-model = WhisperModel(model_name, device="cpu", compute_type="int8")
-logger.info("Model loaded successfully")
-
-# ==============================
-# High-Accuracy Japanese → English Translation
-# ==============================
-logger.info(f"Starting translation of: {audio_path.name}")
-
-segments, info = model.transcribe(
-    audio=str(audio_path),
-    language="ja",
-    task="translate",
-
-    # # Decoding: Maximum accuracy
-    # beam_size=10,
-    # patience=2.0,
-    # temperature=0.0,
-    # length_penalty=1.0,
-    # best_of=1,
-    # log_prob_threshold=-0.5,
-
-    # Context & consistency
-    condition_on_previous_text=False,
-
-    # # Japanese punctuation handling
-    # prepend_punctuations="\"'“¿([{-『「（［",
-    # append_punctuations="\"'.。,，!！?？:：”)]}、。」」！？",
-
-    # Clean input
-    vad_filter=True,
-    # vad_parameters=None,
-
-    # Output options
-    without_timestamps=False,
-    word_timestamps=True,
-    chunk_length=30,
-    log_progress=True,
-)
-
-# ==============================
-# Log Key Metadata
-# ==============================
-logger.info("=" * 60)
-logger.info("TRANSCRIPTION / TRANSLATION COMPLETE")
-logger.info("=" * 60)
-logger.info(f"Detected Language       : {info.language} (probability: {info.language_probability:.3f})")
-logger.info(f"Original Duration       : {info.duration:.2f}s")
-logger.info("-" * 60)
-
-# ==============================
-# Collect & Log Full Translated Text + Timestamps
-# ==============================
-full_translation = []
-all_segments = []
-for i, segment in enumerate(segments, start=1):
-    text = segment.text.strip()
-    start = segment.start
-    end = segment.end
-
-    full_translation.append(text)
-    all_segments.append(segment)
-
-    logger.info(f"[{i:3d}] {start:6.2f} → {end:6.2f} | {text}")
-
-# Final clean output
-final_text = " ".join(full_translation).strip()
-
-logger.info("=" * 60)
-logger.info("FINAL ENGLISH TRANSLATION")
-logger.info("=" * 60)
-logger.info(final_text)
-logger.info("=" * 60)
-
-# ==============================
-# Optional: Save to file
-# ==============================
-output_dir = Path(OUTPUT_DIR)
-output_dir.mkdir(exist_ok=True)
-
-timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-output_file = output_dir / f"{audio_path.stem}_translated_{timestamp}.txt"
-
-with open(output_file, "w", encoding="utf-8") as f:
-    f.write(f"Source File     : {audio_path.name}\n")
-    f.write(f"Model           : {model_name}\n")
-    f.write("Task            : translate (Japanese → English)\n")
-    f.write(f"Processed at    : {datetime.now().isoformat()}\n")
-    f.write(f"Duration        : {info.duration:.2f}s\n")
-    f.write(f"Segments        : {len(all_segments)}\n")
-    f.write("\n" + "="*60 + "\n")
-    f.write("FULL TRANSLATION\n")
-    f.write("="*60 + "\n")
-    f.write(final_text)
-
-# Format subtitles
-srt_content = segments_to_srt(all_segments)
-
-save_file(info, f"{OUTPUT_DIR}/info.json")
-save_file(all_segments, f"{OUTPUT_DIR}/segments.json")
-save_file(srt_content, f"{OUTPUT_DIR}/subtitles.srt")
-
-logger.info(f"Translation saved to: {output_file}")
+    translate_audio_files(
+        audio_inputs=example_files,
+        model_name="large-v3",
+        device="cpu",
+        compute_type="int8",
+    )
