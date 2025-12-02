@@ -6,56 +6,20 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import List, Sequence, Union
+from typing import List, Union
 
 from faster_whisper import WhisperModel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from tqdm import tqdm
 
 from jet.audio.transcribers.utils import segments_to_srt
+from jet.audio.utils import AudioInput, resolve_audio_paths
 from jet.file.utils import save_file
 from jet.logger import logger
+from jet.utils.text import format_file_path
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-
-# Supported audio extensions (common + comprehensive)
-AUDIO_EXTENSIONS = {
-    ".wav", ".mp3", ".m4a", ".flac", ".ogg", ".aac", ".wma", ".webm", ".mp4", ".mkv", ".avi"
-}
-
-AudioInput = Union[str, Path, Sequence[Union[str, Path]]]
-
-
-def _resolve_audio_paths(audio_inputs: AudioInput) -> List[Path]:
-    """Resolve single/list/dir → flat list of existing audio file Paths (non-recursive)."""
-    inputs = [audio_inputs] if isinstance(audio_inputs, (str, Path)) else audio_inputs
-    resolved: List[Path] = []
-
-    for item in inputs:
-        path = Path(item)
-
-        if path.is_dir():
-            # Non-recursive: only direct children
-            audio_files = [
-                p for p in path.iterdir()
-                if p.is_file() and p.suffix.lower() in AUDIO_EXTENSIONS
-            ]
-            if not audio_files:
-                logger.warning(f"No audio files found in directory: {path}")
-            resolved.extend(audio_files)
-        elif path.is_file() and path.suffix.lower() in AUDIO_EXTENSIONS:
-            resolved.append(path)
-        elif path.exists():
-            logger.warning(f"Skipping non-audio or unsupported file: {path}")
-        else:
-            logger.error(f"Path not found: {path}")
-
-    if not resolved:
-        raise ValueError("No valid audio files found from provided inputs.")
-
-    return resolved
-
 
 def translate_audio_files(
     audio_inputs: AudioInput,
@@ -85,7 +49,7 @@ def translate_audio_files(
     Returns:
         List of output directories (one per processed file)
     """
-    audio_paths = _resolve_audio_paths(audio_inputs)
+    audio_paths = resolve_audio_paths(audio_inputs, recursive=True)
 
     # Create base output directory
     base_output = Path(output_dir)
@@ -107,7 +71,7 @@ def translate_audio_files(
 
         for audio_path in tqdm(audio_paths, desc="Translating", unit="file", colour="cyan"):
             stem = audio_path.stem
-            file_output_dir = base_output / f"{stem}_translated"
+            file_output_dir = base_output / f"{format_file_path(stem)}_translated"
             file_output_dir.mkdir(parents=True, exist_ok=True)
             created_dirs.append(file_output_dir)
 
@@ -164,7 +128,7 @@ def translate_audio_files(
 # ==============================
 if __name__ == "__main__":
     example_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_streaming_speech_analyzer",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
         # Add more files here for batch processing
     ]
 

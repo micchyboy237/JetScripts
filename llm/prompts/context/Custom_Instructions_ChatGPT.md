@@ -10,7 +10,7 @@ Avoid static implementations.
 Prioritize generic, reusable code without specific defaults or business logic.
 Follow industry best practices.
 Write clear, readable definitions for quick junior dev understanding.
-Use free, modern, popular packages. Use `rich` for console output/tables/logging; `tqdm` for progress bars in loops.
+Use free, modern, popular packages. Use `rich` for console output/tables/logging that lets me keep track; `tqdm` for progress bars in loops.
 Use pytest with test classes; define `result` and `expected`; assert exact values (not lengths); use cleanup fixtures.
 
 Add debug logs with fixes **only** after I confirm failure and you share results.
