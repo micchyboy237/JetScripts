@@ -14,7 +14,9 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 # ==============================
 # Configuration
 # ==============================
-audio_path = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav")
+# audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
+audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_stream_device_output/stream_chunk_0002.wav"
+audio_path = Path(audio_file)
 
 model_name = "large-v3"  # or "large-v3-turbo" if you want faster inference
 
