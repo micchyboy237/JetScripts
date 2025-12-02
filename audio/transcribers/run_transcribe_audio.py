@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import os
 import shutil
-from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import List, Sequence, Union
@@ -16,6 +16,8 @@ from jet.audio.transcribers.utils import segments_to_srt
 from jet.file.utils import save_file
 from jet.logger import logger
 
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 # Supported audio extensions (common + comprehensive)
 AUDIO_EXTENSIONS = {
@@ -63,7 +65,7 @@ def translate_audio_files(
     compute_type: str = "int8",
     language: str = "ja",
     task: str = "translate",
-    output_dir: Union[str, Path] | None = None,
+    output_dir: Union[str, Path] = OUTPUT_DIR,
     vad_filter: bool = True,
     word_timestamps: bool = True,
     chunk_length: int = 30,
@@ -86,10 +88,7 @@ def translate_audio_files(
     audio_paths = _resolve_audio_paths(audio_inputs)
 
     # Create base output directory
-    base_output = Path(output_dir) if output_dir else (
-        Path(__file__).parent / "generated" / f"translation_{datetime.now():%Y%m%d_%H%M%S}"
-    )
-    base_output.mkdir(parents=True, exist_ok=True)
+    base_output = Path(output_dir)
     shutil.rmtree(base_output, ignore_errors=True)
     base_output.mkdir(parents=True, exist_ok=True)
 
@@ -149,8 +148,8 @@ def translate_audio_files(
 
             # Save artifacts
             srt_content = segments_to_srt(all_segments)
-            save_file(info, file_output_dir / "info.json", formatter=lambda x: x._asdict())
-            save_file(all_segments, file_output_dir / "segments.json", formatter=lambda s: [asdict(seg) for seg in s])
+            save_file(info, file_output_dir / "info.json")
+            save_file(all_segments, file_output_dir / "segments.json")
             save_file(srt_content, file_output_dir / "subtitles.srt")
 
             logger.success(f"Saved → {file_output_dir.name}")
