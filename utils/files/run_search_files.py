@@ -9,15 +9,28 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == '__main__':
-    base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/examples/Context-Engineering"
-    includes = []
-    excludes = []
-    include_contents = ["*__main__*"]
+    # base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/examples/Context-Engineering"
+    base_dir = [
+        "/Users/jethroestrada/.cache/huggingface/hub",
+        "/Users/jethroestrada/.cache/huggingface/datasets",
+    ]
+    # includes = []
+    includes = [
+        "*japanese*",
+    ]
+    excludes = [
+        ".locks"
+    ]
+    # include_contents = ["*__main__*"]
+    include_contents = []
     exclude_contents = []
-    extensions = [".py", ".ipynb"]
+    # extensions = [".py", ".ipynb"]
+    # extensions = []
+    extensions = [".parquet"]
     results = search_files(
         base_dir,
         extensions,
+        include_files=includes,
         exclude_files=excludes,
         include_contents=include_contents,
         exclude_contents=exclude_contents,

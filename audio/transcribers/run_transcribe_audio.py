@@ -22,7 +22,7 @@ model_name = "large-v3"  # or "large-v3-turbo" if you want faster inference
 # Model Initialization
 # ==============================
 logger.info(f"Loading Whisper model: {model_name}")
-model = WhisperModel(model_name, device="cpu", compute_type="int8_float32")
+model = WhisperModel(model_name, device="cpu", compute_type="int8")
 logger.info("Model loaded successfully")
 
 # ==============================
@@ -35,24 +35,24 @@ segments, info = model.transcribe(
     language="ja",
     task="translate",
 
-    # Decoding: Maximum accuracy
-    beam_size=10,
-    patience=2.0,
-    temperature=0.0,
-    length_penalty=1.0,
-    best_of=1,
-    log_prob_threshold=-0.5,
+    # # Decoding: Maximum accuracy
+    # beam_size=10,
+    # patience=2.0,
+    # temperature=0.0,
+    # length_penalty=1.0,
+    # best_of=1,
+    # log_prob_threshold=-0.5,
 
     # Context & consistency
-    condition_on_previous_text=True,
+    condition_on_previous_text=False,
 
-    # Japanese punctuation handling
-    prepend_punctuations="\"'“¿([{-『「（［",
-    append_punctuations="\"'.。,，!！?？:：”)]}、。」」！？",
+    # # Japanese punctuation handling
+    # prepend_punctuations="\"'“¿([{-『「（［",
+    # append_punctuations="\"'.。,，!！?？:：”)]}、。」」！？",
 
     # Clean input
     vad_filter=True,
-    vad_parameters=None,
+    # vad_parameters=None,
 
     # Output options
     without_timestamps=False,
