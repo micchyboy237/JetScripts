@@ -84,7 +84,7 @@ def translate_audio_files(
                 word_timestamps=word_timestamps,
                 chunk_length=chunk_length,
                 without_timestamps=False,
-                condition_on_previous_text=False,
+                condition_on_previous_text=True,
                 log_progress=True
             )
 
@@ -129,6 +129,7 @@ if __name__ == "__main__":
     example_files = [
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream/segment_001/sound.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/data/audio/1.wav",
     ]
 
     translate_audio_files(
