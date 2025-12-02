@@ -5,7 +5,7 @@ if __name__ == "__main__":
     overwrite = True
     extract_code = True
     hf_readme_download_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes"
-    model: ModelType = "jonatasgrosman/wav2vec2-large-xlsr-53-japanese"
+    model: ModelType = "kotoba-tech/kotoba-whisper-bilingual-v1.0-faster"
 
     model_value: ModelValue = resolve_model_value(model)
     download_readme(model_value, hf_readme_download_dir,

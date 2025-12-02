@@ -16,7 +16,6 @@ from jet.audio.transcribers.utils import segments_to_srt
 from jet.audio.utils import AudioInput, resolve_audio_paths
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.utils.text import format_file_path
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -30,7 +29,7 @@ def translate_audio_files(
     language: str = "ja",
     task: str = "translate",
     output_dir: Union[str, Path] = OUTPUT_DIR,
-    vad_filter: bool = True,
+    vad_filter: bool = False,
     word_timestamps: bool = True,
     chunk_length: int = 30,
 ) -> List[Path]:
@@ -69,9 +68,9 @@ def translate_audio_files(
     ) as progress:
         task_id = progress.add_task("Translating", total=len(audio_paths))
 
-        for audio_path in tqdm(audio_paths, desc="Translating", unit="file", colour="cyan"):
-            stem = audio_path.stem
-            file_output_dir = base_output / f"{format_file_path(stem)}_translated"
+        for idx, audio_path in enumerate(tqdm(audio_paths, desc="Translating", unit="file", colour="cyan"), start=1):
+            # Subdir as translated_<num>
+            file_output_dir = base_output / f"translated_{idx:03d}"
             file_output_dir.mkdir(parents=True, exist_ok=True)
             created_dirs.append(file_output_dir)
 
@@ -85,7 +84,7 @@ def translate_audio_files(
                 word_timestamps=word_timestamps,
                 chunk_length=chunk_length,
                 without_timestamps=False,
-                condition_on_previous_text=True,
+                condition_on_previous_text=False,
                 log_progress=True
             )
 
@@ -129,7 +128,7 @@ def translate_audio_files(
 if __name__ == "__main__":
     example_files = [
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
-        # Add more files here for batch processing
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream/segment_001/sound.wav",
     ]
 
     translate_audio_files(
