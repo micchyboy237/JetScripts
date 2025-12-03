@@ -1,11 +1,10 @@
 import json
-import os
-import shutil
-
 from jet.audio.speech.silero.speech_utils import extract_speech_timestamps
 from jet.audio.utils import resolve_audio_paths
-from jet.file.utils import save_file
 from jet.logger import logger
+from jet.file.utils import save_file
+import os
+import shutil
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
