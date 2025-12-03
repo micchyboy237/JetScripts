@@ -12,8 +12,6 @@ if __name__ == "__main__":
     audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
     analyzer = SileroVADAnalyzer(
         threshold=0.5,
-        min_speech_duration_ms=250,
-        min_silence_duration_ms=120,
         speech_pad_ms=30,
     )
     probs, segments = analyzer.analyze(audio_file)
