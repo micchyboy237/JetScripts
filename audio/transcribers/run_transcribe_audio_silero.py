@@ -4,9 +4,8 @@ from __future__ import annotations
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Union
 
-from faster_whisper import WhisperModel
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
@@ -15,6 +14,7 @@ from jet.audio.transcribers.utils import segments_to_srt
 from jet.audio.utils import SegmentGroup, resolve_audio_paths_by_groups
 from jet.file.utils import save_file
 from jet.logger import logger
+from jet.models.model_registry.transformers.speech_to_text.whisper_model_registry import WhisperModelRegistry, WhisperModelsType
 
 console = Console()
 
@@ -28,8 +28,8 @@ TaskType = Literal["transcribe", "translate"]
 def transcribe_segment_groups(
     audio_dir: str | Path,
     *,
-    model_name: str = "large-v3",
-    device: str = "auto",
+    model_name: Union[str, WhisperModelsType] = "large-v3",
+    device: str = "cpu",
     compute_type: str = "int8",
     language: str = "ja",
     task: TaskType = "translate",           # ← Fixed: must be valid
@@ -47,7 +47,8 @@ def transcribe_segment_groups(
     output_base.mkdir(parents=True, exist_ok=True)
 
     console.log(f"[bold green]Loading Whisper model:[/] {model_name} → {device} ({compute_type})")
-    model = WhisperModel(model_name, device=device, compute_type=compute_type)
+    registry = WhisperModelRegistry()
+    model = registry.load_model(model_name, device=device, compute_type=compute_type)
     console.log("[bold green]Model loaded successfully[/]")
 
     grouped: dict[str, SegmentGroup] = resolve_audio_paths_by_groups(audio_dir)
