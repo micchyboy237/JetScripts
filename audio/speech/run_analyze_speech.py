@@ -15,8 +15,23 @@ if __name__ == "__main__":
         speech_pad_ms=30,
     )
     probs, segments = analyzer.analyze(audio_file)
+    total_sec = len(probs) * analyzer.step_sec
+    metrics = analyzer.get_metrics(probs, segments, total_sec)
+
     analyzer.plot_insights(probs, segments, audio_file, OUTPUT_DIR)
     analyzer.save_json(segments, OUTPUT_DIR, audio_file)
 
+    # NEW: Pretty table in console
+    from rich.table import Table
+    from rich.console import Console
+    console = Console()
+    table = Table(title=f"[bold]VAD Metrics – {os.path.basename(audio_file)}[/bold]")
+    table.add_column("Metric")
+    table.add_column("Value", justify="right")
+    for k, v in metrics.items():
+        table.add_row(k.replace("_", " ").title(), str(v))
+    console.print(table)
+
     save_file(probs, f"{OUTPUT_DIR}/probs.json")
     save_file(segments, f"{OUTPUT_DIR}/segments.json")
+    save_file(metrics, f"{OUTPUT_DIR}/vad_metrics.json")
