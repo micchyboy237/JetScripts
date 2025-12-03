@@ -1,5 +1,5 @@
 import json
-from jet.audio.speech.silero.speech_utils import extract_speech_timestamps
+from jet.audio.speech.silero.speech_segments_extractor import extract_speech_timestamps
 from jet.audio.utils import resolve_audio_paths
 from jet.logger import logger
 from jet.file.utils import save_file
