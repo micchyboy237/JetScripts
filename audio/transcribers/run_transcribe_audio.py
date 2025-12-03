@@ -48,7 +48,7 @@ def translate_audio_files(
     Returns:
         List of output directories (one per processed file)
     """
-    audio_paths = resolve_audio_paths(audio_inputs, recursive=True)
+    audio_paths = resolve_audio_paths(audio_inputs, recursive=False)
 
     # Create base output directory
     base_output = Path(output_dir)
@@ -85,7 +85,10 @@ def translate_audio_files(
                 chunk_length=chunk_length,
                 without_timestamps=False,
                 condition_on_previous_text=False,
-                log_progress=True
+                log_progress=True,
+                compression_ratio_threshold=None,  # ← disable
+                log_prob_threshold=None,           # ← disable
+                no_speech_threshold=None,          # ← disable
             )
 
             all_segments = list(segments)
@@ -127,8 +130,8 @@ def translate_audio_files(
 # ==============================
 if __name__ == "__main__":
     example_files = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_stream_device_output",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_stream_device_output",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/data/audio/1.wav",
     ]
 
