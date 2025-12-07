@@ -32,6 +32,7 @@ def translate_audio_files(
     vad_filter: bool = False,
     word_timestamps: bool = True,
     chunk_length: int = 30,
+    recursive: bool = False,
 ) -> List[Path]:
     """
     Translate Japanese audio to English.
@@ -39,16 +40,25 @@ def translate_audio_files(
     Now supports:
       • Single file
       • List of files
-      • Directory → scans non-recursively for audio files
+      • Directory → scans recursively or non-recursively for audio files
 
     Args:
-        audio_inputs: File path, list of paths, or directory
-        ... (other args unchanged)
+        audio_inputs: Path to an audio file, a list of audio file paths, or a directory containing audio files.
+        model_name: Name or path of the Whisper model to use (e.g., "large-v3").
+        device: Device to run inference on (e.g., "cpu", "cuda", "mps").
+        compute_type: Precision type for inference (e.g., "int8", "float16", "float32").
+        language: Input audio language code (e.g., "ja" for Japanese, "en" for English, etc.); used for model inference.
+        task: Task type for Whisper ("translate" to always output English, or "transcribe" to keep original).
+        output_dir: Directory path to write generated transcript files and outputs.
+        vad_filter: Whether to use Voice Activity Detection (VAD) to filter non-speech portions.
+        word_timestamps: Whether to include word-level timestamps in the output segments.
+        chunk_length: Audio chunk length in seconds to process at once.
+        recursive: Whether to search directories for audio files recursively.
 
     Returns:
         List of output directories (one per processed file)
     """
-    audio_paths = resolve_audio_paths(audio_inputs, recursive=False)
+    audio_paths = resolve_audio_paths(audio_inputs, recursive=recursive)
 
     # Create base output directory
     base_output = Path(output_dir)
@@ -133,7 +143,8 @@ def translate_audio_files(
 if __name__ == "__main__":
     example_files = [
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_audio_preprocessor/recording_3_speakers_20251208_000155_299/preprocessed.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_speakers/diarized_001_recording_3_speakers/segments",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_stream_device_output",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/data/audio/1.wav",
@@ -144,4 +155,5 @@ if __name__ == "__main__":
         model_name="large-v3",
         device="cpu",
         compute_type="int8",
+        recursive=True,
     )
