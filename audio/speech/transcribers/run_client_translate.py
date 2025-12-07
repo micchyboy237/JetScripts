@@ -1,4 +1,4 @@
-# run_client_transcribe.py
+# run_client_translate.py
 from __future__ import annotations
 
 import asyncio
@@ -99,17 +99,41 @@ async def transcribe_file(
     table.add_column("Field", style="cyan")
     table.add_column("Value", style="white")
 
-    transcription = result.get("transcription") or result.get("text", "")
-    language = result.get("detected_language") or result.get("language") or "N/A"
-    lang_prob = result.get("detected_language_prob", result.get("language_probability", 0.0))
+    # Prioritize translation if available (for /translate endpoint)
+    displayed_text = ""
+    if "translation" in result and result["translation"]:
+        displayed_text = result["translation"]
+    elif "transcription" in result:
+        displayed_text = result["transcription"]
+    elif "text" in result:
+        displayed_text = result["text"]
+    else:
+        displayed_text = ""
 
-    table.add_row("Text", transcription[:500] + ("..." if len(transcription) > 500 else ""))
-    table.add_row("Language", f"{language} ({lang_prob:.2f})")
+    # Language info
+    language_token = (
+        result.get("detected_language")
+        or result.get("language")
+        or "N/A"
+    )
+    lang_prob = round(
+        result.get("detected_language_prob")
+        or result.get("language_probability", 0.0),
+        4,
+    )
+    # Clean language token: <|ja|> → ja
+    if isinstance(language_token, str) and language_token.startswith("<|") and language_token.endswith("|>"):
+        language_token = language_token[2:-2]
+
+    language_display = f"{language_token} ({lang_prob:.2f})" if language_token != "N/A" else "N/A"
+
+    table.add_row("Text", displayed_text[:500] + ("..." if len(displayed_text) > 500 else ""))
+    table.add_row("Language", language_display)
     table.add_row("Duration", f"[bold green]{real_duration:.2f}s[/bold green]")
     table.add_row("Segments", str(len(result.get("segments", []))) if result.get("segments") else "0")
 
-    if "duration_sec" in result:
-        table.add_row("Inference Time", f"{result['duration_sec']:.2f}s")
+    # Removed Inference Time – duration_sec is audio length, not processing time
+    # For real inference time, would need server-side timing (not available in CT2 path)
 
     console.print(table)
     return result
@@ -124,6 +148,6 @@ if __name__ == "__main__":
             model_size="small",
             compute_type="int8_float16",
             device="cuda",
-            task="transcribe",
+            task="translate",
         )
     )
