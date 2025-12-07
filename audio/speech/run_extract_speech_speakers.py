@@ -27,6 +27,7 @@ def run_extract_speech_speakers(
     output_dir: Union[str, Path] = OUTPUT_DIR,
     export_segment_audio: bool = True,
     time_resolution: int = 2,
+    recursive: bool = False,
 ) -> List[Path]:
     """
     Run speaker diarization on one or many audio files and save results + optional per-segment WAVs.
@@ -40,7 +41,7 @@ def run_extract_speech_speakers(
     Returns:
         List of created per-file output directories
     """
-    audio_paths = resolve_audio_paths(audio_inputs, recursive=False)
+    audio_paths = resolve_audio_paths(audio_inputs, recursive=recursive)
     base_output = Path(output_dir)
     shutil.rmtree(base_output, ignore_errors=True)
     base_output.mkdir(parents=True, exist_ok=True)
@@ -129,4 +130,5 @@ if __name__ == "__main__":
     run_extract_speech_speakers(
         audio_inputs=example_files,
         export_segment_audio=True,
+        recursive=True,
     )
