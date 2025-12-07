@@ -1,5 +1,4 @@
 import subprocess
-import shutil
 
 from datetime import datetime
 from pathlib import Path
@@ -11,14 +10,12 @@ import threading
 import time
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / "run_record_mic_stream"
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 OUTPUT_FILE = OUTPUT_DIR / f"recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
 
 
-def main():
+def run_record_mic_stream(duration_seconds: int = 60):
     """Main function to demonstrate recording."""
-    duration_seconds = 70
 
     def print_countdown(total: int):
         """Print live countdown timer in place."""
@@ -58,4 +55,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    duration_seconds = 70
+    run_record_mic_stream(duration_seconds)
