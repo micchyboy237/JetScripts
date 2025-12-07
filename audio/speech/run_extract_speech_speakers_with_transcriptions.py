@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Union
 
+import torch
 import torchaudio
 from faster_whisper import WhisperModel
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -21,6 +22,7 @@ from jet.audio.speech.pyannote.speech_speakers_extractor import (
 )
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
 def run_extract_speech_speakers_with_transcriptions(
@@ -50,7 +52,6 @@ def run_extract_speech_speakers_with_transcriptions(
     """
     audio_paths = resolve_audio_paths(audio_inputs, recursive=False)
     base_output = Path(output_dir)
-    shutil.rmtree(base_output, ignore_errors=True)
     base_output.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Loading Whisper model '{whisper_model}' on {device} ({compute_type})")
@@ -100,7 +101,7 @@ def run_extract_speech_speakers_with_transcriptions(
 
                 # Slice audio for this turn
                 start_sample = int(start_sec * sample_rate)
-                end_sample   int(end_sec   * sample_rate)
+                end_sample  = int(end_sec   * sample_rate)
                 segment_wave = waveform[:, start_sample:end_sample]
 
                 # Temporary file for Whisper (faster-whisper needs a path)
@@ -180,7 +181,8 @@ def run_extract_speech_speakers_with_transcriptions(
 
 if __name__ == "__main__":
     example_files = [
-        "/path/to/your/recording_with_multiple_speakers.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
     ]
 
     run_extract_speech_speakers_with_transcriptions(
