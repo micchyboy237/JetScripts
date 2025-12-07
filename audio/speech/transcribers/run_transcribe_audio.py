@@ -69,6 +69,8 @@ def translate_audio_files(
         task_id = progress.add_task("Translating", total=len(audio_paths))
 
         for idx, audio_path in enumerate(tqdm(audio_paths, desc="Translating", unit="file", colour="cyan"), start=1):
+            audio_path = Path(audio_path)
+
             # Subdir as translated_<num>
             file_output_dir = base_output / f"translated_{idx:03d}"
             file_output_dir.mkdir(parents=True, exist_ok=True)
@@ -130,7 +132,8 @@ def translate_audio_files(
 # ==============================
 if __name__ == "__main__":
     example_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_stream_device_output",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/data/audio/1.wav",
     ]
