@@ -4,7 +4,7 @@ import ctranslate2
 from transformers import AutoTokenizer
 
 DEFAULT_TRANSLATION_MODEL = "Helsinki-NLP/opus-mt-ja-en"
-DEFAULT_CT2_MODEL_DIR = os.path.expanduser("~/.cache/hf_translation_models/ct2-opus-ja-en")
+DEFAULT_CT2_MODEL_DIR = os.path.expanduser("~/.cache/hf_ctranslate2_models/ct2-opus-ja-en")
 
 def translate_ctranslate2(text: str, device: str = "cpu") -> str:
     """

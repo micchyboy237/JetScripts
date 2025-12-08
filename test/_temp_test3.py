@@ -2,7 +2,7 @@ import os
 import ctranslate2
 import sentencepiece as spm
 
-DEFAULT_CT2_MODEL_DIR = os.path.expanduser("~/.cache/hf_translation_models/ct2-opus-ja-en")
+DEFAULT_CT2_MODEL_DIR = os.path.expanduser("~/.cache/hf_ctranslate2_models/ct2-opus-ja-en")
 
 generator = ctranslate2.Generator(DEFAULT_CT2_MODEL_DIR)
 sp = spm.SentencePieceProcessor("tokenizer.model")
