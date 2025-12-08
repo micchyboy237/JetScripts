@@ -1,45 +1,110 @@
-# example_2_ctranslate2_fixed.py
-import os
+import json
 import ctranslate2
 from transformers import AutoTokenizer
+from typing import List, Any
 
-DEFAULT_TRANSLATION_MODEL = "Helsinki-NLP/opus-mt-ja-en"
-DEFAULT_CT2_MODEL_DIR = os.path.expanduser("~/.cache/hf_ctranslate2_models/ct2-opus-ja-en")
+QUANTIZED_MODEL_PATH = "/Users/jethroestrada/.cache/hf_ctranslate2_models/ja_en_ct2"
 
-def translate_ctranslate2(text: str, device: str = "cpu") -> str:
+def translate_ja_to_en(
+    text: str,
+    model_path: str = QUANTIZED_MODEL_PATH,
+    tokenizer_name: str = "Helsinki-NLP/opus-mt-ja-en",
+    beam_size: int = 5,
+    max_decoding_length: int = 512,  # Changed from max_length
+    device: str = "cpu",  # 'cuda' for GPU
+) -> str:
     """
-    Translate Japanese → English using a CTranslate2-converted Helsinki-NLP model.
+    Translates Japanese text to English using a quantized OPUS-MT model.
+    
+    Args:
+        text: Input Japanese sentence.
+        model_path: Path to converted CTranslate2 model.
+        tokenizer_name: Hugging Face tokenizer ID.
+        beam_size: Beam search width (higher = better quality, slower).
+        max_decoding_length: Max output tokens.  # Updated docstring
+        device: 'cpu' or 'cuda'.
+    
+    Returns:
+        Translated English text.
+    
+    Raises:
+        RuntimeError: If model loading fails.
     """
-    # Use the regular tokenizer call (no deprecated prepare_seq2seq_batch)
-    tokenizer = AutoTokenizer.from_pretrained(DEFAULT_TRANSLATION_MODEL)
-
-    # Tokenize the source text → list of tokens (as strings)
-    source = tokenizer.tokenize(text)                # → List[str]
-    source = [source]                                 # → List[List[str]] (batch of 1)
-
-    translator = ctranslate2.Translator(DEFAULT_CT2_MODEL_DIR, device=device)
-
-    # translate_batch expects List[List[str]] for the source
+    # Load tokenizer (reusable across calls)
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+    
+    # Load quantized translator
+    translator = ctranslate2.Translator(model_path, device=device)
+    
+    # Tokenize input
+    source_tokens = tokenizer.convert_ids_to_tokens(tokenizer.encode(text))
+    source_batch = [source_tokens]  # Batch of 1
+    
+    # Translate
     results = translator.translate_batch(
-        source,
-        # max_decoding_length=512,
-        # beam_size=5,               # optional: better quality than greedy (beam_size=1)
-        # replace_unknowns=True,     # recommended for Helsinki models
+        source_batch,
+        beam_size=beam_size,
+        max_decoding_length=max_decoding_length,  # Changed from max_length
+        return_scores=False,  # Set True for log-prob scores
+    )
+    
+    # Decode output
+    target_tokens = results[0].hypotheses[0]
+    translated = tokenizer.decode(tokenizer.convert_tokens_to_ids(target_tokens))
+    return translated.strip()  # Clean up
+
+def batch_translate_ja_to_en(
+    texts: List[str],
+    model_path: str = QUANTIZED_MODEL_PATH,
+    tokenizer_name: str = "Helsinki-NLP/opus-mt-ja-en",
+    beam_size: int = 5,
+    max_decoding_length: int = 512,
+    device: str = "cpu",
+    **kwargs: Any,
+) -> List[str]:
+    """
+    Batch version of translate_ja_to_en with identical default arguments.
+    
+    Accepts the same translation options as translate_ja_to_en.
+    Extra kwargs are forwarded to ctranslate2.Translator.translate_batch.
+    """
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+    translator = ctranslate2.Translator(model_path, device=device)
+
+    source_batch = [
+        tokenizer.convert_ids_to_tokens(tokenizer.encode(text)) for text in texts
+    ]
+
+    results = translator.translate_batch(
+        source_batch,
+        beam_size=beam_size,
+        max_decoding_length=max_decoding_length,
+        **kwargs,  # allow extra ctranslate2 options (e.g. return_scores=True)
     )
 
-    # results[0] is the first (and only) batch element
-    # results[0].hypotheses[0] is the best hypothesis (list of tokens)
-    output_tokens = results[0].hypotheses[0]
-
-    # Convert tokens back to text (detokenize)
-    translation = tokenizer.decode(
-        tokenizer.convert_tokens_to_ids(output_tokens),
-        skip_special_tokens=True,
-    )
-
-    return translation
-
+    translations = [
+        tokenizer.decode(
+            tokenizer.convert_tokens_to_ids(result.hypotheses[0])
+        ).strip()
+        for result in results
+    ]
+    return translations
 
 if __name__ == "__main__":
-    print(translate_ctranslate2("世界各国が水面下で熾烈な情報戦を繰り広げる時代 睨み合う二つの国 東の汚染"))
-    # print(translate_ctranslate2("こんにちは、元気ですか？"))
+    # Example usage (single)
+    japanese_text = "おい、そんな一気に冷たいものを食べると腹を壊す"
+    english_translation = translate_ja_to_en(japanese_text)
+    print("=== Single Translation Result ===")
+    print(f"Input: {japanese_text}")
+    print(f"Output: {english_translation}")
+
+    # Example usage (batch)
+    japanese_text = [
+        "おい、そんな一気に冷たいものを食べると腹を壊す",
+        "昨日、友達と一緒に映画を見に行きました。",
+        "日本は美しい国ですね！"
+    ]
+    english_translations = batch_translate_ja_to_en(japanese_text)
+    print("=== Batch Translation Results ===")
+    print(f"Input: {japanese_text}")
+    print(f"Outputs:\n{json.dumps(english_translations, indent=2)}")
