@@ -1,72 +1,98 @@
-# import spacy
-# from spacy import displacy
-# from spacy.tokens import Span
+import numpy as np
+import sounddevice as sd
+import torch
+from faster_whisper import WhisperModel
+from queue import Queue
+from threading import Thread
 
-# text = "Welcome to the Bank of China."
+class JapaneseToEnglishLiveTranscriber:
+    """Live Japanese → English translator using faster-whisper large-v3 + Silero VAD (segmented)."""
 
-# nlp = spacy.blank("en")
-# doc = nlp(text)
+    def __init__(
+        self,
+        model_size: str = "large-v3",          # or "large-v3-turbo" / "medium" for faster
+        compute_type: str = "int8_float16",    # int8_float16 is fastest on GTX 1660 with negligible quality loss
+        beam_size: int = 5,
+        vad_threshold: float = 0.6,          # 0.5–0.7 works well for Japanese
+        min_silence_duration_ms: int = 400,     # adjust if too chatty or too slow
+    ):
+        self.model = WhisperModel(model_size, device="cuda", compute_type=compute_type, download_root="./models")
+        self.beam_size = beam_size
+        self.samplerate = 16000
+        self.block_size = 1024  # ~64 ms chunks, good reactivity
+        self.vad_model, utils = torch.hub.load(repo_or_dir="snakers4/silero-vad", model="silero_vad", trust_repo=True)
+        self.VADIterator = utils[3]  # VADIterator class
+        self.vad_iterator = self.VADIterator(self.vad_model, threshold=vad_threshold, sampling_rate=self.samplerate, min_silence_duration_ms=min_silence_duration_ms)
+        self.audio_queue = Queue()
+        self.current_speech_chunks = []
 
-# doc.spans["sc"] = [
-#     Span(doc, 3, 6, "ORG"),
-#     Span(doc, 5, 6, "GPE"),
-# ]
+    def _transcribe_buffer(self, audio: np.ndarray):
+        segments, _ = self.model.transcribe(
+            audio,
+            language="ja",
+            task="translate",
+            beam_size=self.beam_size,
+            temperature=0.0,
+            best_of=5,
+            patience=1.0,
+            compression_ratio_threshold=2.4,  # filter bad segments
+            logprob_threshold=-0.5,
+            no_speech_threshold=0.6,
+            vad_filter=False,  # we already did VAD
+        )
+        text = "".join(segment.text for segment in segments).strip()
+        if text:
+            print(text, flush=True)
 
-# displacy.serve(doc, style="span", port=5001)
+    def _processing_thread(self):
+        while True:
+            chunk = self.audio_queue.get()
+            if chunk is None:  # poison pill for shutdown
+                break
 
+            speech_event = self.vad_iterator(torch.from_numpy(chunk), self.samplerate)
 
-import multiprocessing
-import webbrowser
-import spacy
-from spacy import displacy
-import signal
-import sys
-import time
+            if speech_event:
+                if "start" in speech_event:
+                    self.current_speech_chunks = [chunk]
+                    print("\r[Speaking...]", end="", flush=True)
 
-text = (
-    "When Sebastian Thrun started working on self-driving cars at Google in 2007, "
-    "few people outside of the company took him seriously."
-)
+                if "end" in speech_event:
+                    self.current_speech_chunks.append(chunk)
+                    audio_np = np.concatenate(self.current_speech_chunks)
+                    self._transcribe_buffer(audio_np)
+                    self.current_speech_chunks = []
+                    self.vad_iterator.reset_states()  # important: fresh state for next utterance
+                    print("\r" + " " * 80 + "\r", end="", flush=True)  # clear line
 
-nlp = spacy.load("en_core_web_sm")
-doc = nlp(text)
+            else:
+                if self.current_speech_chunks:
+                    self.current_speech_chunks.append(chunk)
 
+    def audio_callback(self, indata: np.ndarray, frames, time, status):
+        if status:
+            print(status)
+        self.audio_queue.put(indata.copy()[:, 0])  # mono float32
 
-def run_server(style: str, port: int):
-    """Run a displacy server for a given style and port."""
-    displacy.serve(doc, style=style, port=port)
-
+    def run(self):
+        print("Japanese → English live translation ready (Ctrl+C to stop)")
+        with sd.InputStream(samplerate=self.samplerate, channels=1, dtype="float32", blocksize=self.block_size, callback=self.audio_callback):
+            thread = Thread(target=self._processing_thread, daemon=True)
+            thread.start()
+            try:
+                while True:
+                    sd.sleep(100)
+            except KeyboardInterrupt:
+                print("\nStopped.")
+                self.audio_queue.put(None)
+                thread.join()
 
 if __name__ == "__main__":
-    # Start both servers in parallel
-    ent_proc = multiprocessing.Process(target=run_server, args=("ent", 5001))
-    dep_proc = multiprocessing.Process(target=run_server, args=("dep", 5002))
+    model_size = "small"
+    compute_type = "int8"
 
-    ent_proc.start()
-    dep_proc.start()
-
-    # Give them a moment to start up
-    time.sleep(1)
-    webbrowser.open("http://localhost:5001")
-    webbrowser.open("http://localhost:5002")
-
-    def shutdown(*_):
-        print("\nShutting down servers...")
-        ent_proc.terminate()
-        dep_proc.terminate()
-        ent_proc.join()
-        dep_proc.join()
-        sys.exit(0)
-
-    # Handle Ctrl+C (SIGINT)
-    signal.signal(signal.SIGINT, shutdown)
-
-    print("Servers running:")
-    print("  ENT visualization → http://localhost:5001")
-    print("  DEP visualization → http://localhost:5002")
-    print("Press Ctrl+C to stop both.")
-
-    # Keep the main process alive
-    while True:
-        time.sleep(1)
-
+    transcriber = JapaneseToEnglishLiveTranscriber(
+        model_size=model_size,
+        compute_type=compute_type,
+    )
+    transcriber.run()
