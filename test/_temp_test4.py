@@ -1,23 +1,67 @@
-# example_3_m2m100.py
-# pip install transformers sentencepiece torch
-
-from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
-import torch
+import os
 from typing import Optional
+import warnings
+import torch
+import numpy as np
+from pyannote.audio import Model, Inference
 
-class M2MTranslator:
-    def __init__(self, model_name: str = "facebook/m2m100_418M", device: Optional[str] = None):
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
-        self.tokenizer = M2M100Tokenizer.from_pretrained(model_name)
-        self.model = M2M100ForConditionalGeneration.from_pretrained(model_name).to(self.device)
+# Silence the known harmless Lightning checkpoint warning
+warnings.filterwarnings(
+    "ignore",
+    message="Found keys that are not in the model state dict but in the checkpoint",
+)
 
-    def translate(self, text: str, src_lang: str = "ja", tgt_lang: str = "en") -> str:
-        self.tokenizer.src_lang = src_lang
-        encoded = self.tokenizer(text, return_tensors="pt").to(self.device)
-        forced_bos_token_id = self.tokenizer.get_lang_id(tgt_lang)
-        generated = self.model.generate(**encoded, forced_bos_token_id=forced_bos_token_id, max_new_tokens=200)
-        return self.tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
+def extract_embedding(
+    audio_path: str,
+    model_name: str = "pyannote/embedding",
+    hf_token: Optional[str] = None,
+) -> torch.Tensor:
+    """
+    Extract a speaker embedding from an audio file (whole-file inference).
 
+    Returns
+    -------
+    torch.Tensor
+        1-D tensor of shape (512,) on the same device as the model (CPU/GPU).
+    """
+    # ------------------------------------------------------------------ #
+    # Token handling
+    # ------------------------------------------------------------------ #
+    if hf_token is None:
+        hf_token = os.getenv("HF_TOKEN")
+        if not hf_token:
+            raise ValueError("HF_TOKEN environment variable or explicit token required.")
+
+    # ------------------------------------------------------------------ #
+    # Load model – strict=False removes the loss_func.W warning
+    # ------------------------------------------------------------------ #
+    model = Model.from_pretrained(model_name, use_auth_token=hf_token, strict=False)
+    model.eval()
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+
+    # ------------------------------------------------------------------ #
+    # Inference – returns numpy.ndarray with shape (512,)
+    # ------------------------------------------------------------------ #
+    inference = Inference(model, window="whole", device=device)
+    embedding_np: np.ndarray = inference(audio_path)          # ← NumPy array
+
+    # Convert to torch tensor (keeps it on CPU/GPU as needed)
+    embedding = torch.from_numpy(embedding_np).to(device)
+
+    return embedding  # shape: (512,)
+
+
+# ---------------------------------------------------------------------- #
+# Example usage
+# ---------------------------------------------------------------------- #
 if __name__ == "__main__":
-    tr = M2MTranslator()
-    print(tr.translate("こんにちは、元気ですか？", src_lang="ja", tgt_lang="en"))
+    audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/audio/data/sound.wav"
+
+    embedding = extract_embedding(audio_path)
+
+    print(f"Embedding shape : {embedding.shape}")        # (512,)
+    print(f"Embedding dtype : {embedding.dtype}")
+    print(f"Norm           : {torch.norm(embedding):.4f}")
+    print(f"First 5 values  : {embedding[:5].tolist()}")

@@ -1,137 +1,61 @@
-from typing import List, Optional
-from transformers import pipeline, Pipeline
-import logging
+import json
+import httpx
+import time
+from pathlib import Path
+from rich import print
+from typing import Optional
 
-logger = logging.getLogger(__name__)
+BASE_URL = "http://shawn-pc.local:8001/transcribe_translate"
 
+# Reusable global client (with pooling & HTTP/2 for local perf)
+_client: Optional[httpx.Client] = None
 
-class JapaneseTranslator:
-    """
-    A reusable, lazily-initialized Japanese to English translator using
-    Helsinki-NLP/opus-mt-ja-en (MarianMT-based, fast and lightweight).
-    
-    Designed for repeated use, supports batch translation, and is safe for
-    both CPU and GPU environments (auto-detects available device).
-    """
+def get_client() -> httpx.Client:
+    global _client
+    if _client is None:
+        limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)  # Tune for local
+        _client = httpx.Client(timeout=30.0, limits=limits, http2=True)  # http2 needs httpx[http2]
+    return _client
 
-    def __init__(
-        self,
-        model_name: str = "Helsinki-NLP/opus-mt-ja-en",
-        device: Optional[int] = None,  # None = auto (cuda if available), -1 = CPU
-        max_length: int = 512,
-    ):
-        self.model_name = model_name
-        self.device = device
-        self.max_length = max_length
-        self._translator: Optional[Pipeline] = None
+def upload_file_multipart(file_path: Path) -> dict:
+    client = get_client()
+    with file_path.open("rb") as f:
+        files = {"data": (file_path.name, f, "application/octet-stream")}
+        print(f"[bold green]Sending as multipart:[/bold green] {file_path}")
+        r = client.post(BASE_URL, files=files)
+        return r.json()
 
-    @property
-    def translator(self) -> Pipeline:
-        """Lazy-load the pipeline only when first needed."""
-        if self._translator is None:
-            logger.info(f"Loading translation model: {self.model_name}")
-            self._translator = pipeline(
-                "translation",
-                model=self.model_name,
-                device=self.device,        # handles CUDA if available
-                max_length=self.max_length,
-                truncation=True,
-            )
-            logger.info("Translation model loaded successfully")
-        return self._translator
+def upload_raw_bytes(file_path: Path) -> dict:
+    client = get_client()
+    data = file_path.read_bytes()
+    print(f"[bold yellow]Sending as raw bytes:[/bold yellow] {len(data):,} bytes")
+    r = client.post(
+        BASE_URL,
+        content=data,
+        headers={"Content-Type": "application/octet-stream"},
+    )
+    return r.json()
 
-    def translate(self, text: str) -> str:
-        """
-        Translate a single Japanese string to English.
-        
-        Args:
-            text: Japanese input text
-            
-        Returns:
-            Translated English text (stripped of '>>en<<' prefix if present)
-        """
-        if not text.strip():
-            return ""
-            
-        result = self.translator(text)[0]["translation_text"]
-        # Some older MarianMT models prepend language tokens like ">>en<<"
-        if result.startswith(">>en<<"):
-            result = result[6:].lstrip()
-        return result.strip()
+def main():
+    file = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/audio/data/sound.wav")
 
-    def translate_batch(self, texts: List[str]) -> List[str]:
-        """
-        Translate multiple Japanese texts efficiently in batch.
-        
-        Args:
-            texts: List of Japanese strings
-            
-        Returns:
-            List of translated English strings in the same order
-        """
-        if not texts:
-            return []
-            
-        cleaned_texts = [t.strip() for t in texts if t.strip()]
-        if not cleaned_texts:
-            return [""] * len(texts)
+    start1 = time.perf_counter()
+    result1 = upload_file_multipart(file)
+    end1 = time.perf_counter()
+    print(json.dumps(result1, indent=2, ensure_ascii=False))
+    print(f"[bold green]upload_file_multipart duration:[/bold green] {end1 - start1:.3f} seconds")
 
-        results = self.translator(cleaned_texts)
-        translations = [r["translation_text"] for r in results]
-        
-        # Clean language tokens
-        cleaned = []
-        for t in translations:
-            if t.startswith(">>en<<"):
-                t = t[6:].lstrip()
-            cleaned.append(t.strip())
-            
-        # Reconstruct full list preserving empty inputs
-        output = []
-        clean_idx = 0
-        for original in texts:
-            if original.strip():
-                output.append(cleaned[clean_idx])
-                clean_idx += 1
-            else:
-                output.append("")
-        return output
+    print("\n" + "─" * 50 + "\n")
 
-    def __call__(self, text: str) -> str:
-        """Make the instance callable for convenience."""
-        return self.translate(text)
+    start2 = time.perf_counter()
+    result2 = upload_raw_bytes(file)
+    end2 = time.perf_counter()
+    print(json.dumps(result2, indent=2, ensure_ascii=False))
+    print(f"[bold yellow]upload_raw_bytes duration:[/bold yellow] {end2 - start2:.3f} seconds")
+
+    # Cleanup on exit
+    if _client:
+        _client.close()
 
 if __name__ == "__main__":
-    # Basic usage
-    translator = JapaneseTranslator()
-
-    # Single translation
-    japanese_text = "今日はとても良い天気ですね。"
-    english = translator.translate(japanese_text)
-    print(english)
-    # Output: "It's very nice weather today."
-
-    # Or use callable syntax
-    english = translator("こんにちは、世界！")
-    print(english)
-    # Output: "Hello, world!"
-
-    # Batch translation (more efficient)
-    sentences = [
-        # "おはようございます。",
-        # "私はソフトウェアエンジニアです。",
-        # "",  # empty strings are preserved
-        # "寿司が大好きです！", 
-
-        "世界各国が水面下で",
-    ]
-
-    translations = translator.translate_batch(sentences)
-    for ja, en in zip(sentences, translations):
-        print(f"JA: {ja} → EN: {en}")
-
-    # Output:
-    # JA: おはようございます。 → EN: Good morning.
-    # JA: 私はソフトウェアエンジニアです。 → EN: I am a software engineer.
-    # JA:  → EN: 
-    # JA: 寿司が大好きです！ → EN: I love sushi!
+    main()

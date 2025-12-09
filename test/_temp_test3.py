@@ -1,36 +1,26 @@
-import asyncio
-import json
-import httpx
-from pathlib import Path
-from rich import print
+import torch
+from typing import Tuple
+from scipy.spatial.distance import cdist
+from pyannote.audio import Model, Inference
 
-BASE_URL = "http://shawn-pc.local:8001"
+def verify_speakers(audio1: str, audio2: str, threshold: float = 0.6, hf_token: Optional[str] = None) -> Tuple[bool, float]:
+    """Verify if two audio samples are from the same speaker via cosine distance."""
+    model = Model.from_pretrained("pyannote/embedding", token=hf_token)
+    model.eval()
+    if torch.cuda.is_available():
+        model.to(torch.device("cuda"))
+    
+    inference = Inference(model, window="whole")
+    emb1: torch.Tensor = inference(audio1)
+    emb2: torch.Tensor = inference(audio2)
+    
+    # Compute cosine distance (lower = more similar)
+    distance: float = cdist(emb1.detach().numpy(), emb2.detach().numpy(), metric="cosine")[0, 0]
+    is_same: bool = distance < threshold  # Tune threshold based on EER (~0.3-0.6 typical)
+    
+    return is_same, distance
 
-async def upload_file_multipart(file_path: Path):
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        with file_path.open("rb") as f:
-            files = {"data": (file_path.name, f, "application/octet-stream")}
-            print(f"[bold green]Sending as multipart:[/bold green] {file_path}")
-            r = await client.post(f"{BASE_URL}/sample", files=files)
-            print(json.dumps(r.json(), indent=2))
-
-async def upload_raw_bytes(file_path: Path):
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        data = file_path.read_bytes()
-        print(f"[bold yellow]Sending as raw bytes:[/bold yellow] {len(data):,} bytes")
-        r = await client.post(
-            f"{BASE_URL}/sample",
-            content=data,
-            headers={"Content-Type": "application/octet-stream"},
-        )
-        print(json.dumps(r.json(), indent=2))
-
-async def main():
-    file = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/audio/data/sound.wav")  # or any file: pdf, zip, model.bin, etc.
-
-    await upload_file_multipart(file)
-    print("\n" + "─" * 50 + "\n")
-    await upload_raw_bytes(file)
-
+# Usage
 if __name__ == "__main__":
-    asyncio.run(main())
+    same_speaker, dist = verify_speakers("speaker1.wav", "speaker1_ref.wav", hf_token="your_hf_token_here")
+    print(f"Same speaker? {same_speaker}, Distance: {dist:.4f}")
