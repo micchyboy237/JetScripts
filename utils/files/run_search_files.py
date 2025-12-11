@@ -11,22 +11,23 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 if __name__ == '__main__':
     # base_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/examples/Context-Engineering"
     base_dir = [
-        "/Users/jethroestrada/.cache/huggingface/hub",
-        "/Users/jethroestrada/.cache/huggingface/datasets",
+        # "/Users/jethroestrada/.cache/huggingface/hub",
+        # "/Users/jethroestrada/.cache/huggingface/datasets",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/pyannote-audio",
     ]
     # includes = []
     includes = [
-        "*japanese*",
+        # "*japanese*",
     ]
     excludes = [
-        ".locks"
+        # ".locks"
     ]
     # include_contents = ["*__main__*"]
     include_contents = []
     exclude_contents = []
     # extensions = [".py", ".ipynb"]
     # extensions = []
-    extensions = [".parquet"]
+    extensions = [".ipynb"]
     results = search_files(
         base_dir,
         extensions,
