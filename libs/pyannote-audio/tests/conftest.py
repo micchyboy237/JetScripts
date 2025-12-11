@@ -20,6 +20,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import os
+
+def pytest_configure():
+    os.chdir("/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/pyannote-audio")
 
 def pytest_sessionstart(session):
     """
