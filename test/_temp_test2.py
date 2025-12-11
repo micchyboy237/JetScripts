@@ -1,16 +1,21 @@
-import numpy as np
-import ctranslate2
+# download the pipeline from Huggingface
+from pathlib import Path
+import shutil
+from pyannote.audio import Pipeline
+pipeline = Pipeline.from_pretrained(
+    "pyannote/speaker-diarization-community-1", 
+    token="{huggingface-token}")
 
-# Example: Batch of token IDs (shape: [batch_size, seq_len])
-tokens_np = np.array([[1, 2, 3], [4, 5, 6]], dtype=np.int32)  # Shape: (2, 3)
+# run the pipeline locally on your computer
+audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_20251212_041845.wav"
+output = pipeline(audio_file)
 
-# Convert to StorageView (zero-copy on CPU)
-tokens_view = ctranslate2.StorageView.from_array(tokens_np)
+# print the predicted speaker diarization 
+for turn, speaker in output.speaker_diarization:
+    print(f"{speaker} speaks between t={turn.start:.3f}s and t={turn.end:.3f}s")
 
-# Verify
-print(tokens_view.shape)  # (2, 3)
-print(tokens_view.dtype)  # <class 'numpy.int32'>
+output_dir = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(output_dir, ignore_errors=True)
+output_dir.mkdir(parents=True, exist_ok=True)
 
-# Pass to a model (e.g., Translator)
-# translator = ctranslate2.Translator("model_path")
-# results = translator.translate_batch([tokens_view])
+print(f"Diarization output written under: {output_dir.resolve()}")
