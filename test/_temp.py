@@ -1,3 +1,4 @@
+import os
 import torch
 from pyannote.audio import Pipeline
 from pyannote.audio.pipelines.utils.hook import ProgressHook
@@ -5,10 +6,16 @@ from pyannote.audio.pipelines.utils.hook import ProgressHook
 # Community-1 open-source speaker diarization pipeline
 pipeline = Pipeline.from_pretrained(
     "pyannote/speaker-diarization-community-1",
-    token="HUGGINGFACE_ACCESS_TOKEN")
+    token=os.getenv("HF_TOKEN"))
 
-# send pipeline to GPU (when available)
-pipeline.to(torch.device("cuda"))
+# send pipeline to GPU/MPS if available, fallback to CPU
+if torch.backends.mps.is_available():
+    device = torch.device("mps")
+elif torch.cuda.is_available():
+    device = torch.device("cuda")
+else:
+    device = torch.device("cpu")
+pipeline.to(device)
 
 # apply pretrained pipeline (with optional progress hook)
 audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_20251212_041845.wav"
