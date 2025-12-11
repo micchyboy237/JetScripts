@@ -8,6 +8,6 @@ OUTPUT_DIR = os.path.join(
 OUTPUT_FILE = f"{OUTPUT_DIR}/recording_{datetime.now().strftime('%Y%m%d_%H%M%S')}.wav"
 
 if __name__ == "__main__":
-    duration_seconds = 100  # Change to how long you want to record
+    duration_seconds = 15  # Change to how long you want to record
     data = record_from_mic(duration_seconds)
     save_wav_file(OUTPUT_FILE, data)
