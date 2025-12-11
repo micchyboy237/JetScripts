@@ -18,6 +18,9 @@ if __name__ == '__main__':
     # includes = []
     includes = [
         # "*japanese*",
+        "notebook",
+        "tutorial",
+        "test_*",
     ]
     excludes = [
         # ".locks"
@@ -25,9 +28,8 @@ if __name__ == '__main__':
     # include_contents = ["*__main__*"]
     include_contents = []
     exclude_contents = []
-    # extensions = [".py", ".ipynb"]
     # extensions = []
-    extensions = [".ipynb"]
+    extensions = [".py", ".ipynb"]
     results = search_files(
         base_dir,
         extensions,
