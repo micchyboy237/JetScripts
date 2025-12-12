@@ -1,8 +1,15 @@
+import os
+import shutil
 from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
 from jet.audio.speech.pyannote.segment_speaker_labeler import SegmentSpeakerLabeler
+from jet.file.utils import save_file
+
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 def main() -> None:
     # ------------------------------------------------------------------
@@ -13,9 +20,6 @@ def main() -> None:
 
     # Root directory containing subfolders with 'sound.wav' speech segments
     SEGMENTS_DIR = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps")
-
-    # Where to save the JSON results
-    OUTPUT_JSON = Path("./output") / "speaker_clustering_results.json"
 
     # Clustering aggressiveness: lower threshold → more speakers detected
     DISTANCE_THRESHOLD = 0.7
@@ -35,9 +39,6 @@ def main() -> None:
         file_pattern="**/sound.wav",  # Change if your segment files have different names
     )
 
-    # Optional: save results to JSON
-    clusterer.save_results(results, OUTPUT_JSON)
-
     # ------------------------------------------------------------------
     # Quick summary (optional, using rich for pretty output)
     # ------------------------------------------------------------------
@@ -52,6 +53,9 @@ def main() -> None:
         table.add_row(res["parent_dir"], str(res["speaker_label"]), res["path"])
 
     console.print(table)
+
+    # Optional: save results to JSON
+    save_file(results, f"{OUTPUT_DIR}/results.json")
 
 if __name__ == "__main__":
     main()
