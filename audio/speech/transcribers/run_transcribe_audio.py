@@ -8,17 +8,33 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Union
 
-from faster_whisper import WhisperModel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from tqdm import tqdm
 
-from jet.audio.transcribers.utils import segments_to_srt
+# Reuse remote transcription client instead of local faster-whisper
+from jet.audio.transcribers.base_client import transcribe_audio, TranscribeResponse
+
 from jet.audio.utils import AudioInput, resolve_audio_paths
 from jet.file.utils import save_file
 from jet.logger import logger
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
+)
+
+# Simple helper to create a one-block SRT from full text (keeps compatibility)
+def full_text_to_srt(text: str, duration: float) -> str:
+    def format_srt_time(sec: float) -> str:
+        # Format seconds (float) as SRT time (hh:mm:ss,mmm)
+        hours = int(sec // 3600)
+        minutes = int((sec % 3600) // 60)
+        seconds = int(sec % 60)
+        millis = int((sec - int(sec)) * 1000)
+        return f"{hours:02}:{minutes:02}:{seconds:02},{millis:03}"
+    start = "00:00:00,000"
+    end = format_srt_time(duration)
+    return f"1\n{start} --> {end}\n{text.strip()}\n"
+
 
 def translate_audio_files(
     audio_inputs: AudioInput,
@@ -65,8 +81,8 @@ def translate_audio_files(
     shutil.rmtree(base_output, ignore_errors=True)
     base_output.mkdir(parents=True, exist_ok=True)
 
-    logger.info(f"Loading Whisper model '{model_name}' on {device} ({compute_type})")
-    model = WhisperModel(model_name, device=device, compute_type=compute_type)
+    # Model is now remote – no local loading needed
+    logger.info("Loading Whisper model (remote API client in use)")
     logger.success("Model loaded")
 
     created_dirs: List[Path] = []
@@ -88,46 +104,42 @@ def translate_audio_files(
 
             logger.info(f"Translating → {audio_path.name}")
 
-            segments, info = model.transcribe(
-                audio=str(audio_path),
-                language=language,
-                task=task,
-                vad_filter=vad_filter,
-                word_timestamps=word_timestamps,
-                chunk_length=chunk_length,
-                without_timestamps=False,
-                condition_on_previous_text=False,
-                log_progress=True,
-                compression_ratio_threshold=None,  # ← disable
-                log_prob_threshold=None,           # ← disable
-                no_speech_threshold=None,          # ← disable
+            # ---- Remote transcription call ----
+            try:
+                result: TranscribeResponse = transcribe_audio(str(audio_path))
+            except Exception as e:
+                logger.error(f"Failed to transcribe {audio_path.name}: {e}")
+                progress.advance(task_id)
+                continue
+
+            full_text = result["translation"].strip()
+            duration = result["duration_sec"]
+            detected_lang = result["detected_language"]
+            logger.info(
+                f"Duration: {duration:.2f}s | Detected: {detected_lang} "
+                f"(prob {result['detected_language_prob']:.2f})"
             )
 
-            all_segments = list(segments)
-            full_text = " ".join(seg.text.strip() for seg in all_segments)
-
-            logger.info(f"Duration: {info.duration:.2f}s | Segments: {len(all_segments)}")
-
-            # Save full translation
+            # Save translation.txt
             txt_path = file_output_dir / "translation.txt"
             with open(txt_path, "w", encoding="utf-8") as f:
                 f.write(
                     f"Source: {audio_path.name}\n"
-                    f"Model: {model_name}\n"
+                    f"Model: Remote Whisper API\n"
                     f"Task: Japanese → English Translation\n"
                     f"Processed: {datetime.now().isoformat()}\n"
-                    f"Duration: {info.duration:.2f}s\n"
-                    f"Segments: {len(all_segments)}\n"
+                    f"Duration: {duration:.2f}s\n"
+                    f"Detected language: {detected_lang}\n"
                     f"{'='*60}\n"
                     f"FULL ENGLISH TRANSLATION\n"
                     f"{'='*60}\n\n"
                     f"{full_text}\n"
                 )
 
-            # Save artifacts
-            srt_content = segments_to_srt(all_segments)
-            save_file(info, file_output_dir / "info.json")
-            save_file(all_segments, file_output_dir / "segments.json")
+            # Minimal SRT with the whole translation as one subtitle
+            srt_content = full_text_to_srt(full_text, duration)
+            # Save raw API response for debugging / later re-parsing
+            save_file(result, file_output_dir / "response.json")
             save_file(srt_content, file_output_dir / "subtitles.srt")
 
             logger.success(f"Saved → {file_output_dir.name}")
@@ -142,8 +154,9 @@ def translate_audio_files(
 # ==============================
 if __name__ == "__main__":
     example_files = [
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/diarize_file/segments",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/stream_speakers_extractor",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/silero/generated/silero_vad_stream",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/stream_speakers_extractor/speakers/004_13.23_16.64_SPEAKER_01/sound.wav",
@@ -155,8 +168,5 @@ if __name__ == "__main__":
 
     translate_audio_files(
         audio_inputs=example_files,
-        model_name="large-v3",
-        device="cpu",
-        compute_type="int8",
         recursive=True,
     )
