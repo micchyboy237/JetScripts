@@ -4,7 +4,6 @@ from typing import Dict, Any
 
 from pathlib import Path
 from jet.audio.speech.silero.speech_timestamps_extractor import extract_speech_timestamps
-from jet.audio.utils import resolve_audio_paths
 from jet.file.utils import save_file
 from rich.console import Console
 import torchaudio
@@ -31,7 +30,7 @@ def main(audio_file: str | Path, output_dir: str | Path):
 
     segments = extract_speech_timestamps(
         audio_file,
-        threshold=0.5,
+        threshold=0.3,
         sampling_rate=16000,
         return_seconds=True,
         time_resolution=2,
@@ -114,8 +113,14 @@ def main(audio_file: str | Path, output_dir: str | Path):
 
 # ── Updated __main__ block with summary collection ───────────────────────
 if __name__ == "__main__":
-    audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/stream_speakers_extractor/speakers"
-    audio_paths = resolve_audio_paths(audio_dir, recursive=True)
+    OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
+    # audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/stream_speakers_extractor/speakers"
+    # audio_paths = resolve_audio_paths(audio_dir, recursive=True)
+    audio_paths = [
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_20251212_123859.wav"
+    ]
 
     summary: Dict[str, Any] = {
         "total_files_processed": len(audio_paths),
@@ -128,8 +133,7 @@ if __name__ == "__main__":
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
     for audio_path in audio_paths:
-        rel_dir = Path(os.path.dirname(audio_path)).relative_to(audio_dir).as_posix()
-        output_dir = Path(OUTPUT_DIR) / rel_dir
+        output_dir = OUTPUT_DIR
 
         # Run main – it will early-return if no segments
         main(audio_path, output_dir)
