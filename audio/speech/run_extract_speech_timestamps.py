@@ -49,7 +49,7 @@ def main(audio_file: str | Path, output_dir: str | Path):
         )
         seg_dir = output_dir / folder_name
         seg_dir.mkdir(parents=True, exist_ok=True)
-        save_file(seg, seg_dir / "segment.json")
+        save_file(seg, seg_dir / "segment.json", verbose=False)
         start_sample = int(seg['start'] * 16000)
         end_sample = int(seg['end'] * 16000)
         segment_audio = waveform[:, start_sample:end_sample]
@@ -60,7 +60,6 @@ def main(audio_file: str | Path, output_dir: str | Path):
             encoding="PCM_S",
             bits_per_sample=16,
         )
-        console.print(f" → Saved to [bold blue]{seg_dir.relative_to(output_dir.parent)}/{folder_name}[/bold blue]")
     save_file(segments, output_dir / "speech_timestamps.json")
 
     # Compute and save segment gaps
@@ -89,7 +88,7 @@ if __name__ == "__main__":
     OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     audio_paths = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav"
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_speech_detection/recording_trimmed_20251213_031016.wav"
     ]
     summary: Dict[str, Any] = {
         "total_files_processed": len(audio_paths),

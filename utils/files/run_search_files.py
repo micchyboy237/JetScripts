@@ -13,13 +13,13 @@ if __name__ == '__main__':
     base_dir = [
         # "/Users/jethroestrada/.cache/huggingface/hub",
         # "/Users/jethroestrada/.cache/huggingface/datasets",
-        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/pyannote-audio",
+        "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/silero-vad",
     ]
     # includes = []
     includes = [
         # "*japanese*",
-        "notebook",
-        "tutorial",
+        # "notebook",
+        # "tutorial",
         "test_*",
     ]
     excludes = [

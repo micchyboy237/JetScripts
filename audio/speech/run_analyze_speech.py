@@ -9,11 +9,8 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_stream/recording_20251126_212124.wav"
-    analyzer = SileroVADAnalyzer(
-        threshold=0.5,
-        speech_pad_ms=30,
-    )
+    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav"
+    analyzer = SileroVADAnalyzer(threshold=0.3)
     probs, segments = analyzer.analyze(audio_file)
     total_sec = len(probs) * analyzer.step_sec
     metrics = analyzer.get_metrics(probs, segments, total_sec)

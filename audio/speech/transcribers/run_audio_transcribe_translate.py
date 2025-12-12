@@ -3,7 +3,7 @@ from jet.audio.transcribers.base import QuantizedModelSizes, transcribe_audio
 from jet.translators.base import translate_text
 
 model_size: QuantizedModelSizes = "small"
-audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/audio/data/sound.wav"
+audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav"
 
 # 3. Transcribe in original language
 text_original = transcribe_audio(audio_path)
