@@ -5,6 +5,7 @@ from rich.console import Console
 from rich.table import Table
 
 from jet.audio.speech.pyannote.segment_speaker_labeler import SegmentSpeakerLabeler
+from jet.audio.utils import resolve_audio_paths
 from jet.file.utils import save_file
 
 OUTPUT_DIR = os.path.join(
@@ -34,9 +35,9 @@ def main() -> None:
         use_gpu=True,  # Will fallback to CPU if no CUDA available
     )
 
+    segment_paths = resolve_audio_paths(SEGMENTS_DIR, recursive=True)
     results = clusterer.cluster_segments(
-        segments_dir=SEGMENTS_DIR,
-        file_pattern="**/sound.wav",  # Change if your segment files have different names
+        segment_paths=segment_paths,  # Change if your segment files have different names
     )
 
     # ------------------------------------------------------------------
