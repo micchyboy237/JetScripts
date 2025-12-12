@@ -6,7 +6,7 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
-from typing import List, Union
+from typing import Generator, Union
 
 from faster_whisper import WhisperModel
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -33,30 +33,14 @@ def translate_audio_files(
     word_timestamps: bool = True,
     chunk_length: int = 30,
     recursive: bool = False,
-) -> List[Path]:
+) -> Generator[Path, None, None]:
     """
-    Translate Japanese audio to English.
+    Translate Japanese audio to English, yielding one output directory per file as soon as it is fully processed.
 
-    Now supports:
-      • Single file
-      • List of files
-      • Directory → scans recursively or non-recursively for audio files
-
-    Args:
-        audio_inputs: Path to an audio file, a list of audio file paths, or a directory containing audio files.
-        model_name: Name or path of the Whisper model to use (e.g., "large-v3").
-        device: Device to run inference on (e.g., "cpu", "cuda", "mps").
-        compute_type: Precision type for inference (e.g., "int8", "float16", "float32").
-        language: Input audio language code (e.g., "ja" for Japanese, "en" for English, etc.); used for model inference.
-        task: Task type for Whisper ("translate" to always output English, or "transcribe" to keep original).
-        output_dir: Directory path to write generated transcript files and outputs.
-        vad_filter: Whether to use Voice Activity Detection (VAD) to filter non-speech portions.
-        word_timestamps: Whether to include word-level timestamps in the output segments.
-        chunk_length: Audio chunk length in seconds to process at once.
-        recursive: Whether to search directories for audio files recursively.
+    This allows immediate user feedback and logging per file without waiting for all files to complete.
 
     Returns:
-        List of output directories (one per processed file)
+        Generator yielding Path objects (one per processed file's output directory).
     """
     audio_paths = resolve_audio_paths(audio_inputs, recursive=recursive)
 
@@ -68,8 +52,6 @@ def translate_audio_files(
     logger.info(f"Loading Whisper model '{model_name}' on {device} ({compute_type})")
     model = WhisperModel(model_name, device=device, compute_type=compute_type)
     logger.success("Model loaded")
-
-    created_dirs: List[Path] = []
 
     with Progress(
         SpinnerColumn(),
@@ -84,7 +66,6 @@ def translate_audio_files(
             # Subdir as translated_<num>
             file_output_dir = base_output / f"translated_{idx:03d}"
             file_output_dir.mkdir(parents=True, exist_ok=True)
-            created_dirs.append(file_output_dir)
 
             logger.info(f"Translating → {audio_path.name}")
 
@@ -98,12 +79,26 @@ def translate_audio_files(
                 without_timestamps=False,
                 condition_on_previous_text=False,
                 log_progress=True,
-                compression_ratio_threshold=None,  # ← disable
-                log_prob_threshold=None,           # ← disable
-                no_speech_threshold=None,          # ← disable
+                compression_ratio_threshold=None,
+                log_prob_threshold=None,
+                no_speech_threshold=None,
             )
 
-            all_segments = list(segments)
+            all_segments = []
+            segment_idx = 1
+
+            # Iterate over segments as they are generated
+            for segment in segments:
+                all_segments.append(segment)
+
+                # Log each processed segment for immediate feedback
+                logger.debug(
+                    f"Segment {segment_idx:04d} | "
+                    f"[{segment.start:.2f}s → {segment.end:.2f}s] "
+                    f"{segment.text.strip()}"
+                )
+                segment_idx += 1
+
             full_text = " ".join(seg.text.strip() for seg in all_segments)
 
             logger.info(f"Duration: {info.duration:.2f}s | Segments: {len(all_segments)}")
@@ -131,10 +126,13 @@ def translate_audio_files(
             save_file(srt_content, file_output_dir / "subtitles.srt")
 
             logger.success(f"Saved → {file_output_dir.name}")
+
             progress.advance(task_id)
 
+            # Yield the output directory immediately after processing the file
+            yield file_output_dir
+
     logger.success(f"All done! Outputs in:\n   → {base_output.resolve()}")
-    return created_dirs
 
 
 # ==============================
@@ -146,10 +144,13 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav",
     ]
 
-    translate_audio_files(
+    # Now iterates and gives immediate feedback as each file finishes
+    for output_dir in translate_audio_files(
         audio_inputs=example_files,
         model_name="large-v3",
         device="cpu",
         compute_type="int8",
         recursive=True,
-    )
+        # chunk_length=10,
+    ):
+        print(f"Finished: {output_dir.resolve()}")
