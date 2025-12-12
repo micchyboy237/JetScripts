@@ -48,10 +48,16 @@ def main() -> None:
     table = Table(title="Speaker Labels Summary")
     table.add_column("Parent Directory")
     table.add_column("Speaker Label")
+    table.add_column("Min Cosine Sim.")
     table.add_column("Segment Path")
 
     for res in results:
-        table.add_row(res["parent_dir"], str(res["speaker_label"]), res["path"])
+        table.add_row(
+            res["parent_dir"],
+            str(res["speaker_label"]),
+            f"{res['min_cosine_similarity']:.3f}",
+            res["path"]
+        )
 
     console.print(table)
 
