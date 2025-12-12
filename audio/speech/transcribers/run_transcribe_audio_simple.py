@@ -1,102 +1,155 @@
-#!/usr/bin/env python3
-"""
-Simple & fast Japanese → English translation using faster-whisper
-- Uses Whisper large-v3 model (best quality for Japanese)
-- Outputs translated English text + optional segmented SRT/VTT
-- Clean, reusable, and easy to read
-"""
+# jet/audio/transcribers/faster_whisper_translator.py
+
+from __future__ import annotations
 
 import os
-from pathlib import Path
 import shutil
-from typing import Literal
+from datetime import datetime
+from pathlib import Path
+from typing import List, Union
 
 from faster_whisper import WhisperModel
-from rich.console import Console
-from rich.table import Table
+from rich.progress import Progress, SpinnerColumn, TextColumn
 from tqdm import tqdm
 
-console = Console()
+from jet.audio.transcribers.utils import segments_to_srt
+from jet.audio.utils import AudioInput, resolve_audio_paths
+from jet.file.utils import save_file
+from jet.logger import logger
 
-# ==================== INPUTS (modify these) ====================
-AUDIO_FILE = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/data/audio/1.wav"
-INPUT_AUDIO_PATH = Path(AUDIO_FILE)   # Your Japanese audio file
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-OUTPUT_DIR = Path(OUTPUT_DIR)                 # Where to save results
-MODEL_SIZE = "large-v3"                                # Best for Japanese → English
-DEVICE = "cpu"                                        # "cuda" or "cpu" (auto-detects if None)
-BEAM_SIZE = 5                                          # Higher = better accuracy, slower
-LANGUAGE = "ja"                                        # Source language (Japanese)
-TASK: Literal["translate", "transcribe"] = "translate"  # Must be "translate" for ja→en
-# ================================================================
 
-def main() -> None:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+def translate_audio_files(
+    audio_inputs: AudioInput,
+    *,
+    model_name: str = "large-v3",
+    device: str = "cpu",
+    compute_type: str = "int8",
+    language: str = "ja",
+    task: str = "translate",
+    output_dir: Union[str, Path] = OUTPUT_DIR,
+    vad_filter: bool = False,
+    word_timestamps: bool = True,
+    chunk_length: int = 30,
+    recursive: bool = False,
+) -> List[Path]:
+    """
+    Translate Japanese audio to English.
 
-    console.print(f"[bold green]Loading faster-whisper model:[/bold green] {MODEL_SIZE}")
-    model = WhisperModel(
-        MODEL_SIZE,
-        device=DEVICE,
-        compute_type="int8_float16" if DEVICE == "cuda" else "int8",
-    )
+    Now supports:
+      • Single file
+      • List of files
+      • Directory → scans recursively or non-recursively for audio files
 
-    console.print(f"[bold blue]Transcribing & translating:[/bold blue] {INPUT_AUDIO_PATH.name}")
-    segments, info = model.transcribe(
-        str(INPUT_AUDIO_PATH),
-        language=LANGUAGE,
-        task=TASK,
-        beam_size=BEAM_SIZE,
-        vad_filter=True,                # Removes silence → faster & cleaner
-        vad_parameters=dict(min_silence_duration_ms=500),
-    )
+    Args:
+        audio_inputs: Path to an audio file, a list of audio file paths, or a directory containing audio files.
+        model_name: Name or path of the Whisper model to use (e.g., "large-v3").
+        device: Device to run inference on (e.g., "cpu", "cuda", "mps").
+        compute_type: Precision type for inference (e.g., "int8", "float16", "float32").
+        language: Input audio language code (e.g., "ja" for Japanese, "en" for English, etc.); used for model inference.
+        task: Task type for Whisper ("translate" to always output English, or "transcribe" to keep original).
+        output_dir: Directory path to write generated transcript files and outputs.
+        vad_filter: Whether to use Voice Activity Detection (VAD) to filter non-speech portions.
+        word_timestamps: Whether to include word-level timestamps in the output segments.
+        chunk_length: Audio chunk length in seconds to process at once.
+        recursive: Whether to search directories for audio files recursively.
 
-    # Show detection info
-    table = Table(title="Detection Info")
-    table.add_column("Property")
-    table.add_column("Value")
-    table.add_row("Detected Language", f"{info.language} ({info.language_probability:.2%})")
-    table.add_row("Duration", f"{info.duration:.2f}s")
-    console.print(table)
+    Returns:
+        List of output directories (one per processed file)
+    """
+    audio_paths = resolve_audio_paths(audio_inputs, recursive=recursive)
 
-    # Save results
-    txt_path = OUTPUT_DIR / f"{INPUT_AUDIO_PATH.stem}_en.txt"
-    srt_path = OUTPUT_DIR / f"{INPUT_AUDIO_PATH.stem}_en.srt"
+    # Create base output directory
+    base_output = Path(output_dir)
+    shutil.rmtree(base_output, ignore_errors=True)
+    base_output.mkdir(parents=True, exist_ok=True)
 
-    with open(txt_path, "w", encoding="utf-8") as f_txt, \
-         open(srt_path, "w", encoding="utf-8") as f_srt:
+    logger.info(f"Loading Whisper model '{model_name}' on {device} ({compute_type})")
+    model = WhisperModel(model_name, device=device, compute_type=compute_type)
+    logger.success("Model loaded")
 
-        console.print("[bold cyan]Segments:[/bold cyan]")
-        for i, segment in enumerate(tqdm(segments, desc="Writing", unit="seg")):
-            text = segment.text.strip()
+    created_dirs: List[Path] = []
 
-            # Plain text
-            f_txt.write(text + "\n")
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[bold blue]Processing {task.completed}/{task.total} files..."),
+        transient=False,
+    ) as progress:
+        task_id = progress.add_task("Translating", total=len(audio_paths))
 
-            # SRT subtitle format
-            start = segment.start
-            end = segment.end
-            f_srt.write(f"{i+1}\n")
-            f_srt.write(f"{format_timestamp(start)} --> {format_timestamp(end)}\n")
-            f_srt.write(f"{text}\n\n")
+        for idx, audio_path in enumerate(tqdm(audio_paths, desc="Translating", unit="file", colour="cyan"), start=1):
+            audio_path = Path(audio_path)
 
-            console.print(f"[{start:.2f}-{end:.2f}] {text}")
+            # Subdir as translated_<num>
+            file_output_dir = base_output / f"translated_{idx:03d}"
+            file_output_dir.mkdir(parents=True, exist_ok=True)
+            created_dirs.append(file_output_dir)
 
-    console.print("\n[bold green]Done![/] Translation saved to:")
-    console.print(f"   • Text: {txt_path}")
-    console.print(f"   • SRT:  {srt_path}")
+            logger.info(f"Translating → {audio_path.name}")
+
+            segments, info = model.transcribe(
+                audio=str(audio_path),
+                language=language,
+                task=task,
+                vad_filter=vad_filter,
+                word_timestamps=word_timestamps,
+                chunk_length=chunk_length,
+                without_timestamps=False,
+                condition_on_previous_text=False,
+                log_progress=True,
+                compression_ratio_threshold=None,  # ← disable
+                log_prob_threshold=None,           # ← disable
+                no_speech_threshold=None,          # ← disable
+            )
+
+            all_segments = list(segments)
+            full_text = " ".join(seg.text.strip() for seg in all_segments)
+
+            logger.info(f"Duration: {info.duration:.2f}s | Segments: {len(all_segments)}")
+
+            # Save full translation
+            txt_path = file_output_dir / "translation.txt"
+            with open(txt_path, "w", encoding="utf-8") as f:
+                f.write(
+                    f"Source: {audio_path.name}\n"
+                    f"Model: {model_name}\n"
+                    f"Task: Japanese → English Translation\n"
+                    f"Processed: {datetime.now().isoformat()}\n"
+                    f"Duration: {info.duration:.2f}s\n"
+                    f"Segments: {len(all_segments)}\n"
+                    f"{'='*60}\n"
+                    f"FULL ENGLISH TRANSLATION\n"
+                    f"{'='*60}\n\n"
+                    f"{full_text}\n"
+                )
+
+            # Save artifacts
+            srt_content = segments_to_srt(all_segments)
+            save_file(info, file_output_dir / "info.json")
+            save_file(all_segments, file_output_dir / "segments.json")
+            save_file(srt_content, file_output_dir / "subtitles.srt")
+
+            logger.success(f"Saved → {file_output_dir.name}")
+            progress.advance(task_id)
+
+    logger.success(f"All done! Outputs in:\n   → {base_output.resolve()}")
+    return created_dirs
 
 
-def format_timestamp(seconds: float) -> str:
-    """Convert seconds to SRT timestamp format HH:MM:SS,mmm"""
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-    millis = int((seconds - int(seconds)) * 1000)
-    return f"{hours:02}:{minutes:02}:{secs:02},{millis:03}"
-
-
+# ==============================
+# Main Block — Now super flexible
+# ==============================
 if __name__ == "__main__":
-    main()
+    example_files = [
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_trimmed.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav",
+    ]
+
+    translate_audio_files(
+        audio_inputs=example_files,
+        model_name="large-v3",
+        device="cpu",
+        compute_type="int8",
+        recursive=True,
+    )
