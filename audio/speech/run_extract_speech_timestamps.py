@@ -119,7 +119,7 @@ if __name__ == "__main__":
     # audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/stream_speakers_extractor/speakers"
     # audio_paths = resolve_audio_paths(audio_dir, recursive=True)
     audio_paths = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_20251212_123859.wav"
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav"
     ]
 
     summary: Dict[str, Any] = {
