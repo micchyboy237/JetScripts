@@ -1,7 +1,7 @@
+# JetScripts/audio/speech/run_extract_speech_timestamps.py
 from collections import defaultdict
 import json
-from typing import Dict, Any
-
+from typing import Dict, Any, List
 from pathlib import Path
 from jet.audio.speech.silero.speech_timestamps_extractor import extract_speech_timestamps
 from jet.file.utils import save_file
@@ -24,32 +24,22 @@ def create_sub_dir(file: str):
 def main(audio_file: str | Path, output_dir: str | Path):
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
-
     console.print(f"[bold cyan]Processing:[/bold cyan] {Path(audio_file).name}")
-
     segments = extract_speech_timestamps(
         audio_file,
     )
-
-    waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)  # (1, samples)
-
+    waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
-
-    # ── NEW: Early exit if no segments ───────────────────────────────
     if not segments:
         console.print("[bold yellow]No speech segments detected – skipping save.[/bold yellow]")
         return
-
-    # Only now create the output directory (and subdir logic if needed)
     output_dir.mkdir(parents=True, exist_ok=True)
-
     for seg in segments:
         console.print(
             f"[yellow][[/yellow] [bold white]{seg['start']:.2f}[/bold white] - [bold white]{seg['end']:.2f}[/bold white] [yellow]][/yellow] "
             f"duration=[bold magenta]{seg['duration']}s[/bold magenta] "
             f"prob=[bold cyan]{seg['prob']:.3f}[/bold cyan]"
         )
-
         folder_name = (
             f"{seg['idx']:03d}_"
             f"{seg['start']:.2f}_"
@@ -59,15 +49,10 @@ def main(audio_file: str | Path, output_dir: str | Path):
         )
         seg_dir = output_dir / folder_name
         seg_dir.mkdir(parents=True, exist_ok=True)
-
-        # Save metadata
         save_file(seg, seg_dir / "segment.json")
-
-        # Save audio slice
         start_sample = int(seg['start'] * 16000)
         end_sample = int(seg['end'] * 16000)
         segment_audio = waveform[:, start_sample:end_sample]
-
         torchaudio.save(
             str(seg_dir / "sound.wav"),
             segment_audio,
@@ -76,38 +61,46 @@ def main(audio_file: str | Path, output_dir: str | Path):
             bits_per_sample=16,
         )
         console.print(f" → Saved to [bold blue]{seg_dir.relative_to(output_dir.parent)}/{folder_name}[/bold blue]")
-
-    # Save per-file timestamps (always, even if no segments — but we already returned early if none)
     save_file(segments, output_dir / "speech_timestamps.json")
 
-# ── Updated __main__ block with summary collection ───────────────────────
+    # Compute and save segment gaps
+
+    if segments:
+
+        gaps: List[Dict[str, Any]] = []
+
+        # Inter-segment silences: between consecutive speech segments
+        for i in range(1, len(segments)):
+            prev_end = segments[i-1]["end"]
+            curr_start = segments[i]["start"]
+            gap_duration_val = curr_start - prev_end
+            if gap_duration_val > 0:
+                gaps.append({
+                    "gap_idx": i,
+                    "description": f"silence between speech segment {i-1} and {i}",
+                    "start": round(prev_end, 3),
+                    "end": round(curr_start, 3),
+                    "gap_duration": round(gap_duration_val, 3)
+                })
+
+        save_file(gaps, output_dir / "segment_gaps.json")
+
 if __name__ == "__main__":
     OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-
-    # audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/stream_speakers_extractor/speakers"
-    # audio_paths = resolve_audio_paths(audio_dir, recursive=True)
     audio_paths = [
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav"
     ]
-
     summary: Dict[str, Any] = {
         "total_files_processed": len(audio_paths),
         "files_with_speech": 0,
         "total_segments": 0,
         "per_file": defaultdict(dict),
     }
-
-    # Ensure base OUTPUT_DIR exists for summary.json
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
-
     for audio_path in audio_paths:
         output_dir = OUTPUT_DIR
-
-        # Run main – it will early-return if no segments
         main(audio_path, output_dir)
-
-        # Count only files that actually produced segments
         if (output_dir / "speech_timestamps.json").exists():
             with open(output_dir / "speech_timestamps.json") as f:
                 segs = json.load(f)
@@ -115,7 +108,5 @@ if __name__ == "__main__":
             summary["files_with_speech"] += 1
             summary["total_segments"] += count
             summary["per_file"][str(audio_path)] = {"segments": count}
-
-    # ── Write global summary.json in base OUTPUT_DIR ─────────────────────
     save_file(summary, Path(OUTPUT_DIR) / "summary.json")
     console.print(f"\n[bold green]Global summary saved to:[/bold green] {Path(OUTPUT_DIR)/'summary.json'}")
