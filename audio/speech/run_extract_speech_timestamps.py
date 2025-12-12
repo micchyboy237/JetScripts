@@ -10,7 +10,6 @@ import torchaudio
 from silero_vad.utils_vad import read_audio
 import os
 import shutil
-from torch import cat  # ── Add this import at the top (if not already present) ──
 
 console = Console()
 
@@ -30,10 +29,6 @@ def main(audio_file: str | Path, output_dir: str | Path):
 
     segments = extract_speech_timestamps(
         audio_file,
-        threshold=0.3,
-        sampling_rate=16000,
-        return_seconds=True,
-        time_resolution=2,
     )
 
     waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)  # (1, samples)
@@ -81,32 +76,6 @@ def main(audio_file: str | Path, output_dir: str | Path):
             bits_per_sample=16,
         )
         console.print(f" → Saved to [bold blue]{seg_dir.relative_to(output_dir.parent)}/{folder_name}[/bold blue]")
-
-    # ── NEW: Create combined_sound.wav with all speech segments concatenated ──
-    if segments:
-        console.print("\n[bold magenta]Creating combined_sound.wav from all speech segments...[/bold magenta]")
-
-        combined_segments = []
-        for seg in segments:
-            start_sample = int(seg['start'] * 16000)
-            end_sample = int(seg['end'] * 16000)
-            segment_audio = waveform[:, start_sample:end_sample]
-            combined_segments.append(segment_audio)
-        
-        # Concatenate along time dimension (dim=1)
-        combined_audio = cat(combined_segments, dim=1)  # Shape: (1, total_samples)
-
-        combined_path = output_dir / "combined_sound.wav"
-        torchaudio.save(
-            str(combined_path),
-            combined_audio,
-            sample_rate=16000,
-            encoding="PCM_S",
-            bits_per_sample=16,
-        )
-        duration_sec = combined_audio.shape[1] / 16000
-        console.print(f"Combined speech saved → [bold green]{combined_path.name}[/bold green] "
-                      f"({duration_sec:.2f}s total speech)")
 
     # Save per-file timestamps (always, even if no segments — but we already returned early if none)
     save_file(segments, output_dir / "speech_timestamps.json")
