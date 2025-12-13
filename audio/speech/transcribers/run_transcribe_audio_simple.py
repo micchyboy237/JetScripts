@@ -27,12 +27,12 @@ def translate_audio_files(
     device: str = "cpu",
     compute_type: str = "int8",
     language: str = "ja",
-    task: str = "translate",
+    task: str = "transcribe",
     output_dir: Union[str, Path] = OUTPUT_DIR,
     vad_filter: bool = False,
-    word_timestamps: bool = True,
+    word_timestamps: bool = False,
     chunk_length: int = 30,
-    recursive: bool = False,
+    recursive: bool = True,
 ) -> Generator[Path, None, None]:
     """
     Translate Japanese audio to English, yielding one output directory per file as soon as it is fully processed.
@@ -151,7 +151,8 @@ if __name__ == "__main__":
     # Now iterates and gives immediate feedback as each file finishes
     for output_dir in translate_audio_files(
         audio_inputs=example_files,
-        model_name="large-v3",
+        # model_name="large-v3",
+        model_name="kotoba-tech/kotoba-whisper-v2.0-faster",
         device="cpu",
         compute_type="int8",
         recursive=True,
