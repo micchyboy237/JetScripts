@@ -1,4 +1,4 @@
-# JetScripts/audio/run_live_subtitles.py (full updated file – fixed for parallel overlay + SRT saving)
+# JetScripts/audio/run_live_subtitles.py (with full overlay message metadata support)
 
 import shutil
 import numpy as np
@@ -63,7 +63,6 @@ class RecordingThread(QThread):
                         "index": self.subtitle_index,
                     }
                     self.subtitle_index += 1
-                    # self.pipeline.submit_segment(seg_sound_file)
                     self.pipeline.submit_segment(get_wav_bytes(seg_audio_np))
 
         except Exception as e:
@@ -82,25 +81,35 @@ def _on_transcription_result(
     if not ja_text.strip() or not en_text.strip():
         return
 
-    overlay.add_message(en_text.strip())
-
-    # Match result to the most recent pending segment (sequential submission → reliable)
     if pending_segments:
-        # Largest duration ≈ latest segment
+        # Pick the longest-duration pending segment (most reliable timing)
         key = max(pending_segments.keys(), key=lambda k: k.duration_sec)
         info = pending_segments.pop(key)
         meta = info["meta"]
-        idx = info["index"]
+
+        start_sec = round(meta["original_start_sample"], 3)
+        end_sec = round(meta["original_end_sample"], 3)
+        duration_sec = round(end_sec - start_sec, 3)
+
+        overlay.add_message(
+            text=en_text.strip(),
+            start_sec=start_sec,
+            end_sec=end_sec,
+            duration_sec=duration_sec,
+            source="record_from_mic",
+            ja_text=ja_text.strip(),
+        )
 
         seg_dir = Path(meta["segment_dir"])
         start_sample = int(meta["original_start_sample"] * SAMPLE_RATE)
         end_sample = int(meta["original_end_sample"] * SAMPLE_RATE)
+        idx = info["index"]
 
-        # Per-segment SRT (single entry)
         write_srt_file(seg_dir / "subtitles.srt", ja_text, en_text, start_sample, end_sample, index=1)
-
-        # Append to combined SRT
         append_to_combined_srt(combined_srt_path, ja_text, en_text, start_sample, end_sample, index=idx)
+    else:
+        # Fallback when no pending segment timing is available (rare)
+        overlay.add_message(en_text.strip())
 
 
 if __name__ == "__main__":
