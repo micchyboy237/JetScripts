@@ -87,7 +87,7 @@ if __name__ == "__main__":
     audio_paths = [
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
     ]
-    threshold = 0.2
+    threshold = 0.3
 
     summary: Dict[str, Any] = {
         "total_files_processed": len(audio_paths),
