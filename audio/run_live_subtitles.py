@@ -3,14 +3,13 @@
 import shutil
 import numpy as np
 from pathlib import Path
-from typing import Dict
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QThread
 
 from jet.audio.record_mic_speech_detection import record_from_mic
 from jet.audio.speech.wav_utils import get_wav_bytes
-from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline, AudioKey
+from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline
 from jet.audio.speech.overlay_utils import write_srt_file, append_to_combined_srt
 from jet.overlays.subtitle_overlay import SubtitleOverlay
 from jet.file.utils import save_file
@@ -30,7 +29,8 @@ class RecordingThread(QThread):
         self.combined_srt_path = combined_srt_path
         self.segments: list[dict] = []
         self.subtitle_index = 1
-        self.pending_segments: Dict[AudioKey, dict] = {}
+        # Use sequential index as key to preserve submission order
+        self.pending_segments: dict[int, dict] = {}
 
     def run(self) -> None:
         data_stream = record_from_mic(
@@ -57,10 +57,9 @@ class RecordingThread(QThread):
 
                 if seg_audio_np.size > 0:
                     audio_float32 = seg_audio_np.astype(np.float32)
-                    key = self.pipeline._make_key(audio_float32)
-                    self.pending_segments[key] = {
+                    # Store meta using the sequential subtitle_index (order of detection)
+                    self.pending_segments[self.subtitle_index] = {
                         "meta": meta,
-                        "index": self.subtitle_index,
                     }
                     self.subtitle_index += 1
                     self.pipeline.submit_segment(get_wav_bytes(seg_audio_np))
@@ -74,41 +73,52 @@ def _on_transcription_result(
     en_text: str,
     timestamps: list[dict],
     overlay: SubtitleOverlay,
-    pending_segments: Dict[AudioKey, dict],
+    pending_segments: dict[int, dict],
     combined_srt_path: Path,
 ):
-    """Thread-safe callback – called from pipeline worker threads."""
+    """Thread-safe callback – called from pipeline worker threads.
+
+    Now processes completed transcriptions in strict chronological order
+    by always consuming the earliest pending index.
+    """
     if not ja_text.strip() or not en_text.strip():
         return
 
-    if pending_segments:
-        # Pick the longest-duration pending segment (most reliable timing)
-        key = max(pending_segments.keys(), key=lambda k: k.duration_sec)
-        info = pending_segments.pop(key)
-        meta = info["meta"]
-
-        start_sec = round(meta["original_start_sample"], 3)
-        end_sec = round(meta["original_end_sample"], 3)
-        duration_sec = round(end_sec - start_sec, 3)
-
-        overlay.add_message(
-            translated_text=en_text,
-            source_text=ja_text,
-            start_sec=start_sec,
-            end_sec=end_sec,
-            duration_sec=duration_sec,
-        )
-
-        seg_dir = Path(meta["segment_dir"])
-        start_sample = int(meta["original_start_sample"] * SAMPLE_RATE)
-        end_sample = int(meta["original_end_sample"] * SAMPLE_RATE)
-        idx = info["index"]
-
-        write_srt_file(seg_dir / "subtitles.srt", ja_text, en_text, start_sample, end_sample, index=1)
-        append_to_combined_srt(combined_srt_path, ja_text, en_text, start_sample, end_sample, index=idx)
-    else:
-        # Fallback when no pending segment timing is available (rare)
+    if not pending_segments:
+        # Fallback for any stray results (should not happen)
         overlay.add_message(en_text.strip())
+        return
+
+    # Always take the lowest (earliest) index still pending
+    earliest_index = min(pending_segments.keys())
+    info = pending_segments.pop(earliest_index)
+    meta = info["meta"]
+
+    start_sec = round(meta["original_start_sample"], 3)
+    end_sec = round(meta["original_end_sample"], 3)
+    duration_sec = round(end_sec - start_sec, 3)
+
+    overlay.add_message(
+        translated_text=en_text,
+        source_text=ja_text,
+        start_sec=start_sec,
+        end_sec=end_sec,
+        duration_sec=duration_sec,
+    )
+
+    seg_dir = Path(meta["segment_dir"])
+    start_sample = int(meta["original_start_sample"] * SAMPLE_RATE)
+    end_sample = int(meta["original_end_sample"] * SAMPLE_RATE)
+
+    write_srt_file(seg_dir / "subtitles.srt", ja_text, en_text, start_sample, end_sample, index=1)
+    append_to_combined_srt(
+        combined_srt_path,
+        ja_text,
+        en_text,
+        start_sample,
+        end_sample,
+        index=earliest_index,  # guaranteed sequential
+    )
 
 
 if __name__ == "__main__":
