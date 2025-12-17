@@ -1,6 +1,7 @@
 # JetScripts/audio/run_live_subtitles.py (full updated file – fixed for parallel overlay + SRT saving)
 
 import shutil
+import numpy as np
 from pathlib import Path
 from typing import Dict
 
@@ -38,7 +39,7 @@ class RecordingThread(QThread):
         )
 
         try:
-            for seg_meta, seg_audio_np, full_audio_np in data_stream:
+            for seg_meta, seg_sound_file, seg_audio_np, full_audio_np in data_stream:
                 # Convert sample-based times to seconds for JSON metadata
                 meta = seg_meta.copy()
                 for key in [
@@ -54,14 +55,14 @@ class RecordingThread(QThread):
                 save_file(self.segments, OUTPUT_DIR / "all_segments.json", verbose=False)
 
                 if seg_audio_np.size > 0:
-                    audio_float32 = seg_audio_np.astype("float32")
+                    audio_float32 = seg_audio_np.astype(np.float32)
                     key = self.pipeline._make_key(audio_float32)
                     self.pending_segments[key] = {
                         "meta": meta,
                         "index": self.subtitle_index,
                     }
                     self.subtitle_index += 1
-                    self.pipeline.submit_segment(audio_float32)
+                    self.pipeline.submit_segment(seg_sound_file)
 
         except Exception as e:
             print(f"\nRecording thread error: {e}")
@@ -76,10 +77,10 @@ def _on_transcription_result(
     combined_srt_path: Path,
 ):
     """Thread-safe callback – called from pipeline worker threads."""
-    if not ja_text.strip():
+    if not ja_text.strip() or not en_text.strip():
         return
 
-    overlay.add_message(ja_text.strip())
+    overlay.add_message(en_text.strip())
 
     # Match result to the most recent pending segment (sequential submission → reliable)
     if pending_segments:
@@ -94,10 +95,10 @@ def _on_transcription_result(
         end_sample = int(meta["original_end_sample"] * SAMPLE_RATE)
 
         # Per-segment SRT (single entry)
-        write_srt_file(seg_dir / "subtitles.srt", ja_text, start_sample, end_sample, index=1)
+        write_srt_file(seg_dir / "subtitles.srt", ja_text, en_text, start_sample, end_sample, index=1)
 
         # Append to combined SRT
-        append_to_combined_srt(combined_srt_path, ja_text, start_sample, end_sample, index=idx)
+        append_to_combined_srt(combined_srt_path, ja_text, en_text, start_sample, end_sample, index=idx)
 
 
 if __name__ == "__main__":
