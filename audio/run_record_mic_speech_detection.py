@@ -1,6 +1,5 @@
 # JetScripts/audio/run_record_mic.py
 import os
-from datetime import datetime
 import shutil
 from jet.audio.helpers.silence import SAMPLE_RATE
 from jet.audio.record_mic_speech_detection import record_from_mic
@@ -14,11 +13,11 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 if __name__ == "__main__":
-    duration_seconds = 60
-    datetime_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+    duration_seconds = 25
+    quit_on_silence = False
 
     # Record with trim_silent=True → returns trimmed np.ndarray directly
-    data_stream = record_from_mic(duration_seconds, trim_silent=True, output_dir=OUTPUT_DIR)
+    data_stream = record_from_mic(duration_seconds, trim_silent=True, quit_on_silence=quit_on_silence, output_dir=OUTPUT_DIR)
     segments = []
     for seg_meta, seg_audio_np, full_audio_np in data_stream:
         meta = copy.deepcopy(seg_meta)
