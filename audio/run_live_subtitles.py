@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QThread
 
 from jet.audio.record_mic_speech_detection import record_from_mic
+from jet.audio.speech.utils import get_wav_bytes
 from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline, AudioKey
 from jet.audio.speech.overlay_utils import write_srt_file, append_to_combined_srt
 from jet.overlays.subtitle_overlay import SubtitleOverlay
@@ -62,7 +63,8 @@ class RecordingThread(QThread):
                         "index": self.subtitle_index,
                     }
                     self.subtitle_index += 1
-                    self.pipeline.submit_segment(seg_sound_file)
+                    # self.pipeline.submit_segment(seg_sound_file)
+                    self.pipeline.submit_segment(get_wav_bytes(seg_audio_np))
 
         except Exception as e:
             print(f"\nRecording thread error: {e}")
