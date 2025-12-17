@@ -1,8 +1,10 @@
-# JetScripts/audio/run_live_subtitles.py (with full overlay message metadata support)
+# JetScripts/audio/run_live_subtitles.py (with full overlay message metadata support, now with pending_segments lock)
 
 import shutil
 import numpy as np
+import threading
 from pathlib import Path
+from threading import Thread
 
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QThread
@@ -31,6 +33,7 @@ class RecordingThread(QThread):
         self.subtitle_index = 1
         # Use sequential index as key to preserve submission order
         self.pending_segments: dict[int, dict] = {}
+        self.pending_lock = threading.Lock()  # protects pending_segments
 
     def run(self) -> None:
         data_stream = record_from_mic(
@@ -58,10 +61,11 @@ class RecordingThread(QThread):
                 if seg_audio_np.size > 0:
                     audio_float32 = seg_audio_np.astype(np.float32)
                     # Store meta using the sequential subtitle_index (order of detection)
-                    self.pending_segments[self.subtitle_index] = {
-                        "meta": meta,
-                    }
-                    self.subtitle_index += 1
+                    with self.pending_lock:
+                        self.pending_segments[self.subtitle_index] = {
+                            "meta": meta,
+                        }
+                        self.subtitle_index += 1
                     self.pipeline.submit_segment(get_wav_bytes(seg_audio_np))
 
         except Exception as e:
@@ -74,6 +78,7 @@ def _on_transcription_result(
     timestamps: list[dict],
     overlay: SubtitleOverlay,
     pending_segments: dict[int, dict],
+    pending_lock: threading.Lock,
     combined_srt_path: Path,
 ):
     """Thread-safe callback – called from pipeline worker threads.
@@ -84,27 +89,30 @@ def _on_transcription_result(
     if not ja_text.strip() or not en_text.strip():
         return
 
-    if not pending_segments:
-        # Fallback for any stray results (should not happen)
-        overlay.add_message(en_text.strip())
-        return
+    with pending_lock:
+        if not pending_segments:
+            # Fallback for any stray results (should not happen)
+            overlay.add_message(en_text.strip())
+            return
 
-    # Always take the lowest (earliest) index still pending
-    earliest_index = min(pending_segments.keys())
-    info = pending_segments.pop(earliest_index)
+        # Always take the lowest (earliest) index still pending
+        earliest_index = min(pending_segments.keys())
+        info = pending_segments.pop(earliest_index)
     meta = info["meta"]
 
     start_sec = round(meta["original_start_sample"], 3)
     end_sec = round(meta["original_end_sample"], 3)
     duration_sec = round(end_sec - start_sec, 3)
 
-    overlay.add_message(
-        translated_text=en_text,
-        source_text=ja_text,
-        start_sec=start_sec,
-        end_sec=end_sec,
-        duration_sec=duration_sec,
-    )
+    def add_message_thread() -> None:
+        overlay.add_message(
+            translated_text=en_text,
+            source_text=ja_text,
+            start_sec=start_sec,
+            end_sec=end_sec,
+            duration_sec=duration_sec,
+        )
+    Thread(target=add_message_thread, daemon=True).start()
 
     seg_dir = Path(meta["segment_dir"])
     start_sample = int(meta["original_start_sample"] * SAMPLE_RATE)
@@ -136,9 +144,14 @@ if __name__ == "__main__":
 
     # Recording thread
     recording_thread = RecordingThread(pipeline=pipeline, combined_srt_path=combined_srt_path)
-    # Bind callback with required shared objects
+    # Pass the lock to the callback
+    actual_callback = pipeline.on_result
     pipeline.on_result = lambda ja, en, ts: _on_transcription_result(
-        ja, en, ts, overlay, recording_thread.pending_segments, combined_srt_path
+        ja, en, ts,
+        overlay,
+        recording_thread.pending_segments,
+        recording_thread.pending_lock,
+        combined_srt_path,
     )
 
     # Start recording in background
