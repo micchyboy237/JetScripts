@@ -3,12 +3,13 @@ import os
 import json
 from pathlib import Path
 import shutil
+from jet.audio.speech.wav_utils import save_wav_file
 from jet.models.model_registry.transformers.speech_to_text.whisper_model_registry import WhisperModelsType
 import numpy as np
 from typing import List, Dict
 from jet.audio.transcribers.audio_file_transcriber import AudioFileTranscriber
 from jet.audio.transcribers.audio_context_transcriber import AudioContextTranscriber
-from jet.audio.record_mic import save_wav_file, SAMPLE_RATE, calibrate_silence_threshold
+from jet.audio.record_mic import SAMPLE_RATE, calibrate_silence_threshold
 from jet.audio.stream_mic import async_stream_non_silent_audio, save_chunk
 from jet.logger import logger
 

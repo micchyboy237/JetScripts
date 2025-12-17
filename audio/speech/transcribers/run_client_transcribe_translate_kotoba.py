@@ -1,25 +1,19 @@
-# jet/audio/transcribers/faster_whisper_translator.py
-
 from __future__ import annotations
 
 import os
 import shutil
-from datetime import datetime
 from pathlib import Path
 from typing import Generator, Union
 
-from faster_whisper import WhisperModel
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from tqdm import tqdm
-
+from jet.audio.transcribers.base_client import transcribe_audio, TranscribeResponse
 from jet.audio.utils import AudioInput, resolve_audio_paths
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.translators.base import translate_text
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-
+    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
+)
 
 def translate_audio_files(
     audio_inputs: AudioInput,
@@ -27,12 +21,7 @@ def translate_audio_files(
     model_name: str = "kotoba-tech/kotoba-whisper-v2.0-faster",
     device: str = "cpu",
     compute_type: str = "int8",
-    language: str = "ja",
-    task: str = "transcribe",
     output_dir: Union[str, Path] = OUTPUT_DIR,
-    vad_filter: bool = False,
-    word_timestamps: bool = False,
-    chunk_length: int = 30,
     recursive: bool = True,
 ) -> Generator[Path, None, None]:
     """
@@ -45,14 +34,9 @@ def translate_audio_files(
     """
     audio_paths = resolve_audio_paths(audio_inputs, recursive=recursive)
 
-    # Create base output directory
     base_output = Path(output_dir)
     shutil.rmtree(base_output, ignore_errors=True)
     base_output.mkdir(parents=True, exist_ok=True)
-
-    logger.info(f"Loading Whisper model '{model_name}' on {device} ({compute_type})")
-    model = WhisperModel(model_name, device=device, compute_type=compute_type)
-    logger.success("Model loaded")
 
     with Progress(
         SpinnerColumn(),
@@ -61,121 +45,78 @@ def translate_audio_files(
     ) as progress:
         task_id = progress.add_task("Translating", total=len(audio_paths))
 
-        for idx, audio_path in enumerate(tqdm(audio_paths, desc="Translating", unit="file", colour="cyan"), start=1):
+        for idx, audio_path in enumerate(audio_paths, start=1):
             audio_path = Path(audio_path)
-
-            # Subdir as translated_<num>
             file_output_dir = base_output / f"translated_{idx:03d}"
             file_output_dir.mkdir(parents=True, exist_ok=True)
 
             logger.info(f"Translating → {audio_path.name}")
 
-            segments, info = model.transcribe(
-                audio=str(audio_path),
-                language="ja",
-                chunk_length=30,  # Better context than 15s
-                condition_on_previous_text=False,  # Reduces repetitions/hallucinations
-                beam_size=5,
-                best_of=5,
-                temperature=0.0,  # More deterministic
-            )
+            # Use base_client transcribe_audio API (should perform translation remotely)
+            result: TranscribeResponse = transcribe_audio(audio_path)
+            duration = result["duration_sec"]
+            ja_text = result["transcription"].strip()
+            en_text = result["translation"].strip()
+            detected_lang = result["detected_language"]
+            detected_prob = result["detected_language_prob"]
 
-            all_segments = []
-            segment_idx = 1
+            logger.info(f"Duration: {duration:.2f}s | Language: {detected_lang} ({detected_prob:.2%})")
 
-            # Iterate over segments as they are generated
-            for segment in segments:
-                all_segments.append(segment)
-
-                # Log each processed segment for immediate feedback
-                logger.debug(
-                    f"Segment {segment_idx:04d} | "
-                    f"[{segment.start:.2f}s → {segment.end:.2f}s] "
-                    f"{segment.text.strip()}"
-                )
-                segment_idx += 1
-
-            source_text = " ".join(seg.text.strip() for seg in all_segments)
-            en_text = translate_text(
-                source_text,
-                return_scores=True,
-                return_attention=True,
-            )
-
-            logger.info(f"Duration: {info.duration:.2f}s | Segments: {len(all_segments)}")
-
-            # Helper: Bilingual SRT using proportional split of en_text
+            # Helper: Bilingual SRT using proportional split (no true segment timings)
             def segments_to_bilingual_srt(segments: list, full_translation: str) -> str:
                 lines = []
                 translated_parts = full_translation.split()
                 total_words = len(translated_parts)
-                seg_count = len(segments)
+                seg_count = len(segments) if segments else 1
                 words_per_seg = max(1, total_words // seg_count) if seg_count > 0 else 1
 
                 for s_idx, seg in enumerate(segments, start=1):
-                    start_tc = datetime.utcfromtimestamp(seg.start).strftime("%H:%M:%S,%f")[:-3]
-                    end_tc = datetime.utcfromtimestamp(seg.end).strftime("%H:%M:%S,%f")[:-3]
-
+                    # Fallback: Use 0:00:00,000 → 0:00:00,000 since we have no timings
+                    start_tc = "00:00:00,000"
+                    end_tc = "00:00:00,000"
                     start_word = (s_idx - 1) * words_per_seg
                     end_word = s_idx * words_per_seg if s_idx < seg_count else total_words
                     seg_translation = " ".join(translated_parts[start_word:end_word])
-
                     lines.append(str(s_idx))
                     lines.append(f"{start_tc} --> {end_tc}")
-                    lines.append(seg.text.strip())
+                    lines.append(seg)
                     lines.append(seg_translation.strip() if seg_translation else "[No translation]")
-                    lines.append("")  # blank line
+                    lines.append("")
                 return "\n".join(lines)
 
-            bilingual_srt_content = segments_to_bilingual_srt(all_segments, en_text)
+            # As we have no segment/timestamp info from the remote server, make "segments" one segment = full ja_text
+            segments = [ja_text] if ja_text else []
+            bilingual_srt_content = segments_to_bilingual_srt(segments, en_text)
 
-            # Bilingual TXT using the same proportional split
+            # Bilingual TXT: Just the two blocks
             bilingual_txt_lines = []
-            translated_parts = en_text.split()
-            total_words = len(translated_parts)
-            seg_count = len(all_segments)
-            words_per_seg = max(1, total_words // seg_count) if seg_count > 0 else 1
-
-            for s_idx, seg in enumerate(all_segments, start=1):
-                start_tc = datetime.utcfromtimestamp(seg.start).strftime("%H:%M:%S,%f")[:-3]
-                end_tc = datetime.utcfromtimestamp(seg.end).strftime("%H:%M:%S,%f")[:-3]
-
-                start_word = (s_idx - 1) * words_per_seg
-                end_word = s_idx * words_per_seg if s_idx < seg_count else total_words
-                seg_translation = " ".join(translated_parts[start_word:end_word])
-
+            if ja_text or en_text:
                 bilingual_txt_lines.extend([
-                    str(s_idx),
-                    f"{start_tc} --> {end_tc}",
-                    seg.text.strip(),
-                    seg_translation.strip() if seg_translation else "[No translation]",
-                    ""  # separator
+                    "1",
+                    "00:00:00,000 --> 00:00:00,000",
+                    ja_text,
+                    en_text if en_text else "[No translation]",
+                    ""
                 ])
-
             bilingual_txt_content = "\n".join(bilingual_txt_lines)
 
-            # Save per-file bilingual artifacts
-            save_file(bilingual_srt_content, file_output_dir / "subtitles.srt")
+            # Save per-file artifacts
+            save_file(bilingual_srt_content, file_output_dir / "bilingual_subtitles.srt")
             save_file(bilingual_txt_content, file_output_dir / "translation.txt")
+            save_file(result, file_output_dir / "info.json")
+            save_file([], file_output_dir / "segments.json")  # Placeholder
 
-            # Save other original artifacts (info, segments)
-            save_file(info, file_output_dir / "info.json")
-            save_file(all_segments, file_output_dir / "segments.json")
-
-            # Append to overall all_subtitles.srt and all_translations.txt
             all_subtitles_srt_path = base_output / "all_subtitles.srt"
             all_translations_txt_path = base_output / "all_translations.txt"
 
             file_header = f"\n\n=== FILE: {audio_path.name} ===\n\n"
 
-            # Append SRT
             with open(all_subtitles_srt_path, "a", encoding="utf-8") as f:
-                if f.tell() == 0:  # first file
+                if f.tell() == 0:
                     f.write(bilingual_srt_content + "\n")
                 else:
                     f.write(file_header + bilingual_srt_content + "\n")
 
-            # Append TXT
             with open(all_translations_txt_path, "a", encoding="utf-8") as f:
                 if f.tell() == 0:
                     f.write(bilingual_txt_content + "\n")
@@ -186,15 +127,11 @@ def translate_audio_files(
 
             progress.advance(task_id)
 
-            # Yield the output directory immediately after processing the file
             yield file_output_dir
 
     logger.success(f"All done! Outputs in:\n   → {base_output.resolve()}")
 
 
-# ==============================
-# Main Block — Now super flexible
-# ==============================
 if __name__ == "__main__":
     example_files = [
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments",
@@ -206,7 +143,6 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
     ]
 
-    # Now iterates and gives immediate feedback as each file finishes
     for output_dir in translate_audio_files(
         audio_inputs=example_files,
         # model_name="large-v3",

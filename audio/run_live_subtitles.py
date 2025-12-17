@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import QThread
 
 from jet.audio.record_mic_speech_detection import record_from_mic
-from jet.audio.speech.utils import get_wav_bytes
+from jet.audio.speech.wav_utils import get_wav_bytes
 from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline, AudioKey
 from jet.audio.speech.overlay_utils import write_srt_file, append_to_combined_srt
 from jet.overlays.subtitle_overlay import SubtitleOverlay

@@ -1,7 +1,8 @@
 # JetScripts/audio/run_record_mic.py
 import os
 from datetime import datetime
-from jet.audio.record_mic import record_from_mic, save_wav_file
+from jet.audio.record_mic import record_from_mic
+from jet.audio.speech.wav_utils import save_wav_file
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
