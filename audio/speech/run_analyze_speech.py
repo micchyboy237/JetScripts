@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 
 from jet.audio.speech.silero.speech_analyzer import SileroVADAnalyzer
@@ -9,7 +10,7 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav"
+    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_low_prob.wav"
     analyzer = SileroVADAnalyzer(threshold=0.3)
     probs, segments = analyzer.analyze(audio_file)
     total_sec = len(probs) * analyzer.step_sec
@@ -17,6 +18,7 @@ if __name__ == "__main__":
 
     analyzer.plot_insights(probs, segments, audio_file, OUTPUT_DIR)
     analyzer.save_json(segments, OUTPUT_DIR, audio_file)
+    analyzer.save_segments_individually(audio_file, segments, Path(OUTPUT_DIR) / "segments")
 
     # NEW: Pretty table in console
     from rich.table import Table
