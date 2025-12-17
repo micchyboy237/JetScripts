@@ -92,12 +92,11 @@ def _on_transcription_result(
         duration_sec = round(end_sec - start_sec, 3)
 
         overlay.add_message(
-            text=en_text.strip(),
+            translated_text=en_text,
+            source_text=ja_text,
             start_sec=start_sec,
             end_sec=end_sec,
             duration_sec=duration_sec,
-            source="record_from_mic",
-            ja_text=ja_text.strip(),
         )
 
         seg_dir = Path(meta["segment_dir"])
