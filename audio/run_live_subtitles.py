@@ -25,7 +25,7 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     segment_root.mkdir(parents=True, exist_ok=True)
 
     # Use the canonical idx from the speech detector as segment number
-    seg_number: int = speech_seg["idx"]
+    seg_number: int = speech_seg["idx"] + 1
     seg_dir = segment_root / f"segment_{seg_number:03d}"
     seg_dir.mkdir(parents=True, exist_ok=True)
 
