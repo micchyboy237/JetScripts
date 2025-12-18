@@ -51,14 +51,13 @@ def _on_transcription_result(
     if not ja_text.strip() or not en_text.strip():
         return
 
-
     def add_message_thread() -> None:
         overlay.add_message(
             translated_text=en_text,
             source_text=ja_text,
-            start_sec= round(meta["start"], 3),
+            start_sec=round(meta["start"], 3),
             end_sec=round(meta["end"], 3),
-            duration_sec=round(meta["start"] - meta["end"], 3),
+            duration_sec=round(meta["end"] - meta["start"], 3),
         )
     Thread(target=add_message_thread, daemon=True).start()
 
@@ -102,9 +101,15 @@ if __name__ == "__main__":
     duration_seconds = 25
     trim_silent = False
     quit_on_silence = False
+    overlap_seconds = 0.5  # Add 0.5s overlap to each yielded segment to avoid boundary loss
 
-    # Record with trim_silent=True → returns trimmed np.ndarray directly
-    data_stream = record_from_mic(duration_seconds, trim_silent=trim_silent, quit_on_silence=quit_on_silence)
+    # Record with optional overlap to avoid information loss between segments
+    data_stream = record_from_mic(
+        duration_seconds,
+        trim_silent=trim_silent,
+        quit_on_silence=quit_on_silence,
+        overlap_seconds=overlap_seconds,
+    )
     segments: list[dict] = []
 
     app = QApplication([])  # Re-uses existing instance if any
@@ -139,10 +144,13 @@ if __name__ == "__main__":
             "seg_number": seg_number,  # now based on speech_seg["idx"]
         }
 
-        pipeline.submit_segment(
-            get_wav_bytes(seg_audio_np),
-            meta=meta,
-        )
+
+        def pipeline_thread() -> None:
+            pipeline.submit_segment(
+                get_wav_bytes(seg_audio_np),
+                meta=meta,
+            )
+        Thread(target=pipeline_thread, daemon=True).start()
 
         save_segment_data(speech_seg_copy, seg_audio_np)
 
