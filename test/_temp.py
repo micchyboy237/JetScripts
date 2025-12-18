@@ -1,3 +1,4 @@
+import json
 import torch
 
 # --------------------------------------------------
@@ -22,55 +23,14 @@ model, utils = torch.hub.load(
 # --------------------------------------------------
 # Read audio
 # --------------------------------------------------
-audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav"
+audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav"
 wav = read_audio(audio_file, sampling_rate=16000)
+speech_ts = get_speech_timestamps(wav, model, return_seconds=True, time_resolution=4)
 
-# Streaming window size expected by Silero (512 samples @ 16 kHz)
-CHUNK = 512
+# Add duration to each segment
+for seg in speech_ts:
+    seg["start"] = round(seg["start"], 3)
+    seg["end"] = round(seg["end"], 3)
+    seg["duration"] = round(seg["end"] - seg["start"], 3)
 
-# --------------------------------------------------
-# Create iterator for streaming VAD
-# --------------------------------------------------
-vad_iterator = VADIterator(
-    model=model,
-    threshold=0.5,
-    sampling_rate=16000,
-    min_silence_duration_ms=100,
-    speech_pad_ms=30,
-)
-
-timestamps = []
-current_segment = {}
-
-# --------------------------------------------------
-# Simulate streaming
-# --------------------------------------------------
-for i in range(0, len(wav), CHUNK):
-    chunk = wav[i:i+CHUNK]
-
-    # Pad last chunk if smaller than 512 samples
-    if len(chunk) < CHUNK:
-        chunk = torch.nn.functional.pad(chunk, (0, CHUNK - len(chunk)))
-
-    # Feed chunk into the iterator
-    out = vad_iterator(chunk, return_seconds=True)
-
-    if out is None:
-        continue
-
-    # Start-of-speech event
-    if "start" in out:
-        current_segment = {"start": out["start"]}
-
-    # End-of-speech event
-    if "end" in out:
-        current_segment["end"] = out["end"]
-        timestamps.append(current_segment)
-        current_segment = {}
-
-# --------------------------------------------------
-# Print detected segments
-# --------------------------------------------------
-print("Detected speech:")
-for ts in timestamps:
-    print(ts)
+print(json.dumps(speech_ts, indent=2))
