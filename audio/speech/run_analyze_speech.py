@@ -44,9 +44,12 @@ if __name__ == "__main__":
         table.add_row(k.replace("_", " ").title(), str(v))
     console.print(table)
 
+    formatted_segments = [seg.to_dict() for seg in segments]
+    formatted_raw_segments = [seg.to_dict() for seg in raw_segments]
+
     save_file(probs, f"{OUTPUT_DIR}/probs.json")
-    save_file(segments, f"{OUTPUT_DIR}/segments.json")
-    save_file(raw_segments, f"{OUTPUT_DIR}/raw_segments.json")
+    save_file(formatted_segments, f"{OUTPUT_DIR}/segments.json")
+    save_file(formatted_raw_segments, f"{OUTPUT_DIR}/raw_segments.json")
     save_file(metrics, f"{OUTPUT_DIR}/vad_metrics.json")
 
     # New: Threshold sweep summary
