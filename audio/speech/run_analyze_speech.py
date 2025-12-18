@@ -28,7 +28,7 @@ if __name__ == "__main__":
         Path(OUTPUT_DIR),
         min_duration=0.200,
         min_std_prob=0.0,
-        # min_pct_threshold=10.0,
+        min_pct_threshold=10.0,
     )
 
     from rich.table import Table
