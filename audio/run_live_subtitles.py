@@ -33,8 +33,13 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     wav_path = seg_dir / "sound.wav"
     metadata_path = seg_dir / "metadata.json"
 
+    # Save metadata with "num" instead of "idx"
+    seg_metadata = dict(speech_seg)
+    if "idx" in seg_metadata:
+        seg_metadata["num"] = seg_metadata.pop("idx")
+    metadata_path.write_text(json.dumps(seg_metadata, indent=2), encoding="utf-8")
+
     seg_sound_file = save_wav_file(wav_path, seg_audio_np)
-    metadata_path.write_text(json.dumps(dict(speech_seg), indent=2), encoding="utf-8")
 
     logger.success(f"Segment {seg_number} data saved to:")
     logger.success(seg_sound_file, bright=True)
@@ -145,7 +150,10 @@ if __name__ == "__main__":
                 )
             Thread(target=pipeline_thread, daemon=True).start()
             save_segment_data(speech_seg_copy, seg_audio_np)
-            segments.append(dict(speech_seg_copy))
+            seg_dict = dict(speech_seg_copy)
+            if "idx" in seg_dict:
+                seg_dict["num"] = seg_dict.pop("idx") + 1
+            segments.append(seg_dict)
             save_file(segments, OUTPUT_DIR / "all_segments.json", verbose=False)
             output_file = f"{OUTPUT_DIR}/full_recording.wav"
             save_wav_file(output_file, full_audio_np)
