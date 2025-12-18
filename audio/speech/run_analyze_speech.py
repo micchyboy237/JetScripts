@@ -21,6 +21,15 @@ if __name__ == "__main__":
     analyzer.save_json(segments, OUTPUT_DIR, audio_file)
     analyzer.save_raw_json(raw_segments, OUTPUT_DIR, audio_file)
     analyzer.save_segments_individually(audio_file, segments, Path(OUTPUT_DIR) / "segments")
+    # Example: save only raw segments longer than 1.0s with high variability and mostly above threshold
+    analyzer.save_raw_segments_individually(
+        audio_file,
+        raw_segments,
+        Path(OUTPUT_DIR),
+        min_duration=0.200,
+        min_std_prob=0.0,
+        min_pct_threshold=10.0,
+    )
 
     from rich.table import Table
     from rich.console import Console
