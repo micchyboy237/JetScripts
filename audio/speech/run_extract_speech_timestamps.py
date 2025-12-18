@@ -43,7 +43,7 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
             f"duration=[bold magenta]{seg['duration']}s[/bold magenta] "
             f"prob=[bold cyan]{seg['prob']:.3f}[/bold cyan]"
         )
-        folder_name = f"segment_{seg['idx']+1:03d}"  # increment idx by 1 for output subdir
+        folder_name = f"segment_{seg['num']:03d}"  # use segment number for output subdir
         seg_dir = output_dir / folder_name
         seg_dir.mkdir(parents=True, exist_ok=True)
         save_file(seg, seg_dir / "segment.json", verbose=False)

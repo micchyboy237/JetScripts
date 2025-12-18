@@ -4,13 +4,13 @@ from pathlib import Path
 import shutil
 import sys
 from threading import Thread
-from typing import TypedDict
 from PyQt6.QtWidgets import QApplication
 import numpy as np
 
 from jet.audio.helpers.silence import SAMPLE_RATE
 from jet.audio.record_mic_speech_detection import record_from_mic
 from jet.audio.speech.overlay_utils import append_to_combined_srt, write_srt_file
+from jet.audio.speech.silero.speech_types import SpeechSegment
 from jet.audio.speech.wav_utils import get_wav_bytes, save_wav_file
 from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline
 from jet.file.utils import save_file
@@ -21,18 +21,11 @@ OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-class SpeechSegmentMeta(TypedDict):
-    num: int
-    start: float | int
-    end: float | int
-    prob: float
-    duration: float
-
-def save_segment_data(speech_seg: SpeechSegmentMeta, seg_audio_np: np.ndarray):
+def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     segment_root = Path(OUTPUT_DIR) / "segments"
     segment_root.mkdir(parents=True, exist_ok=True)
 
-    # Use the canonical idx from the speech detector as segment number
+    # Use the canonical num from the speech detector as segment number
     seg_number: int = speech_seg["num"]
     seg_dir = segment_root / f"segment_{seg_number:03d}"
     seg_dir.mkdir(parents=True, exist_ok=True)
@@ -80,7 +73,7 @@ def _on_transcription_result(
         en_text,
         start_sample,
         end_sample,
-        index=meta["seg_number"],  # uses the original speech detector idx
+        index=meta["seg_number"],  # uses the original speech detector num
     )
 
 def make_result_callback(overlay: SubtitleOverlay, combined_srt_path: Path):
@@ -127,10 +120,10 @@ if __name__ == "__main__":
             quit_on_silence=quit_on_silence,
             overlap_seconds=overlap_seconds,
         )
-        segments: list[SpeechSegmentMeta] = []
+        segments: list[SpeechSegment] = []
         for speech_seg, seg_audio_np, full_audio_np in data_stream:
-            speech_seg_meta: SpeechSegmentMeta = {
-                "num": speech_seg["idx"] + 1,
+            speech_seg_meta: SpeechSegment = {
+                "num": speech_seg["num"],
                 "start": round(speech_seg["start"] / SAMPLE_RATE, 3),
                 "end": round(speech_seg["end"] / SAMPLE_RATE, 3),
                 "prob": speech_seg["prob"],
