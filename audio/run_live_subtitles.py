@@ -4,13 +4,13 @@ from pathlib import Path
 import shutil
 import sys
 from threading import Thread
+from typing import TypedDict
 from PyQt6.QtWidgets import QApplication
 import numpy as np
 
 from jet.audio.helpers.silence import SAMPLE_RATE
 from jet.audio.record_mic_speech_detection import record_from_mic
 from jet.audio.speech.overlay_utils import append_to_combined_srt, write_srt_file
-from jet.audio.speech.silero.speech_types import SpeechSegment
 from jet.audio.speech.wav_utils import get_wav_bytes, save_wav_file
 from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline
 from jet.file.utils import save_file
@@ -21,25 +21,27 @@ OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
+class SpeechSegmentMeta(TypedDict):
+    num: int
+    start: float | int
+    end: float | int
+    prob: float
+    duration: float
+
+def save_segment_data(speech_seg: SpeechSegmentMeta, seg_audio_np: np.ndarray):
     segment_root = Path(OUTPUT_DIR) / "segments"
     segment_root.mkdir(parents=True, exist_ok=True)
 
     # Use the canonical idx from the speech detector as segment number
-    seg_number: int = speech_seg["idx"] + 1
+    seg_number: int = speech_seg["num"]
     seg_dir = segment_root / f"segment_{seg_number:03d}"
     seg_dir.mkdir(parents=True, exist_ok=True)
 
     wav_path = seg_dir / "sound.wav"
     metadata_path = seg_dir / "metadata.json"
 
-    # Save metadata with "num" instead of "idx"
-    seg_metadata = dict(speech_seg)
-    if "idx" in seg_metadata:
-        seg_metadata["num"] = seg_metadata.pop("idx")
-    metadata_path.write_text(json.dumps(seg_metadata, indent=2), encoding="utf-8")
-
     seg_sound_file = save_wav_file(wav_path, seg_audio_np)
+    metadata_path.write_text(json.dumps(dict(speech_seg), indent=2), encoding="utf-8")
 
     logger.success(f"Segment {seg_number} data saved to:")
     logger.success(seg_sound_file, bright=True)
@@ -125,21 +127,21 @@ if __name__ == "__main__":
             quit_on_silence=quit_on_silence,
             overlap_seconds=overlap_seconds,
         )
-        segments: list[dict] = []
+        segments: list[SpeechSegmentMeta] = []
         for speech_seg, seg_audio_np, full_audio_np in data_stream:
-            speech_seg_copy: SpeechSegment = {
-                "idx": speech_seg["idx"],
+            speech_seg_meta: SpeechSegmentMeta = {
+                "num": speech_seg["idx"] + 1,
                 "start": round(speech_seg["start"] / SAMPLE_RATE, 3),
                 "end": round(speech_seg["end"] / SAMPLE_RATE, 3),
                 "prob": speech_seg["prob"],
                 "duration": speech_seg["duration"],
             }
-            seg_number: int = speech_seg["idx"] + 1
+            seg_number: int = speech_seg_meta["num"]
             seg_dir = Path(OUTPUT_DIR) / "segments" / f"segment_{seg_number:03d}"
             seg_dir.mkdir(parents=True, exist_ok=True)
             meta: dict = {
-                "start": speech_seg_copy["start"],
-                "end": speech_seg_copy["end"],
+                "start": speech_seg_meta["start"],
+                "end": speech_seg_meta["end"],
                 "segment_dir": str(seg_dir),
                 "seg_number": seg_number,
             }
@@ -149,11 +151,8 @@ if __name__ == "__main__":
                     meta=meta,
                 )
             Thread(target=pipeline_thread, daemon=True).start()
-            save_segment_data(speech_seg_copy, seg_audio_np)
-            seg_dict = dict(speech_seg_copy)
-            if "idx" in seg_dict:
-                seg_dict["num"] = seg_dict.pop("idx") + 1
-            segments.append(seg_dict)
+            save_segment_data(speech_seg_meta, seg_audio_np)
+            segments.append(speech_seg_meta)
             save_file(segments, OUTPUT_DIR / "all_segments.json", verbose=False)
             output_file = f"{OUTPUT_DIR}/full_recording.wav"
             save_wav_file(output_file, full_audio_np)
