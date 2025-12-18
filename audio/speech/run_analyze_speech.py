@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 import shutil
-from jet.audio.speech.silero.speech_analyzer import SileroVADAnalyzer
+from jet.audio.speech.silero.speech_analyzer import SpeechAnalyzer
 from jet.file.utils import save_file
 
 OUTPUT_DIR = os.path.join(
@@ -11,7 +11,7 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 if __name__ == "__main__":
     audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/full_recording.wav"
     threshold = 0.5
-    analyzer = SileroVADAnalyzer(threshold=threshold)
+    analyzer = SpeechAnalyzer(threshold=threshold)
 
     probs, segments, raw_segments = analyzer.analyze(audio_file)
     total_sec = len(probs) * analyzer.step_sec
