@@ -29,6 +29,7 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
         audio_file,
         threshold=threshold,
         return_seconds=True,
+        time_resolution=3,
     )
     waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
@@ -86,8 +87,8 @@ if __name__ == "__main__":
 
     audio_paths = [
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_low_prob.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/full_recording.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/full_recording.wav",
     ]
     threshold = 0.5
 
