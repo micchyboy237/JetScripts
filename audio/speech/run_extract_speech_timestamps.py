@@ -73,6 +73,7 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
             if gap_duration_val > 0:
                 gaps.append({
                     "gap_idx": i,
+                    "seg_idx_range": [i-1, i],
                     "description": f"silence between speech segment {i-1} and {i}",
                     "start": round(prev_end, 3),
                     "end": round(curr_start, 3),
