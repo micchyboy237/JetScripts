@@ -1,58 +1,75 @@
-import os
 from pathlib import Path
 import shutil
 from jet.audio.speech.silero.speech_analyzer import SpeechAnalyzer
 from jet.file.utils import save_file
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
     audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/full_recording.wav"
     threshold = 0.5
     analyzer = SpeechAnalyzer(
         threshold=threshold,
+        raw_threshold=0.2,
         min_duration_ms=200,
         min_std_prob=0.0,
         min_pct_threshold=10.0,
     )
 
-    probs, segments, raw_segments = analyzer.analyze(audio_file)
-    total_sec = len(probs) * analyzer.step_sec
+    probs, segments, raw_segments, num_frames = analyzer.analyze(audio_file)
+    total_sec = num_frames * analyzer.step_sec
 
-    metrics = analyzer.get_metrics(probs, segments, raw_segments, total_sec)
-    analyzer.plot_insights(probs, segments, raw_segments, audio_file, OUTPUT_DIR)
-    analyzer.save_json(segments, OUTPUT_DIR, audio_file)
-    analyzer.save_raw_json(raw_segments, OUTPUT_DIR, audio_file)
-    analyzer.save_segments_individually(audio_file, segments, Path(OUTPUT_DIR) / "segments")
-    # Example: save only raw segments longer than 1.0s with high variability and mostly above threshold
+    metrics = analyzer.get_metrics(probs, segments, raw_segments, num_frames, total_sec)
+    analyzer.plot_insights(probs, segments, raw_segments, num_frames, audio_file, OUTPUT_DIR)
+
+    extra_info = {
+        "total_frames": num_frames,
+        "total_duration_sec": round(total_sec, 3),
+        "frame_duration_ms": analyzer.frame_duration_ms,
+    }
+
+    analyzer.save_json(segments, OUTPUT_DIR, audio_file, extra_info=extra_info)
+    analyzer.save_raw_json(raw_segments, OUTPUT_DIR, audio_file, extra_info=extra_info)
+    analyzer.save_segments_individually(
+        audio_file,
+        segments,
+        OUTPUT_DIR / "segments",
+        probs,
+    )
     analyzer.save_raw_segments_individually(
         audio_file,
         raw_segments,
-        Path(OUTPUT_DIR),
-
+        OUTPUT_DIR,
+        probs,
     )
 
     from rich.table import Table
     from rich.console import Console
     console = Console()
-    table = Table(title=f"[bold]VAD Metrics – {os.path.basename(audio_file)}[/bold]")
+    table = Table(title=f"[bold]VAD Metrics – {Path(audio_file).name}[/bold]")
     table.add_column("Metric")
     table.add_column("Value", justify="right")
     for k, v in metrics.items():
         table.add_row(k.replace("_", " ").title(), str(v))
     console.print(table)
 
+    metrics_path = OUTPUT_DIR / f"vad_metrics_{Path(audio_file).stem}.json"
+    metrics_path.write_text(__import__("json").dumps(metrics, indent=2))
+    print(f"Metrics JSON → {metrics_path}")
+
+    sweep = analyzer.run_threshold_sweep(audio_file)
+    analyzer.save_threshold_sweep(sweep, OUTPUT_DIR, audio_file)
+    analyzer.print_threshold_sweep_table(sweep)
+
+    print("\nAll done! Open the PNGs + overlay + std histogram + sweep table.")
+    print(f"→ {OUTPUT_DIR}")
+
     formatted_segments = [seg.to_dict() for seg in segments]
     formatted_raw_segments = [seg.to_dict() for seg in raw_segments]
 
-    save_file(probs, f"{OUTPUT_DIR}/probs.json")
-    save_file(formatted_segments, f"{OUTPUT_DIR}/segments.json")
-    save_file(formatted_raw_segments, f"{OUTPUT_DIR}/raw_segments.json")
-    save_file(metrics, f"{OUTPUT_DIR}/vad_metrics.json")
-
-    # New: Threshold sweep summary
-    sweep_results = analyzer.run_threshold_sweep(audio_file, thresholds=[0.3, 0.5, 0.7])
-    analyzer.save_threshold_sweep(sweep_results, OUTPUT_DIR, audio_file)
-    analyzer.print_threshold_sweep_table(sweep_results)
+    save_file(probs, f"{str(OUTPUT_DIR)}/probs.json")
+    save_file(formatted_segments, f"{str(OUTPUT_DIR)}/segments.json")
+    save_file(formatted_raw_segments, f"{str(OUTPUT_DIR)}/raw_segments.json")
+    save_file(metrics, f"{str(OUTPUT_DIR)}/vad_metrics.json")
