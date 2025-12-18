@@ -14,6 +14,7 @@ from jet.logger import logger
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
+# shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 def translate_audio_files(
     audio_inputs: AudioInput,
@@ -134,9 +135,10 @@ def translate_audio_files(
 
 if __name__ == "__main__":
     example_files = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_analyze_speech/segments",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_analyze_speech/segments",
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_analyze_speech/raw_segments",
+
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_speech_detection/segments",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/diarize_file/segments",
@@ -145,13 +147,16 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
     ]
 
-    for output_dir in translate_audio_files(
-        audio_inputs=example_files,
-        # model_name="large-v3",
-        model_name="kotoba-tech/kotoba-whisper-v2.0-faster",
-        device="cpu",
-        compute_type="int8",
-        recursive=True,
-        # chunk_length=10,
-    ):
-        print(f"Finished: {output_dir.resolve()}")
+    for file_or_dir in example_files:
+        sub_dir = f"{OUTPUT_DIR}/{os.path.basename(file_or_dir)}"
+        for output_dir in translate_audio_files(
+            audio_inputs=file_or_dir,
+            # model_name="large-v3",
+            model_name="kotoba-tech/kotoba-whisper-v2.0-faster",
+            device="cpu",
+            compute_type="int8",
+            recursive=True,
+            # chunk_length=10,
+            output_dir=sub_dir,
+        ):
+            print(f"Finished: {output_dir.resolve()}")
