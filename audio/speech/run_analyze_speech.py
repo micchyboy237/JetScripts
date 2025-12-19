@@ -9,10 +9,10 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
     audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/full_recording.wav"
-    threshold = 0.5
+    threshold = 0.3
     analyzer = SpeechAnalyzer(
         threshold=threshold,
-        raw_threshold=0.2,
+        raw_threshold=0.10,
         min_duration_ms=200,
         min_std_prob=0.0,
         min_pct_threshold=10.0,

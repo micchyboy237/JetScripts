@@ -21,7 +21,7 @@ Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 def create_sub_dir(file: str):
     pass
 
-def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0.5):
+def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0.3):
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
     console.print(f"[bold cyan]Processing:[/bold cyan] {Path(audio_file).name}")
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/full_recording.wav",
     ]
-    threshold = 0.5
+    threshold = 0.3
 
     summary: Dict[str, Any] = {
         "total_files_processed": len(audio_paths),
