@@ -48,7 +48,7 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     logger.success(metadata_path, bright=True)
 
 if __name__ == "__main__":
-    duration_seconds = 25
+    duration_seconds = None
     trim_silent = False
     quit_on_silence = False
 

@@ -100,7 +100,7 @@ def make_result_callback(overlay: SubtitleOverlay, combined_srt_path: Path):
 
 if __name__ == "__main__":
     duration_seconds = None
-    trim_silent = True
+    trim_silent = False
     quit_on_silence = False
     overlap_seconds = 0.5
 
