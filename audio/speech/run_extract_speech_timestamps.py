@@ -30,14 +30,23 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
         threshold=threshold,
         return_seconds=True,
         time_resolution=3,
+        with_scores=True,
     )
     waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
     if not segments:
         console.print("[bold yellow]No speech segments detected – skipping save.[/bold yellow]")
         return
+
+    # When with_scores=True, the function returns a tuple (segments_list, speech_probs)
+    # Unpack accordingly to always have a clean list of SpeechSegment dicts
+    if isinstance(segments, tuple):
+        enhanced_segments, _ = segments  # ignore raw probs for now
+    else:
+        enhanced_segments = segments
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    for seg in segments:
+    for seg in enhanced_segments:
         console.print(
             f"[yellow][[/yellow] [bold white]{seg['start']:.2f}[/bold white] - [bold white]{seg['end']:.2f}[/bold white] [yellow]][/yellow] "
             f"duration=[bold magenta]{seg['duration']}s[/bold magenta] "
@@ -57,18 +66,18 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
             encoding="PCM_S",
             bits_per_sample=16,
         )
-    save_file(segments, output_dir / "speech_timestamps.json")
+    save_file(enhanced_segments, output_dir / "speech_timestamps.json")
 
     # Compute and save segment gaps
 
-    if segments:
+    if enhanced_segments:
 
         gaps: List[Dict[str, Any]] = []
 
         # Inter-segment silences: between consecutive speech segments
-        for i in range(1, len(segments)):
-            prev_end = segments[i-1]["end"]
-            curr_start = segments[i]["start"]
+        for i in range(1, len(enhanced_segments)):
+            prev_end = enhanced_segments[i-1]["end"]
+            curr_start = enhanced_segments[i]["start"]
             gap_duration_val = curr_start - prev_end
             if gap_duration_val > 0:
                 gaps.append({

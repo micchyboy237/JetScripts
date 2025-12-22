@@ -122,13 +122,9 @@ if __name__ == "__main__":
         )
         segments: list[SpeechSegment] = []
         for speech_seg, seg_audio_np, full_audio_np in data_stream:
-            speech_seg_meta: SpeechSegment = {
-                "num": speech_seg["num"],
-                "start": round(speech_seg["start"] / SAMPLE_RATE, 3),
-                "end": round(speech_seg["end"] / SAMPLE_RATE, 3),
-                "prob": speech_seg["prob"],
-                "duration": speech_seg["duration"],
-            }
+            speech_seg_meta: SpeechSegment = speech_seg.copy()
+            speech_seg_meta["start"] = round(speech_seg["start"] / SAMPLE_RATE, 3)
+            speech_seg_meta["end"] = round(speech_seg["end"] / SAMPLE_RATE, 3)
             seg_number: int = speech_seg_meta["num"]
             seg_dir = Path(OUTPUT_DIR) / "segments" / f"segment_{seg_number:03d}"
             seg_dir.mkdir(parents=True, exist_ok=True)
