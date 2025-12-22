@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import asyncio
 import os
 import shutil
 from pathlib import Path
 from typing import Generator, Union
 
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from jet.audio.transcribers.base_client import transcribe_audio, TranscribeResponse
+from jet.audio.transcribers.base_client_async import (
+    atranscribe_audio as transcribe_audio,
+    TranscribeResponse,
+    aclose_async_client,
+)
 from jet.audio.utils import AudioInput, resolve_audio_paths
 from jet.file.utils import save_file
 from jet.logger import logger
@@ -16,12 +21,9 @@ OUTPUT_DIR = os.path.join(
 )
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-def translate_audio_files(
+async def translate_audio_files(
     audio_inputs: AudioInput,
     *,
-    model_name: str = "kotoba-tech/kotoba-whisper-v2.0-faster",
-    device: str = "cpu",
-    compute_type: str = "int8",
     output_dir: Union[str, Path] = OUTPUT_DIR,
     recursive: bool = True,
 ) -> Generator[Path, None, None]:
@@ -46,15 +48,13 @@ def translate_audio_files(
     ) as progress:
         task_id = progress.add_task("Translating", total=len(audio_paths))
 
-        for idx, audio_path in enumerate(audio_paths, start=1):
-            audio_path = Path(audio_path)
+        async def process_single_file(audio_path: Path, idx: int) -> Path:
             file_output_dir = base_output / f"translated_{idx:03d}"
             file_output_dir.mkdir(parents=True, exist_ok=True)
 
             logger.info(f"Translating → {audio_path.name}")
 
-            # Use base_client transcribe_audio API (should perform translation remotely)
-            result: TranscribeResponse = transcribe_audio(audio_path)
+            result: TranscribeResponse = await transcribe_audio(audio_path)
             duration = result["duration_sec"]
             ja_text = result["transcription"].strip()
             en_text = result["translation"].strip()
@@ -128,35 +128,32 @@ def translate_audio_files(
 
             progress.advance(task_id)
 
+            return file_output_dir
+
+        # Process files sequentially with async transcription calls
+        for idx, audio_path in enumerate(audio_paths, start=1):
+            audio_path = Path(audio_path)
+            file_output_dir = await process_single_file(audio_path, idx)
             yield file_output_dir
 
+    await aclose_async_client()
     logger.success(f"All done! Outputs in:\n   → {base_output.resolve()}")
 
 
-if __name__ == "__main__":
+async def _run_examples() -> None:
     example_files = [
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_analyze_speech/segments",
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_analyze_speech/raw_segments",
-
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_speech_detection/segments",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/diarize_file/segments",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
     ]
 
     for file_or_dir in example_files:
         sub_dir = f"{OUTPUT_DIR}/{os.path.basename(file_or_dir)}"
-        for output_dir in translate_audio_files(
+        async for output_dir in translate_audio_files(
             audio_inputs=file_or_dir,
-            # model_name="large-v3",
-            model_name="kotoba-tech/kotoba-whisper-v2.0-faster",
-            device="cpu",
-            compute_type="int8",
             recursive=True,
-            # chunk_length=10,
             output_dir=sub_dir,
         ):
             print(f"Finished: {output_dir.resolve()}")
+
+if __name__ == "__main__":
+    asyncio.run(_run_examples())

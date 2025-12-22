@@ -10,14 +10,14 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_SUFFIX = datetime.now().strftime('%Y%m%d_%H%M%S')
 
 if __name__ == "__main__":
-    duration_seconds = 25
+    duration_seconds = 15
 
     # Record with trim_silent=True → returns trimmed np.ndarray directly
     data = record_from_mic(duration_seconds, trim_silent=True)
     if data is None:
         print("No sound detected or recording failed.")
     else:
-        output_file = f"{OUTPUT_DIR}/recording_trimmed_{OUTPUT_SUFFIX}.wav"
+        output_file = f"{OUTPUT_DIR}/recording_{OUTPUT_SUFFIX}.wav"
         save_wav_file(output_file, data)
         print(f"Trimmed recording saved: {output_file}")
 

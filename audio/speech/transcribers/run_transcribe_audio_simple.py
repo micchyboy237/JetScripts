@@ -140,7 +140,8 @@ def translate_audio_files(
 # ==============================
 if __name__ == "__main__":
     example_files = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_speech_detection/segments",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_20251222_125319.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic_speech_detection/segments",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/speech/pyannote/generated/diarize_file/segments",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
@@ -151,8 +152,8 @@ if __name__ == "__main__":
     # Now iterates and gives immediate feedback as each file finishes
     for output_dir in translate_audio_files(
         audio_inputs=example_files,
-        # model_name="large-v3",
-        model_name="kotoba-tech/kotoba-whisper-v2.0-faster",
+        model_name="large-v3",
+        # model_name="kotoba-tech/kotoba-whisper-v2.0-faster",
         device="cpu",
         compute_type="int8",
         recursive=True,
