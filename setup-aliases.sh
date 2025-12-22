@@ -364,6 +364,7 @@ large_folders() {
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py "${args[@]}"
 
     # Example:
+    # large_folders --save
     # large_folders -b ~/Desktop/External_Projects -s 50 --save
     # large_folders -b . -s 100 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --delete --direction forward --max-backward-depth 3 --save
     # large_folders -b ~/Desktop/External_Projects -i "node_modules,.venv,venv" -d 0 --save
