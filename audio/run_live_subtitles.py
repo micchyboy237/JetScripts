@@ -9,7 +9,7 @@ import numpy as np
 
 from jet.audio.helpers.silence import SAMPLE_RATE
 from jet.audio.record_mic_speech_detection import record_from_mic
-from jet.audio.speech.overlay_utils import append_to_combined_srt, write_srt_file
+from jet.audio.speech.output_utils import append_to_combined_srt, write_srt_file
 from jet.audio.speech.silero.speech_types import SpeechSegment
 from jet.audio.speech.wav_utils import get_wav_bytes, save_wav_file
 from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline
