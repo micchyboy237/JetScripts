@@ -16,6 +16,12 @@ from jet.audio.utils import AudioInput, resolve_audio_paths
 from jet.file.utils import save_file
 from jet.logger import logger
 
+from jet.audio.speech.output_utils import (
+    _seconds_to_timestamp,
+    write_srt_file,
+    append_to_combined_srt,
+)
+
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
 )
@@ -63,66 +69,68 @@ async def translate_audio_files(
 
             logger.info(f"Duration: {duration:.2f}s | Language: {detected_lang} ({detected_prob:.2%})")
 
-            # Helper: Bilingual SRT using proportional split (no true segment timings)
-            def segments_to_bilingual_srt(segments: list, full_translation: str) -> str:
-                lines = []
-                translated_parts = full_translation.split()
-                total_words = len(translated_parts)
-                seg_count = len(segments) if segments else 1
-                words_per_seg = max(1, total_words // seg_count) if seg_count > 0 else 1
+            # Create a single-entry bilingual SRT using reusable utilities (no real timestamps available)
+            srt_path = file_output_dir / "bilingual_subtitles.srt"
+            write_srt_file(
+                filepath=srt_path,
+                source_text=ja_text.strip() if ja_text else "",
+                target_text=en_text.strip() if en_text else "",
+                start_sample=0.0,
+                end_sample=duration,
+                index=1,
+            )
 
-                for s_idx, seg in enumerate(segments, start=1):
-                    # Fallback: Use 0:00:00,000 → 0:00:00,000 since we have no timings
-                    start_tc = "00:00:00,000"
-                    end_tc = "00:00:00,000"
-                    start_word = (s_idx - 1) * words_per_seg
-                    end_word = s_idx * words_per_seg if s_idx < seg_count else total_words
-                    seg_translation = " ".join(translated_parts[start_word:end_word])
-                    lines.append(str(s_idx))
-                    lines.append(f"{start_tc} --> {end_tc}")
-                    lines.append(seg)
-                    lines.append(seg_translation.strip() if seg_translation else "[No translation]")
-                    lines.append("")
-                return "\n".join(lines)
-
-            # As we have no segment/timestamp info from the remote server, make "segments" one segment = full ja_text
-            segments = [ja_text] if ja_text else []
-            bilingual_srt_content = segments_to_bilingual_srt(segments, en_text)
-
-            # Bilingual TXT: Just the two blocks
-            bilingual_txt_lines = []
+            # Simple bilingual TXT (kept as-is since no equivalent reusable helper exists yet)
+            txt_lines = []
             if ja_text or en_text:
-                bilingual_txt_lines.extend([
+                txt_lines.extend([
                     "1",
-                    "00:00:00,000 --> 00:00:00,000",
-                    ja_text,
-                    en_text if en_text else "[No translation]",
+                    f"{_seconds_to_timestamp(0.0)} --> {_seconds_to_timestamp(duration)}",
+                    ja_text.strip() if ja_text else "",
+                    en_text.strip() if en_text else "[No translation]",
                     ""
                 ])
-            bilingual_txt_content = "\n".join(bilingual_txt_lines)
+            txt_content = "\n".join(txt_lines)
 
-            # Save per-file artifacts
-            save_file(bilingual_srt_content, file_output_dir / "bilingual_subtitles.srt")
-            save_file(bilingual_txt_content, file_output_dir / "translation.txt")
+            save_file(txt_content, file_output_dir / "translation.txt")
             save_file(result, file_output_dir / "info.json")
             save_file([], file_output_dir / "segments.json")  # Placeholder
 
             all_subtitles_srt_path = base_output / "all_subtitles.srt"
             all_translations_txt_path = base_output / "all_translations.txt"
 
+            # Append to combined SRT using reusable helper (adds proper single entry)
+            current_index = 1  # Single entry per file; combined file will auto-increment via append logic
+            if all_subtitles_srt_path.exists():
+                # Count existing entries to continue indexing
+                existing_content = all_subtitles_srt_path.read_text(encoding="utf-8")
+                current_index = len([line for line in existing_content.splitlines() if line.strip().isdigit()]) + 1
+
+            # Add file separator header as plain text before the subtitle block
             file_header = f"\n\n=== FILE: {audio_path.name} ===\n\n"
+            if all_subtitles_srt_path.exists():
+                all_subtitles_srt_path.write_text(
+                    all_subtitles_srt_path.read_text(encoding="utf-8") + file_header,
+                    encoding="utf-8",
+                )
 
-            with open(all_subtitles_srt_path, "a", encoding="utf-8") as f:
-                if f.tell() == 0:
-                    f.write(bilingual_srt_content + "\n")
-                else:
-                    f.write(file_header + bilingual_srt_content + "\n")
+            append_to_combined_srt(
+                combined_path=all_subtitles_srt_path,
+                source_text=ja_text.strip() if ja_text else "",
+                target_text=en_text.strip() if en_text else "",
+                start_sample=0.0,
+                end_sample=duration,
+                index=current_index,
+            )
 
+            # Append simple TXT version with same header
+            if all_translations_txt_path.exists():
+                all_translations_txt_path.write_text(
+                    all_translations_txt_path.read_text(encoding="utf-8") + file_header,
+                    encoding="utf-8",
+                )
             with open(all_translations_txt_path, "a", encoding="utf-8") as f:
-                if f.tell() == 0:
-                    f.write(bilingual_txt_content + "\n")
-                else:
-                    f.write(file_header + bilingual_txt_content + "\n")
+                f.write(txt_content + "\n")
 
             logger.success(f"Saved → {file_output_dir.name}")
 
