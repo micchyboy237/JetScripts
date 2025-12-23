@@ -45,7 +45,8 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
     else:
         enhanced_segments = segments
 
-    output_dir.mkdir(parents=True, exist_ok=True)
+    segments_dir = output_dir / "segments"
+    segments_dir.mkdir(parents=True, exist_ok=True)
     for seg in enhanced_segments:
         console.print(
             f"[yellow][[/yellow] [bold white]{seg['start']:.2f}[/bold white] - [bold white]{seg['end']:.2f}[/bold white] [yellow]][/yellow] "
@@ -53,7 +54,7 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
             f"prob=[bold cyan]{seg['prob']:.3f}[/bold cyan]"
         )
         folder_name = f"segment_{seg['num']:03d}"  # use segment number for output subdir
-        seg_dir = output_dir / folder_name
+        seg_dir = segments_dir / folder_name
         seg_dir.mkdir(parents=True, exist_ok=True)
         save_file(seg, seg_dir / "segment.json", verbose=False)
         start_sample = int(seg['start'] * 16000)
