@@ -15,7 +15,7 @@ from jet.audio.speech.wav_utils import get_wav_bytes, save_wav_file
 from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.overlays.subtitle_overlay import SubtitleOverlay
+from jet.overlays.live_subtitles_overlay import LiveSubtitlesOverlay
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
@@ -45,7 +45,7 @@ def _on_transcription_result(
     en_text: str,
     timestamps: list[dict],
     meta: dict,
-    overlay: SubtitleOverlay,
+    overlay: LiveSubtitlesOverlay,
     combined_srt_path: Path,
 ) -> None:
     """Thread-safe callback – called from pipeline worker threads."""
@@ -91,7 +91,7 @@ def _on_transcription_result(
         index=meta["seg_number"],  # uses the original speech detector num
     )
 
-def make_result_callback(overlay: SubtitleOverlay, combined_srt_path: Path):
+def make_result_callback(overlay: LiveSubtitlesOverlay, combined_srt_path: Path):
     def callback(
         ja_text: str,
         en_text: str,
@@ -120,7 +120,7 @@ if __name__ == "__main__":
     overlap_seconds = 0.5
 
     app = QApplication([])  # Re-uses existing instance if any
-    overlay = SubtitleOverlay.create(app=app, title="Live Japanese Subtitles")
+    overlay = LiveSubtitlesOverlay.create(app=app, title="Live Japanese Subtitles")
     combined_srt_path = OUTPUT_DIR / "all_subtitles.srt"
     if combined_srt_path.exists():
         combined_srt_path.unlink()
