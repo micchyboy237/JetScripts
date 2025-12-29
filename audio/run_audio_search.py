@@ -10,7 +10,138 @@ from rich.table import Table
 from tqdm import tqdm
 from pathlib import Path  # Needed for Path operations
 
+import shutil
+
 console = Console()
+
+
+def _get_demo_output_dir() -> Path:
+    """
+    Create and return a dedicated output directory for the calling demo function.
+    Directory name is based on the demo function name for clear separation.
+    Existing content is removed to ensure clean runs.
+    """
+    import inspect
+
+    caller_frame = inspect.stack()[1]
+    func_name = caller_frame.function
+    script_base = Path(__file__).parent / "generated" / Path(__file__).stem
+    results_dir = script_base / "results" / func_name
+    shutil.rmtree(results_dir, ignore_errors=True)
+    results_dir.mkdir(parents=True, exist_ok=True)
+    console.log(f"[bold blue]Using demo results directory: {results_dir}[/bold blue]")
+    return results_dir
+
+
+def _get_demo_persist_dir() -> Path:
+    """
+    Return a dedicated Chroma persistence directory for the calling demo.
+    All databases are centralized under generated/<script>/db/<demo_name>
+    The DB directory is NOT cleaned on each run — allowing reuse across runs.
+    """
+    import inspect
+
+    caller_frame = inspect.stack()[1]
+    func_name = caller_frame.function
+    script_base = Path(__file__).parent / "generated" / Path(__file__).stem
+    db_base = script_base / "db"
+    demo_persist_dir = db_base / func_name
+
+    demo_persist_dir.mkdir(parents=True, exist_ok=True)
+
+    console.log(f"[bold magenta]Using Chroma DB directory (persistent): {demo_persist_dir}[/bold magenta]")
+    return demo_persist_dir
+
+
+def _save_search_results(
+    output_dir: Path,
+    demo_name: str,
+    results: List[dict],
+    suffix: str = "",
+) -> None:
+    """
+    Save search results to JSON (full data) and Markdown (human-readable table).
+    Uses the same table format as print_results for consistency.
+    """
+    import json
+
+    suffix_part = f"_{suffix}" if suffix else ""
+    json_path = output_dir / f"search_results{suffix_part}.json"
+    md_path = output_dir / f"search_results{suffix_part}.md"
+
+    # Save full results as JSON
+    with open(json_path, "w") as f:
+        json.dump(results, f, indent=4)
+
+    # Generate proper GitHub-flavored markdown table directly (no Rich capture needed)
+    md_lines = []
+    md_lines.append(f"# Search Results{suffix_part.replace('_', ' ')} - {demo_name}")
+    md_lines.append("")
+    md_lines.append("| Rank | ID | File | Time Range | Similarity |")
+    md_lines.append("| ------ | ---- | ------ | ------------ | ------------ |")
+
+    for rank, res in enumerate(results, 1):
+        time_range = f"{res['start_sec']:.1f}s – {res['end_sec']:.1f}s"
+        file_name = Path(res["file"]).name if res["file"] != "<bytes>" else "<bytes>"
+        md_lines.append(
+            f"| {rank} | {res['id']} | {file_name} | {time_range} | {res['score']:.4f} |"
+        )
+
+    md_lines.append("")
+    markdown_content = "\n".join(md_lines)
+
+    with open(md_path, "w") as f:
+        f.write(markdown_content)
+
+    # Additional: save growing prefix progression table if present
+    if results and "prefix_scores" in results[0]:
+        prog_md_path = output_dir / f"growing_prefix_progression{suffix_part}.md"
+        prog_lines = []
+        prog_lines.append("# Growing Prefix Score Progression")
+        prog_lines.append("")
+        prog_lines.append("| Rank | File | Prefix Duration | Score History |")
+        prog_lines.append("| ------ | ------ | ------------------ | --------------- |")
+
+        for rank, res in enumerate(results[:10], 1):
+            durations = [f"{d:.1f}s" for d in res["prefix_durations_sec"]]
+            scores = [f"{s:.3f}" for s in res["prefix_scores"]]
+            duration_str = " → ".join(durations)
+            score_str = " → ".join(scores)
+            file_name = Path(res["file"]).name if res["file"] != "<bytes>" else "<bytes>"
+            prog_lines.append(f"| {rank} | {file_name} | {duration_str} | {score_str} |")
+
+        prog_lines.append("")
+        prog_markdown = "\n".join(prog_lines)
+
+        with open(prog_md_path, "w") as f:
+            f.write(prog_markdown)
+
+        console.log(f"[bold green]Saved growing prefix progression to {prog_md_path}[/bold green]")
+
+    # ---- Additional: save localization results table if localization info is present ----
+    # (copied pattern from growing prefix table, using instructions)
+    # This expects that if any result in `results` has "query_start_sec" in its dict, we produce the table.
+    if results and "query_start_sec" in results[0]:
+        loc_lines = []
+        loc_lines.append("# Localization Results")
+        loc_lines.append("")
+        loc_lines.append("| Rank | ID | File | DB Time | Query Time | Similarity |")
+        loc_lines.append("| ------ | ---- | ------ | --------- | ------------ | ------------ |")
+        for rank, res in enumerate(results, 1):
+            if "query_start_sec" not in res:
+                continue
+            db_time = f"{res['start_sec']:.1f}s – {res['end_sec']:.1f}s"
+            query_time = f"{res['query_start_sec']:.1f}s – {res['query_end_sec']:.1f}s"
+            loc_lines.append(
+                f"| {rank} | {res['id']} | {Path(res['file']).name} | {db_time} | {query_time} | {res['score']:.4f} |"
+            )
+        loc_lines.append("")
+        loc_markdown = "\n".join(loc_lines)
+        loc_md_path = output_dir / f"localization_results{suffix_part}.md"
+        with open(loc_md_path, "w") as f:
+            f.write(loc_markdown)
+
+    console.log(f"[bold green]Saved search results to {json_path} and {md_path}[/bold green]")
 
 
 def demo_index_and_search_files(query_path: str, persist_dir: str = "./my_audio_db"):
@@ -20,8 +151,10 @@ def demo_index_and_search_files(query_path: str, persist_dir: str = "./my_audio_
     Useful for initial indexing of existing files on disk.
     """
     console.log("[bold yellow]Starting demo: demo_index_and_search_files[/bold yellow]")
+    output_dir = _get_demo_output_dir()
 
-    db = AudioSegmentDatabase(persist_dir=persist_dir)
+    persist_dir_path = _get_demo_persist_dir()
+    db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
     # Example 1: Index some audio files (run once)
     audio_files = _get_sample_audio_files()
@@ -49,6 +182,7 @@ def demo_index_and_search_files(query_path: str, persist_dir: str = "./my_audio_
     results = db.search_similar(query_path, top_k=10)
     console.log("[green]Printing search results for file path query[/green]")
     db.print_results(results)
+    _save_search_results(output_dir, "demo_index_and_search_files", results, suffix="file_path")
 
     # Example 3: Search with raw audio bytes (e.g., from API upload)
     with open(query_path, "rb") as f:
@@ -58,6 +192,7 @@ def demo_index_and_search_files(query_path: str, persist_dir: str = "./my_audio_
     results_bytes = db.search_similar(query_bytes, top_k=5)
     console.log("[green]Printing search results for raw bytes query[/green]")
     db.print_results(results_bytes)
+    _save_search_results(output_dir, "demo_index_and_search_files", results_bytes, suffix="bytes")
 
 
 def demo_bytes_only_workflow(query_path: str, persist_dir: str = "./my_bytes_audio_db"):
@@ -66,8 +201,10 @@ def demo_bytes_only_workflow(query_path: str, persist_dir: str = "./my_bytes_aud
     Ideal for in-memory pipelines, web uploads, or when no file paths are available.
     """
     console.log("[bold yellow]Starting demo: demo_bytes_only_workflow[/bold yellow]")
+    output_dir = _get_demo_output_dir()
 
-    db = AudioSegmentDatabase(persist_dir=persist_dir)
+    persist_dir_path = _get_demo_persist_dir()
+    db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
     # Load some example audio as bytes (in real use: from request.files, microphone buffer, etc.)
     audio_files = _get_sample_audio_files()
@@ -98,6 +235,7 @@ def demo_bytes_only_workflow(query_path: str, persist_dir: str = "./my_bytes_aud
     results = db.search_similar(query_bytes, top_k=8)
     console.log("[green]Printing search results for bytes-only workflow query[/green]")
     db.print_results(results)
+    _save_search_results(output_dir, "demo_bytes_only_workflow", results)
 
 
 def demo_numpy_array_workflow(query_path: str, persist_dir: str = "./my_numpy_audio_db"):
@@ -107,8 +245,10 @@ def demo_numpy_array_workflow(query_path: str, persist_dir: str = "./my_numpy_au
     (e.g., from file, microphone, or API).
     """
     console.log("[bold yellow]Starting demo: demo_numpy_array_workflow[/bold yellow]")
+    output_dir = _get_demo_output_dir()
 
-    db = AudioSegmentDatabase(persist_dir=persist_dir)
+    persist_dir_path = _get_demo_persist_dir()
+    db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
     # Reuse the same sample files as the other demos
     audio_files = _get_sample_audio_files()
@@ -136,6 +276,7 @@ def demo_numpy_array_workflow(query_path: str, persist_dir: str = "./my_numpy_au
     results = db.search_similar(query_numpy, top_k=8)
     console.log("[green]Printing search results for NumPy query[/green]")
     db.print_results(results)
+    _save_search_results(output_dir, "demo_numpy_array_workflow", results)
 
 
 def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_localize_audio_db"):
@@ -146,7 +287,9 @@ def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_lo
     """
     console.log("[bold yellow]Starting demo: demo_localize_in_query_workflow[/bold yellow]")
 
-    db = AudioSegmentDatabase(persist_dir=persist_dir)
+    output_dir = _get_demo_output_dir()
+    persist_dir_path = _get_demo_persist_dir()
+    db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
@@ -170,7 +313,7 @@ def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_lo
             silence = torch.zeros(1, int(sr * silence_duration))
             segments.append(silence)
     long_query = torch.cat(segments, dim=1)
-    synthetic_path = Path(persist_dir) / "synthetic_long_query.wav"
+    synthetic_path = output_dir / "synthetic_long_query.wav"
     torchaudio.save(synthetic_path, long_query, sr)
 
     console.print(f"[bold cyan]Synthetic query saved to {synthetic_path} "
@@ -180,6 +323,7 @@ def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_lo
 
     console.log("[green]Standard results view[/green]")
     db.print_results(results)
+    _save_search_results(output_dir, "demo_localize_in_query_workflow", results, suffix="standard")
 
     if results and "query_start_sec" in results[0]:
         console.print("\n[bold magenta]Localization details (time range in query)[/bold magenta]")
@@ -202,6 +346,50 @@ def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_lo
                 f"{res['score']:.4f}"
             )
         console.print(loc_table)
+
+        # Save localization table separately
+        import json
+        from rich.panel import Panel
+        loc_json_path = output_dir / "localization_results.json"
+        loc_md_path = output_dir / "localization_results.md"
+        loc_data = [
+            {
+                "rank": rank,
+                "id": res["id"],
+                "file": Path(res["file"]).name,
+                "db_time": f"{res['start_sec']:.1f}s – {res['end_sec']:.1f}s",
+                "query_time": f"{res['query_start_sec']:.1f}s – {res['query_end_sec']:.1f}s",
+                "similarity": res['score'],
+            }
+            for rank, res in enumerate(results, 1)
+            if "query_start_sec" in res
+        ]
+        with open(loc_json_path, "w") as f:
+            json.dump(loc_data, f, indent=4)
+        with console.capture() as capture:
+            console.print(Panel(loc_table, expand=False))
+        raw_loc_capture = capture.get()
+
+        # Replace with direct markdown generation (same pattern as other tables)
+        loc_lines = []
+        loc_lines.append("# Localization Results")
+        loc_lines.append("")
+        loc_lines.append("| Rank | ID | File | DB Time | Query Time | Similarity |")
+        loc_lines.append("|------|----|------|---------|------------|------------|")
+        for rank, res in enumerate(results, 1):
+            if "query_start_sec" not in res:
+                continue
+            db_time = f"{res['start_sec']:.1f}s – {res['end_sec']:.1f}s"
+            query_time = f"{res['query_start_sec']:.1f}s – {res['query_end_sec']:.1f}s"
+            loc_lines.append(
+                f"| {rank} | {res['id']} | {Path(res['file']).name} | {db_time} | {query_time} | {res['score']:.4f} |"
+            )
+        loc_lines.append("")
+        loc_markdown = "\n".join(loc_lines)
+
+        with open(loc_md_path, "w") as f:
+            f.write(loc_markdown)
+        console.log(f"[bold green]Saved localization results to {loc_json_path} and {loc_md_path}[/bold green]")
     else:
         # console.print("[dim]No localization info (query likely too short for windowing)[/dim]")
         pass
@@ -214,8 +402,10 @@ def demo_growing_short_segments_workflow(query_path: str, persist_dir: str = "./
     of 0.1s chunks are tested until a confident match is found.
     """
     console.log("[bold yellow]Starting demo: demo_growing_short_segments_workflow[/bold yellow]")
+    output_dir = _get_demo_output_dir()
 
-    db = AudioSegmentDatabase(persist_dir=persist_dir)
+    persist_dir_path = _get_demo_persist_dir()
+    db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Indexing {len(audio_files)} full audio files[/bold green]")
@@ -228,7 +418,7 @@ def demo_growing_short_segments_workflow(query_path: str, persist_dir: str = "./
         waveform = waveform.mean(dim=0, keepdim=True)
     short_samples = int(1.5 * sr)
     short_waveform = waveform[:, :short_samples]
-    short_query_path = Path(persist_dir) / "short_query_1.5s.wav"
+    short_query_path = output_dir / "short_query_1.5s.wav"
     torchaudio.save(short_query_path, short_waveform, sr)
     console.print(f"[bold cyan]Created short query ({1.5}s): {short_query_path}[/bold cyan]")
 
@@ -240,22 +430,23 @@ def demo_growing_short_segments_workflow(query_path: str, persist_dir: str = "./
     )
     console.log("[green]Results using growing 0.1s prefixes (max score across prefixes)[/green]")
     db.print_results(results)
+    _save_search_results(output_dir, "demo_growing_short_segments_workflow", results, suffix="growing")
 
-    # Also compare with normal single-segment search on the same short query
     console.print("[bold cyan]For comparison: normal single-segment search on same short query[/bold cyan]")
     normal_results = db.search_similar(short_query_path, top_k=10)
     db.print_results(normal_results)
+    _save_search_results(output_dir, "demo_growing_short_segments_workflow", normal_results, suffix="normal")
 
 
 def _get_sample_audio_files() -> List[str]:
-    audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments"
+    audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/segments"
     audio_files = resolve_audio_paths(audio_dir, recursive=True)
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
     return audio_files
 
 
 if __name__ == "__main__":
-    full_query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments/segment_004/sound.wav"
+    full_query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/segments/segment_004/sound.wav"
 
     # Extract partial audio (0.2s to 0.8s)
     partial_audio, sr = extract_audio_segment(full_query_path, start=0.2, end=0.8)
