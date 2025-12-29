@@ -60,6 +60,21 @@ def _on_transcription_result(
             end_sec=round(meta["end"], 3),
             duration_sec=round(meta["end"] - meta["start"], 3),
         )
+
+        # Print correct metadata table (now shows proper values)
+        latest = overlay.message_history[-1]
+        from rich.table import Table
+        from rich import print as rprint
+
+        count = len(overlay.message_history)
+
+        table = Table(title=f"Subtitle {count} metadata")
+        table.add_column("Field")
+        table.add_column("Value")
+        for k, v in latest.items():
+            table.add_row(k, str(v))
+        rprint(table)
+
     Thread(target=add_message_thread, daemon=True).start()
 
     seg_dir = Path(meta["segment_dir"])

@@ -10,7 +10,7 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 OUTPUT_SUFFIX = datetime.now().strftime('%Y%m%d_%H%M%S')
 
 if __name__ == "__main__":
-    duration_seconds = 15
+    duration_seconds = 30
 
     # Record with trim_silent=True → returns trimmed np.ndarray directly
     data = record_from_mic(duration_seconds, trim_silent=True)

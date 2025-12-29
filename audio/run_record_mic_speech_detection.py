@@ -49,7 +49,7 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
 
 if __name__ == "__main__":
     duration_seconds = None
-    trim_silent = False
+    trim_silent = True
     quit_on_silence = False
 
     # Record with trim_silent=True → returns trimmed np.ndarray directly
