@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import sys
 from threading import Thread
+from typing import TypedDict
 from PyQt6.QtWidgets import QApplication
 import numpy as np
 
@@ -12,14 +13,22 @@ from jet.audio.record_mic_speech_detection import record_from_mic
 from jet.audio.speech.output_utils import append_to_combined_srt, write_srt_file
 from jet.audio.speech.silero.speech_types import SpeechSegment
 from jet.audio.speech.wav_utils import get_wav_bytes, save_wav_file
-from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline
+from jet.audio.transcribers.base import AudioInput
+from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline, transcribe_ja_chunk
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.overlays.live_subtitles_overlay import LiveSubtitlesOverlay
+from jet.overlays.live_subtitles_overlay import LiveSubtitlesOverlay, SubtitleMessage
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+class SubtitlesMeta(TypedDict):
+    start: float
+    end: float
+    segment_dir: str
+    seg_number: int
+
 
 def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     segment_root = Path(OUTPUT_DIR) / "segments"
@@ -113,6 +122,22 @@ def make_result_callback(overlay: LiveSubtitlesOverlay, combined_srt_path: Path)
         )
     return callback
 
+async def translation_process(audio: AudioInput, meta: SubtitlesMeta) -> SubtitleMessage:
+    result = await transcribe_ja_chunk(audio)
+    logger.debug("transcribe_audio returned: %r", result)
+
+    ja_text = result["transcription"].strip()
+    en_text = result.get("translation", "").strip()
+    timestamps = result.get("words", result.get("segments", []))
+
+    return {
+        "source_text": ja_text,
+        "translated_text": en_text,
+        "start_sec": round(meta["start"], 3),
+        "end_sec": round(meta["end"], 3),
+        "duration_sec": round(meta["end"] - meta["start"], 3),
+    }
+
 if __name__ == "__main__":
     duration_seconds = None
     trim_silent = False
@@ -125,7 +150,7 @@ if __name__ == "__main__":
     if combined_srt_path.exists():
         combined_srt_path.unlink()
     pipeline = TranscriptionPipeline(max_workers=2, cache_size=500)
-    pipeline.on_result = make_result_callback(overlay, combined_srt_path)
+    # pipeline.on_result = make_result_callback(overlay, combined_srt_path)
 
     # Run the blocking recording + processing loop in a background thread
     def recording_thread() -> None:
@@ -143,18 +168,25 @@ if __name__ == "__main__":
             seg_number: int = speech_seg_meta["num"]
             seg_dir = Path(OUTPUT_DIR) / "segments" / f"segment_{seg_number:03d}"
             seg_dir.mkdir(parents=True, exist_ok=True)
-            meta: dict = {
+
+            meta: SubtitlesMeta = {
                 "start": speech_seg_meta["start"],
                 "end": speech_seg_meta["end"],
                 "segment_dir": str(seg_dir),
                 "seg_number": seg_number,
             }
             def pipeline_thread() -> None:
-                pipeline.submit_segment(
-                    get_wav_bytes(seg_audio_np),
+                # pipeline.submit_segment(
+                #     get_wav_bytes(seg_audio_np),
+                #     meta=meta,
+                # )
+                overlay.add_task(
+                    translation_process,
+                    audio=get_wav_bytes(seg_audio_np),
                     meta=meta,
                 )
             Thread(target=pipeline_thread, daemon=True).start()
+
             save_segment_data(speech_seg_meta, seg_audio_np)
             segments.append(speech_seg_meta)
             save_file(segments, OUTPUT_DIR / "all_segments.json", verbose=False)
