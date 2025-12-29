@@ -146,7 +146,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--max-depth", type=int, default=None,
                         help="Maximum forward depth. Set to 0 for immediate subdirectories only.")
     parser.add_argument("-i", "--includes", type=str,
-                        default="*cache*,*Cache*,*CACHE*,*tmp*,*Temp*,.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData,generated,node_modules,__pycache__,dist,build,.venv,.pytest_cache",
+                        default="*cache*,*Cache*,*CACHE*,*tmp*,*Temp*,.TemporaryItems,Temporary Files,.Spotlight-V100,.fseventsd,.DS_Store,Logs,DerivedData,generated,node_modules,__pycache__,dist,build,.venv,*_venv,.pytest_cache",
                         help="Comma-separated include patterns.")
     parser.add_argument("-e", "--excludes", type=str, default="",
                         help="Comma-separated exclude patterns.")
