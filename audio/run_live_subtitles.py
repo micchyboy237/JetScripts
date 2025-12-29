@@ -141,22 +141,22 @@ if __name__ == "__main__":
                 wav_bytes = get_wav_bytes(seg_audio_np)
 
                 # Search for similar existing segment before transcribing
-                similar = audio_db.search_similar(wav_bytes, top_k=1)
-
                 cache_hit = False
+                # similar = audio_db.search_similar(wav_bytes, top_k=1)
+
                 ja_text = ""
                 en_text = ""
                 timestamps: list[dict] = []
 
-                if similar and similar[0]["score"] >= SIMILARITY_THRESHOLD:
-                    match = similar[0]
-                    ja_text = match.get("ja_text", "").strip()
-                    en_text = match.get("en_text", "").strip()
-                    logger.success(
-                        f"Audio cache hit! Reusing subtitles (score={match['score']:.4f}) "
-                        f"from segment {match.get('seg_number', 'unknown')}"
-                    )
-                    cache_hit = True
+                # if similar and similar[0]["score"] >= SIMILARITY_THRESHOLD:
+                #     match = similar[0]
+                #     ja_text = match.get("ja_text", "").strip()
+                #     en_text = match.get("en_text", "").strip()
+                #     logger.success(
+                #         f"Audio cache hit! Reusing subtitles (score={match['score']:.4f}) "
+                #         f"from segment {match.get('seg_number', 'unknown')}"
+                #     )
+                #     cache_hit = True
 
                 if cache_hit:
                     # Cache hit → immediately process result (synchronous)
