@@ -28,6 +28,7 @@ def _get_demo_output_dir() -> Path:
     script_base = Path(__file__).parent / "generated" / Path(__file__).stem
     results_dir = script_base / "results" / func_name
     shutil.rmtree(results_dir, ignore_errors=True)
+
     results_dir.mkdir(parents=True, exist_ok=True)
     console.log(f"[bold blue]Using demo results directory: {results_dir}[/bold blue]")
     return results_dir
@@ -46,9 +47,9 @@ def _get_demo_persist_dir() -> Path:
     script_base = Path(__file__).parent / "generated" / Path(__file__).stem
     db_base = script_base / "db"
     demo_persist_dir = db_base / func_name
+    shutil.rmtree(demo_persist_dir, ignore_errors=True)
 
     demo_persist_dir.mkdir(parents=True, exist_ok=True)
-
     console.log(f"[bold magenta]Using Chroma DB directory (persistent): {demo_persist_dir}[/bold magenta]")
     return demo_persist_dir
 
