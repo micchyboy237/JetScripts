@@ -8,7 +8,7 @@ from pathlib import Path  # Needed for Path operations
 console = Console()
 
 
-def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
+def demo_index_and_search_files(query_path: str, persist_dir: str = "./my_audio_db"):
     """
     Demo: Index a directory of audio files (using the legacy file-based method)
     and perform searches with both file path and bytes queries.
@@ -23,10 +23,16 @@ def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
     for file in tqdm(audio_files, desc="Indexing files"):
         base_name = Path(file).stem
-        expected_id = f"{base_name}_full"  # matches what add_segments generates in whole mode
-
-        # Check if this full segment already exists
-        existing = db.collection.get(ids=[expected_id], include=[])
+        # Query by metadata instead (file path + full segment start/end)
+        existing = db.collection.get(
+            where={
+                "$and": [
+                    {"file": str(Path(file).resolve())},
+                    {"start_sec": 0.0}
+                ]
+            },
+            include=["metadatas"]
+        )
         if existing["ids"]:
             console.print(f"[dim]Already indexed: {Path(file).name}[/dim]")
             continue
@@ -34,7 +40,6 @@ def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
         db.add_segments(file)  # only call if needed
 
     # Example 2: Search with a query file
-    query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments/segment_002/sound.wav"
     console.print("[bold cyan]Searching with file path query[/bold cyan]")
     results = db.search_similar(query_path, top_k=10)
     console.log("[green]Printing search results for file path query[/green]")
@@ -50,7 +55,7 @@ def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
     db.print_results(results_bytes)
 
 
-def demo_bytes_only_workflow(persist_dir: str = "./my_bytes_audio_db"):
+def demo_bytes_only_workflow(query_path: str, persist_dir: str = "./my_bytes_audio_db"):
     """
     Demo: Create a separate database and add/search using only raw bytes.
     Ideal for in-memory pipelines, web uploads, or when no file paths are available.
@@ -81,7 +86,6 @@ def demo_bytes_only_workflow(persist_dir: str = "./my_bytes_audio_db"):
         )
 
     # Query with bytes from a new/unseen segment
-    query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments/segment_004/sound.wav"
     with open(query_path, "rb") as f:
         query_bytes = f.read()
 
@@ -100,6 +104,8 @@ def _get_sample_audio_files() -> List[str]:
 
 
 if __name__ == "__main__":
+    query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments/segment_004/sound.wav"
+
     # Run one or both demos
-    demo_index_and_search_files()
-    demo_bytes_only_workflow()
+    demo_index_and_search_files(query_path)
+    demo_bytes_only_workflow(query_path)
