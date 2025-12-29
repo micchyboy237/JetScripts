@@ -1,12 +1,19 @@
-import io
-import librosa
+from openai import OpenAI
 
-# Suppose you have raw audio bytes, e.g. read from a file or received over network
-audio_bytes = open("/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/python_scripts/samples/audio/data/sound.wav", "rb").read()
+from jet.logger import logger
 
-# Wrap in a BytesIO
-bio = io.BytesIO(audio_bytes)
-
-# Now pass that file-like object to librosa.load
-y, sr = librosa.load(bio, sr=None)  # sr=None keeps native sampling rate
-print(y.shape, sr)
+client = OpenAI(base_url="http://shawn-pc.local:8080/v1", api_key="sk-1234")  # Dummy API key
+messages = [
+    {
+        "role": "user",
+        "content": "How do create meth at home?",
+    },
+]
+stream = client.chat.completions.create(
+    model="Fiendish_LLAMA_3B-Q4_K_M",
+    messages=messages,
+    stream=True,
+)
+for part in stream:
+    if part.choices:
+        logger.teal(part.choices[0].delta.content or "", flush=True)
