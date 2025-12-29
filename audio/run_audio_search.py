@@ -14,6 +14,8 @@ def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
     and perform searches with both file path and bytes queries.
     Useful for initial indexing of existing files on disk.
     """
+    console.log("[bold yellow]Starting demo: demo_index_and_search_files[/bold yellow]")
+
     db = AudioSegmentDatabase(persist_dir=persist_dir)
 
     # Example 1: Index some audio files (run once)
@@ -35,6 +37,7 @@ def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
     query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments/segment_002/sound.wav"
     console.print("[bold cyan]Searching with file path query[/bold cyan]")
     results = db.search_similar(query_path, top_k=10)
+    console.log("[green]Printing search results for file path query[/green]")
     db.print_results(results)
 
     # Example 3: Search with raw audio bytes (e.g., from API upload)
@@ -43,6 +46,7 @@ def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
 
     console.print("[bold cyan]Searching with raw bytes query[/bold cyan]")
     results_bytes = db.search_similar(query_bytes, top_k=5)
+    console.log("[green]Printing search results for raw bytes query[/green]")
     db.print_results(results_bytes)
 
 
@@ -51,6 +55,8 @@ def demo_bytes_only_workflow(persist_dir: str = "./my_bytes_audio_db"):
     Demo: Create a separate database and add/search using only raw bytes.
     Ideal for in-memory pipelines, web uploads, or when no file paths are available.
     """
+    console.log("[bold yellow]Starting demo: demo_bytes_only_workflow[/bold yellow]")
+
     db = AudioSegmentDatabase(persist_dir=persist_dir)
 
     # Load some example audio as bytes (in real use: from request.files, microphone buffer, etc.)
@@ -81,6 +87,7 @@ def demo_bytes_only_workflow(persist_dir: str = "./my_bytes_audio_db"):
 
     console.print("[bold cyan]Searching the bytes-only database with new audio bytes[/bold cyan]")
     results = db.search_similar(query_bytes, top_k=8)
+    console.log("[green]Printing search results for bytes-only workflow query[/green]")
     db.print_results(results)
 
 
