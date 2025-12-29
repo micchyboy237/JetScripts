@@ -449,7 +449,7 @@ if __name__ == "__main__":
     full_query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/segments/segment_004/sound.wav"
 
     # Extract partial audio (0.2s to 0.8s)
-    partial_audio, sr = extract_audio_segment(full_query_path, start=0.2, end=0.8)
+    partial_audio, sr = extract_audio_segment(full_query_path, start=0.0, end=0.6)
 
     # Ensure mono float32 NumPy array, then convert to torch tensor with explicit channel dim
     partial_audio = np.asarray(partial_audio, dtype=np.float32)
