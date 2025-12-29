@@ -1,4 +1,4 @@
-# JetScripts/audio/run_record_mic.py
+# run_live_subtitles.py
 import json
 from pathlib import Path
 import shutil
@@ -14,7 +14,7 @@ from jet.audio.speech.output_utils import append_to_combined_srt, write_srt_file
 from jet.audio.speech.silero.speech_types import SpeechSegment
 from jet.audio.speech.wav_utils import get_wav_bytes, save_wav_file
 from jet.audio.transcribers.base import AudioInput
-from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline, transcribe_ja_chunk
+from jet.audio.transcribers.transcription_pipeline import transcribe_ja_chunk
 from jet.audio.audio_search import AudioSegmentDatabase
 from jet.file.utils import save_file
 from jet.logger import logger
@@ -56,47 +56,18 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     logger.success(seg_sound_file, bright=True)
     logger.success(metadata_path, bright=True)
 
-def _on_transcription_result(
+def handle_transcription_result(
     ja_text: str,
     en_text: str,
     timestamps: list[dict],
-    meta: dict,
-    overlay: LiveSubtitlesOverlay,
+    meta: SubtitlesMeta,
     combined_srt_path: Path,
 ) -> None:
-    """Thread-safe callback – called from pipeline worker threads."""
-    if not ja_text.strip() or not en_text.strip():
-        return
-
-    def add_message_thread() -> None:
-        overlay.add_message(
-            translated_text=en_text,
-            source_text=ja_text,
-            start_sec=round(meta["start"], 3),
-            end_sec=round(meta["end"], 3),
-            duration_sec=round(meta["end"] - meta["start"], 3),
-        )
-
-        # Print correct metadata table (now shows proper values)
-        latest = overlay.message_history[-1]
-        from rich.table import Table
-        from rich import print as rprint
-
-        count = len(overlay.message_history)
-
-        table = Table(title=f"Subtitle {count} metadata")
-        table.add_column("Field")
-        table.add_column("Value")
-        for k, v in latest.items():
-            table.add_row(k, str(v))
-        rprint(table)
-
-    Thread(target=add_message_thread, daemon=True).start()
+    """Write subtitles .srt files"""
 
     seg_dir = Path(meta["segment_dir"])
     start_sample = meta["start"]
     end_sample = meta["end"]
-
     write_srt_file(seg_dir / "subtitles.srt", ja_text, en_text, start_sample, end_sample, index=1)
     append_to_combined_srt(
         combined_srt_path,
@@ -104,50 +75,8 @@ def _on_transcription_result(
         en_text,
         start_sample,
         end_sample,
-        index=meta["seg_number"],  # uses the original speech detector num
+        index=meta["seg_number"],
     )
-
-def make_result_callback(overlay: LiveSubtitlesOverlay, combined_srt_path: Path):
-    def callback(
-        ja_text: str,
-        en_text: str,
-        timestamps: list[dict],
-        custom_args: dict,
-    ) -> None:
-        meta = custom_args.get("meta", {})
-        if not meta:
-            logger.warning("Result callback received without meta – skipping overlay/SRT")
-            return
-
-        _on_transcription_result(
-            ja_text=ja_text,
-            en_text=en_text,
-            timestamps=timestamps,
-            meta=meta,
-            overlay=overlay,
-            combined_srt_path=combined_srt_path,
-        )
-        # After successful transcription, index the segment with subtitles
-        seg_dir = Path(meta["segment_dir"])
-        wav_path = seg_dir / "sound.wav"
-        if wav_path.exists():
-            metadata_base = {
-                "ja_text": ja_text.strip(),
-                "en_text": en_text.strip(),
-                "seg_number": meta["seg_number"],
-                "start_sec": round(meta["start"], 3),
-                "end_sec": round(meta["end"], 3),
-            }
-            try:
-                audio_db.add_segments(
-                    str(wav_path),
-                    audio_name=f"live_segment_{meta['seg_number']:03d}",
-                    segment_duration_sec=None,  # store as single full segment
-                    metadata_base=metadata_base,
-                )
-            except Exception as e:
-                logger.warning(f"Failed to index segment in audio DB: {e}")
-    return callback
 
 async def translation_process(audio: AudioInput, meta: SubtitlesMeta) -> SubtitleMessage:
     result = await transcribe_ja_chunk(audio)
@@ -176,8 +105,10 @@ if __name__ == "__main__":
     combined_srt_path = RESULTS_DIR / "all_subtitles.srt"
     if combined_srt_path.exists():
         combined_srt_path.unlink()
-    pipeline = TranscriptionPipeline(max_workers=2, cache_size=500)
-    # pipeline.on_result = make_result_callback(overlay, combined_srt_path)
+    # pipeline = TranscriptionPipeline(max_workers=2, cache_size=500)
+    # pipeline.on_result = lambda ja, en, ts, args: handle_transcription_result(
+    #     ja, en, ts, args, overlay, combined_srt_path
+    # )
 
     # Run the blocking recording + processing loop in a background thread
     def recording_thread() -> None:
@@ -205,32 +136,51 @@ if __name__ == "__main__":
             # Save segment first (needed for potential search and indexing)
             save_segment_data(speech_seg_meta, seg_audio_np)
 
-            # Search for similar existing segment before transcribing
-            wav_bytes = get_wav_bytes(seg_audio_np)
-            similar = audio_db.search_similar(wav_bytes, top_k=1)
-            cached_ja = None
-            cached_en = None
-            if similar and similar[0]["score"] >= SIMILARITY_THRESHOLD:
-                match = similar[0]
-                cached_ja = match.get("ja_text", "")
-                cached_en = match.get("en_text", "")
-                logger.success(
-                    f"Audio cache hit! Reusing subtitles (score={match['score']:.4f}) "
-                    f"from segment {match.get('seg_number', 'unknown')}"
-                )
 
             def pipeline_thread() -> None:
-                if cached_ja is not None and cached_en is not None:
-                    # Simulate transcription result from cache
-                    timestamps = []  # No word timestamps from cache
-                    result_callback = make_result_callback(overlay, combined_srt_path)
-                    result_callback(cached_ja, cached_en, timestamps, {"meta": meta})
-                else:
-                    overlay.add_task(
-                        translation_process,
-                        audio=wav_bytes,
-                        meta=meta,
+                wav_bytes = get_wav_bytes(seg_audio_np)
+
+                # Search for similar existing segment before transcribing
+                similar = audio_db.search_similar(wav_bytes, top_k=1)
+
+                cache_hit = False
+                ja_text = ""
+                en_text = ""
+                timestamps: list[dict] = []
+
+                if similar and similar[0]["score"] >= SIMILARITY_THRESHOLD:
+                    match = similar[0]
+                    ja_text = match.get("ja_text", "").strip()
+                    en_text = match.get("en_text", "").strip()
+                    logger.success(
+                        f"Audio cache hit! Reusing subtitles (score={match['score']:.4f}) "
+                        f"from segment {match.get('seg_number', 'unknown')}"
                     )
+                    cache_hit = True
+
+                if cache_hit:
+                    # Cache hit → immediately process result (synchronous)
+                    handle_transcription_result(
+                        ja_text, en_text, timestamps, meta,
+                        combined_srt_path=combined_srt_path
+                    )
+                else:
+                    # Cache miss → launch async transcription + handler
+                    async def process_and_handle() -> SubtitleMessage:
+                        result_msg = await translation_process(
+                            audio=wav_bytes, meta=meta
+                        )
+                        handle_transcription_result(
+                            ja_text=result_msg["source_text"],
+                            en_text=result_msg["translated_text"],
+                            timestamps=timestamps,  # still empty for now
+                            meta=meta,
+                            combined_srt_path=combined_srt_path,
+                        )
+                        return result_msg
+
+                    overlay.add_task(process_and_handle)
+
             Thread(target=pipeline_thread, daemon=True).start()
 
             segments.append(speech_seg_meta)
