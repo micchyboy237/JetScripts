@@ -1,50 +1,126 @@
-import numpy as np
-from faster_whisper import WhisperModel
-from transformers import pipeline
-from silero_vad import VoiceActivityDetector
+import asyncio
+import base64
+import json
 
-# Load WhisperX / Faster-Whisper streaming model (production recommended)
-model = WhisperModel(
-    model_size="large-v2",
-    device="cuda"  # CPU also possible; GPU far faster
-)
+import sounddevice as sd
+import websockets
+from pysilero_vad import SileroVoiceActivityDetector
 
-translation = pipeline(
-    "translation",
-    model="Helsinki-NLP/opus-mt-ja-en", # japanese→english
-    device=0   # GPU
-)
+# =============================
+# Configuration
+# =============================
 
-vad = VoiceActivityDetector(
-    sample_rate=16000,
-    threshold=0.5,
-)
+WS_URL = "ws://192.168.68.150:8765"
 
-async def asr_stream(pcm_chunks):
+SAMPLE_RATE = 16000
+CHANNELS = 1
+DTYPE = "int16"
+
+VAD_THRESHOLD = 0.5  # speech probability threshold
+
+# =============================
+# Initialize Silero VAD
+# =============================
+
+vad = SileroVoiceActivityDetector()  # model_path uses default
+
+VAD_CHUNK_SAMPLES = vad.chunk_samples()
+VAD_CHUNK_BYTES = vad.chunk_bytes()
+
+print(f"[VAD] chunk_samples={VAD_CHUNK_SAMPLES}, chunk_bytes={VAD_CHUNK_BYTES}")
+
+# =============================
+# Audio capture + streaming
+# =============================
+
+async def stream_microphone(ws: websockets.WebSocketClientProtocol) -> None:
     """
-    Async generator that yields transcripts as they're ready.
+    Capture mic audio, apply VAD, send speech-only PCM frames.
     """
-    buffer: list[np.ndarray] = []
-    for chunk in pcm_chunks:
-        # VAD: skip silence
-        if not vad.is_speech(chunk):
-            continue
+    pcm_buffer = bytearray()
 
-        buffer.append(chunk)
-        if len(buffer) * len(chunk) > 16000:  # ~1 second speech
-            data = np.concatenate(buffer)
-            # stream decode partial
-            segments, _ = model.transcribe(
-                audio=data,
-                language="ja",
-                initial_prompt=None,
-                beam_size=5,
-                chunk_size=30
+    def audio_callback(indata, frames: int, time, status) -> None:
+        nonlocal pcm_buffer
+        if status:
+            print(status)
+        # indata is a buffer object -> copy to owned bytes
+        pcm_buffer.extend(bytes(indata))
+
+    with sd.RawInputStream(
+        samplerate=SAMPLE_RATE,
+        blocksize=VAD_CHUNK_SAMPLES,
+        channels=CHANNELS,
+        dtype=DTYPE,
+        callback=audio_callback,
+    ):
+        print("🎙️  Microphone streaming started")
+
+        try:
+            while True:
+                await asyncio.sleep(0.01)
+
+                while len(pcm_buffer) >= VAD_CHUNK_BYTES:
+                    chunk = bytes(pcm_buffer[:VAD_CHUNK_BYTES])
+                    del pcm_buffer[:VAD_CHUNK_BYTES]
+
+                    speech_prob: float = vad(chunk)
+
+                    if speech_prob < VAD_THRESHOLD:
+                        continue  # skip silence
+
+                    payload = {
+                        "type": "audio",
+                        "sample_rate": SAMPLE_RATE,
+                        "pcm": base64.b64encode(chunk).decode("ascii"),
+                    }
+
+                    asyncio.create_task(ws.send(json.dumps(payload)))
+        except asyncio.CancelledError:
+            print("\n🛑 Streaming task cancelled")
+            raise
+        finally:
+            print("🎙️  Microphone streaming stopped")
+
+
+async def receive_subtitles(ws) -> None:
+    """
+    Receive partial/final subtitles from server.
+    """
+    async for msg in ws:
+        data = json.loads(msg)
+        if data.get("type") == "subtitle":
+            ja = data.get("transcription", "")
+            en = data.get("translation", "")
+            print(f"JA: {ja}\nEN: {en}\n")
+
+
+# =============================
+# Main entrypoint
+# =============================
+
+async def main() -> None:
+    try:
+        async with websockets.connect(
+            WS_URL,
+            max_size=None,
+            compression=None,
+        ) as ws:
+            print(f"Connected to {WS_URL}")
+            await asyncio.gather(
+                stream_microphone(ws),
+                receive_subtitles(ws),
             )
-            text = " ".join(s.text for s in segments)
-            buffer = []
-            yield text
+    except websockets.ConnectionClosedOK:
+        print("\nConnection closed normally by server")
+    except websockets.ConnectionClosedError:
+        print("\nConnection closed abnormally")
+    except KeyboardInterrupt:
+        print("\nInterrupted by user")
+    except Exception as e:
+        print(f"\nUnexpected error: {e}")
+    finally:
+        print("Client shutdown complete")
 
-async def translate_ja_to_en(text: str) -> str:
-    result = translation(text, max_length=512)
-    return result[0]["translation_text"]
+
+if __name__ == "__main__":
+    asyncio.run(main())
