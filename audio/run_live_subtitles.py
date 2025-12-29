@@ -15,13 +15,20 @@ from jet.audio.speech.silero.speech_types import SpeechSegment
 from jet.audio.speech.wav_utils import get_wav_bytes, save_wav_file
 from jet.audio.transcribers.base import AudioInput
 from jet.audio.transcribers.transcription_pipeline import TranscriptionPipeline, transcribe_ja_chunk
+from jet.audio.audio_search import AudioSegmentDatabase
 from jet.file.utils import save_file
 from jet.logger import logger
 from jet.overlays.live_subtitles_overlay import LiveSubtitlesOverlay, SubtitleMessage
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+# Persistent audio search database for caching embeddings + subtitles
+DB_DIR = str(OUTPUT_DIR / "audio_vector_db")
+RESULTS_DIR = OUTPUT_DIR / "results"
+shutil.rmtree(RESULTS_DIR, ignore_errors=True)
+RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+
+audio_db = AudioSegmentDatabase(persist_dir=DB_DIR)
+SIMILARITY_THRESHOLD = 0.95  # Reuse subtitles if audio similarity >= this
 
 class SubtitlesMeta(TypedDict):
     start: float
@@ -31,7 +38,7 @@ class SubtitlesMeta(TypedDict):
 
 
 def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
-    segment_root = Path(OUTPUT_DIR) / "segments"
+    segment_root = Path(RESULTS_DIR) / "segments"
     segment_root.mkdir(parents=True, exist_ok=True)
 
     # Use the canonical num from the speech detector as segment number
@@ -120,6 +127,26 @@ def make_result_callback(overlay: LiveSubtitlesOverlay, combined_srt_path: Path)
             overlay=overlay,
             combined_srt_path=combined_srt_path,
         )
+        # After successful transcription, index the segment with subtitles
+        seg_dir = Path(meta["segment_dir"])
+        wav_path = seg_dir / "sound.wav"
+        if wav_path.exists():
+            metadata_base = {
+                "ja_text": ja_text.strip(),
+                "en_text": en_text.strip(),
+                "seg_number": meta["seg_number"],
+                "start_sec": round(meta["start"], 3),
+                "end_sec": round(meta["end"], 3),
+            }
+            try:
+                audio_db.add_segments(
+                    str(wav_path),
+                    audio_name=f"live_segment_{meta['seg_number']:03d}",
+                    segment_duration_sec=None,  # store as single full segment
+                    metadata_base=metadata_base,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to index segment in audio DB: {e}")
     return callback
 
 async def translation_process(audio: AudioInput, meta: SubtitlesMeta) -> SubtitleMessage:
@@ -146,7 +173,7 @@ if __name__ == "__main__":
 
     app = QApplication([])  # Re-uses existing instance if any
     overlay = LiveSubtitlesOverlay.create(app=app, title="Live Japanese Subtitles")
-    combined_srt_path = OUTPUT_DIR / "all_subtitles.srt"
+    combined_srt_path = RESULTS_DIR / "all_subtitles.srt"
     if combined_srt_path.exists():
         combined_srt_path.unlink()
     pipeline = TranscriptionPipeline(max_workers=2, cache_size=500)
@@ -166,7 +193,7 @@ if __name__ == "__main__":
             speech_seg_meta["start"] = round(speech_seg["start"] / SAMPLE_RATE, 3)
             speech_seg_meta["end"] = round(speech_seg["end"] / SAMPLE_RATE, 3)
             seg_number: int = speech_seg_meta["num"]
-            seg_dir = Path(OUTPUT_DIR) / "segments" / f"segment_{seg_number:03d}"
+            seg_dir = Path(RESULTS_DIR) / "segments" / f"segment_{seg_number:03d}"
             seg_dir.mkdir(parents=True, exist_ok=True)
 
             meta: SubtitlesMeta = {
@@ -175,22 +202,40 @@ if __name__ == "__main__":
                 "segment_dir": str(seg_dir),
                 "seg_number": seg_number,
             }
-            def pipeline_thread() -> None:
-                # pipeline.submit_segment(
-                #     get_wav_bytes(seg_audio_np),
-                #     meta=meta,
-                # )
-                overlay.add_task(
-                    translation_process,
-                    audio=get_wav_bytes(seg_audio_np),
-                    meta=meta,
+            # Save segment first (needed for potential search and indexing)
+            save_segment_data(speech_seg_meta, seg_audio_np)
+
+            # Search for similar existing segment before transcribing
+            wav_bytes = get_wav_bytes(seg_audio_np)
+            similar = audio_db.search_similar(wav_bytes, top_k=1)
+            cached_ja = None
+            cached_en = None
+            if similar and similar[0]["score"] >= SIMILARITY_THRESHOLD:
+                match = similar[0]
+                cached_ja = match.get("ja_text", "")
+                cached_en = match.get("en_text", "")
+                logger.success(
+                    f"Audio cache hit! Reusing subtitles (score={match['score']:.4f}) "
+                    f"from segment {match.get('seg_number', 'unknown')}"
                 )
+
+            def pipeline_thread() -> None:
+                if cached_ja is not None and cached_en is not None:
+                    # Simulate transcription result from cache
+                    timestamps = []  # No word timestamps from cache
+                    result_callback = make_result_callback(overlay, combined_srt_path)
+                    result_callback(cached_ja, cached_en, timestamps, {"meta": meta})
+                else:
+                    overlay.add_task(
+                        translation_process,
+                        audio=wav_bytes,
+                        meta=meta,
+                    )
             Thread(target=pipeline_thread, daemon=True).start()
 
-            save_segment_data(speech_seg_meta, seg_audio_np)
             segments.append(speech_seg_meta)
-            save_file(segments, OUTPUT_DIR / "all_segments.json", verbose=False)
-            output_file = f"{OUTPUT_DIR}/full_recording.wav"
+            save_file(segments, RESULTS_DIR / "all_segments.json", verbose=False)
+            output_file = f"{RESULTS_DIR}/full_recording.wav"
             save_wav_file(output_file, full_audio_np)
 
     Thread(target=recording_thread, daemon=True).start()
