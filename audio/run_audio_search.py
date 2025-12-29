@@ -15,7 +15,7 @@ import shutil
 console = Console()
 
 
-def _get_demo_output_dir() -> Path:
+def _get_demo_output_dir(sub_dir: str) -> Path:
     """
     Create and return a dedicated output directory for the calling demo function.
     Directory name is based on the demo function name for clear separation.
@@ -26,7 +26,7 @@ def _get_demo_output_dir() -> Path:
     caller_frame = inspect.stack()[1]
     func_name = caller_frame.function
     script_base = Path(__file__).parent / "generated" / Path(__file__).stem
-    results_dir = script_base / "results" / func_name
+    results_dir = script_base / "results" / func_name / sub_dir
     shutil.rmtree(results_dir, ignore_errors=True)
 
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -145,14 +145,14 @@ def _save_search_results(
     console.log(f"[bold green]Saved search results to {json_path} and {md_path}[/bold green]")
 
 
-def demo_index_and_search_files(query_path: str, persist_dir: str = "./my_audio_db"):
+def demo_index_and_search_files(query_path: str, out_dir: str = "full"):
     """
     Demo: Index a directory of audio files (using the legacy file-based method)
     and perform searches with both file path and bytes queries.
     Useful for initial indexing of existing files on disk.
     """
     console.log("[bold yellow]Starting demo: demo_index_and_search_files[/bold yellow]")
-    output_dir = _get_demo_output_dir()
+    output_dir = _get_demo_output_dir(out_dir)
 
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
@@ -196,13 +196,13 @@ def demo_index_and_search_files(query_path: str, persist_dir: str = "./my_audio_
     _save_search_results(output_dir, "demo_index_and_search_files", results_bytes, suffix="bytes")
 
 
-def demo_bytes_only_workflow(query_path: str, persist_dir: str = "./my_bytes_audio_db"):
+def demo_bytes_only_workflow(query_path: str, out_dir: str = "full"):
     """
     Demo: Create a separate database and add/search using only raw bytes.
     Ideal for in-memory pipelines, web uploads, or when no file paths are available.
     """
     console.log("[bold yellow]Starting demo: demo_bytes_only_workflow[/bold yellow]")
-    output_dir = _get_demo_output_dir()
+    output_dir = _get_demo_output_dir(out_dir)
 
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
@@ -239,14 +239,14 @@ def demo_bytes_only_workflow(query_path: str, persist_dir: str = "./my_bytes_aud
     _save_search_results(output_dir, "demo_bytes_only_workflow", results)
 
 
-def demo_numpy_array_workflow(query_path: str, persist_dir: str = "./my_numpy_audio_db"):
+def demo_numpy_array_workflow(query_path: str, out_dir: str = "full"):
     """
     Demo: Index and search audio using real sample files loaded as NumPy arrays.
     Shows how to use np.ndarray input when you already have audio loaded in memory
     (e.g., from file, microphone, or API).
     """
     console.log("[bold yellow]Starting demo: demo_numpy_array_workflow[/bold yellow]")
-    output_dir = _get_demo_output_dir()
+    output_dir = _get_demo_output_dir(out_dir)
 
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
@@ -280,7 +280,7 @@ def demo_numpy_array_workflow(query_path: str, persist_dir: str = "./my_numpy_au
     _save_search_results(output_dir, "demo_numpy_array_workflow", results)
 
 
-def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_localize_audio_db"):
+def demo_localize_in_query_workflow(query_path: str, out_dir: str = "full"):
     """
     Demo: Index sample audio files and search with localize_in_query=True.
     This mode chunks the query into overlapping 10-second windows and reports
@@ -288,7 +288,7 @@ def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_lo
     """
     console.log("[bold yellow]Starting demo: demo_localize_in_query_workflow[/bold yellow]")
 
-    output_dir = _get_demo_output_dir()
+    output_dir = _get_demo_output_dir(out_dir)
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
@@ -396,14 +396,14 @@ def demo_localize_in_query_workflow(query_path: str, persist_dir: str = "./my_lo
         pass
 
 
-def demo_growing_short_segments_workflow(query_path: str, persist_dir: str = "./my_growing_short_audio_db"):
+def demo_growing_short_segments_workflow(query_path: str, out_dir: str = "full"):
     """
     Demo: Use the new growing short segments mode.
     Useful when the query is very short or noisy — progressively longer prefixes
     of 0.1s chunks are tested until a confident match is found.
     """
     console.log("[bold yellow]Starting demo: demo_growing_short_segments_workflow[/bold yellow]")
-    output_dir = _get_demo_output_dir()
+    output_dir = _get_demo_output_dir(out_dir)
 
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
@@ -473,8 +473,9 @@ if __name__ == "__main__":
     temp_partial_query_path = "/tmp/temp_query_segment.wav"
     torchaudio.save(temp_partial_query_path, audio_tensor, sr)
 
-    demo_index_and_search_files(temp_partial_query_path)
-    demo_bytes_only_workflow(temp_partial_query_path)
-    demo_numpy_array_workflow(temp_partial_query_path)
-    demo_localize_in_query_workflow(temp_partial_query_path)
-    demo_growing_short_segments_workflow(temp_partial_query_path)
+    out_dir = "partial"
+    demo_index_and_search_files(temp_partial_query_path, out_dir)
+    demo_bytes_only_workflow(temp_partial_query_path, out_dir)
+    demo_numpy_array_workflow(temp_partial_query_path, out_dir)
+    demo_localize_in_query_workflow(temp_partial_query_path, out_dir)
+    demo_growing_short_segments_workflow(temp_partial_query_path, out_dir)
