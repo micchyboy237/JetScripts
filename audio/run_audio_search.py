@@ -3,6 +3,7 @@ from jet.audio.audio_search import AudioSegmentDatabase
 from jet.audio.utils import resolve_audio_paths
 from rich.console import Console
 from tqdm import tqdm
+from pathlib import Path  # Needed for Path operations
 
 console = Console()
 
@@ -19,7 +20,16 @@ def demo_index_and_search_files(persist_dir: str = "./my_audio_db"):
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
     for file in tqdm(audio_files, desc="Indexing files"):
-        db.add_segments(file)
+        base_name = Path(file).stem
+        expected_id = f"{base_name}_full"  # matches what add_segments generates in whole mode
+
+        # Check if this full segment already exists
+        existing = db.collection.get(ids=[expected_id], include=[])
+        if existing["ids"]:
+            console.print(f"[dim]Already indexed: {Path(file).name}[/dim]")
+            continue
+
+        db.add_segments(file)  # only call if needed
 
     # Example 2: Search with a query file
     query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/segments/segment_002/sound.wav"
@@ -47,14 +57,21 @@ def demo_bytes_only_workflow(persist_dir: str = "./my_bytes_audio_db"):
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
     for i, path in enumerate(audio_files):
+        audio_name = f"uploaded_segment_{i+1:03d}"
+        expected_id = f"{audio_name}_full"
+
+        existing = db.collection.get(ids=[expected_id], include=[])
+        if existing["ids"]:
+            console.print(f"[dim]Already indexed: {audio_name} ({Path(path).name})[/dim]")
+            continue
+
         with open(path, "rb") as f:
             audio_bytes = f.read()
-        # Use a meaningful name or generate one (e.g., from upload filename)
-        audio_name = f"uploaded_segment_{i+1:03d}"
+
         db.add_segments(
             audio_input=audio_bytes,
             audio_name=audio_name,
-            segment_duration_sec=None,  # whole audio as single segment
+            segment_duration_sec=None,
         )
 
     # Query with bytes from a new/unseen segment
