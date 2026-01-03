@@ -540,6 +540,177 @@ def demo_subsegment_search():
     )
 
 
+import chromadb
+from chromadb.utils.embedding_functions import EmbeddingFunction
+from typing import List
+
+class SpeechbrainEmbeddingFunction(EmbeddingFunction[List[bytes]]):
+    """ChromaDB embedding function that accepts list of raw audio bytes and returns ECAPA-TDNN embeddings."""
+    
+    def __init__(self):
+        self.classifier = EncoderClassifier.from_hparams(
+            source="speechbrain/spkrec-ecapa-voxceleb",
+            savedir=str(DATA_DIR / "pretrained_ecapa_tdnn")
+        )
+    
+    def __call__(self, input: List[bytes]) -> List[List[float]]:
+        embeddings = []
+        for audio_bytes in tqdm(input, desc="Extracting embeddings for Chroma"):
+            emb = get_embedding(audio_bytes)  # Reuse existing robust get_embedding
+            embeddings.append(emb.tolist())
+        return embeddings
+
+
+def demo_chroma_db() -> None:
+    console.print("[bold blue]Demo: ChromaDB persistent vector store for audio embeddings[/bold blue]")
+    
+    # Sample audio data (reuse logic from demo_exact_duplicates for reproducibility)
+    default_sr = 16000
+    default_waveform = torch.zeros(1, 32000)  # ~2s silence fallback
+    
+    try:
+        asset_path = torchaudio.utils.download_asset(
+            "tutorial-assets/Lab41-SRI-VOiCES-src-sp0307-ch127535-sg0042.wav"
+        )
+        waveform, sr = torchaudio.load(asset_path)
+        waveform = waveform[:, :32000]
+    except Exception:
+        waveform = default_waveform
+        sr = default_sr
+    
+    buf = io.BytesIO()
+    torchaudio.save(buf, waveform, sr, format="wav")
+    base_bytes = buf.getvalue()
+    
+    # Create variants
+    exact_dup = base_bytes
+    
+    noisy = waveform + torch.randn_like(waveform) * 0.001
+    buf_noisy = io.BytesIO()
+    torchaudio.save(buf_noisy, noisy, sr, format="wav")
+    noisy_bytes = buf_noisy.getvalue()
+    
+    different = torch.zeros(1, 48000)
+    buf_diff = io.BytesIO()
+    torchaudio.save(buf_diff, different, sr, format="wav")
+    diff_bytes = buf_diff.getvalue()
+    
+    # Collection data
+    audio_bytes_list = [
+        base_bytes,      # 0
+        exact_dup,       # 1
+        base_bytes,      # 2
+        noisy_bytes,     # 3
+        diff_bytes       # 4
+    ]
+    
+    ids = [f"clip_{i:03d}" for i in range(len(audio_bytes_list))]
+    metadatas = [
+        {"label": "original_speech", "type": "speech"},
+        {"label": "exact_duplicate", "type": "duplicate"},
+        {"label": "original_speech_again", "type": "speech"},
+        {"label": "noisy_version", "type": "near_duplicate"},
+        {"label": "silence_different", "type": "different"}
+    ]
+    
+    # Initialize Chroma client (persistent)
+    persist_dir = DATA_DIR / "chroma_persistent"
+    client = chromadb.PersistentClient(path=str(persist_dir))
+    
+    embedding_fn = SpeechbrainEmbeddingFunction()
+    
+    collection_name = "audio_embeddings_demo"
+    collection = client.get_or_create_collection(
+        name=collection_name,
+        embedding_function=embedding_fn,
+        metadata={"hnsw:space": "cosine"}  # Use cosine distance (critical for speaker embeddings)
+    )
+    
+    console.print(f"[cyan]Adding {len(audio_bytes_list)} audio clips to collection '{collection_name}'...[/cyan]")
+    
+    # Optional: Clear existing for demo reproducibility (remove if you want true persistence across runs)
+    if collection.count() > 0:
+        console.print("[yellow]Existing documents found – deleting for clean demo[/yellow]")
+        collection.delete(ids=ids)  # Or collection.delete() to wipe all
+    
+    collection.add(
+        ids=ids,
+        embeddings=embedding_fn(audio_bytes_list),
+        metadatas=metadatas,
+        documents=ids
+    )
+    
+    console.print(f"[green]Added to persistent DB at:[/green] {persist_dir}")
+    
+    # Query with the noisy version
+    query_bytes = noisy_bytes
+    # query_id = "query_noisy_clip"  # <--- Removed, no longer needed
+    
+    console.print("[cyan]Querying collection with noisy clip (should match originals + exact dups highly)...[/cyan]")
+    results = collection.query(
+        query_embeddings=embedding_fn([query_bytes]),
+        n_results=5,
+        include=["metadatas", "documents", "distances"]
+    )
+    
+    # Print results table
+    table = Table(title="ChromaDB Query Results (noisy clip query)")
+    table.add_column("Rank", justify="right")
+    table.add_column("ID")
+    table.add_column("Label")
+    table.add_column("Type")
+    table.add_column("Distance", justify="right")
+    table.add_column("Cosine Similarity", justify="right")
+    
+    for rank, (id_, meta, dist) in enumerate(zip(results["ids"][0], results["metadatas"][0], results["distances"][0]), 1):
+        similarity = 1 - dist  # Correct conversion for cosine distance (range 0–2 → similarity 1–-1)
+        table.add_row(
+            str(rank),
+            id_,
+            meta["label"],
+            meta["type"],
+            f"{dist:.4f}",
+            f"{similarity:+.4f}"
+        )
+    
+    console.print(table)
+    
+    # Highlight high-confidence matches
+    high_match_ids = [
+        id_ for id_, dist in zip(results["ids"][0], results["distances"][0])
+        if (1 - dist) > 0.95
+    ]
+    console.print(f"[bold green]High-confidence matches (>0.95 cosine):[/bold green] {high_match_ids}")
+    
+    # Save demo info
+    demo_results = {
+        "demo_name": "chromadb_persistent_demo",
+        "timestamp": datetime.now().isoformat(),
+        "collection_name": collection_name,
+        "persist_directory": str(persist_dir),
+        "total_documents": collection.count(),
+        "query_description": "noisy version of original speech clip",
+        "top_matches": [
+            {
+                "id": id_,
+                "label": meta["label"],
+                "cosine_similarity": round(1 - dist, 6)
+            }
+            for id_, meta, dist in zip(results["ids"][0], results["metadatas"][0], results["distances"][0])
+        ]
+    }
+    
+    demo_dir = RESULTS_DIR / "demo_chromadb"
+    demo_dir.mkdir(parents=True, exist_ok=True)
+    json_path = demo_dir / "results.json"
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(demo_results, f, indent=2)
+    
+    console.print(f"[green]ChromaDB demo results saved to:[/green] {json_path}")
+    console.print(f"[green]Persistent database available at:[/green] {persist_dir}")
+    console.print("[yellow]Note: You can reload this DB later with PersistentClient(path=...) and get_collection('audio_embeddings_demo')[/yellow]")
+
+
 if __name__ == "__main__":
     demo_exact_duplicates()
     console.print("\n" + "="*80 + "\n")
@@ -548,3 +719,5 @@ if __name__ == "__main__":
     demo_local_files()
     console.print("\n" + "="*80 + "\n")
     demo_subsegment_search()
+    console.print("\n" + "="*80 + "\n")
+    demo_chroma_db()
