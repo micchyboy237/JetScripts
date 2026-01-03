@@ -60,8 +60,8 @@ def demo_subtitle_metadata() -> None:
     def feed_subtitles() -> None:
         # Start from the first real segment (skip the initial "Ready" message)
         for idx, seg in enumerate(demo_segments, start=1):
-            # Natural pacing based on actual segment duration
-            time.sleep(seg["end_sec"] - seg["start_sec"] + 0.4)
+            # Faster pacing: fixed short delay, not natural segment duration
+            time.sleep(0.25)
 
             overlay.add_message(
                 translated_text=seg["translated_text"],

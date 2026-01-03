@@ -440,14 +440,14 @@ def demo_growing_short_segments_workflow(query_path: str, out_dir: str = "full")
 
 
 def _get_sample_audio_files() -> List[str]:
-    audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/segments"
+    audio_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments"
     audio_files = resolve_audio_paths(audio_dir, recursive=True)
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
     return audio_files
 
 
 if __name__ == "__main__":
-    full_query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/segments/segment_004/sound.wav"
+    full_query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0002/sound.wav"
 
     # Extract partial audio (0.2s to 0.8s)
     partial_audio, sr = extract_audio_segment(full_query_path, start=0.0, end=0.6)
