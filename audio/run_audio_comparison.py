@@ -628,23 +628,35 @@ def demo_chroma_db() -> None:
     
     console.print(f"[cyan]Adding {len(audio_bytes_list)} audio clips to collection '{collection_name}'...[/cyan]")
     
-    # Optional: Clear existing for demo reproducibility (remove if you want true persistence across runs)
-    if collection.count() > 0:
-        console.print("[yellow]Existing documents found – deleting for clean demo[/yellow]")
-        collection.delete(ids=ids)  # Or collection.delete() to wipe all
+    # Check for duplicate entries and only add new IDs
+    existing_ids = []
+    try:
+        get_result = collection.get(ids=ids)
+        existing_ids = get_result.get("ids", []) if get_result else []
+    except Exception:
+        # If collection.get fails (e.g., collection is empty), treat as no existing ids
+        existing_ids = []
+    new_ids = [id_ for id_ in ids if id_ not in existing_ids]
     
-    collection.add(
-        ids=ids,
-        embeddings=embedding_fn(audio_bytes_list),
-        metadatas=metadatas,
-        documents=ids
-    )
+    if not new_ids:
+        console.print("[yellow]All clips already exist in collection – skipping add (duplicate prevention)[/yellow]")
+    else:
+        new_audio_bytes = [audio_bytes_list[ids.index(id_)] for id_ in new_ids]
+        new_metadatas = [metadatas[ids.index(id_)] for id_ in new_ids]
+        
+        collection.add(
+            ids=new_ids,
+            embeddings=embedding_fn(new_audio_bytes),
+            metadatas=new_metadatas,
+            documents=new_ids
+        )
+        console.print(f"[green]Added {len(new_ids)} new clip(s) to persistent DB[/green]")
     
-    console.print(f"[green]Added to persistent DB at:[/green] {persist_dir}")
+    console.print(f"[green]Collection now has {collection.count()} documents[/green]")
+    console.print(f"[green]Persistent database at:[/green] {persist_dir}")
     
     # Query with the noisy version
     query_bytes = noisy_bytes
-    # query_id = "query_noisy_clip"  # <--- Removed, no longer needed
     
     console.print("[cyan]Querying collection with noisy clip (should match originals + exact dups highly)...[/cyan]")
     results = collection.query(
