@@ -5,7 +5,7 @@ if __name__ == "__main__":
     overwrite = True
     extract_code = True
     hf_readme_download_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes"
-    model: ModelType = "litagin/anime-whisper"
+    model: ModelType = "FunAudioLLM/SenseVoiceSmall"
 
     model_value: ModelValue = resolve_model_value(model)
     download_readme(model_value, hf_readme_download_dir,
