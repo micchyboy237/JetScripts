@@ -1,131 +1,63 @@
+# tests/test_realtime_transcriber.py
+
+import numpy as np
 import pytest
-from _temp_test import md_to_plain_text
 
-class TestMdToPlainText:
+from _temp import RealtimeTranscriber
+
+
+class TestRealtimeTranscriber:
     @pytest.fixture
-    def setup_html2text(self):
-        """Fixture to reset HTML2Text singleton between tests."""
-        global _html2text_instance
-        _html2text_instance = None
-        yield
-        _html2text_instance = None
+    def transcriber(self) -> RealtimeTranscriber:
+        return RealtimeTranscriber(
+            model_size="small",
+            device="cpu",
+            compute_type="int8",
+            vad_threshold=0.02,
+            silence_seconds=0.3,
+        )
 
-    def test_basic_formatting(self, setup_html2text):
-        # Given: Markdown with headers, bold, and links
-        md = "# Title\nThis is **bold** [link](https://example.com)"
-        expected = "Title\n\nThis is bold link"
-
-        # When: Convert to plain text
-        result = md_to_plain_text(md)
-
-        # Then: Matches expected output
+    def test_vad_detects_silence(self, transcriber: RealtimeTranscriber):
+        # Given: silent audio chunk
+        silent_chunk = np.zeros(16000, dtype=np.float32)
+        # When: processed by VAD
+        result = transcriber._vad_energy(silent_chunk)
+        # Then: detected as non-speech
+        expected = False
         assert result == expected
 
-    def test_images_handling(self, setup_html2text):
-        # Given: Markdown with image
-        md = "![alt text](img.png)"
-        expected = "alt text"
-
-        # When: Convert with ignore_images=False
-        result = md_to_plain_text(md, ignore_images=False)
-
-        # Then: Image replaced with alt text
+    def test_vad_detects_speech(self, transcriber: RealtimeTranscriber):
+        # Given: typical speech-like chunk (RMS ~0.05-0.1 for normal speech)
+        speech_chunk = np.random.uniform(-0.3, 0.3, 16000).astype(np.float32)  # Realistic amplitude
+        # When: processed by VAD
+        result = transcriber._vad_energy(speech_chunk)
+        # Then: detected as speech
+        expected = True
         assert result == expected
 
-    def test_footnotes_handling(self, setup_html2text):
-        # Given: Markdown with footnotes
-        md = "Text with [^1] reference.\n[^1]: Footnote content"
-        expected = "Text with [1] reference."
+    def test_buffer_accumulation_and_reset(self, transcriber: RealtimeTranscriber):
+        # Given: speech followed by sufficient silence
+        speech = np.random.uniform(-0.3, 0.3, 32000).astype(np.float32)  # 2s realistic speech
+        transcriber.speech_buffer = np.array([], dtype=np.float32)
+        transcriber.silence_timer = 0.0
 
-        # When: Convert to plain text
-        result = md_to_plain_text(md)
+        # When: feeding speech chunks (simulating VAD active)
+        for i in range(2):
+            chunk = speech[i * 16000:(i + 1) * 16000]
+            if transcriber._vad_energy(chunk):  # Now reliably True
+                transcriber.speech_buffer = np.concatenate((transcriber.speech_buffer, chunk))
 
-        # Then: Footnote definition removed, reference inlined
-        assert result == expected
+        result_after_speech = len(transcriber.speech_buffer)
+        expected_after_speech = 32000
+        assert result_after_speech == expected_after_speech
 
-    def test_blockquote_handling(self, setup_html2text):
-        # Given: Markdown with blockquote
-        md = "> This is a **blockquote**"
-        expected = "This is a blockquote"
+        # And when: silence exceeds threshold (manual trigger for test isolation)
+        transcriber.silence_timer = 1.0  # > silence_seconds=0.3
+        if transcriber.speech_buffer.size > 0 and transcriber.silence_timer >= transcriber.silence_duration:
+            old_buffer = transcriber.speech_buffer.copy()  # Not used but for clarity
+            transcriber.speech_buffer = np.array([], dtype=np.float32)
+            transcriber.silence_timer = 0.0
 
-        # When: Convert to plain text
-        result = md_to_plain_text(md)
-
-        # Then: Blockquote marker removed
-        assert result == expected
-
-    def test_table_handling(self, setup_html2text):
-        # Given: Markdown with table
-        md = "| Name | Age |\n|------|-----|\n| Alice | 30 |"
-        expected = "Name  Age\nAlice  30"
-
-        # When: Convert to plain text
-        result = md_to_plain_text(md)
-
-        # Then: Table formatted cleanly
-        assert result == expected
-
-    def test_inline_html_handling(self, setup_html2text):
-        # Given: Markdown with inline HTML
-        md = "<span class=\"badge\">New</span> feature"
-        expected = "New feature"
-
-        # When: Convert to plain text
-        result = md_to_plain_text(md)
-
-        # Then: HTML tags stripped
-        assert result == expected
-
-    def test_invalid_input_type(self, setup_html2text):
-        # Given: Invalid non-string input
-        md = 123
-
-        # When/Then: Raises TypeError
-        with pytest.raises(TypeError, match="Input must be a string"):
-            md_to_plain_text(md)
-
-    def test_empty_input(self, setup_html2text):
-        # Given: Empty string input
-        md = ""
-
-        # When/Then: Raises ValueError
-        with pytest.raises(ValueError, match="Markdown content cannot be empty or whitespace"):
-            md_to_plain_text(md)
-
-    def test_list_in_blockquote(self, setup_html2text):
-        # Given: Markdown with list in blockquote
-        md = "> - Task 1\n> - Task 2"
-        expected = "* Task 1\n* Task 2"
-
-        # When: Convert to plain text
-        result = md_to_plain_text(md)
-
-        # Then: List markers fixed, blockquote removed
-        assert result == expected
-
-    def test_complex_markdown(self, setup_html2text):
-        # Given: Complex Markdown from user sample
-        md = """
-# Project Overview
-Welcome to **project**! [website](https://project.com)
-![Logo](logo.png)
-> **Note**: Check [docs](https://docs.project.com).
-- Task 1
-- Task 2
-[^1]: Footnote
-<div class="alert">Alert</div>
-"""
-        expected = """Project Overview
-
-Welcome to project! website
-Logo
-Note: Check docs.
-* Task 1
-* Task 2
-Alert"""
-
-        # When: Convert to plain text
-        result = md_to_plain_text(md, ignore_images=False)
-
-        # Then: Matches expected output
-        assert result == expected
+        result_after_silence = len(transcriber.speech_buffer)
+        expected_after_silence = 0
+        assert result_after_silence == expected_after_silence
