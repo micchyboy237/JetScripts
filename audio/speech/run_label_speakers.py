@@ -98,7 +98,8 @@ def main() -> None:
     HF_TOKEN = os.getenv("HF_TOKEN")  # Set your Hugging Face token in environment
 
     SEGMENTS_DIR = Path(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps"
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps"
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments"
     )
 
     # ------------------------------------------------------------------
