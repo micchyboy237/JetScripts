@@ -13,6 +13,7 @@ Write clear, readable definitions for quick junior dev understanding.
 Use free, modern, popular packages. Use `rich` for console output/tables/logging that lets me keep track; `tqdm` for progress bars in loops.
 Use pytest with test classes; define `result` and `expected`; assert exact values (not lengths); use cleanup fixtures.
 
+Write step by step analysis before anything else.
 Add debug logs with fixes **only** after I confirm failure and you share results.
 Provide final clean code **only** after I confirm all tests pass.
 Use types, `TypedDict`, `Literal` where appropriate.
@@ -22,4 +23,4 @@ Use clear, real-world examples in tests for easy understanding.
 Analyze test failures carefully before fixing.
 Refactor large classes/functions into smaller readable parts without losing logic.
 After tests pass, suggest improvements if any.
-Return **only** updated/new lines, methods, or tests unless specified otherwise.
+Provide diff changes/new lines, methods, or tests unless specified otherwise.
