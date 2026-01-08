@@ -18,7 +18,7 @@ BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def run_agglomerative_clustering(
-    segments_dir: Path,
+    segment_paths: List[str],
     hf_token: str | None,
     distance_threshold: float = 0.7,
 ) -> List[SegmentResult]:
@@ -34,7 +34,6 @@ def run_agglomerative_clustering(
         use_gpu=True,
     )
 
-    segment_paths = resolve_audio_paths(segments_dir, recursive=True)
     results = clusterer.cluster_segments(segment_paths=segment_paths)
 
     # Save results
@@ -44,7 +43,7 @@ def run_agglomerative_clustering(
 
 
 def run_kmeans_clustering(
-    segments_dir: Path,
+    segment_paths: List[str],
     hf_token: str | None,
     n_clusters: int,
     distance_threshold: float = 0.7,  # unused for kmeans, kept for signature consistency
@@ -62,7 +61,6 @@ def run_kmeans_clustering(
         use_gpu=True,
     )
 
-    segment_paths = resolve_audio_paths(segments_dir, recursive=True)
     results = clusterer.cluster_segments(segment_paths=segment_paths)
 
     # Save results
@@ -95,17 +93,17 @@ def main() -> None:
     # ------------------------------------------------------------------
     HF_TOKEN = os.getenv("HF_TOKEN")  # Set your Hugging Face token in environment
 
-    SEGMENTS_DIR = Path(
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps"
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments"
-    )
+    # SEGMENTS_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments"
+    SEGMENTS_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_speakers/diarized_001_recording_2_speakers_short_norm/segments"
+
+    segment_paths = resolve_audio_paths(SEGMENTS_DIR, recursive=True)
 
     # ------------------------------------------------------------------
     # Run both strategies
     # ------------------------------------------------------------------
     print("Running agglomerative clustering...")
     agg_results = run_agglomerative_clustering(
-        segments_dir=SEGMENTS_DIR,
+        segment_paths=segment_paths,
         hf_token=HF_TOKEN,
         distance_threshold=0.7,
     )
@@ -113,7 +111,7 @@ def main() -> None:
 
     print("\nRunning K-Means clustering (example with fixed 5 speakers)...")
     kmeans_results = run_kmeans_clustering(
-        segments_dir=SEGMENTS_DIR,
+        segment_paths=segment_paths,
         hf_token=HF_TOKEN,
         n_clusters=5,  # Change this based on your expected number of speakers
     )

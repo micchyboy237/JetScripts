@@ -25,7 +25,7 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
     console.print(f"[bold cyan]Processing:[/bold cyan] {Path(audio_file).name}")
-    segments = extract_speech_timestamps(
+    segments, all_speech_probs = extract_speech_timestamps(
         audio_file,
         threshold=threshold,
         return_seconds=True,
@@ -38,16 +38,9 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
         console.print("[bold yellow]No speech segments detected – skipping save.[/bold yellow]")
         return
 
-    # When with_scores=True, the function returns a tuple (segments_list, speech_probs)
-    # Unpack accordingly to always have a clean list of SpeechSegment dicts
-    if isinstance(segments, tuple):
-        enhanced_segments, _ = segments  # ignore raw probs for now
-    else:
-        enhanced_segments = segments
-
     segments_dir = output_dir / "segments"
     segments_dir.mkdir(parents=True, exist_ok=True)
-    for seg in enhanced_segments:
+    for seg in segments:
         console.print(
             f"[yellow][[/yellow] [bold white]{seg['start']:.2f}[/bold white] - [bold white]{seg['end']:.2f}[/bold white] [yellow]][/yellow] "
             f"duration=[bold magenta]{seg['duration']}s[/bold magenta] "
@@ -67,18 +60,18 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
             encoding="PCM_S",
             bits_per_sample=16,
         )
-    save_file(enhanced_segments, output_dir / "speech_timestamps.json")
+    save_file(segments, output_dir / "speech_timestamps.json")
 
     # Compute and save segment gaps
 
-    if enhanced_segments:
+    if segments:
 
         gaps: List[Dict[str, Any]] = []
 
         # Inter-segment silences: between consecutive speech segments
-        for i in range(1, len(enhanced_segments)):
-            prev_end = enhanced_segments[i-1]["end"]
-            curr_start = enhanced_segments[i]["start"]
+        for i in range(1, len(segments)):
+            prev_end = segments[i-1]["end"]
+            curr_start = segments[i]["start"]
             gap_duration_val = curr_start - prev_end
             if gap_duration_val > 0:
                 gaps.append({
@@ -91,16 +84,20 @@ def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0
                 })
 
         save_file(gaps, output_dir / "segment_gaps.json")
+        save_file(all_speech_probs, output_dir / "all_speech_probs.json")
 
 if __name__ == "__main__":
     OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
     audio_paths = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/full_recording.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_low_prob.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
+
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_short.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/preprocessors/recording_2_speakers_short_norm.wav",
+
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav",
     ]
     threshold = 0.3
 

@@ -1,0 +1,45 @@
+from __future__ import annotations
+from pathlib import Path
+from typing import Literal, Union
+
+from silero_vad import load_silero_vad
+
+import shutil
+import torch
+import numpy as np
+
+from jet.audio.speech.silero.speech_extractor import SpeechSegment, process_audio, save_probs_plot
+from jet.file.utils import save_file
+
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+silero_model = load_silero_vad(onnx=False)
+
+AudioInput = Union[str, Path, np.ndarray, torch.Tensor, bytes]
+Unit = Literal['ms', 'seconds']
+
+
+if __name__ == "__main__":
+    audio_file = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav")
+
+    results = process_audio(
+        audio=audio_file,
+        sampling_rate=16000,
+        threshold=0.3,
+        low_threshold=0.1,
+    )
+
+    # Save results
+    save_file(results["probs"], OUTPUT_DIR / "probs.json")
+    save_file(results["segments"], OUTPUT_DIR / "segments.json")
+    save_file(results["meta"], OUTPUT_DIR / "meta.json")
+
+    # Generate and save plot
+    save_probs_plot(
+        probs=np.array(results["probs"]),
+        sampling_rate=16000,
+        segments=[SpeechSegment(**seg) for seg in results["segments"]],
+        output_path=OUTPUT_DIR / "probs_plot.png",
+    )
