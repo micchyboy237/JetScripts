@@ -8,7 +8,7 @@ import shutil
 import torch
 import numpy as np
 
-from jet.audio.speech.silero.speech_extractor import SpeechSegment, extract_frame_energy, process_audio, save_energy_plot, save_probs_plot
+from jet.audio.speech.silero.speech_extractor import SpeechSegment, extract_frame_energy, process_audio, save_energy_plot, save_per_segment_data, save_probs_plot
 from jet.file.utils import save_file
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
@@ -30,6 +30,8 @@ if __name__ == "__main__":
         threshold=0.3,
         low_threshold=0.1,
     )
+
+    results, full_waveform = results  # unpack
 
     # Save results
     save_file(results["probs"], OUTPUT_DIR / "probs.json")
@@ -54,3 +56,17 @@ if __name__ == "__main__":
         segments=[SpeechSegment(**seg) for seg in results["segments"]],
         output_path=OUTPUT_DIR / "energy_plot.png",
     )
+
+    # Reconstruct SpeechSegment objects for per-segment saving
+    segments_objs = [SpeechSegment(**seg) for seg in results["segments"]]
+
+    if segments_objs:
+        save_per_segment_data(
+            waveform=full_waveform,
+            probs=np.array(results["probs"]),
+            energies=energy,
+            segments=segments_objs,
+            meta=results["meta"],
+            sampling_rate=16000,
+            output_dir=OUTPUT_DIR / "segments",
+        )
