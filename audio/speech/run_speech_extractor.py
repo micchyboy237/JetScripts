@@ -1,11 +1,8 @@
 from __future__ import annotations
 from pathlib import Path
-from typing import Literal, Union
 
-from silero_vad import load_silero_vad
 
 import shutil
-import torch
 import numpy as np
 
 from jet.audio.speech.silero.speech_extractor import SpeechSegment, extract_frame_energy, process_audio, save_energy_plot, save_per_segment_data, save_probs_plot
@@ -15,14 +12,9 @@ OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-silero_model = load_silero_vad(onnx=False)
-
-AudioInput = Union[str, Path, np.ndarray, torch.Tensor, bytes]
-Unit = Literal['ms', 'seconds']
-
 
 if __name__ == "__main__":
-    audio_file = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav")
+    audio_file = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_missav_5mins.wav")
 
     results = process_audio(
         audio=audio_file,
