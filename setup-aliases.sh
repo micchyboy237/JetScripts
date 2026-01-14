@@ -433,6 +433,8 @@ git_stats() {
     # git_stats -e ".py,.md" -t dirs -m git -d 3
     # git_stats -e ".py,.ipynb" -m auto
     # git_stats -p "*mcp*,*MCP*" -e ".py,.ipynb,.mdx"
+    # git_stats -e ".md,.js,.html" --since="2024-01-01"
+    # git_stats -d 3 --sort="-depth"
 }
 
 # Function to check memory usage of specific Python processes
