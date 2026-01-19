@@ -31,7 +31,7 @@ logger.orange(f"Logs: {log_file}")
 
 from jet.adapters.langchain.chat_agent_utils import compress_context
 
-DEFAULT_QUERY_URL = "http://jethros-macbook-air.local:3000"
+DEFAULT_QUERY_URL = "http://jethros-macbook-air.local:8888"
 
 def chunk_documents(
     documents: List[Document],

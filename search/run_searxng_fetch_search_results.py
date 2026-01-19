@@ -19,7 +19,7 @@ if __name__ == "__main__":
     # query = f"Anime \"{title}\" {search_keys_str}"
 
     params = {
-        "query_url": "http://jethros-macbook-air.local:3000/search?q=Top+isekai+anime+2025+site%3Amyanimelist.net+OR+site%3Areelgood.com+-site%3Awikipedia.org&format=json&pageno=1&safesearch=2&language=en&categories=general&engines=google%2Cbrave%2Cduckduckgo%2Cbing%2Cyahoo",
+        "query_url": "http://jethros-macbook-air.local:8888/search?q=Top+isekai+anime+2025+site%3Amyanimelist.net+OR+site%3Areelgood.com+-site%3Awikipedia.org&format=json&pageno=1&safesearch=2&language=en&categories=general&engines=google%2Cbrave%2Cduckduckgo%2Cbing%2Cyahoo",
         "headers": {
             "Accept": "application/json"
         },

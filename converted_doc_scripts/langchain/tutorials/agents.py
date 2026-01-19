@@ -2,15 +2,10 @@ from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.features.search_and_chat import compare_html_query_scores
 from jet.file.utils import save_file
 from jet.llm.models import OLLAMA_EMBED_MODELS
-from jet.llm.ollama.constants import OLLAMA_LARGE_EMBED_MODEL
-from jet.llm.query.retrievers import setup_index
 from jet.scrapers.browser.playwright_utils import scrape_multiple_urls, ascrape_multiple_urls
 from jet.scrapers.utils import safe_path_from_url, search_data, validate_headers
-from jet.search.searxng import search_searxng
 from jet._token.token_utils import filter_texts
 from jet.utils.url_utils import normalize_url
-from llama_index.core.retrievers.fusion_retriever import FUSION_MODES
-from llama_index.core.schema import Document as LlamaDocument
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 import asyncio
@@ -21,13 +16,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.prebuilt import create_react_agent
 import os
-import os
-from langchain_community.tools.tavily_search import TavilySearchResults
 # import ChatModelTabs from "@theme/ChatModelTabs";
-from jet.adapters.langchain.chat_ollama import ChatOllama
-from langchain_core.messages import HumanMessage
-from langgraph.prebuilt import create_react_agent
-from langgraph.checkpoint.memory import MemorySaver
 from jet.logger import CustomLogger
 
 
@@ -57,7 +46,7 @@ initialize_ollama_settings()
 #     """
 
 #     results = search_searxng(
-#         query_url="http://Jethros-MacBook-Air.local:3000/search",
+#         query_url="http://jethros-macbook-air.local:8888/search",
 #         query=query,
 #         min_score=0,
 #         engines=["google"],
@@ -467,7 +456,7 @@ async def run_inline():
             logger.info(event['data'].get('input'))
         elif kind == "on_tool_end":
             logger.debug(f"Done tool: {event['name']}")
-            logger.debug(f"Tool output was:")
+            logger.debug("Tool output was:")
             logger.success(event['data'].get('output'))
             logger.debug("--")
 asyncio.run(run_inline())

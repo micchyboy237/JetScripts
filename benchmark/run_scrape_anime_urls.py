@@ -1,11 +1,7 @@
-import json
-from typing import Optional, TypedDict
 from jet.code.splitter_markdown_utils import extract_html_header_contents
 from jet.file.utils import load_file
-from jet.logger import logger
 from jet.scrapers.browser.playwright_helpers import scrape_async_limited, setup_sync_browser_session
 from jet.search.searxng import search_searxng, SearchResult
-import requests
 
 
 class BaseScraper:
@@ -47,7 +43,7 @@ def search_data(query) -> list[SearchResult]:
         "yahoo",
     ]
     results: list[SearchResult] = search_searxng(
-        query_url="http://Jethros-MacBook-Air.local:3000/search",
+        query_url="http://jethros-macbook-air.local:8888/search",
         query=query,
         min_score=0.2,
         filter_sites=filter_sites,
