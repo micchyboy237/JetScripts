@@ -1,196 +1,334 @@
-import argparse
+# playwright_mcp_client.py
+import asyncio
 import json
-from pathlib import Path
-import torch
-from huggingface_hub import HfApi
-import os
+from typing import Any, Dict, Optional, AsyncGenerator
+import httpx
+from rich.console import Console
+from rich.logging import RichHandler
+import logging
+from jet.logger import logger as jlogger
 
-from torch import nn
+jlogger.info("START")
 
+# Very verbose logging for debugging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[RichHandler(rich_tracebacks=True, markup=True, show_time=True)]
+)
+logger = logging.getLogger("mcp_client")
+console = Console()
 
-# モデルの定義
-class AudioClassifier(nn.Module):
-    def __init__(
+class PlaywrightMCPClient:
+    """JSON-RPC client for Playwright MCP with session-id support"""
+
+    def __init__(self, base_url: str = "http://localhost:8931/mcp"):
+        self.base_url = base_url.rstrip("/")
+        # Force connection pooling & long keep-alive
+        self.client = httpx.AsyncClient(
+            timeout=httpx.Timeout(10.0, connect=10.0, read=300.0, write=60.0),
+            limits=httpx.Limits(
+                max_connections=5,
+                max_keepalive_connections=5,
+                keepalive_expiry=300.0
+            ),
+            http2=False,
+            follow_redirects=True
+        )
+        self.request_id = 0
+        self.initialized = False
+        self.mcp_session_id: Optional[str] = None
+
+    async def _call(
         self,
-        label2id: dict,
-        feature_dim=256,
-        hidden_dim=256,
-        device="cpu",
-        dropout_rate=0.5,
-        num_hidden_layers=2,
-    ):
-        super(AudioClassifier, self).__init__()
-        self.num_classes = len(label2id)
-        self.device = device
-        self.label2id = label2id
-        self.id2label = {v: k for k, v in self.label2id.items()}
-        # 最初の線形層と活性化層を追加
-        self.fc1 = nn.Sequential(
-            nn.Linear(feature_dim, hidden_dim),
-            nn.BatchNorm1d(hidden_dim),
-            nn.Mish(),
-            nn.Dropout(dropout_rate),
-        )
-        # 隠れ層の追加
-        self.hidden_layers = nn.ModuleList()
-        for _ in range(num_hidden_layers):
-            layer = nn.Sequential(
-                nn.Linear(hidden_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                nn.Mish(),
-                nn.Dropout(dropout_rate),
+        method: str,
+        params: Optional[Dict[str, Any]] = None,
+        is_notification: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        self.request_id += 1
+
+        payload: Dict[str, Any] = {
+            "jsonrpc": "2.0",
+            "method": method,
+        }
+
+        if not is_notification:
+            payload["id"] = self.request_id
+
+        if params is not None:
+            payload["params"] = params
+
+        logger.debug("Sending payload:\n%s", json.dumps(payload, indent=2))
+
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream;q=0.9",
+            "Connection": "keep-alive",
+        }
+
+        # --- Critical: send mcp-session-id if available ---
+        if self.mcp_session_id:
+            headers["mcp-session-id"] = self.mcp_session_id
+            logger.debug("Using mcp-session-id: %s", self.mcp_session_id)
+
+        logger.debug("Request headers: %s", headers)
+
+        try:
+            response = await self.client.post(
+                self.base_url,
+                json=payload,
+                headers=headers
             )
-            self.hidden_layers.append(layer)
-        # 最後の層（クラス分類用）
-        self.fc_last = nn.Linear(hidden_dim, self.num_classes)
 
-    def forward(self, x):
-        # 最初の層を通過
-        x = self.fc1(x)
+            logger.info("Response status: %d  |  Content-Type: %s",
+                        response.status_code,
+                        response.headers.get("content-type", "unknown"))
 
-        # 隠れ層を順に通過
-        for layer in self.hidden_layers:
-            x = layer(x)
+            # If we haven't stored the session id, check for it
+            session_id = response.headers.get("mcp-session-id")
+            if not self.mcp_session_id and session_id:
+                self.mcp_session_id = session_id
+                logger.info("Received new mcp-session-id: %s", session_id)
 
-        # 最後の分類層
-        x = self.fc_last(x)
-        return x
+            # Handle notification requests (no "id" field)
+            if payload.get("id") is None:
+                if response.status_code not in (200, 202, 204):
+                    raise RuntimeError(f"Notification failed: {response.status_code} - {await response.aread()}")
+                return None  # critical: do NOT try to parse SSE/body for notifications
 
-    def infer_from_features(self, features):
-        # 特徴量をテンソルに変換
-        features = (
-            torch.tensor(features, dtype=torch.float32).unsqueeze(0).to(self.device)
+            response.raise_for_status()
+
+            # ─── Real-time SSE processing with immediate logging ─────────────────────
+            final_result = None
+            async for event in self._parse_sse(response):
+                if "data" in event:
+                    data_str = event["data"].strip()
+                    if not data_str:
+                        continue
+
+                    logger.debug("[SSE chunk received] %s", data_str)
+
+                    try:
+                        parsed = json.loads(data_str)
+                        logger.debug("[SSE parsed] %s", json.dumps(parsed, indent=2))
+
+                        # Handle both "result" and "error" at top level
+                        if "error" in parsed:
+                            console.print("[bold red]→ Chunk ERROR:[/bold red]", parsed["error"])
+                            raise RuntimeError(f"MCP error: {parsed['error']}")
+                        elif "result" in parsed:
+                            console.print("[dim bright_white]→ Chunk result:[/dim bright_white]", parsed["result"])
+                            final_result = parsed["result"]
+                        else:
+                            # some servers send content in other fields
+                            console.print("[dim yellow]→ Other SSE chunk:[/dim yellow]", parsed)
+                            final_result = parsed
+
+                        if "method" in parsed and parsed["method"] == "notifications":
+                            console.print("[yellow]→ Server notification:[/yellow]", parsed)
+
+                    except json.JSONDecodeError as e:
+                        console.print("[dim yellow]→ Non-JSON chunk:[/dim yellow]", data_str)
+                        logger.warning("Invalid JSON in SSE data: %s → %s", data_str, e)
+
+            if final_result is None:
+                logger.error("No valid 'result' received in any SSE chunk")
+                raise RuntimeError("No valid 'result' received in any SSE chunk")
+
+            return final_result
+
+        except httpx.HTTPStatusError as e:
+            try:
+                error_body = await e.response.aread()
+                error_text = error_body.decode(errors='replace')
+            except Exception:
+                error_text = "<error reading error body>"
+            logger.error("HTTP %d: %s", e.response.status_code, error_text)
+            raise
+        except Exception as exc:
+            logger.exception("Unexpected error in MCP call: %s", exc)
+            raise
+
+    async def _parse_sse(self, response: httpx.Response) -> AsyncGenerator[Dict[str, str], None]:
+        buffer = ""
+        async for chunk in response.aiter_text():
+            buffer += chunk
+            while "\n\n" in buffer:
+                event_str, buffer = buffer.split("\n\n", 1)
+                event_data = {}
+                lines = event_str.splitlines()
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith("event:"):
+                        event_data["event"] = line[6:].strip()
+                    elif line.startswith("data:"):
+                        data = line[5:].strip()
+                        if "data" in event_data:
+                            event_data["data"] += "\n" + data
+                        else:
+                            event_data["data"] = data
+                if event_data:
+                    yield event_data
+
+        if buffer.strip():
+            yield {"data": buffer.strip()}
+
+    async def initialize(self) -> Optional[str]:
+        if self.initialized:
+            logger.info("Already initialized")
+            return self.mcp_session_id
+
+        init_params = {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {
+                "tools": {},
+                "resources": {},
+                "prompts": {},
+                "sampling": {}
+            },
+            "clientInfo": {
+                "name": "custom-python-mcp-client",
+                "version": "0.1.0"
+            }
+        }
+
+        logger.info("Performing MCP initialize...")
+
+        try:
+            # We temporarily override response handling to capture session id
+            response = await self.client.post(
+                self.base_url,
+                json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": init_params},
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream;q=0.9",
+                    "Connection": "keep-alive"
+                }
+            )
+
+            logger.info("Response status: %d  |  Content-Type: %s", response.status_code, response.headers.get("content-type", "unknown"))
+            response.raise_for_status()
+
+            session_id = response.headers.get("mcp-session-id")
+            if session_id:
+                self.mcp_session_id = session_id
+                logger.info("Received mcp-session-id: %s", session_id)
+            else:
+                logger.warning("Server did NOT return mcp-session-id header")
+
+            # Now process the body normally (reuse existing parsing logic)
+            final_result = None
+            async for event in self._parse_sse(response):
+                if "data" in event:
+                    data_str = event["data"].strip()
+                    if not data_str:
+                        continue
+                    logger.debug("[INIT chunk] %s", data_str)
+                    try:
+                        parsed = json.loads(data_str)
+                        if "result" in parsed:
+                            console.print("[dim bright_white]→ Init result:[/dim bright_white]", parsed["result"])
+                            final_result = parsed["result"]
+                    except json.JSONDecodeError:
+                        logger.warning("Non-JSON chunk during init: %s", data_str)
+                        pass
+
+            if final_result:
+                console.print("[bold green]Initialize success:[/bold green]", final_result)
+            else:
+                logger.error("Initialize did not return valid result")
+                raise RuntimeError("Initialize did not return valid result")
+
+            # Try to send notification (many implementations ignore or accept it)
+            try:
+                await self._call("initialized", None, is_notification=True)
+                logger.info("initialized notification sent (no params)")
+            except Exception as e:
+                logger.warning("Could not send initialized notification: %s", e)
+
+            self.initialized = True
+
+            return self.mcp_session_id
+
+        except httpx.HTTPError as e:
+            logger.error("HTTP error during initialize: %s", e)
+            raise
+        except Exception as exc:
+            logger.exception("Failed to initialize MCP session: %s", exc)
+            raise
+
+    async def browser_evaluate(self, expr_or_func: str, argument_key: str = "expression") -> Any:
+        await self.initialize()
+
+        logger.info("Calling browser_evaluate → %s", expr_or_func[:100] + "..." if len(expr_or_func) > 100 else expr_or_func)
+
+        tool_params = {
+            "name": "browser_evaluate",
+            "arguments": {argument_key: expr_or_func}
+        }
+        # If "browser_evaluate" fails, you may try:
+        # tool_params["name"] = "evaluate"
+        # tool_params["name"] = "browser.evaluate"
+
+        try:
+            # Updated method and parameters per spec
+            result = await self._call("tools/call", tool_params)
+        except RuntimeError:
+            # Optionally fallback to alternate tool names if needed; not automatic
+            raise
+
+        # For compat, if the result is a dict and contains 'success' == False
+        if isinstance(result, dict) and result.get("success") is False:
+            raise RuntimeError(f"Evaluation failed: {result.get('error', 'unknown error')}")
+
+        # Defensive: return actual result if present, else result itself
+        if isinstance(result, dict) and "result" in result:
+            return result["result"]
+        return result
+
+    async def close(self):
+        logger.info("Closing client connection pool...")
+        await self.client.aclose()
+
+
+# ─── Example usage ──────────────────────────────────────────────────────────────
+async def main():
+    client = PlaywrightMCPClient("http://localhost:8931/mcp")
+
+    try:
+        # Add navigation first (try these names one by one until one works)
+        # Standard/expected name
+        await client._call(
+            "tools/call",
+            {
+                "name": "browser_navigate",
+                "arguments": {"url": "https://example.com"}  # ← change to your real starting URL
+            }
+        )
+        # or, if not supported:
+        # await client._call("tools/call", {"name": "goto", "arguments": {"url": "https://example.com"}})
+        # await client._call("tools/call", {"name": "page_goto", "arguments": {"url": "https://example.com"}})
+        # await client._call("tools/call", {"name": "navigate", "arguments": {"url": "https://example.com"}})
+
+        # Simple title - use arrow function wrapper
+        title = await client.browser_evaluate("() => document.title", argument_key="function")
+        console.print(f"\n[bold cyan]Final Page title:[/bold cyan] {title}\n")
+
+        # Complex extraction - already good, just add navigation before it
+        info = await client.browser_evaluate(
+            "() => ({\n  title: document.title,\n  url: window.location.href,\n  links_count: document.querySelectorAll('a[href]').length\n})",
+            argument_key="function"
         )
 
-        # モデルを評価モードに設定
-        self.eval()
+        console.print("[bold green]Final Page info:[/bold green]")
+        console.print_json(data=info)
 
-        # モデルの出力を取得
-        with torch.no_grad():
-            output = self.forward(features)
-
-        # ソフトマックス関数を適用して確率を計算
-        probs = torch.softmax(output, dim=1)
-
-        # ラベルごとの確率を計算して大きい順に並べ替えて返す
-        probs, indices = torch.sort(probs, descending=True)
-        probs = probs.cpu().numpy().squeeze()
-        indices = indices.cpu().numpy().squeeze()
-        return [(self.id2label[i], p) for i, p in zip(indices, probs)]
-
-    def infer_from_file(self, file_path):
-        feature = extract_features(file_path, device=self.device)
-        return self.infer_from_features(feature)
-
-
-from pyannote.audio import Inference, Model
-
-emb_model = Model.from_pretrained("pyannote/wespeaker-voxceleb-resnet34-LM")
-inference = Inference(emb_model, window="whole")
-
-
-def extract_features(file_path, device="cpu"):
-    inference.to(torch.device(device))
-    return inference(file_path)
-
-
-def get_hf_token():
-    hf_token = os.environ.get("HF_TOKEN", None)
-    if hf_token:
-        print("[DEBUG] Found Hugging Face token in environment.")
-        return hf_token
-    print("Hugging Face token not found in environment variable HF_TOKEN.")
-    print("If the repository is private, you need a token. You can get one at https://huggingface.co/settings/tokens")
-    user_token = input("Enter your Hugging Face token (leave blank if not needed): ").strip()
-    if user_token:
-        print("[DEBUG] Using token from user input.")
-        return user_token
-    print("[DEBUG] No token provided; will attempt unauthenticated access.")
-    return None
-
-def validate_hf_token(token):
-    if not token:
-        return False
-    try:
-        api = HfApi()
-        user = api.whoami(token=token)
-        print(f"[DEBUG] Token validated for user: {user.get('name', 'unknown')}")
-        return True
     except Exception as e:
-        print(f"[ERROR] Token validation failed: {e}")
-        return False
+        console.print(f"\n[bold red]Error:[/bold red] {e}")
+    finally:
+        await client.close()
 
-HF_REPO_ID = "AkitoP/Japanese-Ero-Voice-Classifier"
-CKPT_FILENAME = "model_final.pth"
-CONFIG_FILENAME = "config.json"
-
-def get_model_and_config(cache_dir: str, device: str):
-    cache_dir_path = Path(cache_dir)
-    cache_dir_path.mkdir(parents=True, exist_ok=True)
-
-    # Correct cache location for a Space (already downloaded by your script)
-    space_cache_root = Path(os.path.expanduser("~/.cache/huggingface/hub")) / "spaces--litagin--Japanese-Ero-Voice-Classifier" / "snapshots"
-
-    if not space_cache_root.exists():
-        raise FileNotFoundError(
-            f"Space cache not found at {space_cache_root}\n"
-            "Run your download_hf_model.py script first to download the Space."
-        )
-
-    # Find the latest snapshot (only one should exist)
-    snapshot_dirs = [d for d in space_cache_root.iterdir() if d.is_dir()]
-    if not snapshot_dirs:
-        raise FileNotFoundError(f"No snapshot found in {space_cache_root}")
-    latest_snapshot = sorted(snapshot_dirs, key=lambda x: x.stat().st_mtime, reverse=True)[0]
-
-    # Expected file paths inside the snapshot
-    config_path = latest_snapshot / "ckpt" / "config.json"
-    ckpt_path   = latest_snapshot / "ckpt" / "model_final.pth"
-
-    if not config_path.exists():
-        raise FileNotFoundError(f"config.json not found at {config_path}")
-    if not ckpt_path.exists():
-        raise FileNotFoundError(f"model_final.pth not found at {ckpt_path}")
-
-    print(f"Loading config from {config_path}")
-    config = json.loads(config_path.read_text())
-
-    print(f"Loading model weights from {ckpt_path}")
-    model = AudioClassifier(device=device, **config["model"]).to(device)
-    model.load_state_dict(torch.load(ckpt_path, map_location=device))
-
-    return model
-
-def classify_audio(model, audio_file):
-    print(f"Classifying {audio_file}...")
-    output = model.infer_from_file(audio_file)
-    print("Predicted:")
-    for label, prob in output:
-        print(f"{label}: {prob:.4f}")
-    return output
-
-def main():
-    try:
-        parser = argparse.ArgumentParser(description="Japanese Ero Voice Classifier CLI")
-        parser.add_argument("audio_file", type=str, help="Path to the audio file to classify")
-        parser.add_argument("--cache_dir", type=str, default="hf_cache", help="Hugging Face cache directory")
-        args = parser.parse_args()
-
-        # Use smart device detection: CUDA -> MPS -> CPU
-        device = "mps"
-        print(f"Device: {device}")
-
-        model = get_model_and_config(args.cache_dir, device)
-        classify_audio(model, args.audio_file)
-    except Exception as e:
-        print("[FATAL ERROR] An uncaught exception occurred.")
-        print(f"[EXCEPTION] {e}")
-        import traceback
-        traceback.print_exc()
-        print("[DIAGNOSTICS] Please check the above traceback and error messages for guidance.")
-        print("If you are accessing a private or gated Hugging Face repo, ensure your token is correct and has access.")
-        print("If the repo is public, verify the repo URL and file names.")
-        exit(1)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
