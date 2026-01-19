@@ -249,6 +249,7 @@ def parse_arguments():
         "directories",
         type=str,
         nargs="?",
+        # default="/Users/jethroestrada/Desktop/External_Projects/AI",
         default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts",
         help="Search directories (comma-separated, e.g., /path/to/dir1,/path/to/dir2)"
     )
