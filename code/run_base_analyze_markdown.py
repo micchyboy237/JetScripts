@@ -15,11 +15,11 @@ if __name__ == "__main__":
     # html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html")
     html = convert_dl_blocks_to_md(html)
 
-    md_content_ignore_links = convert_html_to_markdown(html, ignore_links=True)
-    results_ignore_links = base_analyze_markdown(md_content_ignore_links, ignore_links=True)
-
     md_content_with_links = convert_html_to_markdown(html, ignore_links=False)
-    results_with_links = base_analyze_markdown(md_content_with_links, ignore_links=False)
+    results_with_links = base_analyze_markdown(html, ignore_links=False)
+
+    md_content_ignore_links = convert_html_to_markdown(html, ignore_links=True)
+    results_ignore_links = base_analyze_markdown(html, ignore_links=True)
 
     print_dict_types(results_with_links)
 

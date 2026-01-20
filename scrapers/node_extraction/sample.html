@@ -67,11 +67,25 @@
     </section>
 
     <section>
-      <h2>Links & Media</h2>
-      <p><a href="#">A link</a></p>
-      <img src="https://via.placeholder.com/150" alt="Placeholder" />
-      <video width="200" controls>
-        <source src="" type="video/mp4" />
+      <h2 id="links-media">Links & Media</h2>
+    
+      <h3>Anchor Link Examples</h3>
+    
+      <ul>
+        <li><a href="#">Placeholder / Back to top</a> (current page top)</li>
+        <li><a href="#headings">Jump to Headings section</a> (internal same-page link)</li>
+        <li><a href="https://developer.mozilla.org/en-US/docs/Web/HTML" target="_blank" rel="noopener noreferrer">MDN HTML Docs</a> (external + new tab)</li>
+        <li><a href="mailto:hello@example.com?subject=Hello%20from%20demo">Send email</a> (mailto:)</li>
+        <li><a href="tel:+63-999-123-4567">Call us</a> (tel: — useful on mobile)</li>
+        <li><a href="https://www.w3.org/TR/html52/" download>Download HTML spec (as file)</a></li>
+        <!-- Note: download attribute works best with same-origin files; this is just a demo -->
+      </ul>
+    
+      <p><a href="#top">↑ Back to Top</a></p>
+    
+      <img src="https://via.placeholder.com/150" alt="Placeholder image" />
+      <video width="320" controls>
+        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
     </section>

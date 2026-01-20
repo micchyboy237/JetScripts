@@ -1,6 +1,7 @@
 import argparse
 import os
 from typing import List, Tuple
+from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_TYPES
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
@@ -8,7 +9,6 @@ from jet.logger.config import colorize_log
 # from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.llm.utils.tokenizer import get_tokenizer
 from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
-from jet.models.model_types import EmbedModelType
 # from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.utils.language import detect_lang
 from jet.utils.text import format_sub_dir
@@ -100,7 +100,7 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
 def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
     """Main function to demonstrate file search with hybrid reranking."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
-    embed_model_name: EmbedModelType = "all-MiniLM-L12-v2"
+    embed_model_name: LLAMACPP_EMBED_TYPES = "nomic-embed-text-v2-moe"
     truncate_dim = None
     max_seq_len = None
     top_k = None
@@ -134,8 +134,8 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
             top_k=top_k,
             threshold=threshold,
             embed_model=embed_model_name,
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
+            # chunk_size=chunk_size,
+            # chunk_overlap=chunk_overlap,
             split_chunks=split_chunks,
             tokenizer=count_tokens,
             preprocess=preprocess_text,

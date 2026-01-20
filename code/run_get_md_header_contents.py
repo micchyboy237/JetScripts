@@ -1,30 +1,27 @@
 import os
+import shutil
+
+from jet.code.html_utils import convert_dl_blocks_to_md
 from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.file.utils import load_file, save_file
-from jet.logger import logger
+from jet.utils.print_utils import print_dict_types
 
-
-from typing import List, Dict
-
-from jet.transformers.formatters import format_json
-from jet.utils.commands import copy_to_clipboard
-
+OUTPUT_DIR = os.path.join(os.path.dirname(
+    __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/gamerant.com/new_isekai_anime_2025/docs.json"
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/top_isekai_anime_2025/pages/gamerant.com/new_isekai_anime_2025/page.html"
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html")
+    # html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html")
+    html = convert_dl_blocks_to_md(html)
 
-    docs = load_file(docs_file)
-    html = load_file(html_file)
-    results = get_md_header_contents(
-        html, ignore_links=True, base_url=docs["source_url"])
-    results = [{
-        "parent_header": result["parent_header"],
-        "header": result["header"],
-        "content": result["content"],
-        "text": result["text"],
-        "links": result["links"],
-    } for result in results]
-    save_file(results, f"{output_dir}/results.json")
+    # md_content_with_links = convert_html_to_markdown(html, ignore_links=False)
+    results_with_links = get_md_header_contents(html, ignore_links=False)
+
+    # md_content_ignore_links = convert_html_to_markdown(html, ignore_links=True)
+    results_ignore_links = get_md_header_contents(html, ignore_links=True)
+
+    print_dict_types(results_with_links)
+
+    save_file(results_with_links, f"{OUTPUT_DIR}/results_with_links.json")
+    save_file(results_ignore_links, f"{OUTPUT_DIR}/results_ignore_links.json")
