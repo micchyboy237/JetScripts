@@ -108,7 +108,7 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
     max_seq_len = None
     top_k = None
     threshold = 0.0
-    chunk_size = 1024
+    chunk_size = 500
     chunk_overlap = 100
     batch_size = 64
 
@@ -130,6 +130,7 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
 
     # Progressive, streaming search
     with_split_chunks_results = []
+    save_every = 50
     for result in search_files(
         directories,
         query,
@@ -158,14 +159,33 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
         if detected_lang["lang"] == "en":
             with_split_chunks_results.append(result)
 
-            # Save initial split chunk results
-            save_file({
-                "query": query,
-                "count": len(with_split_chunks_results),
-                "merged": not split_chunks,
-                "results": with_split_chunks_results
-            }, f"{output_dir}/search_results_split.json")
+            # Save after every 10 items
+            if len(with_split_chunks_results) % save_every == 0:
+                # Sort by score descending
+                with_split_chunks_results.sort(key=lambda x: x["score"], reverse=True)
+                # Update rank
+                for i, res in enumerate(with_split_chunks_results, 1):
+                    res["rank"] = i
+                save_file({
+                    "query": query,
+                    "count": len(with_split_chunks_results),
+                    "merged": not split_chunks,
+                    "results": with_split_chunks_results
+                }, f"{output_dir}/search_results_split.json")
 
+    # After the loop, save any remaining results that weren't saved in the last group
+    if len(with_split_chunks_results) > 0:
+        # Sort by score descending
+        with_split_chunks_results.sort(key=lambda x: x["score"], reverse=True)
+        # Update rank
+        for i, res in enumerate(with_split_chunks_results, 1):
+            res["rank"] = i
+        save_file({
+            "query": query,
+            "count": len(with_split_chunks_results),
+            "merged": not split_chunks,
+            "results": with_split_chunks_results
+        }, f"{output_dir}/search_results_split.json")
 
 
     # Merge chunks
