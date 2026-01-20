@@ -100,7 +100,7 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
         return results
 
 
-def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
+def main(query: str, directories: List[str], extensions: List[str] = [".py"], use_cache: bool = False):
     """Main function to demonstrate file search with hybrid reranking, using streaming progressive results."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     embed_model_name: LLAMACPP_EMBED_TYPES = "nomic-embed-text"
@@ -150,6 +150,7 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
             "content": 0.75,
         },
         batch_size=batch_size,
+        use_cache=use_cache,
     ):
         # Print each streaming result as received
         detected_lang = detect_lang(result["text"])
@@ -239,7 +240,7 @@ def validate_directories(directories: List[str]) -> List[str]:
 def parse_arguments():
     """Parse command line arguments for query, directories, and file extensions (comma separated)."""
     parser = argparse.ArgumentParser(
-        description="File search with query, directories, and file extensions (comma separated)"
+        description="File search with query, directories, file extensions (comma separated), and caching option"
     )
     parser.add_argument(
         "query",
@@ -277,6 +278,14 @@ def parse_arguments():
         default=".py",
         help="File extensions to include, comma separated (e.g., .py,.md)"
     )
+    parser.add_argument(
+        "-c",
+        "--cache",
+        dest="use_cache",
+        action="store_true",
+        default=False,
+        help="Use cache for embedding/model loading (default: False)"
+    )
     args = parser.parse_args()
 
     # Use query_flag if provided, else fallback to query
@@ -294,9 +303,9 @@ def parse_arguments():
     # Split extensions by comma if provided, else use default
     extensions = [ext.strip() for ext in args.extensions.split(",")] if args.extensions else [".py"]
 
-    return argparse.Namespace(query=query, directories=directories, extensions=extensions)
+    return argparse.Namespace(query=query, directories=directories, extensions=extensions, use_cache=args.use_cache)
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-    main(args.query, args.directories, args.extensions)
+    main(args.query, args.directories, args.extensions, args.use_cache)
