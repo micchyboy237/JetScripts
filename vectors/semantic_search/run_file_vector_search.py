@@ -108,9 +108,9 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
     max_seq_len = None
     top_k = None
     threshold = 0.0
-    chunk_size = 1024
+    chunk_size = 500
     chunk_overlap = 100
-    batch_size = 64
+    batch_size = 128
 
     # embed_model = SentenceTransformerRegistry.load_model(
     #     embed_model_name, truncate_dim=truncate_dim, max_seq_length=max_seq_len)
