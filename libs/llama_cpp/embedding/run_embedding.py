@@ -23,10 +23,10 @@ def main():
     
     embedder = LlamacppEmbedding(model=model)
     
-    query_embeddings = embedder(query, return_format="list")
+    query_embeddings = embedder(query, return_format="list", use_cache=True)
     save_file(query_embeddings, f"{OUTPUT_DIR}/query_embeddings.json")
 
-    doc_embeddings = embedder(documents, return_format="list")
+    doc_embeddings = embedder(documents, return_format="list", use_cache=True)
     save_file(doc_embeddings, f"{OUTPUT_DIR}/doc_embeddings.json")
 
 if __name__ == "__main__":

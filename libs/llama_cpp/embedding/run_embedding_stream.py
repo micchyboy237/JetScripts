@@ -2,7 +2,7 @@ from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 import numpy as np
 
 # Initialize the embedding client
-embedder = LlamacppEmbedding(model="embeddinggemma")
+embedder = LlamacppEmbedding(model="nomic-embed-text")
 
 # Example 1: Streaming embeddings for a single text
 print("Example 1: Streaming embedding for a single text")
@@ -11,7 +11,8 @@ for batch_embeddings in embedder.get_embeddings_stream(
     inputs=single_text,
     return_format="numpy",
     batch_size=32,
-    show_progress=True
+    show_progress=True,
+    use_cache=True,
 ):
     print(f"Received embedding shape: {batch_embeddings.shape}")
     print(f"First few values: {batch_embeddings.flatten()[:5]}")
@@ -27,7 +28,8 @@ for batch_embeddings in embedder.get_embeddings_stream(
     inputs=texts,
     return_format="list",
     batch_size=2,
-    show_progress=True
+    show_progress=True,
+    use_cache=True,
 ):
     print(f"Received batch with {len(batch_embeddings)} embeddings")
     for i, embedding in enumerate(batch_embeddings):
@@ -51,7 +53,8 @@ for batch_embeddings in embedder.get_embeddings_stream(
     inputs=[reference_text] + query_texts,
     return_format="numpy",
     batch_size=2,
-    show_progress=True
+    show_progress=True,
+    use_cache=True,
 ):
     if reference_embedding is None:
         reference_embedding = batch_embeddings[0]

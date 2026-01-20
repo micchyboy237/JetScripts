@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_TYPES
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
@@ -10,7 +10,7 @@ from jet.logger.config import colorize_log
 from jet.llm.utils.tokenizer import get_tokenizer
 from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
 # from jet.models.tokenizer.base import get_tokenizer_fn
-from jet.utils.language import detect_lang
+from jet.utils.language import DetectLangResult, detect_lang
 from jet.utils.text import format_sub_dir
 from jet.vectors.reranker.bm25 import rerank_bm25
 from jet.vectors.semantic_search.file_vector_search import FileSearchResult, merge_results, search_files
@@ -19,7 +19,10 @@ OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
 
-def print_results(query: str, results: List[FileSearchResult], split_chunks: bool):
+def print_results(query: str, results: List[FileSearchResult], split_chunks: bool, detected_lang: Optional[DetectLangResult] = None):
+    if detected_lang:
+        print(f"[Detected language] lang: {detected_lang.get('lang')} | score: {detected_lang.get('score')}")
+
     for num, result in enumerate(results[:10], start=1):
         file_path = result["metadata"]["file_path"]
         start_idx = result["metadata"]["start_idx"]
@@ -98,9 +101,9 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
 
 
 def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
-    """Main function to demonstrate file search with hybrid reranking."""
+    """Main function to demonstrate file search with hybrid reranking, using streaming progressive results."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
-    embed_model_name: LLAMACPP_EMBED_TYPES = "nomic-embed-text-v2-moe"
+    embed_model_name: LLAMACPP_EMBED_TYPES = "nomic-embed-text"
     truncate_dim = None
     max_seq_len = None
     top_k = None
@@ -121,48 +124,48 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"]):
         return clean_markdown_links(text)
 
     split_chunks = True
-    print(f"Search results for '{query}' in these dirs:")
+    print(f"Progressive results for '{query}' in these dirs (streaming):")
     for d in directories:
         print(d)
 
-    # Initial vector search
-    with_split_chunks_results = list(
-        search_files(
-            directories,
-            query,
-            extensions,
-            top_k=top_k,
-            threshold=threshold,
-            embed_model=embed_model_name,
-            # chunk_size=chunk_size,
-            # chunk_overlap=chunk_overlap,
-            split_chunks=split_chunks,
-            tokenizer=count_tokens,
-            preprocess=preprocess_text,
-            includes=[],
-            excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
-            weights={
-                "dir": 0.0,
-                "name": 0.25,
-                "content": 0.75,
-            },
-            batch_size=batch_size,
-        )
-    )
+    # Progressive, streaming search
+    with_split_chunks_results = []
+    for result in search_files(
+        directories,
+        query,
+        extensions,
+        top_k=top_k,
+        threshold=threshold,
+        embed_model=embed_model_name,
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        split_chunks=split_chunks,
+        tokenizer=count_tokens,
+        preprocess=preprocess_text,
+        includes=[],
+        excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
+        weights={
+            "dir": 0.0,
+            "name": 0.25,
+            "content": 0.75,
+        },
+        batch_size=batch_size,
+    ):
+        # Print each streaming result as received
+        detected_lang = detect_lang(result["text"])
+        print_results(query, [result], split_chunks=True, detected_lang=detected_lang)
+        if detected_lang["lang"] == "en":
+            with_split_chunks_results.append(result)
 
-    # Filter for English results
-    with_split_chunks_results = [
-        result for result in with_split_chunks_results
-        if detect_lang(result["text"])["lang"] == "en"
-    ]
+            # Save initial split chunk results
+            save_file({
+                "query": query,
+                "count": len(with_split_chunks_results),
+                "merged": not split_chunks,
+                "results": with_split_chunks_results
+            }, f"{output_dir}/search_results_split.json")
 
-    # Save initial split chunk results
-    save_file({
-        "query": query,
-        "count": len(with_split_chunks_results),
-        "merged": not split_chunks,
-        "results": with_split_chunks_results
-    }, f"{output_dir}/search_results_split.json")
+
 
     # Merge chunks
     split_chunks = False
