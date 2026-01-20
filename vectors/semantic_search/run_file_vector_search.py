@@ -1,7 +1,7 @@
 import argparse
 import os
-from typing import List, Optional, Tuple
-from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_TYPES
+from typing import List, Optional, Tuple, get_args
+from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
@@ -13,7 +13,13 @@ from jet.models.model_registry.transformers.cross_encoder_model_registry import 
 from jet.utils.language import DetectLangResult, detect_lang
 from jet.utils.text import format_sub_dir
 from jet.vectors.reranker.bm25 import rerank_bm25
-from jet.vectors.semantic_search.file_vector_search import FileSearchResult, merge_results, search_files
+from jet.vectors.semantic_search.file_vector_search import (
+    FileSearchResult,
+    Weights,
+    merge_results,
+    search_files,
+    DEFAULT_WEIGHTS,
+)
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
@@ -100,17 +106,24 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
         return results
 
 
-def main(query: str, directories: List[str], extensions: List[str] = [".py"], use_cache: bool = False):
+def main(
+    query: str,
+    directories: List[str],
+    extensions: List[str] = [".py"],
+    use_cache: bool = False,
+    embed_model_name: str = "nomic-embed-text",
+    top_k: Optional[int] = None,
+    threshold: float = 0.0,
+    chunk_size: int = 500,
+    chunk_overlap: int = 100,
+    batch_size: int = 128,
+    weights: 'Weights' = DEFAULT_WEIGHTS,
+    verbose: bool = False,
+):
     """Main function to demonstrate file search with hybrid reranking, using streaming progressive results."""
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
-    embed_model_name: LLAMACPP_EMBED_TYPES = "nomic-embed-text"
-    truncate_dim = None
-    max_seq_len = None
-    top_k = None
-    threshold = 0.0
-    chunk_size = 500
-    chunk_overlap = 100
-    batch_size = 128
+    # The following were formerly hardcoded, now are parameters:
+    # embed_model_name, top_k, threshold, chunk_size, chunk_overlap, batch_size, weights
 
     # embed_model = SentenceTransformerRegistry.load_model(
     #     embed_model_name, truncate_dim=truncate_dim, max_seq_length=max_seq_len)
@@ -130,7 +143,7 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
 
     # Progressive, streaming search
     with_split_chunks_results = []
-    save_every = 50
+    save_every = 250
     for result in search_files(
         directories,
         query,
@@ -145,21 +158,18 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
         preprocess=preprocess_text,
         includes=[],
         excludes=["**/.venv/*", "**/.pytest_cache/*", "**/node_modules/*"],
-        weights={
-            "dir": 0.0,
-            "name": 0.25,
-            "content": 0.75,
-        },
+        weights=weights,
         batch_size=batch_size,
         use_cache=use_cache,
     ):
         # Print each streaming result as received
         detected_lang = detect_lang(result["text"])
-        print_results(query, [result], split_chunks=True, detected_lang=detected_lang)
+        if verbose:
+            print_results(query, [result], split_chunks=True, detected_lang=detected_lang)
         if detected_lang["lang"] == "en":
             with_split_chunks_results.append(result)
 
-            # Save after every 10 items
+            # Save after every <save_every> items
             if len(with_split_chunks_results) % save_every == 0:
                 # Sort by score descending
                 with_split_chunks_results.sort(key=lambda x: x["score"], reverse=True)
@@ -186,7 +196,6 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
             "merged": not split_chunks,
             "results": with_split_chunks_results
         }, f"{output_dir}/search_results_split.json")
-
 
     # Merge chunks
     split_chunks = False
@@ -257,11 +266,24 @@ def validate_directories(directories: List[str]) -> List[str]:
     return valid_dirs
 
 
+ALLOWED_EMBED_MODELS = get_args(LLAMACPP_EMBED_KEYS)
+
+def embed_model_type(value: str) -> str:
+    if value not in ALLOWED_EMBED_MODELS:
+        raise argparse.ArgumentTypeError(
+            f"Invalid embedding model {value!r}. "
+            f"Must be one of: {', '.join(ALLOWED_EMBED_MODELS)}"
+        )
+    return value
+
 def parse_arguments():
-    """Parse command line arguments for query, directories, and file extensions (comma separated)."""
+    """Parse command line arguments for file vector search."""
     parser = argparse.ArgumentParser(
-        description="File search with query, directories, file extensions (comma separated), and caching option"
+        description="Search files using semantic vector embeddings + hybrid reranking",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
+
+    # Positional (required or with smart defaults)
     parser.add_argument(
         "query",
         type=str,
@@ -273,59 +295,151 @@ def parse_arguments():
         "directories",
         type=str,
         nargs="?",
-        # default="/Users/jethroestrada/Desktop/External_Projects/AI",
         default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts",
-        help="Search directories (comma-separated, e.g., /path/to/dir1,/path/to/dir2)"
+        help="Search directories (comma-separated)"
     )
+
+    # Optional flags with short versions
     parser.add_argument(
-        "--query",
+        "-q", "--query",
         type=str,
         dest="query_flag",
         default=None,
-        help="Alternative query input"
+        help="Alternative way to specify query"
     )
     parser.add_argument(
-        "--directories",
+        "-d", "--directories",
         type=str,
         dest="directories_flag",
         default=None,
-        help="Alternative directories input (comma-separated, e.g., /path/to/dir1,/path/to/dir2)"
+        help="Alternative way to specify directories (comma-separated)"
     )
+
     parser.add_argument(
-        "--extensions",
+        "-e", "--extensions",
         type=str,
-        dest="extensions",
         default=".py",
-        help="File extensions to include, comma separated (e.g., .py,.md)"
+        help="File extensions to include, comma separated (e.g. .py,.md,.txt)"
     )
+
     parser.add_argument(
-        "-c",
-        "--cache",
-        dest="use_cache",
+        "-m", "--embed-model",
+        type=embed_model_type,
+        default="nomic-embed-text",
+        help=f"Embedding model to use ({', '.join(ALLOWED_EMBED_MODELS)})"
+    )
+
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=None,
+        help="Maximum number of results to return (None = all)"
+    )
+
+    parser.add_argument(
+        "-t", "--threshold",
+        type=float,
+        default=0.0,
+        help="Minimum similarity score threshold"
+    )
+
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=500,
+        help="Size of text chunks"
+    )
+
+    parser.add_argument(
+        "--chunk-overlap",
+        type=int,
+        default=100,
+        help="Overlap between consecutive chunks"
+    )
+
+    parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=128,
+        help="Batch size for embedding generation"
+    )
+
+    parser.add_argument(
+        "--weights",
+        type=str,
+        default="dir:0.0,name:0.25,content:0.75",
+        help="Similarity weights (format: dir:X,name:Y,content:Z)"
+    )
+
+    parser.add_argument(
+        "-c", "--cache",
         action="store_true",
         default=False,
-        help="Use cache for embedding/model loading (default: False)"
+        help="Use cache for embeddings and model loading"
     )
+
+    parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        default=False,
+        help="Print verbose search progress and result details"
+    )
+
     args = parser.parse_args()
 
-    # Use query_flag if provided, else fallback to query
+    # Resolve query (flag takes precedence over positional)
     query = args.query_flag if args.query_flag is not None else args.query
 
-    # Use directories_flag if provided, else fallback to directories
+    # Resolve directories
     directories_input = args.directories_flag if args.directories_flag is not None else args.directories
-
-    # Convert comma-separated directories string to list
-    directories = [d.strip() for d in directories_input.split(",")] if directories_input else []
-
-    # Validate directories
+    directories = [d.strip() for d in directories_input.split(",") if d.strip()]
     directories = validate_directories(directories)
 
-    # Split extensions by comma if provided, else use default
-    extensions = [ext.strip() for ext in args.extensions.split(",")] if args.extensions else [".py"]
+    # Parse extensions
+    extensions = [ext.strip() for ext in args.extensions.split(",") if ext.strip()]
 
-    return argparse.Namespace(query=query, directories=directories, extensions=extensions, use_cache=args.use_cache)
+    # Parse weights
+    weights_dict = DEFAULT_WEIGHTS.copy()
+    if args.weights:
+        try:
+            for part in args.weights.split(","):
+                key, value = part.split(":")
+                weights_dict[key.strip()] = float(value.strip())
+        except Exception as e:
+            print(f"Warning: Could not parse weights '{args.weights}'. Using defaults. Error: {e}")
+
+    return argparse.Namespace(
+        query=query,
+        directories=directories,
+        extensions=extensions,
+        embed_model=args.embed_model,
+        top_k=args.top_k,
+        threshold=args.threshold,
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
+        batch_size=args.batch_size,
+        weights=weights_dict,
+        use_cache=args.cache,
+        verbose=args.verbose,
+    )
 
 
 if __name__ == "__main__":
     args = parse_arguments()
-    main(args.query, args.directories, args.extensions, args.use_cache)
+
+    # Update main call with new parameters
+    main(
+        query=args.query,
+        directories=args.directories,
+        extensions=args.extensions,
+        use_cache=args.use_cache,
+        # Pass additional parameters (you'll need to update main() signature too)
+        embed_model_name=args.embed_model,
+        top_k=args.top_k,
+        threshold=args.threshold,
+        chunk_size=args.chunk_size,
+        chunk_overlap=args.chunk_overlap,
+        batch_size=args.batch_size,
+        weights=args.weights,
+        verbose=args.verbose,
+    )

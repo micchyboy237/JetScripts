@@ -4,7 +4,7 @@ import numpy as np
 
 
 embedder = LlamacppEmbedding(model="nomic-embed-text")
-use_cache = False
+use_cache = True
 
 
 print("Example 1: Streaming embedding for a single text")
