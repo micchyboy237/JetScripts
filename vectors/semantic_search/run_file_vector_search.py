@@ -108,7 +108,7 @@ def main(query: str, directories: List[str], extensions: List[str] = [".py"], us
     max_seq_len = None
     top_k = None
     threshold = 0.0
-    chunk_size = 500
+    chunk_size = 1024
     chunk_overlap = 100
     batch_size = 64
 
