@@ -22,11 +22,11 @@ def run_agglomerative_clustering(
     segment_paths: List[str],
 ) -> Tuple[List[SegmentResult], bool, float]:
     """Run blind agglomerative clustering (estimates number of speakers automatically)."""
-    clusterer = SegmentSpeakerLabeler()
+    labeler = SegmentSpeakerLabeler()
 
-    cluster_results = clusterer.cluster_segments(segment_paths)
-    similarity = clusterer.similarity(segment_paths[0], segment_paths[1])
-    same_speaker = clusterer.is_same_speaker(segment_paths[0], segment_paths[1])
+    cluster_results = labeler.cluster_segments(segment_paths)
+    similarity = labeler.similarity(segment_paths[0], segment_paths[1])
+    same_speaker = labeler.is_same_speaker(segment_paths[0], segment_paths[1])
 
     return cluster_results, same_speaker, similarity
 
@@ -41,13 +41,13 @@ def run_reference_assignment(
     output_dir = BASE_OUTPUT_DIR / "reference_assignment"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    clusterer = SegmentSpeakerLabeler(
+    labeler = SegmentSpeakerLabeler(
         reference_paths_by_speaker=reference_paths_by_speaker,
         assignment_threshold=assignment_threshold,
         assignment_strategy="centroid",
     )
 
-    results = clusterer.cluster_segments(segment_paths)
+    results = labeler.cluster_segments(segment_paths)
 
     save_file(results, output_dir / f"results_threshold_{assignment_threshold}.json")
 
