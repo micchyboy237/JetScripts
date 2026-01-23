@@ -1,4 +1,4 @@
-# JetScripts/audio/speech/run_label_speakers.py
+# run_label_speakers.py
 import os
 import shutil
 from pathlib import Path
