@@ -10,13 +10,12 @@ from rich.table import Table
 from tqdm import tqdm
 from pathlib import Path  # Needed for Path operations
 
-import shutil
 
 console = Console()
 
 BASE_OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+# import shutil
 # shutil.rmtree(BASE_OUTPUT_DIR, ignore_errors=True)
-
 
 def _get_demo_output_dir(sub_dir: str) -> Path:
     """
@@ -28,7 +27,6 @@ def _get_demo_output_dir(sub_dir: str) -> Path:
 
     caller_frame = inspect.stack()[1]
     func_name = caller_frame.function
-
     results_dir = BASE_OUTPUT_DIR / "results" / func_name / sub_dir
     results_dir.mkdir(parents=True, exist_ok=True)
 
@@ -46,7 +44,6 @@ def _get_demo_persist_dir() -> Path:
 
     caller_frame = inspect.stack()[1]
     func_name = caller_frame.function
-
     db_base = BASE_OUTPUT_DIR / "db"
     demo_persist_dir = db_base / func_name
     demo_persist_dir.mkdir(parents=True, exist_ok=True)
@@ -158,14 +155,6 @@ def demo_index_and_search_files(query_path: str, out_dir: str = "full"):
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
-    if out_dir == "partial":
-        console.print("[yellow]Also indexing the short query slice itself (self-match demo)[/yellow]")
-        db.add_segments(
-            audio_input=query_path,
-            audio_name="partial_query_slice",
-            segment_duration_sec=None,
-        )
-
     # Example 1: Index some audio files (run once)
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
@@ -216,16 +205,6 @@ def demo_bytes_only_workflow(query_path: str, out_dir: str = "full"):
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
-    if out_dir == "partial":
-        console.print("[yellow]Also indexing the short query slice itself (self-match demo)[/yellow]")
-        with open(query_path, "rb") as f:
-            partial_bytes = f.read()
-        db.add_segments(
-            audio_input=partial_bytes,
-            audio_name="partial_query_slice",
-            segment_duration_sec=None,
-        )
-
     # Load some example audio as bytes (in real use: from request.files, microphone buffer, etc.)
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
@@ -270,18 +249,6 @@ def demo_numpy_array_workflow(query_path: str, out_dir: str = "full"):
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
-    if out_dir == "partial":
-        console.print("[yellow]Also indexing the short query slice itself (self-match demo)[/yellow]")
-        waveform, sr = torchaudio.load(query_path)
-        if waveform.shape[0] > 1:
-            waveform = waveform.mean(dim=0)
-        waveform_np = waveform.squeeze(0).cpu().numpy().astype(np.float32)
-        db.add_segments(
-            audio_input=waveform_np,
-            audio_name="partial_query_slice",
-            segment_duration_sec=None,
-        )
-
     # Reuse the same sample files as the other demos
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Indexing {len(audio_files)} real audio files as NumPy arrays[/bold green]")
@@ -322,14 +289,6 @@ def demo_localize_in_query_workflow(query_path: str, out_dir: str = "full"):
     output_dir = _get_demo_output_dir(out_dir)
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
-
-    if out_dir == "partial":
-        console.print("[yellow]Also indexing the short query slice itself (self-match demo)[/yellow]")
-        db.add_segments(
-            audio_input=query_path,
-            audio_name="partial_query_slice",
-            segment_duration_sec=None,
-        )
 
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Found {len(audio_files)} audio files to index[/bold green]")
@@ -447,14 +406,6 @@ def demo_growing_short_segments_workflow(query_path: str, out_dir: str = "full")
     persist_dir_path = _get_demo_persist_dir()
     db = AudioSegmentDatabase(persist_dir=str(persist_dir_path))
 
-    if out_dir == "partial":
-        console.print("[yellow]Also indexing the short query slice itself (self-match demo)[/yellow]")
-        db.add_segments(
-            audio_input=query_path,
-            audio_name="partial_query_slice",
-            segment_duration_sec=None,
-        )
-
     audio_files = _get_sample_audio_files()
     console.print(f"[bold green]Indexing {len(audio_files)} full audio files[/bold green]")
     for path in tqdm(audio_files, desc="Indexing files"):
@@ -494,59 +445,35 @@ def _get_sample_audio_files() -> List[str]:
 
 
 if __name__ == "__main__":
-    full_query_path = (
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/"
-        "servers/live_subtitles/generated/live_subtitles_client_with_overlay/"
-        "segments/segment_0003/sound.wav"
-    )
+    full_query_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0002/sound.wav"
 
-    # Run demos with the full audio file
+    # Extract partial audio (0.2s to 0.8s)
+    partial_audio, sr = extract_audio_segment(full_query_path, start=0.0, end=0.6)
+
+    # Ensure mono float32 NumPy array, then convert to torch tensor with explicit channel dim
+    partial_audio = np.asarray(partial_audio, dtype=np.float32)
+    if partial_audio.ndim == 2:
+        # If somehow stereo, convert to mono
+        partial_audio = partial_audio.mean(axis=1)
+    elif partial_audio.ndim > 2:
+        raise ValueError("Unexpected audio array dimensions")
+    # Now guaranteed 1D → add channel dimension
+    audio_tensor = torch.from_numpy(partial_audio).unsqueeze(0)  # shape: [1, samples]
+
+    # Full match query
     demo_index_and_search_files(full_query_path)
     demo_bytes_only_workflow(full_query_path)
     demo_numpy_array_workflow(full_query_path)
     demo_localize_in_query_workflow(full_query_path)
     demo_growing_short_segments_workflow(full_query_path)
 
-    # ── Prepare partial slice and save both full + partial under sounds/ ─────
-    partial_audio, sr = extract_audio_segment(full_query_path, start=0.2, end=0.8)
-    partial_audio = np.asarray(partial_audio, dtype=np.float32)
+    # Partial query
+    temp_partial_query_path = "/tmp/temp_query_segment.wav"
+    torchaudio.save(temp_partial_query_path, audio_tensor, sr)
 
-    if partial_audio.ndim == 2:
-        partial_audio = partial_audio.mean(axis=1)
-    elif partial_audio.ndim > 2:
-        raise ValueError("Unexpected audio array dimensions")
-
-    audio_tensor = torch.from_numpy(partial_audio).unsqueeze(0)
-
-    sounds_dir = BASE_OUTPUT_DIR / "sounds"
-    full_saved_path = sounds_dir / "full_query.wav"
-    partial_file   = sounds_dir / "partial_0.2-0.8.wav"
-
-    # Clean and recreate sounds directory
-    shutil.rmtree(sounds_dir, ignore_errors=True)
-    sounds_dir.mkdir(parents=True, exist_ok=True)
-
-    # Save full file (copy preserves original metadata)
-    console.log(f"[bold cyan]Saving full query audio to:[/] {full_saved_path}")
-    shutil.copy2(full_query_path, full_saved_path)
-
-    # Save partial slice
-    console.log(f"[bold cyan]Saving partial query (0.2–0.8s) to:[/] {partial_file}")
-    torchaudio.save(str(partial_file), audio_tensor, sr)
-
-    # Index the partial slice itself so it appears in search results
-    partial_db = AudioSegmentDatabase(persist_dir=str(BASE_OUTPUT_DIR / "db" / "partial_demo"))
-    partial_db.add_segments(
-        audio_input=str(partial_file),
-        audio_name="partial_0.2-0.8",
-        segment_duration_sec=None,
-    )
-    console.log("[bold green]Indexed partial slice into separate DB for demo visibility[/bold green]")
-
-    # Run the same demos but now using the short partial file
     out_dir = "partial"
-    demo_index_and_search_files(str(partial_file), out_dir)
-    demo_bytes_only_workflow(str(partial_file), out_dir)
-    demo_numpy_array_workflow(str(partial_file), out_dir)
-    demo_localize_in_query_workflow(str(partial_file), out_dir)
-    demo_growing_short_segments_workflow(str(partial_file), out_dir)
+    demo_index_and_search_files(temp_partial_query_path, out_dir)
+    demo_bytes_only_workflow(temp_partial_query_path, out_dir)
+    demo_numpy_array_workflow(temp_partial_query_path, out_dir)
+    demo_localize_in_query_workflow(temp_partial_query_path, out_dir)
+    demo_growing_short_segments_workflow(temp_partial_query_path, out_dir)
