@@ -3,7 +3,6 @@ from jet.wordnet.utils import increasing_window
 
 if __name__ == "__main__":
     text_corpus = "The quick brown fox jumps over the lazy dog. This is a simple text example for illustration."
-    window_size = 3  # Number of tokens in each window
     step_size = 1    # Move the window by one token each time
 
     # Generate and print the sequences
