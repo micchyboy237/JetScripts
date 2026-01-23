@@ -8,7 +8,8 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
-    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav"
+    # audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav"
+    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay_backup/last_5_mins_1.wav"
     threshold = 0.3
     analyzer = SpeechAnalyzer(
         threshold=threshold,
@@ -18,7 +19,7 @@ if __name__ == "__main__":
         min_pct_threshold=10.0,
     )
 
-    probs, segments, raw_segments, num_frames = analyzer.analyze(audio_file)
+    probs, energies, segments, raw_segments, num_frames = analyzer.analyze(audio_file)
     total_sec = num_frames * analyzer.step_sec
 
     metrics = analyzer.get_metrics(probs, segments, raw_segments, num_frames, total_sec)
@@ -32,6 +33,7 @@ if __name__ == "__main__":
 
     analyzer.save_json(segments, OUTPUT_DIR, audio_file, extra_info=extra_info)
     analyzer.save_raw_json(raw_segments, OUTPUT_DIR, audio_file, extra_info=extra_info)
+    analyzer.save_energies_json(energies, OUTPUT_DIR, audio_file)
     analyzer.save_segments_individually(
         audio_file,
         segments,
@@ -70,6 +72,7 @@ if __name__ == "__main__":
     formatted_raw_segments = [seg.to_dict() for seg in raw_segments]
 
     save_file(probs, f"{str(OUTPUT_DIR)}/probs.json")
+    save_file(energies, f"{str(OUTPUT_DIR)}/energies.json")
     save_file(formatted_segments, f"{str(OUTPUT_DIR)}/segments.json")
     save_file(formatted_raw_segments, f"{str(OUTPUT_DIR)}/raw_segments.json")
     save_file(metrics, f"{str(OUTPUT_DIR)}/vad_metrics.json")
