@@ -1,5 +1,4 @@
 # JetScripts/audio/speech/run_label_speakers.py
-import os
 import shutil
 from pathlib import Path
 from typing import Dict, List, Tuple, Union
@@ -86,27 +85,15 @@ def print_summary(results: List[SegmentResult], title: str) -> None:
 
 
 def main() -> None:
-    HF_TOKEN = os.getenv("HF_TOKEN")  # Make sure HF_TOKEN is set in your environment
+    # segments_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay_2_speakers/segments"
+    # all_segments = resolve_audio_paths(segments_dir, recursive=True)
+    # same_segments = all_segments[2:4]
+    # different_segments = all_segments[0:2]
 
-    # # Reference segments (clean clips for each speaker group)
-    # refs_son = [
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0001/sound.wav",
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0002/sound.wav",
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0003/sound.wav",
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0004/sound.wav",
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0005/sound.wav",
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0006/sound.wav",
-    # ]
-    # refs_mom = [
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0007/sound.wav",
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0008/sound.wav",
-    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0009/sound.wav",
-    # ]
-
-    segments_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay_2_speakers/segments"
+    segments_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments"
     all_segments = resolve_audio_paths(segments_dir, recursive=True)
-    same_segments = all_segments[2:4]
-    different_segments = all_segments[0:2]
+    same_segments = [all_segments[1], all_segments[2]]
+    different_segments = [all_segments[0], all_segments[1]]
 
     # # -------------------------------------------------------------------------
     # # Blind (unsupervised) agglomerative clustering runs - increasing window
