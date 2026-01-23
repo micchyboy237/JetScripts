@@ -74,10 +74,10 @@ if __name__ == "__main__":
     formatted_raw_segments = [seg.to_dict() for seg in raw_segments]
 
     energy_labels, energy_meta = rms_to_loudness_labels(energies)
-    segments_frames: List[SegmentLike] = [{
-        "start_frame": float(seg.start),
-        "end_frame": float(seg.end),
-    } for seg in segments]
+    segments_frames: List[SegmentLike] = [
+        SegmentLike(start_frame=int(seg.start), end_frame=int(seg.end))
+        for seg in segments
+    ]
     segment_loudness_result_median = segment_loudness_median_label(segments_frames, energy_labels)
     segment_loudness_result_weighted = segment_loudness_energy_weighted(segments_frames, energy_labels, energies)
 
