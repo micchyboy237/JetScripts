@@ -1,5 +1,7 @@
 from pathlib import Path
 import shutil
+from typing import List
+from jet.audio.helpers.energy import SegmentLike, rms_to_loudness_labels, segment_loudness_energy_weighted, segment_loudness_median_label
 from jet.audio.speech.silero.speech_analyzer import SpeechAnalyzer
 from jet.file.utils import save_file
 
@@ -71,8 +73,22 @@ if __name__ == "__main__":
     formatted_segments = [seg.to_dict() for seg in segments]
     formatted_raw_segments = [seg.to_dict() for seg in raw_segments]
 
+    energy_labels, energy_meta = rms_to_loudness_labels(energies)
+    segments_frames: List[SegmentLike] = [{
+        "start_frame": float(seg.start),
+        "end_frame": float(seg.end),
+    } for seg in segments]
+    segment_loudness_result_median = segment_loudness_median_label(segments_frames, energy_labels)
+    segment_loudness_result_weighted = segment_loudness_energy_weighted(segments_frames, energy_labels, energies)
+
     save_file(probs, f"{str(OUTPUT_DIR)}/probs.json")
     save_file(energies, f"{str(OUTPUT_DIR)}/energies.json")
+    save_file({
+        "meta": energy_meta,
+        "labels": energy_labels
+    }, f"{str(OUTPUT_DIR)}/energy_info.json")
     save_file(formatted_segments, f"{str(OUTPUT_DIR)}/segments.json")
+    save_file(segment_loudness_result_median, f"{str(OUTPUT_DIR)}/segment_loudness_result_median.json")
+    save_file(segment_loudness_result_weighted, f"{str(OUTPUT_DIR)}/segment_loudness_result_weighted.json")
     save_file(formatted_raw_segments, f"{str(OUTPUT_DIR)}/raw_segments.json")
     save_file(metrics, f"{str(OUTPUT_DIR)}/vad_metrics.json")
