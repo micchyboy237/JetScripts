@@ -1,15 +1,16 @@
-# run_label_speakers.py
+# JetScripts/audio/speech/run_label_speakers.py
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, List, Union
+from typing import Dict, List, Tuple, Union
 
 from rich.console import Console
 from rich.table import Table
 
 from jet.audio.speech.pyannote.segment_speaker_labeler import SegmentResult, SegmentSpeakerLabeler
+from jet.audio.utils import resolve_audio_paths
 from jet.file.utils import save_file
-from jet.wordnet.utils import increasing_window
+from jet.logger import logger
 
 
 BASE_OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
@@ -19,25 +20,15 @@ BASE_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 def run_agglomerative_clustering(
     segment_paths: List[str],
-    hf_token: str | None,
-    distance_threshold: float = 0.7,
-) -> List[SegmentResult]:
+) -> Tuple[List[SegmentResult], bool, float]:
     """Run blind agglomerative clustering (estimates number of speakers automatically)."""
-    output_dir = BASE_OUTPUT_DIR / "agglomerative"
-    output_dir.mkdir(parents=True, exist_ok=True)
+    clusterer = SegmentSpeakerLabeler()
 
-    clusterer = SegmentSpeakerLabeler(
-        embedding_model_name="pyannote/embedding",
-        hf_token=hf_token,
-        distance_threshold=distance_threshold,
-        clustering_strategy="agglomerative",
-    )
+    cluster_results = clusterer.cluster_segments(segment_paths)
+    similarity = clusterer.similarity(segment_paths[0], segment_paths[1])
+    same_speaker = clusterer.is_same_speaker(segment_paths[0], segment_paths[1])
 
-    results = clusterer.cluster_segments(segment_paths=segment_paths)
-
-    save_file(results, output_dir / f"results_threshold_{distance_threshold}.json")
-
-    return results
+    return cluster_results, same_speaker, similarity
 
 
 def run_reference_assignment(
@@ -51,14 +42,12 @@ def run_reference_assignment(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     clusterer = SegmentSpeakerLabeler(
-        embedding_model_name="pyannote/embedding",
-        hf_token=hf_token,
         reference_paths_by_speaker=reference_paths_by_speaker,
         assignment_threshold=assignment_threshold,
         assignment_strategy="centroid",
     )
 
-    results = clusterer.cluster_segments(segment_paths=segment_paths)
+    results = clusterer.cluster_segments(segment_paths)
 
     save_file(results, output_dir / f"results_threshold_{assignment_threshold}.json")
 
@@ -99,23 +88,44 @@ def print_summary(results: List[SegmentResult], title: str) -> None:
 def main() -> None:
     HF_TOKEN = os.getenv("HF_TOKEN")  # Make sure HF_TOKEN is set in your environment
 
-    # Reference segments (clean clips for each speaker group)
-    refs_son = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0001/sound.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0002/sound.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0003/sound.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0004/sound.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0005/sound.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0006/sound.wav",
-    ]
-    refs_mom = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0007/sound.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0008/sound.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0009/sound.wav",
-    ]
+    # # Reference segments (clean clips for each speaker group)
+    # refs_son = [
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0001/sound.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0002/sound.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0003/sound.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0004/sound.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0005/sound.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0006/sound.wav",
+    # ]
+    # refs_mom = [
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0007/sound.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0008/sound.wav",
+    #     "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0009/sound.wav",
+    # ]
 
-    all_segments = [refs_son[0], refs_mom[0]]
-    increasing_window_segments = increasing_window(all_segments, step_size=1)
+    segments_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay_2_speakers/segments"
+    all_segments = resolve_audio_paths(segments_dir, recursive=True)
+    same_segments = all_segments[2:4]
+    different_segments = all_segments[0:2]
+
+    # # -------------------------------------------------------------------------
+    # # Blind (unsupervised) agglomerative clustering runs - increasing window
+    # # -------------------------------------------------------------------------
+    # print("\n" + "="*60)
+    # print("BLIND AGGLOMERATIVE CLUSTERING (unsupervised)")
+    # print("="*60)
+
+    # # Filter windows with > 1 segments
+    # increasing_window_segments = [
+    #     window for window in increasing_window(all_segments, step_size=1)
+    #     if len(window) > 1
+    # ]
+
+    # for window_num, refs_window in enumerate(increasing_window_segments, start=1):
+    #     logger.info(f"\nRunning window {window_num} ({len(refs_window)} segments)...")
+    #     agg_results = run_agglomerative_clustering(refs_window, HF_TOKEN, distance_threshold=0.7)
+    #     print_summary(agg_results, f"Window {window_num} ({len(refs_window)} segments)")
+    #     print()
 
     # -------------------------------------------------------------------------
     # Blind (unsupervised) agglomerative clustering runs
@@ -124,17 +134,23 @@ def main() -> None:
     print("BLIND AGGLOMERATIVE CLUSTERING (unsupervised)")
     print("="*60)
 
-    for window_num, refs_window in enumerate(increasing_window_segments, start=1):
-        print(f"\nRunning window {window_num} ({len(refs_window)} segments)...")
-        agg_results = run_agglomerative_clustering(refs_window, HF_TOKEN, distance_threshold=0.7)
-        print_summary(agg_results, "1 – Agglomerative (blind) - 2 sons")
+    logger.info("\nRunning on same segments...")
+    agg_results, same_speaker, similarity = run_agglomerative_clustering(same_segments)
+    print_summary(agg_results, "Same segments")
+    save_file(agg_results, BASE_OUTPUT_DIR / "cluster_same.json")
+    save_file({
+        "same_speaker": same_speaker,
+        "similarity": similarity,
+    }, BASE_OUTPUT_DIR / "meta_same_first_2.json")
 
-    # # -------------------------------------------------------------------------
-    # # Blind (unsupervised) agglomerative clustering runs
-    # # -------------------------------------------------------------------------
-    # print("\n" + "="*60)
-    # print("BLIND AGGLOMERATIVE CLUSTERING (unsupervised)")
-    # print("="*60)
+    logger.info("\nRunning on different segments...")
+    agg_results, same_speaker, similarity = run_agglomerative_clustering(different_segments)
+    print_summary(agg_results, "Different segments")
+    save_file(agg_results, BASE_OUTPUT_DIR / "cluster_diff.json")
+    save_file({
+        "same_speaker": same_speaker,
+        "similarity": similarity,
+    }, BASE_OUTPUT_DIR / "meta_diff_first_2.json")
 
     # print("\nRunning 1 - 2 sons...")
     # agg_results = run_agglomerative_clustering([refs_son[0], refs_son[1]], HF_TOKEN, distance_threshold=0.7)
