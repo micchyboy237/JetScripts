@@ -21,7 +21,7 @@ def run_agglomerative_clustering(
     segment_paths: List[str],
 ) -> Tuple[List[SegmentResult], bool, float]:
     """Run blind agglomerative clustering (estimates number of speakers automatically)."""
-    labeler = SegmentSpeakerLabeler()
+    labeler = SegmentSpeakerLabeler(use_references=True)
 
     cluster_results = labeler.cluster_segments(segment_paths)
     similarity = labeler.similarity(segment_paths[0], segment_paths[1])
@@ -41,6 +41,7 @@ def run_reference_assignment(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     labeler = SegmentSpeakerLabeler(
+        use_references=True,
         reference_paths_by_speaker=reference_paths_by_speaker,
         assignment_threshold=assignment_threshold,
         assignment_strategy="centroid",
@@ -90,10 +91,11 @@ def main() -> None:
     # same_segments = all_segments[2:4]
     # different_segments = all_segments[0:2]
 
-    segments_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments"
+    segments_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay_2_speakers/segments"
     all_segments = resolve_audio_paths(segments_dir, recursive=True)
-    same_segments = [all_segments[1], all_segments[2]]
-    different_segments = [all_segments[0], all_segments[1]]
+    same_segments = [all_segments[1], all_segments[6]]
+    same_segments2 = [all_segments[2], all_segments[3]]
+    different_segments = [all_segments[1], all_segments[2]]
 
     # # -------------------------------------------------------------------------
     # # Blind (unsupervised) agglomerative clustering runs - increasing window
@@ -121,7 +123,7 @@ def main() -> None:
     print("BLIND AGGLOMERATIVE CLUSTERING (unsupervised)")
     print("="*60)
 
-    logger.info("\nRunning on same segments...")
+    logger.info("\nRunning on same segments 1...")
     agg_results, same_speaker, similarity = run_agglomerative_clustering(same_segments)
     print_summary(agg_results, "Same segments")
     save_file(agg_results, BASE_OUTPUT_DIR / "cluster_same.json")
@@ -129,6 +131,15 @@ def main() -> None:
         "same_speaker": same_speaker,
         "similarity": similarity,
     }, BASE_OUTPUT_DIR / "meta_same_first_2.json")
+
+    logger.info("\nRunning on same segments 2...")
+    agg_results, same_speaker, similarity = run_agglomerative_clustering(same_segments2)
+    print_summary(agg_results, "Same segments")
+    save_file(agg_results, BASE_OUTPUT_DIR / "cluster_same2.json")
+    save_file({
+        "same_speaker": same_speaker,
+        "similarity": similarity,
+    }, BASE_OUTPUT_DIR / "meta_same2_first_2.json")
 
     logger.info("\nRunning on different segments...")
     agg_results, same_speaker, similarity = run_agglomerative_clustering(different_segments)
@@ -138,6 +149,15 @@ def main() -> None:
         "same_speaker": same_speaker,
         "similarity": similarity,
     }, BASE_OUTPUT_DIR / "meta_diff_first_2.json")
+
+    logger.info("\nRunning on all segments...")
+    agg_results, same_speaker, similarity = run_agglomerative_clustering(all_segments)
+    print_summary(agg_results, "All segments")
+    save_file(agg_results, BASE_OUTPUT_DIR / "cluster_all.json")
+    save_file({
+        "same_speaker": same_speaker,
+        "similarity": similarity,
+    }, BASE_OUTPUT_DIR / "meta_all_first_2.json")
 
     # print("\nRunning 1 - 2 sons...")
     # agg_results = run_agglomerative_clustering([refs_son[0], refs_son[1]], HF_TOKEN, distance_threshold=0.7)
