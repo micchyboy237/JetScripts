@@ -12,7 +12,7 @@ INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetSc
 NORM_INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/preprocessors/recording_missav_5mins_norm.wav"
 
 start = 0.0
-end = 5.0
+end = 20.0
 
 # Extract from raw input audio
 segment, sr = extract_audio_segment(INPUT_AUDIO, start=start, end=end)

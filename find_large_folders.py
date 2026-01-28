@@ -79,7 +79,7 @@ def find_large_folders(
 
             if delete_folders:
                 logger.warning(f"Deleting folder: {folder}")
-                shutil.rmtree(folder)
+                shutil.rmtree(folder, ignore_errors=True)
 
     pbar.close()
     return results
