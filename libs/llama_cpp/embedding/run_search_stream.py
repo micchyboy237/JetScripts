@@ -51,7 +51,7 @@ def main():
         query=query,
         documents=documents,
         use_cache=True,
-        # top_k=5,
+        top_k=5,
     )
     for r in results_stream:
         print(
