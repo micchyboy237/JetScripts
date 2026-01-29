@@ -12,7 +12,7 @@ def main():
     )
 
     # Later — want fresh embeddings (e.g. model changed, or debugging)
-    embedder.reset_cache()
+    # embedder.reset_cache()
 
     query = "Tell me about space exploration"
 
