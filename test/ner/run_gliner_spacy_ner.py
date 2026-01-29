@@ -1,36 +1,47 @@
-import os
-import sys
-import json
-from jet.file.utils import load_file, save_file
-from jet.models.model_types import LLMModelType
-from jet.llm.mlx.templates.generate_labels import generate_labels
 import spacy
-from typing import List, Dict
+from jet.logger import logger
 
-# Global cache for storing the loaded pipeline
-nlp_cache = None
+model = "urchade/gliner_small-v2.1"
+# model = "urchade/gliner_medium-v2.1"
+style = "ent"
 
+text = """
+Role Overview:
 
-def load_nlp_pipeline(model: str, labels: List[str], style: str, chunk_size: int):
-    global nlp_cache
+We are seeking a skilled app developer to build our mobile app from scratch, integrating travel booking, relocation services, and community features. You will lead the design, development, and launch of our travel app.
 
-    if nlp_cache is None:  # Only load the model once
-        custom_spacy_config = {
-            "gliner_model": model,
-            "chunk_size": chunk_size,
-            "labels": labels,
-            "style": style
-        }
+Responsibilities:
 
-        nlp_cache = spacy.blank("en")
-        nlp_cache.add_pipe("gliner_spacy", config=custom_spacy_config)
+Develop and maintain a scalable mobile app for iOS & Android
 
-    return nlp_cache
+Integrate booking systems, payment gateways, and user profiles
+
+Ensure seamless user experience & mobile responsiveness
+
+Work with the team to test & refine the app before launch
+
+Implement security features to protect user data
+
+Qualifications:
+
+3+ years of mobile app development (React Native, Flutter, Swift, or Kotlin)
+
+Experience with APIs, databases, and cloud-based deployment
+
+Strong UI/UX skills to create a user-friendly interface
+
+Previous work on travel, booking, or e-commerce apps (preferred)
+
+Ability to work independently & meet deadlines
+"""
+
+labels = ["role", "application", "technology stack", "qualifications"]
 
 
 def determine_chunk_size(text: str) -> int:
     """Dynamically set chunk size based on text length."""
     length = len(text)
+
     if length < 1000:
         return 250  # Small text, use smaller chunks
     elif length < 3000:
@@ -39,51 +50,29 @@ def determine_chunk_size(text: str) -> int:
         return 500  # Large text, larger chunks
 
 
-def main():
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-    docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank_2/latest_react_web_online_jobs_philippines/docs.json"
-    docs: list[dict] = load_file(docs_file)
-    data = docs["documents"]
+# Determine best chunk size based on text length
+chunk_size = determine_chunk_size(text)
+logger.info(f"Dynamic chunk size set to: {chunk_size}")
 
-    llm_model: LLMModelType = "qwen3-1.7b-4bit"
+# Configure SpaCy with dynamic chunk size
+custom_spacy_config = {
+    "gliner_model": model,
+    "chunk_size": chunk_size,
+    "labels": labels,
+    "style": style,
+}
 
-    model = "urchade/gliner_small-v2.1"
-    style = "ent"
-
-    results = []
-    for item in data:
-        id = item['doc_id']
-        text = f"{item["parent_header" or ""]}\n{item["header"]}\n{item["content"]}".strip()
-        labels: List[str] = generate_labels(text, model_path=llm_model)
-        # Determine chunk size dynamically for each text
-        chunk_size = determine_chunk_size(text)
-
-        # Load SpaCy pipeline with the determined chunk size
-        nlp = load_nlp_pipeline(model, labels, style, chunk_size)
-
-        # Process the text
-        doc = nlp(text)
-
-        # Prepare the results
-        entities = [{
-            "text": entity.text,
-            "label": entity.label_,
-            "score": f"{entity._.score:.4f}"
-        } for entity in doc.ents]
-
-        result = {
-            "id": id,
-            "text": text,
-            "labels": labels,
-            "entities": entities
-        }
-        # Output the result
-        print(f"Result: {json.dumps(result)}")
-
-        results.append(result)
-        save_file(results, f"{output_dir}/extracted_labels.json")
+nlp = spacy.blank("en")
+nlp.add_pipe("gliner_spacy", config=custom_spacy_config)
 
 
-if __name__ == "__main__":
-    main()
+doc = nlp(text)
+
+logger.newline()
+logger.debug("Extracted Entities:")
+for entity in doc.ents:
+    logger.newline()
+    logger.log("Text:", entity.text, colors=["WHITE", "INFO"])
+    logger.log("Label:", entity.label_, colors=["WHITE", "SUCCESS"])
+    logger.log("Score:", f"{entity._.score:.4f}", colors=["WHITE", "SUCCESS"])
+    logger.log("---")
