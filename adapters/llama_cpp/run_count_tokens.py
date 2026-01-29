@@ -2,9 +2,9 @@
 
 from jet.adapters.llama_cpp.models import LLAMACPP_MODEL_CONTEXTS
 from jet.adapters.llama_cpp.tokens import count_tokens
-from jet.adapters.llama_cpp.types import LLAMACPP_LLM_TYPES
+from jet.adapters.llama_cpp.types import LLAMACPP_KEYS
 
-MODEL: LLAMACPP_LLM_TYPES = "qwen3-instruct-2507:4b"
+MODEL: LLAMACPP_KEYS = "qwen3-instruct-2507:4b"
 MODEL_MAX_CONTEXT: int = LLAMACPP_MODEL_CONTEXTS[MODEL]
 
 
