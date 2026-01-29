@@ -11,6 +11,9 @@ def main():
         verbose=True,
     )
 
+    # Later — want fresh embeddings (e.g. model changed, or debugging)
+    embedder.reset_cache()
+
     query = "Tell me about space exploration"
 
     documents = [
@@ -47,10 +50,8 @@ def main():
     results_stream = embedder.search_stream(
         query=query,
         documents=documents,
-        top_k=4,
-        return_embeddings=False,
-        batch_size=6,
-        show_progress=True,
+        use_cache=True,
+        # top_k=5,
     )
     for r in results_stream:
         print(

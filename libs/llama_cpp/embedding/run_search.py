@@ -47,10 +47,8 @@ def main():
     results = embedder.search(
         query=query,
         documents=documents,
+        use_cache=True,
         top_k=5,
-        return_embeddings=False,
-        batch_size=16,
-        show_progress=True,
     )
 
     print(f"Top results for: {query!r}\n")
