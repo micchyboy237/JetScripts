@@ -5,7 +5,7 @@ from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 
 def main():
     embedder = LlamacppEmbedding(
-        model="embeddinggemma",
+        model="nomic-embed-text",
         base_url=os.getenv("LLAMA_CPP_EMBED_URL"),
         use_cache=True,
         verbose=True,
