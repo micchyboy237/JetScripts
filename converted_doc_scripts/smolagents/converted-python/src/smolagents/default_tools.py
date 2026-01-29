@@ -1,55 +1,13 @@
-from .agent_types import AgentAudio
-from .local_python_executor import (
-BASE_BUILTIN_MODULES,
-BASE_PYTHON_TOOLS,
-evaluate_python_code,
-)
-from .tools import PipelineTool, Tool
 from dataclasses import dataclass
-from ddgs import DDGS
-from html.parser import HTMLParser
-from jet.logger import logger
-from markdownify import markdownify
-from requests.exceptions import RequestException
-from transformers.models.whisper import WhisperForConditionalGeneration, WhisperProcessor
 from typing import Any
-import os
-import re
-import requests
-import shutil
-import time
-import wikipediaapi
-import xml.etree.ElementTree as ET
 
-
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-log_file = os.path.join(OUTPUT_DIR, "main.log")
-logger.basicConfig(filename=log_file)
-logger.info(f"Logs: {log_file}")
-
-PERSIST_DIR = f"{OUTPUT_DIR}/chroma"
-os.makedirs(PERSIST_DIR, exist_ok=True)
-
-#!/usr/bin/env python
-# coding=utf-8
-
-# Copyright 2024 The HuggingFace Inc. team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
+from smolagents.local_python_executor import (
+    BASE_BUILTIN_MODULES,
+    BASE_PYTHON_TOOLS,
+    MAX_EXECUTION_TIME_SECONDS,
+    evaluate_python_code,
+)
+from smolagents.tools import PipelineTool, Tool
 
 
 @dataclass
@@ -73,7 +31,7 @@ class PythonInterpreterTool(Tool):
     }
     output_type = "string"
 
-    def __init__(self, *args, authorized_imports=None, **kwargs):
+    def __init__(self, *args, authorized_imports=None, timeout_seconds=MAX_EXECUTION_TIME_SECONDS, **kwargs):
         if authorized_imports is None:
             self.authorized_imports = list(set(BASE_BUILTIN_MODULES))
         else:
@@ -89,6 +47,7 @@ class PythonInterpreterTool(Tool):
         }
         self.base_python_tools = BASE_PYTHON_TOOLS
         self.python_evaluator = evaluate_python_code
+        self.timeout_seconds = timeout_seconds
         super().__init__(*args, **kwargs)
 
     def forward(self, code: str) -> str:
@@ -99,6 +58,7 @@ class PythonInterpreterTool(Tool):
                 state=state,
                 static_tools=self.base_python_tools,
                 authorized_imports=self.authorized_imports,
+                timeout_seconds=self.timeout_seconds,
             )[0]  # The second element is boolean is_final_answer
         )
         return f"Stdout:\n{str(state['_print_outputs'])}\nOutput: {output}"
@@ -138,7 +98,7 @@ class DuckDuckGoSearchTool(Tool):
         >>> from smolagents import DuckDuckGoSearchTool
         >>> web_search_tool = DuckDuckGoSearchTool(max_results=5, rate_limit=2.0)
         >>> results = web_search_tool("Hugging Face")
-        >>> logger.debug(results)
+        >>> print(results)
         ```
     """
 
@@ -154,6 +114,7 @@ class DuckDuckGoSearchTool(Tool):
         self._min_interval = 1.0 / rate_limit if rate_limit else 0.0
         self._last_request_time = 0.0
         try:
+            from ddgs import DDGS
         except ImportError as e:
             raise ImportError(
                 "You must install package `ddgs` to run this tool: for instance run `pip install ddgs`."
@@ -169,6 +130,7 @@ class DuckDuckGoSearchTool(Tool):
         return "## Search Results\n\n" + "\n\n".join(postprocessed_results)
 
     def _enforce_rate_limit(self) -> None:
+        import time
 
         # No rate limit enforced
         if not self.rate_limit:
@@ -196,6 +158,7 @@ class GoogleSearchTool(Tool):
 
     def __init__(self, provider: str = "serpapi"):
         super().__init__()
+        import os
 
         self.provider = provider
         if provider == "serpapi":
@@ -209,6 +172,7 @@ class GoogleSearchTool(Tool):
             raise ValueError(f"Missing API key. Make sure you have '{api_key_env_name}' in your env variables.")
 
     def forward(self, query: str, filter_year: int | None = None) -> str:
+        import requests
 
         if self.provider == "serpapi":
             params = {
@@ -286,7 +250,7 @@ class ApiWebSearchTool(Tool):
         >>> from smolagents import ApiWebSearchTool
         >>> web_search_tool = ApiWebSearchTool(rate_limit=50.0)
         >>> results = web_search_tool("Hugging Face")
-        >>> logger.debug(results)
+        >>> print(results)
         ```
     """
 
@@ -304,6 +268,7 @@ class ApiWebSearchTool(Tool):
         params: dict = None,
         rate_limit: float | None = 1.0,
     ):
+        import os
 
         super().__init__()
         self.endpoint = endpoint or "https://api.search.brave.com/res/v1/web/search"
@@ -316,6 +281,7 @@ class ApiWebSearchTool(Tool):
         self._last_request_time = 0.0
 
     def _enforce_rate_limit(self) -> None:
+        import time
 
         # No rate limit enforced
         if not self.rate_limit:
@@ -328,6 +294,7 @@ class ApiWebSearchTool(Tool):
         self._last_request_time = time.time()
 
     def forward(self, query: str) -> str:
+        import requests
 
         self._enforce_rate_limit()
         params = {**self.params, "q": query}
@@ -387,6 +354,7 @@ class WebSearchTool(Tool):
         )
 
     def search_duckduckgo(self, query: str) -> list:
+        import requests
 
         response = requests.get(
             "https://lite.duckduckgo.com/lite/",
@@ -399,6 +367,7 @@ class WebSearchTool(Tool):
         return parser.results
 
     def _create_duckduckgo_parser(self):
+        from html.parser import HTMLParser
 
         class SimpleResultParser(HTMLParser):
             def __init__(self):
@@ -444,7 +413,9 @@ class WebSearchTool(Tool):
         return SimpleResultParser()
 
     def search_bing(self, query: str) -> list:
+        import xml.etree.ElementTree as ET
 
+        import requests
 
         response = requests.get(
             "https://www.bing.com/search",
@@ -490,7 +461,11 @@ class VisitWebpageTool(Tool):
 
     def forward(self, url: str) -> str:
         try:
+            import re
 
+            import requests
+            from markdownify import markdownify
+            from requests.exceptions import RequestException
         except ImportError as e:
             raise ImportError(
                 "You must install packages `markdownify` and `requests` to run this tool: for instance run `pip install markdownify requests`."
@@ -565,6 +540,7 @@ class WikipediaSearchTool(Tool):
     ):
         super().__init__()
         try:
+            import wikipediaapi
         except ImportError as e:
             raise ImportError(
                 "You must install `wikipedia-api` to run this tool: for instance run `pip install wikipedia-api`"
@@ -615,7 +591,7 @@ class WikipediaSearchTool(Tool):
 
 
 class SpeechToTextTool(PipelineTool):
-    default_checkpoint = "ollama/whisper-large-v3-turbo"
+    default_checkpoint = "openai/whisper-large-v3-turbo"
     description = "This is a tool that transcribes an audio into text. It returns the transcribed text."
     name = "transcriber"
     inputs = {
@@ -627,12 +603,17 @@ class SpeechToTextTool(PipelineTool):
     output_type = "string"
 
     def __new__(cls, *args, **kwargs):
+        from transformers.models.whisper import (
+            WhisperForConditionalGeneration,
+            WhisperProcessor,
+        )
 
         cls.pre_processor_class = WhisperProcessor
         cls.model_class = WhisperForConditionalGeneration
         return super().__new__(cls)
 
     def encode(self, audio):
+        from .agent_types import AgentAudio
 
         audio = AgentAudio(audio).to_raw()
         return self.pre_processor(audio, return_tensors="pt")
@@ -665,5 +646,3 @@ __all__ = [
     "WikipediaSearchTool",
     "SpeechToTextTool",
 ]
-
-logger.info("\n\n[DONE]", bright=True)
