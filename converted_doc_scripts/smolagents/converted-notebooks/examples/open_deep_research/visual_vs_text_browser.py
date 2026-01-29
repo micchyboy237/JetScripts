@@ -3,29 +3,38 @@ from dotenv import load_dotenv
 from huggingface_hub import login
 from jet.adapters.langchain.chat_ollama import ChatOllama
 from jet.logger import logger
-from scripts.gaia_scorer import question_scorer
-from scripts.run_agents import answer_questions
-from scripts.text_inspector_tool import TextInspectorTool
-from scripts.text_web_browser import (
-ArchiveSearchTool,
-FinderTool,
-FindNextTool,
-NavigationalSearchTool,
-PageDownTool,
-PageUpTool,
-SearchInformationTool,
-VisitTool,
+from jet.libs.smolagents.examples.open_deep_research.scripts.gaia_scorer import (
+    question_scorer,
 )
-from scripts.visual_qa import VisualQAGPT4Tool
+from jet.libs.smolagents.examples.open_deep_research.scripts.run_agents import (
+    answer_questions,
+)
+from jet.libs.smolagents.examples.open_deep_research.scripts.text_inspector_tool import (
+    TextInspectorTool,
+)
+from jet.libs.smolagents.examples.open_deep_research.scripts.text_web_browser import (
+    ArchiveSearchTool,
+    FinderTool,
+    FindNextTool,
+    NavigationalSearchTool,
+    PageDownTool,
+    PageUpTool,
+    SearchInformationTool,
+    SimpleTextBrowser,
+    VisitTool,
+)
+from jet.libs.smolagents.examples.open_deep_research.scripts.visual_qa import (
+    VisualQAGPT4Tool,
+)
 from smolagents import CodeAgent, LiteLLMModel
 from smolagents import CodeAgent, LiteLLMModel, WebSearchTool
 from smolagents.vision_web_browser import (
-close_popups,
-go_back,
-helium_instructions,
-initialize_agent,
-save_screenshot,
-search_item_ctrl_f,
+    close_popups,
+    go_back,
+    helium_instructions,
+    initialize_agent,
+    save_screenshot,
+    search_item_ctrl_f,
 )
 import asyncio
 import datasets
@@ -35,7 +44,10 @@ import shutil
 
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
@@ -53,7 +65,6 @@ Warning: this notebook is experimental, it probably won't work out of the box!
 logger.info("# Compare a text-based vs a vision-based browser")
 
 # !pip install "smolagents[litellm,toolkit]" -q
-
 
 
 eval_ds = datasets.load_dataset("gaia-benchmark/GAIA", "2023_all")["validation"]
@@ -74,9 +85,9 @@ to_keep = [
     "Who nominated the only Featured Article on English Wikipedia about a dinosaur that was promoted in November 2016?",
 ]
 eval_ds = eval_ds.filter(lambda row: any([el in row["Question"] for el in to_keep]))
-eval_ds = eval_ds.rename_columns({"Question": "question", "Final answer": "true_answer", "Level": "task"})
-
-
+eval_ds = eval_ds.rename_columns(
+    {"Question": "question", "Final answer": "true_answer", "Level": "task"}
+)
 
 
 load_dotenv(override=True)
@@ -89,19 +100,23 @@ login(os.getenv("HF_TOKEN"))
 logger.info("### Text browser")
 
 
-
-
 proprietary_model = LiteLLMModel(model_id="gpt-4o")
 
+browser = SimpleTextBrowser(
+    viewport_size=1024 * 12,
+    downloads_folder=os.path.join(OUTPUT_DIR, "downloads"),
+    # searxng_url="http://your-searx-instance:8080"  # if you have one
+)
+
 WEB_TOOLS = [
-    SearchInformationTool(),
-    NavigationalSearchTool(),
-    VisitTool(),
-    PageUpTool(),
-    PageDownTool(),
-    FinderTool(),
-    FindNextTool(),
-    ArchiveSearchTool(),
+    SearchInformationTool(browser),
+    NavigationalSearchTool(browser),
+    VisitTool(browser),
+    PageUpTool(browser),
+    PageDownTool(browser),
+    FinderTool(browser),
+    FindNextTool(browser),
+    ArchiveSearchTool(browser),
 ]
 
 
@@ -128,8 +143,6 @@ results_text = answer_questions(
 logger.info("### Vision browser")
 
 # !pip install helium -q
-
-
 
 
 proprietary_model = LiteLLMModel(model_id="gpt-4o")
@@ -171,7 +184,6 @@ logger.info("### Browser-use browser")
 # nest_asyncio.apply()
 
 
-
 load_dotenv()
 
 
@@ -210,7 +222,6 @@ results_browseruse = answer_questions(
 logger.info("### Get results")
 
 
-
 results_vision, results_text, results_browseruse = (
     pd.DataFrame(results_vision),
     pd.DataFrame(results_text),
@@ -220,7 +231,9 @@ results_vision, results_text, results_browseruse = (
 results_vision["is_correct"] = results_vision.apply(
     lambda x: question_scorer(x["prediction"], x["true_answer"]), axis=1
 )
-results_text["is_correct"] = results_text.apply(lambda x: question_scorer(x["prediction"], x["true_answer"]), axis=1)
+results_text["is_correct"] = results_text.apply(
+    lambda x: question_scorer(x["prediction"], x["true_answer"]), axis=1
+)
 results_browseruse["is_correct"] = results_browseruse.apply(
     lambda x: question_scorer(x["prediction"], x["true_answer"]), axis=1
 )
