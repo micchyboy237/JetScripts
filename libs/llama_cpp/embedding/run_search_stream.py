@@ -42,20 +42,22 @@ def main():
         "Music streaming services recommend songs using collaborative filtering.",
     ]
 
-    print("Running semantic search (combined query + documents)...\n")
+    print(f"Streaming semantic search for: {query!r}\n")
 
-    results = embedder.search(
+    results_stream = embedder.search_stream(
         query=query,
         documents=documents,
-        top_k=5,
+        top_k=4,
         return_embeddings=False,
-        batch_size=16,
+        batch_size=6,
         show_progress=True,
     )
+    for r in results_stream:
+        print(
+            f"  • {r['score']:.4f}  {r['text'][:68]}{'...' if len(r['text']) > 68 else ''}"
+        )
 
-    print(f"Top results for: {query!r}\n")
-    for i, r in enumerate(results, 1):
-        print(f"{i:2d}. score={r['score']:.4f}  |  {r['text']}")
+    print("Streaming complete.")
 
 
 if __name__ == "__main__":

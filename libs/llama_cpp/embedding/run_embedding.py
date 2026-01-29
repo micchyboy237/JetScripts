@@ -1,33 +1,41 @@
+#!/usr/bin/env python3
+
 import os
-import shutil
 from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
-from jet.file.utils import save_file
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(
-        os.path.basename(__file__))[0]
-)
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
-    
+
 def main():
-    """Example usage of EmbeddingClient."""
-    model = "embeddinggemma"
-    
-    query = "Which planet is known as the Red Planet?"
-    documents = [
-        "Venus is often called Earth's twin because of its similar size and proximity.",
-        "Mars, known for its reddish appearance, is often referred to as the Red Planet.",
-        "Jupiter, the largest planet in our solar system, has a prominent red spot.",
-        "Saturn, famous for its rings, is sometimes mistaken for the Red Planet."
-    ]
-    
-    embedder = LlamacppEmbedding(model=model)
-    
-    query_embeddings = embedder(query, return_format="list", use_cache=True)
-    save_file(query_embeddings, f"{OUTPUT_DIR}/query_embeddings.json")
+    embedder = LlamacppEmbedding(
+        model="embeddinggemma",  # or e5, nomic-embed, etc.
+        base_url=os.getenv("LLAMA_CPP_EMBED_URL"),
+        use_cache=True,
+        use_dynamic_batch_sizing=True,
+        verbose=True,
+    )
 
-    doc_embeddings = embedder(documents, return_format="list", use_cache=True)
-    save_file(doc_embeddings, f"{OUTPUT_DIR}/doc_embeddings.json")
+    texts = [
+        "The quick brown fox jumps over the lazy dog.",
+        "Artificial intelligence is transforming the world.",
+        "Python is a great programming language.",
+        "Coffee is the best morning drink.",
+    ]
+
+    print("Computing embeddings (single call)...")
+    embeddings = embedder(
+        texts,
+        return_format="numpy",
+        batch_size=512,
+        show_progress=True,
+    )
+
+    print(f"→ Got {len(embeddings)} embeddings")
+    print(f"→ Shape: {embeddings.shape}")
+    print(f"→ First vector preview: {embeddings[0][:8]} ...")
+
+    # Also works with a single string
+    single_emb = embedder("Hello, world!")
+    print(f"Single embedding shape: {single_emb.shape}")
+
 
 if __name__ == "__main__":
     main()
