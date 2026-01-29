@@ -39,16 +39,15 @@ class LlamaCppEmbedder:
         )
 
     def embed(self, texts: List[str], is_query: bool = False) -> List[List[float]]:
-        if not texts:
-            return []
-
         prefix = "search_query: " if is_query else "search_document: "
-        prefixed = [prefix + t.strip() for t in texts]
-
+        prefixed = [prefix + t.strip() for t in texts if t.strip()]
+        if not prefixed:
+            return []
         response = self.client.embeddings.create(
             model=self.model,
             input=prefixed,
             encoding_format="float",
+            # dimensions=512,  # ← try this too (Matryoshka), saves storage & often similar perf
         )
         return [d.embedding for d in response.data]
 
