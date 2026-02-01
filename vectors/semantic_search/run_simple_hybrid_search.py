@@ -47,6 +47,7 @@ if __name__ == "__main__":
     hybrid = HybridSearch.from_documents(
         documents=documents,
         model=model,
+        # category_config=ABSOLUTE_CATEGORY_CONFIG,
     )
 
     results = hybrid.search(query, top_k=10)
@@ -56,21 +57,28 @@ if __name__ == "__main__":
     table.add_column("Hybrid", justify="right")
     table.add_column("Dense", justify="right")
     table.add_column("Sparse", justify="right")
+    table.add_column("Norm", justify="right", style="green")
     table.add_column("Category", style="bold")
-    table.add_column("Level", justify="right", style="dim cyan")
-    table.add_column("ID")
+    # table.add_column("Level", justify="right", style="dim cyan")
+    # table.add_column("ID")
     table.add_column("Preview", style="dim")
 
     for res in results:
         preview = res["text"][:80] + "..." if len(res["text"]) > 80 else res["text"]
+        norm_str = (
+            f"{res.get('normalized_hybrid', '-'):.3f}"
+            if "normalized_hybrid" in res
+            else "-"
+        )
         table.add_row(
             str(res["rank"]),
             f"{res['hybrid_score']:.4f}",
             f"{res['dense_score']:.3f}",
             f"{res['sparse_score']:.3f}",
+            norm_str,
             res["category"],
-            str(res["category_level"]),
-            res["id"] or "-",
+            # str(res["category_level"]),
+            # res["id"] or "-",
             preview,
         )
 

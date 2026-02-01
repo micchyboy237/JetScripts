@@ -2,7 +2,7 @@ import os
 import shutil
 
 from jet.code.html_utils import convert_dl_blocks_to_md
-from jet.code.markdown_utils import base_parse_markdown
+from jet.code.markdown_utils import summarize_markdown
 from jet.file.utils import load_file, save_file
 from jet.utils.print_utils import print_dict_types
 
@@ -17,8 +17,8 @@ if __name__ == "__main__":
     # html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html")
     html = convert_dl_blocks_to_md(html)
 
-    results_ignore_links = base_parse_markdown(html, ignore_links=True)
-    results_with_links = base_parse_markdown(html, ignore_links=False)
+    results_ignore_links = summarize_markdown(html, ignore_links=True)
+    results_with_links = summarize_markdown(html, ignore_links=False)
 
     print_dict_types(results_with_links)
 

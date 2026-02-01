@@ -1,27 +1,43 @@
 import os
 import shutil
-from typing import List
+
 from jet.code.html_utils import clean_html, convert_dl_blocks_to_md, preprocess_html
-from jet.code.markdown_utils._converters import convert_html_to_markdown, convert_markdown_to_html
+from jet.code.markdown_utils._converters import (
+    convert_html_to_markdown,
+    convert_markdown_to_html,
+)
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
-from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_by_header_hierarchy, parse_markdown
+from jet.code.markdown_utils._markdown_parser import (
+    base_parse_markdown,
+    derive_by_header_hierarchy,
+    parse_markdown,
+)
 from jet.code.splitter_markdown_utils import get_md_header_contents
+from jet.file.utils import load_file, save_file
 from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
 from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.scrapers.text_nodes import extract_text_nodes
-from jet.file.utils import load_file, save_file
-from jet.scrapers.utils import extract_by_heading_hierarchy, extract_tree_with_text, extract_text_elements, flatten_tree_to_base_nodes, get_leaf_nodes, get_parents_with_common_class, print_html
+from jet.scrapers.utils import (
+    extract_by_heading_hierarchy,
+    extract_text_elements,
+    extract_tree_with_text,
+    flatten_tree_to_base_nodes,
+    get_leaf_nodes,
+    get_parents_with_common_class,
+    print_html,
+)
 from jet.transformers.formatters import format_html
 
-
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html"
+    # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/smolagents/tools/examples/generated/examples_visit_webpage_tool/visit_webpage_tool_logs/tool_visit_webpage/call_0003/page.html"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(
-            os.path.basename(__file__))[0]
+        os.path.dirname(__file__),
+        "generated",
+        os.path.splitext(os.path.basename(__file__))[0],
     )
 
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -33,14 +49,17 @@ if __name__ == "__main__":
     save_file(html_str, f"{output_dir}/doc.html")
 
     preprocessed_html_str = convert_dl_blocks_to_md(html_str)
-    preprocessed_html_str = preprocess_html(preprocessed_html_str, excludes=["head", "nav", "footer", "script", "style", "button"])
+    preprocessed_html_str = preprocess_html(
+        preprocessed_html_str,
+        excludes=["head", "nav", "footer", "script", "style", "button"],
+    )
     save_file(preprocessed_html_str, f"{output_dir}/doc_preprocessed.html")
 
     html_str = preprocessed_html_str
 
     doc_markdown = convert_html_to_markdown(html_str, ignore_links=False)
     save_file(doc_markdown, f"{output_dir}/doc_markdown.md")
-    
+
     doc_markdown_no_links = convert_html_to_markdown(html_str, ignore_links=True)
     save_file(doc_markdown_no_links, f"{output_dir}/doc_markdown_no_links.md")
 
@@ -55,7 +74,7 @@ if __name__ == "__main__":
     headings = extract_by_heading_hierarchy(html_str)
     save_file(headings, f"{output_dir}/headings.json")
 
-    headings2: List[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
+    headings2: list[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
     save_file(headings2, f"{output_dir}/headings2.json")
 
     headings3 = derive_by_header_hierarchy(doc_markdown, ignore_links=True)
@@ -66,19 +85,13 @@ if __name__ == "__main__":
 
     header_texts = []
     for idx, node in enumerate(headings):
-        texts = [
-            f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"
-        ]
+        texts = [f"Document {idx + 1} | Tag ({node.tag}) | Depth ({node.depth})"]
         if node.parent_id:
             texts.append(f"Parent ({node.parent_id})")
 
-        child_texts = [
-            child_node.text or " " for child_node in node.get_children()]
+        child_texts = [child_node.text or " " for child_node in node.get_children()]
 
-        texts.extend([
-            "Text:",
-            node.text + "\n" + ''.join(child_texts)
-        ])
+        texts.extend(["Text:", node.text + "\n" + "".join(child_texts)])
         header_texts.append("\n".join(texts))
     save_file("\n\n---\n\n".join(header_texts), f"{output_dir}/headings.md")
 
@@ -105,43 +118,55 @@ if __name__ == "__main__":
     save_file(doc_analysis, f"{output_dir}/doc_analysis.json")
 
     doc_markdown_tokens_no_merge = parse_markdown(
-        doc_markdown, ignore_links=False, merge_headers=False,  merge_contents=False)
-    save_file(doc_markdown_tokens_no_merge,
-              f"{output_dir}/doc_markdown_tokens_no_merge.json")
+        doc_markdown, ignore_links=False, merge_headers=False, merge_contents=False
+    )
+    save_file(
+        doc_markdown_tokens_no_merge, f"{output_dir}/doc_markdown_tokens_no_merge.json"
+    )
 
     doc_markdown_tokens_no_merge_html_template = "<body>{body}</body>"
-    doc_markdown_tokens_no_merge_html_list = [convert_markdown_to_html(
-        token["content"]) for token in doc_markdown_tokens_no_merge]
-    doc_markdown_tokens_no_merge_html = doc_markdown_tokens_no_merge_html_template.format(
-        body="\n".join(doc_markdown_tokens_no_merge_html_list))
-    doc_markdown_tokens_no_merge_html = format_html(
-        doc_markdown_tokens_no_merge_html)
-    save_file(doc_markdown_tokens_no_merge_html,
-              f"{output_dir}/doc_markdown_tokens_no_merge.html")
-    save_file(clean_html(doc_markdown_tokens_no_merge_html),
-              f"{output_dir}/clean_doc_markdown_tokens_no_merge.json")
+    doc_markdown_tokens_no_merge_html_list = [
+        convert_markdown_to_html(token["content"])
+        for token in doc_markdown_tokens_no_merge
+    ]
+    doc_markdown_tokens_no_merge_html = (
+        doc_markdown_tokens_no_merge_html_template.format(
+            body="\n".join(doc_markdown_tokens_no_merge_html_list)
+        )
+    )
+    doc_markdown_tokens_no_merge_html = format_html(doc_markdown_tokens_no_merge_html)
+    save_file(
+        doc_markdown_tokens_no_merge_html,
+        f"{output_dir}/doc_markdown_tokens_no_merge.html",
+    )
+    save_file(
+        clean_html(doc_markdown_tokens_no_merge_html),
+        f"{output_dir}/clean_doc_markdown_tokens_no_merge.json",
+    )
 
-    base_doc_markdown_tokens = base_parse_markdown(
-        doc_markdown, ignore_links=False)
-    save_file(base_doc_markdown_tokens,
-              f"{output_dir}/base_doc_markdown_tokens.json")
+    base_doc_markdown_tokens = base_parse_markdown(doc_markdown, ignore_links=False)
+    save_file(base_doc_markdown_tokens, f"{output_dir}/base_doc_markdown_tokens.json")
 
     doc_markdown_tokens = parse_markdown(doc_markdown, ignore_links=False)
     save_file(doc_markdown_tokens, f"{output_dir}/doc_markdown_tokens.json")
 
     doc_markdown_tokens_html_template = "<body>{body}</body>"
-    doc_markdown_tokens_html_list = [convert_markdown_to_html(
-        token["content"]) for token in doc_markdown_tokens]
-    save_file(doc_markdown_tokens_html_list,
-              f"{output_dir}/doc_markdown_tokens_html_list.json")
+    doc_markdown_tokens_html_list = [
+        convert_markdown_to_html(token["content"]) for token in doc_markdown_tokens
+    ]
+    save_file(
+        doc_markdown_tokens_html_list,
+        f"{output_dir}/doc_markdown_tokens_html_list.json",
+    )
     doc_markdown_tokens_html = doc_markdown_tokens_html_template.format(
-        body="\n".join(doc_markdown_tokens_html_list))
-    doc_markdown_tokens_html = format_html(
-        doc_markdown_tokens_html)
-    save_file(doc_markdown_tokens_html,
-              f"{output_dir}/doc_markdown_tokens.html")
-    save_file(clean_html(doc_markdown_tokens_html),
-              f"{output_dir}/clean_doc_markdown_tokens.json")
+        body="\n".join(doc_markdown_tokens_html_list)
+    )
+    doc_markdown_tokens_html = format_html(doc_markdown_tokens_html)
+    save_file(doc_markdown_tokens_html, f"{output_dir}/doc_markdown_tokens.html")
+    save_file(
+        clean_html(doc_markdown_tokens_html),
+        f"{output_dir}/clean_doc_markdown_tokens.json",
+    )
 
     chunked_docs = chunk_headers_by_hierarchy(doc_markdown, chunk_size)
     save_file(chunked_docs, f"{output_dir}/chunked_docs.json")
@@ -200,8 +225,7 @@ if __name__ == "__main__":
     save_file(leaf_nodes, f"{output_dir}/leaf_nodes.json")
 
     parents_with_common_class = get_parents_with_common_class(tree_elements)
-    save_file(parents_with_common_class,
-              f"{output_dir}/parents_with_common_class.json")
+    save_file(parents_with_common_class, f"{output_dir}/parents_with_common_class.json")
 
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")

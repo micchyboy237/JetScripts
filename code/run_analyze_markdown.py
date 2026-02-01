@@ -11,7 +11,8 @@ OUTPUT_DIR = os.path.join(os.path.dirname(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html")
+    # html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html")
+    html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/smolagents/tools/examples/generated/examples_visit_webpage_tool/visit_webpage_tool_logs/tool_visit_webpage/call_0003/page.html")
     # html = load_file("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html")
     html = convert_dl_blocks_to_md(html)
 
