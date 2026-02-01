@@ -20,21 +20,6 @@ console = Console()
 if __name__ == "__main__":
     model: LLAMACPP_EMBED_KEYS = "nomic-embed-text"
 
-    documents = [
-        "Fresh organic apples from local farms",
-        "Handpicked strawberries sweet and juicy",
-        "Premium quality oranges rich in vitamin C",
-        "Crisp lettuce perfect for salads",
-        "Organic bananas ripe and ready to eat",
-    ]
-
-    queries = ["organic fruit", "sweet strawberries", "fresh salad ingredients"]
-
-    hybrid = HybridSearch.from_documents(
-        documents=documents,
-        model=model,
-    )
-
     query = "Top isekai anime 2025"
     chunks_with_info = load_sample_data_with_info(model=model, includes=["p"])
     save_file(chunks_with_info, f"{OUTPUT_DIR}/chunks_with_info.json")
