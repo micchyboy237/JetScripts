@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 import os
-from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
+
+from jet.adapters.llama_cpp.vector_search import VectorSearch
 
 
 def main():
-    embedder = LlamacppEmbedding(
-        model="embeddinggemma",
+    embedder = VectorSearch(
+        model="nomic-embed-text",
         base_url=os.getenv("LLAMA_CPP_EMBED_URL"),
         use_cache=True,
         verbose=True,
     )
+
+    # Later — want fresh embeddings (e.g. model changed, or debugging)
+    # embedder.reset_cache()
 
     query = "Tell me about space exploration"
 
@@ -42,18 +46,21 @@ def main():
         "Music streaming services recommend songs using collaborative filtering.",
     ]
 
-    print("Running semantic search (combined query + documents)...\n")
+    print(f"Streaming semantic search for: {query!r}\n")
 
-    results = embedder.search(
+    results_stream = embedder.search_stream(
         query=query,
         documents=documents,
         use_cache=True,
-        top_k=5,
+        batch_size=8,
+        top_k=None,
     )
+    for r in results_stream:
+        print(
+            f"  • {r['score']:.4f}  {r['text'][:68]}{'...' if len(r['text']) > 68 else ''}"
+        )
 
-    print(f"Top results for: {query!r}\n")
-    for i, r in enumerate(results, 1):
-        print(f"{i:2d}. score={r['score']:.4f}  |  {r['text']}")
+    print("Streaming complete.")
 
 
 if __name__ == "__main__":
