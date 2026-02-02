@@ -50,7 +50,8 @@ if __name__ == "__main__":
         # category_config=ABSOLUTE_CATEGORY_CONFIG,
     )
 
-    results = hybrid.search(query, top_k=10)
+    results = hybrid.search(query)
+    save_file(results, f"{OUTPUT_DIR}/search_results.json")
 
     table = Table(title=f"Hybrid Results for: {query!r}")
     table.add_column("Rank", justify="right", style="cyan")
@@ -63,7 +64,8 @@ if __name__ == "__main__":
     # table.add_column("ID")
     table.add_column("Preview", style="dim")
 
-    for res in results:
+    # Show top 10 results
+    for res in results[:10]:
         preview = res["text"][:80] + "..." if len(res["text"]) > 80 else res["text"]
         norm_str = (
             f"{res.get('normalized_hybrid', '-'):.3f}"
