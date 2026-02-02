@@ -1,17 +1,22 @@
 # /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/code/run_markdown_code_extractor.py
 
-from jet.code.markdown_code_extractor import MarkdownCodeExtractor
-from jet.file.utils import load_file, save_file
 import os
 import shutil
 
+from jet.code.markdown_code_extractor import MarkdownCodeExtractor
+from jet.file.utils import load_file, save_file
+
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
 )
 
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-md_content = load_file("/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/audio/audioFlux/docs/examples.md")
+md_content = load_file(
+    "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents/docs/source/en/guided_tour.md"
+)
 
 if __name__ == "__main__":
     extractor = MarkdownCodeExtractor()
