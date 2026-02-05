@@ -283,7 +283,10 @@ async def hybrid_search(
         {"role": "system", "content": SYSTEM_MESSAGE},
         {"role": "user", "content": prompt},
     ]
-    llm_response = llm.chat(messages, temperature=0.3)
+    llm_response_stream = llm.chat(messages, temperature=0.3, stream=True)
+    llm_response = ""
+    for chunk in llm_response_stream:
+        llm_response += chunk
 
     input_tokens = count_tokens(llm_model, prompt)
     output_tokens = count_tokens(llm_model, llm_response)
