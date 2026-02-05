@@ -1,14 +1,11 @@
-from typing import Optional, List, Set
-import glob
-import os
-import fnmatch
 import argparse
-import subprocess
+import os
 import re
-import ast
+import subprocess
+
 from jet.code.python_code_extractor import strip_comments
-from jet.utils.code_utils import shorten_functions
 from jet.logger import logger
+from jet.utils.code_utils import shorten_functions
 from jet.utils.file_utils.search import find_files
 
 exclude_files = [
@@ -30,7 +27,7 @@ include_files = [
     "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/llm/prompts/context/01_Initial_Requirements.md",
     "OAI_CONFIG_LIST.json",
     "*README.md",
-    "*.py"
+    "*.py",
 ]
 
 include_content = []
@@ -44,31 +41,71 @@ os.chdir(file_dir)
 
 def clean_newlines(content):
     """Removes consecutive newlines from the given content."""
-    return re.sub(r'\n\s*\n+', '\n', content)
+    return re.sub(r"\n\s*\n+", "\n", content)
 
 
 def clean_comments(content):
     """Removes comments from the given content."""
-    return re.sub(r'#.*', '', content)
+    return re.sub(r"#.*", "", content)
 
 
-def clean_logging(content):
-    """Removes logging statements from the given content, including multi-line ones."""
-    logging_pattern = re.compile(
-        r'logging\.(?:info|debug|error|warning|critical|exception|log|basicConfig|getLogger|disable|shutdown)\s*\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\)',
-        re.DOTALL
-    )
-    content = re.sub(logging_pattern, '', content)
-    content = re.sub(r'\n\s*\n', '\n', content)
-    return content
+# Much safer version — avoids nested quantifier explosion
+_LOGGING_CALL_RE = re.compile(
+    r"logging\.(?:info|debug|error|warning|critical|exception|log|basicConfig|getLogger|disable|shutdown)\s*\("
+)
+
+
+def clean_logging(content: str) -> str:
+    """
+    Removes logging statements from the given content, including multi-line ones,
+    without catastrophic regex backtracking.
+    """
+    result = []
+    i = 0
+    n = len(content)
+
+    while i < n:
+        match = _LOGGING_CALL_RE.search(content, i)
+        if not match:
+            result.append(content[i:])
+            break
+
+        # Keep text before logging call
+        result.append(content[i : match.start()])
+
+        # Scan forward to find the matching closing parenthesis
+        depth = 1
+        j = match.end()
+
+        while j < n and depth > 0:
+            if content[j] == "(":
+                depth += 1
+            elif content[j] == ")":
+                depth -= 1
+            j += 1
+
+        # Skip the logging call entirely
+        i = j
+
+    cleaned = "".join(result)
+
+    # Normalize excessive blank lines
+    cleaned = re.sub(r"\n\s*\n", "\n", cleaned)
+
+    return cleaned
 
 
 def clean_print(content):
     """Removes print statements from the given content, including multi-line ones."""
-    return re.sub(r'print\(.+?\)(,?.*?\))?', '', content, flags=re.DOTALL)
+    return re.sub(r"print\(.+?\)(,?.*?\))?", "", content, flags=re.DOTALL)
 
 
-def clean_content(content: str, file_path: str, shorten_funcs: bool = True, remove_triple_quoted_definitions: bool = False):
+def clean_content(
+    content: str,
+    file_path: str,
+    shorten_funcs: bool = True,
+    remove_triple_quoted_definitions: bool = False,
+):
     """Clean the content based on file type and apply various cleaning operations."""
     if file_path.endswith(".py"):
         content = strip_comments(content, remove_triple_quoted_definitions)
@@ -83,7 +120,8 @@ def clean_content(content: str, file_path: str, shorten_funcs: bool = True, remo
 
 def remove_parent_paths(path: str) -> str:
     return os.path.join(
-        *(part for part in os.path.normpath(path).split(os.sep) if part != ".."))
+        *(part for part in os.path.normpath(path).split(os.sep) if part != "..")
+    )
 
 
 # def shorten_functions(content):
@@ -199,17 +237,32 @@ def remove_parent_paths(path: str) -> str:
 
 def get_file_length(file_path, shorten_funcs):
     try:
-        with open(file_path, 'r', encoding='utf-8') as file:
+        with open(file_path, encoding="utf-8") as file:
             content = file.read()
             content = clean_content(content, file_path, shorten_funcs)
         return len(content)
-    except (OSError, IOError, UnicodeDecodeError):
+    except (OSError, UnicodeDecodeError):
         return 0
 
 
-def format_file_structure(base_dir, include_files, exclude_files, include_content, exclude_content, case_sensitive=True, shorten_funcs=True, show_file_length=True):
-    files: list[str] = find_files(base_dir, include_files, exclude_files,
-                                  include_content, exclude_content, case_sensitive)
+def format_file_structure(
+    base_dir,
+    include_files,
+    exclude_files,
+    include_content,
+    exclude_content,
+    case_sensitive=True,
+    shorten_funcs=True,
+    show_file_length=True,
+):
+    files: list[str] = find_files(
+        base_dir,
+        include_files,
+        exclude_files,
+        include_content,
+        exclude_content,
+        case_sensitive,
+    )
     # Create a new set for absolute file paths
     absolute_file_paths = set()
 
@@ -252,8 +305,9 @@ def format_file_structure(base_dir, include_files, exclude_files, include_conten
 
     def print_structure(level, indent="", is_base_level=False):
         result = ""
-        sorted_keys = sorted(level.items(), key=lambda x: (
-            x[1] is not None, x[0].lower()))
+        sorted_keys = sorted(
+            level.items(), key=lambda x: (x[1] is not None, x[0].lower())
+        )
 
         if is_base_level:
             for key, value in sorted_keys:
@@ -277,12 +331,12 @@ def format_file_structure(base_dir, include_files, exclude_files, include_conten
     # file_structure = f"Base dir: {file_dir}\n" + \
     #     f"\nFile structure:\n{file_structure}"
     print(
-        f"\n----- FILES STRUCTURE -----\n{file_structure}\n----- END FILES STRUCTURE -----\n")
+        f"\n----- FILES STRUCTURE -----\n{file_structure}\n----- END FILES STRUCTURE -----\n"
+    )
     print("\n")
     num_files = len(files)
     logger.log("Number of Files:", num_files, colors=["GRAY", "DEBUG"])
-    logger.log("Files Char Count:", total_char_length,
-               colors=["GRAY", "SUCCESS"])
+    logger.log("Files Char Count:", total_char_length, colors=["GRAY", "SUCCESS"])
     return file_structure
 
 
@@ -291,23 +345,61 @@ def main():
 
     print("Running _copy_for_prompt.py")
     parser = argparse.ArgumentParser(
-        description='Generate clipboard content from specified files.')
-    parser.add_argument('-b', '--base-dir', default=file_dir,
-                        help='Base directory to search files in (default: current directory)')
-    parser.add_argument('-if', '--include-files', nargs='*',
-                        default=include_files, help='Patterns of files to include')
-    parser.add_argument('-ef', '--exclude-files', nargs='*',
-                        default=exclude_files, help='Directories or files to exclude')
-    parser.add_argument('-ic', '--include-content', nargs='*',
-                        default=include_content, help='Patterns of file content to include')
-    parser.add_argument('-ec', '--exclude-content', nargs='*',
-                        default=exclude_content, help='Patterns of file content to exclude')
-    parser.add_argument('-cs', '--case-sensitive', action='store_true',
-                        default=False, help='Make content pattern matching case-sensitive')
-    parser.add_argument('-fo', '--filenames-only', action='store_true',
-                        help='Only copy the relative filenames, not their contents')
-    parser.add_argument('-nl', '--no-length', action='store_true',
-                        help='Do not show file character length')
+        description="Generate clipboard content from specified files."
+    )
+    parser.add_argument(
+        "-b",
+        "--base-dir",
+        default=file_dir,
+        help="Base directory to search files in (default: current directory)",
+    )
+    parser.add_argument(
+        "-if",
+        "--include-files",
+        nargs="*",
+        default=include_files,
+        help="Patterns of files to include",
+    )
+    parser.add_argument(
+        "-ef",
+        "--exclude-files",
+        nargs="*",
+        default=exclude_files,
+        help="Directories or files to exclude",
+    )
+    parser.add_argument(
+        "-ic",
+        "--include-content",
+        nargs="*",
+        default=include_content,
+        help="Patterns of file content to include",
+    )
+    parser.add_argument(
+        "-ec",
+        "--exclude-content",
+        nargs="*",
+        default=exclude_content,
+        help="Patterns of file content to exclude",
+    )
+    parser.add_argument(
+        "-cs",
+        "--case-sensitive",
+        action="store_true",
+        default=False,
+        help="Make content pattern matching case-sensitive",
+    )
+    parser.add_argument(
+        "-fo",
+        "--filenames-only",
+        action="store_true",
+        help="Only copy the relative filenames, not their contents",
+    )
+    parser.add_argument(
+        "-nl",
+        "--no-length",
+        action="store_true",
+        help="Do not show file character length",
+    )
 
     args = parser.parse_args()
     base_dir = args.base_dir
@@ -321,17 +413,26 @@ def main():
 
     print("\nGenerating file structure...")
     file_structure = format_file_structure(
-        base_dir, include, exclude, include_content, exclude_content,
-        case_sensitive, shorten_funcs=False, show_file_length=show_file_length)
+        base_dir,
+        include,
+        exclude,
+        include_content,
+        exclude_content,
+        case_sensitive,
+        shorten_funcs=False,
+        show_file_length=show_file_length,
+    )
 
     print(
-        f"\n----- START FILES STRUCTURE -----\n{file_structure}\n----- END FILES STRUCTURE -----\n")
+        f"\n----- START FILES STRUCTURE -----\n{file_structure}\n----- END FILES STRUCTURE -----\n"
+    )
 
     process = subprocess.Popen(
-        'pbcopy', env={'LANG': 'en_US.UTF-8'}, stdin=subprocess.PIPE)
-    process.communicate(file_structure.encode('utf-8'))
+        "pbcopy", env={"LANG": "en_US.UTF-8"}, stdin=subprocess.PIPE
+    )
+    process.communicate(file_structure.encode("utf-8"))
 
-    print(f"\nFile structure copied to clipboard.")
+    print("\nFile structure copied to clipboard.")
 
 
 if __name__ == "__main__":
