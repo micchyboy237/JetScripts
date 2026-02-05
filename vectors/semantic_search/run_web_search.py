@@ -24,6 +24,7 @@ from jet.vectors.semantic_search.web_search import (
     HIGH_QUALITY_SCORE,
     MEDIUM_QUALITY_SCORE,
     PROMPT_TEMPLATE,
+    SYSTEM_MESSAGE,
     TARGET_HIGH_SCORE_TOKENS,
     TARGET_MEDIUM_SCORE_TOKENS,
     group_results_by_source_for_llm_context,
@@ -278,7 +279,10 @@ async def hybrid_search(
         log_dir=str(llm_log_dir) if llm_log_dir else None,
     )
     prompt = PROMPT_TEMPLATE.format(query=query, context=grouped_context)
-    messages = [{"role": "user", "content": prompt}]
+    messages = [
+        {"role": "system", "content": SYSTEM_MESSAGE},
+        {"role": "user", "content": prompt},
+    ]
     llm_response = llm.chat(messages, temperature=0.3)
 
     input_tokens = count_tokens(llm_model, prompt)
