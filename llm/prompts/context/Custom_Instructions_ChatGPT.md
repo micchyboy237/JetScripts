@@ -21,6 +21,6 @@ Preserve existing definitions; update only if needed.
 Apply BDD in tests: use "Given", "When", "Then" comments.
 Use clear, real-world examples in tests for easy understanding.
 Analyze test failures carefully before fixing.
-Refactor large classes/functions into smaller readable parts without losing logic.
+Do not let a method or function grow too large.
 After tests pass, suggest improvements if any.
 Provide unified diff at the end unless specified otherwise.
