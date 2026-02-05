@@ -1,5 +1,5 @@
 # ──────────────────────────────────────────────────────────────────────────────
-#  hybrid_search.py
+#  run_web_search.py
 # ──────────────────────────────────────────────────────────────────────────────
 
 
@@ -77,25 +77,21 @@ class HybridSearchResult(TypedDict):
 
 
 async def hybrid_search(
-    query: str, llm_log_dir: Path | str | None = None
+    query: str,
+    *,
+    use_cache: bool = False,
+    llm_log_dir: Path | str | None = None,
+    embed_model: LLAMACPP_EMBED_KEYS = "nomic-embed-text",
+    llm_model: LLAMACPP_LLM_KEYS = "qwen3-instruct-2507:4b",
+    max_tokens: int = 4000,
+    urls_limit: int = 10,
+    top_k: int | None = None,
+    threshold: float = 0.0,
+    chunk_size: int = 200,
+    chunk_overlap: int = 50,
+    merge_chunks: bool = False,
 ) -> HybridSearchResult:
     """Perform hybrid search and return structured results without side-effects."""
-
-    # ── Configuration ────────────────────────────────────────────────────────
-    embed_model: LLAMACPP_EMBED_KEYS = "nomic-embed-text"
-    llm_model: LLAMACPP_LLM_KEYS = "qwen3-instruct-2507:4b"
-    max_tokens = 4000
-    use_cache = True
-    urls_limit = 10
-
-    top_k = None
-    threshold = 0.0
-    chunk_size = 200
-    chunk_overlap = 50
-    merge_chunks = False
-
-    # We no longer create directories here unless explicitly requested
-    # (caller responsibility)
 
     search_engine_results = search_data(query, use_cache=use_cache)
 
@@ -344,12 +340,16 @@ if __name__ == "__main__":
     parser.add_argument("query", nargs="?", default="Top 10 isekai anime 2026")
     args = parser.parse_args()
 
+    use_cache = True
+
     query_output_dir = f"{OUTPUT_DIR}/{format_sub_dir(args.query)}"
     shutil.rmtree(query_output_dir, ignore_errors=True)
 
     llm_log_dir = Path(query_output_dir) / "llm_calls"
 
-    result = asyncio.run(hybrid_search(args.query, llm_log_dir=llm_log_dir))
+    result = asyncio.run(
+        hybrid_search(args.query, llm_log_dir=llm_log_dir, use_cache=use_cache)
+    )
 
     print(f"Found {len(result['filtered_results'])} relevant chunks")
     print(f"LLM response length: {len(result['llm_response'])} chars")
