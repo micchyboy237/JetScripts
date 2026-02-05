@@ -34,7 +34,7 @@ if __name__ == "__main__":
     from jet.utils.text import format_sub_dir, format_sub_source_dir
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("query", nargs="?", default="Top 10 isekai anime 2026")
+    parser.add_argument("query", nargs="?", default="Top isekai anime 2026")
     args = parser.parse_args()
 
     use_cache = True
