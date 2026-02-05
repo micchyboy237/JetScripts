@@ -23,4 +23,4 @@ Use clear, real-world examples in tests for easy understanding.
 Analyze test failures carefully before fixing.
 Refactor large classes/functions into smaller readable parts without losing logic.
 After tests pass, suggest improvements if any.
-Provide single diff changes/new lines, methods, or tests unless specified otherwise.
+Provide unified diff at the end unless specified otherwise.
