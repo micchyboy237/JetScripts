@@ -15,7 +15,8 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 md_content = load_file(
-    "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents/docs/source/en/guided_tour.md"
+    # "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents/docs/source/en/guided_tour.md"
+    "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents/docs/source/en/tutorials/building_good_agents.md"
 )
 
 if __name__ == "__main__":

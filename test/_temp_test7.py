@@ -1,15 +1,9 @@
-import audiodiff
+from jet.code.python_code_extractor import move_imports_to_top
 
-def are_perceptually_equal(bytes1: bytes, bytes2: bytes) -> bool:
-    """True if audio streams are perceptually identical (after decoding)."""
-    # audiodiff works on file paths; write to temp files for bytes
-    import tempfile
-    with tempfile.NamedTemporaryFile(suffix=".wav") as f1, tempfile.NamedTemporaryFile(suffix=".wav") as f2:
-        f1.write(bytes1)
-        f2.write(bytes2)
-        f1.flush()
-        f2.flush()
-        return audiodiff.audio_equal(f1.name, f2.name)
+python_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.py"
 
-# Example
-# print("[green]Equal[/green]" if are_perceptually_equal(bytes1, bytes2) else "[red]Different[/red]")
+with open(python_file, encoding="utf-8") as f:
+    source_code = f.read()
+
+updated_code = move_imports_to_top(source_code)
+print(f"Code:\n{updated_code}")
