@@ -9,14 +9,10 @@ OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/last_5_mins.wav"
+INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment_backup/recording_missav_10.0s.wav"
 
-# Audio duration: 5 min 20 sec = 320 sec
-TOTAL_DURATION = 320.0  # seconds
-
-# Last 10 seconds
-start = TOTAL_DURATION - 10.0  # 310.0
-end = TOTAL_DURATION  # 320.0
+start = 0
+end = 10
 
 # Extract from raw input audio
 segment, sr = extract_audio_segment(INPUT_AUDIO, start=start, end=end)

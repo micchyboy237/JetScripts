@@ -21,7 +21,8 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 if __name__ == "__main__":
     audio_file = Path(
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment/recording_missav_10.0s_norm.wav"
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment/recording_missav_10.0s.wav"
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment/recording_missav_10.0s.wav"
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/segments/segment_0001/sound.wav"
     )
 
     results = process_audio(
