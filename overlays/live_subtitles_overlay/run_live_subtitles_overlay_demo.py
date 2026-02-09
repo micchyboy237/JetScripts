@@ -1,9 +1,10 @@
 # run_demo_subtitle_metadata.py
 import sys
-from threading import Thread
 import time
-from PyQt6.QtWidgets import QApplication
+from threading import Thread
+
 from jet.overlays.live_subtitles_overlay import LiveSubtitlesOverlay
+from PyQt6.QtWidgets import QApplication
 
 
 def demo_subtitle_metadata() -> None:
@@ -19,7 +20,8 @@ def demo_subtitle_metadata() -> None:
     - Translation confidence (0.0–1.0 normalized) + quality label
     """
     overlay = LiveSubtitlesOverlay.create(
-        title="Live Subtitles – Full Metadata Demo (2026)"
+        title="Live Subtitles – Full Metadata Demo (2026)",
+        on_clear=lambda: print("[DEMO] Clear operation completed successfully ✓"),
     )
 
     # Simulated real-world subtitle segments with all supported fields
@@ -34,7 +36,7 @@ def demo_subtitle_metadata() -> None:
             "avg_vad_confidence": 0.912,
             "transcription_confidence": 0.988,
             "transcription_quality": "High",
-            "translation_confidence": 0.947,          # normalized 0.0–1.0
+            "translation_confidence": 0.947,  # normalized 0.0–1.0
             "translation_quality": "Very High",
         },
         {
@@ -100,8 +102,8 @@ def demo_subtitle_metadata() -> None:
             )
 
             # Print verification table with rich
-            from rich.table import Table
             from rich import print as rprint
+            from rich.table import Table
 
             table = Table(title=f"Demo Segment {seg['segment_number']} – Sent Metadata")
             table.add_column("Field", style="cyan")
@@ -113,10 +115,20 @@ def demo_subtitle_metadata() -> None:
             table.add_row("end_sec", f"{seg['end_sec']:.2f}")
             table.add_row("duration_sec", f"{seg['duration_sec']:.2f}")
             table.add_row("segment_number", str(seg["segment_number"]))
-            table.add_row("avg_vad_confidence", f"{seg.get('avg_vad_confidence', '—'):.3f}")
-            table.add_row("transcription_confidence", f"{seg.get('transcription_confidence', '—'):.3f}")
-            table.add_row("transcription_quality", seg.get("transcription_quality", "—"))
-            table.add_row("translation_confidence", f"{seg.get('translation_confidence', '—'):.3f}")
+            table.add_row(
+                "avg_vad_confidence", f"{seg.get('avg_vad_confidence', '—'):.3f}"
+            )
+            table.add_row(
+                "transcription_confidence",
+                f"{seg.get('transcription_confidence', '—'):.3f}",
+            )
+            table.add_row(
+                "transcription_quality", seg.get("transcription_quality", "—")
+            )
+            table.add_row(
+                "translation_confidence",
+                f"{seg.get('translation_confidence', '—'):.3f}",
+            )
             table.add_row("translation_quality", seg.get("translation_quality", "—"))
 
             rprint(table)
