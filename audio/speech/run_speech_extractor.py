@@ -1,11 +1,16 @@
 from __future__ import annotations
-from pathlib import Path
-
 
 import shutil
-import numpy as np
+from pathlib import Path
 
-from jet.audio.speech.silero.speech_extractor import SpeechSegment, extract_frame_energy, process_audio, save_energy_plot, save_per_segment_data, save_probs_plot
+import numpy as np
+from jet.audio.speech.silero.speech_extractor import (
+    extract_frame_energy,
+    process_audio,
+    save_energy_plot,
+    save_per_segment_data,
+    save_probs_plot,
+)
 from jet.file.utils import save_file
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
@@ -14,7 +19,10 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 if __name__ == "__main__":
-    audio_file = Path("/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_missav_5mins.wav")
+    audio_file = Path(
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment/recording_missav_10.0s_norm.wav"
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment/recording_missav_10.0s.wav"
+    )
 
     results = process_audio(
         audio=audio_file,
@@ -34,7 +42,7 @@ if __name__ == "__main__":
     save_probs_plot(
         probs=np.array(results["probs"]),
         sampling_rate=16000,
-        segments=[SpeechSegment(**seg) for seg in results["segments"]],
+        segments=results["segments"],
         output_path=OUTPUT_DIR / "probs_plot.png",
     )
 
@@ -45,12 +53,12 @@ if __name__ == "__main__":
     save_energy_plot(
         energies=energy,
         sampling_rate=16000,
-        segments=[SpeechSegment(**seg) for seg in results["segments"]],
+        segments=results["segments"],
         output_path=OUTPUT_DIR / "energy_plot.png",
     )
 
     # Reconstruct SpeechSegment objects for per-segment saving
-    segments_objs = [SpeechSegment(**seg) for seg in results["segments"]]
+    segments_objs = results["segments"]
 
     if segments_objs:
         save_per_segment_data(
