@@ -9,10 +9,10 @@ OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment_backup/recording_missav_10.0s.wav"
+INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav"
 
-start = 0
-end = 10
+start = 10
+end = 15
 
 # Extract from raw input audio
 segment, sr = extract_audio_segment(INPUT_AUDIO, start=start, end=end)
