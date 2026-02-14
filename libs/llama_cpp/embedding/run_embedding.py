@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import os
+
 from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 
 
 def main():
     embedder = LlamacppEmbedding(
-        model="embeddinggemma",  # or e5, nomic-embed, etc.
+        model=os.getenv("LLAMA_CPP_EMBED_MODEL"),  # or e5, nomic-embed, etc.
         base_url=os.getenv("LLAMA_CPP_EMBED_URL"),
         use_cache=True,
         use_dynamic_batch_sizing=True,
