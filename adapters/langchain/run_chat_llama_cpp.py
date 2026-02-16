@@ -6,19 +6,21 @@ Run directly: python run_chat_llama_cpp.py
 
 import os
 import shutil
-from typing import List
-from langchain_core.messages import HumanMessage, BaseMessage
+
 from jet.adapters.langchain.chat_llama_cpp import ChatLlamaCpp
 from jet.logger import logger
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0]
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
 )
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
 logger.orange(f"Logs: {log_file}")
+
 
 def demo_basic_chat() -> str:
     """
@@ -30,8 +32,11 @@ def demo_basic_chat() -> str:
     model = "qwen3-instruct-2507:4b"
     base_url = "http://shawn-pc.local:8080/v1"
     temperature = 0.3
-    messages: List[BaseMessage] = [
-        HumanMessage(content="Explain photosynthesis in simple terms for a 10-year-old.")
+    messages = [
+        {
+            "role": "user",
+            "content": "Explain photosynthesis in simple terms for a 10-year-old.",
+        }
     ]
 
     logger.info("Starting basic chat demo")
@@ -56,17 +61,17 @@ def demo_basic_chat() -> str:
 
 
 if __name__ == "__main__":
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("RUNNING BASIC CHAT DEMO (NO TOOLS)")
-    logger.info("="*60 + "\n")
+    logger.info("=" * 60 + "\n")
     try:
         final_response = demo_basic_chat()
-        logger.debug("\n" + "-"*60)
+        logger.debug("\n" + "-" * 60)
         logger.debug("FINAL RESPONSE:")
-        logger.debug("-"*60)
+        logger.debug("-" * 60)
         logger.success(final_response)
     except Exception as e:
         logger.error(f"Demo failed: {e}")
-    logger.info("\n" + "="*60)
+    logger.info("\n" + "=" * 60)
     logger.info("BASIC DEMO COMPLETE")
-    logger.info("="*60 + "\n")
+    logger.info("=" * 60 + "\n")

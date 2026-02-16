@@ -1,5 +1,7 @@
 import argparse
 import os
+import shutil
+from pathlib import Path
 from typing import get_args
 
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS
@@ -26,11 +28,7 @@ from jet.vectors.semantic_search.file_vector_search import (
     search_files,
 )
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__),
-    "generated",
-    os.path.splitext(os.path.basename(__file__))[0],
-)
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 
 
 def print_results(
@@ -140,7 +138,9 @@ def main(
     verbose: bool = False,
 ):
     """Main function to demonstrate file search with hybrid reranking, using streaming progressive results."""
-    output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
+    output_dir = OUTPUT_DIR / format_sub_dir(query)
+    shutil.rmtree(str(output_dir), ignore_errors=True)
+    output_dir.mkdir(parents=True, exist_ok=True)
     # The following were formerly hardcoded, now are parameters:
     # embed_model_name, top_k, threshold, chunk_size, chunk_overlap, batch_size, weights
 
@@ -287,23 +287,44 @@ def main(
     print_results(query, merged_results, split_chunks)
 
 
-def validate_directories(directories: list[str]) -> list[str]:
-    """Validate that provided directories exist and are accessible."""
-    valid_dirs = []
+def validate_directories(
+    directories: list[str], base_dir: str | Path | None = None
+) -> list[str]:
+    """
+    Validate that provided directories exist and are accessible.
+
+    If a directory is relative and base_dir is provided,
+    resolve it against base_dir before validation.
+    """
+    valid_dirs: list[str] = []
+
+    base_path = Path(base_dir).resolve() if base_dir else None
+
     for directory in directories:
-        directory = (
-            directory.strip()
-        )  # Remove any whitespace from individual directories
-        if not directory:  # Skip empty directory strings
+        directory = directory.strip()
+        if not directory:
             continue
-        if not os.path.isdir(directory):
+
+        path = Path(directory)
+
+        # Resolve relative paths against base_dir if provided
+        if not path.is_absolute() and base_path:
+            path = base_path / path
+
+        path = path.resolve()
+
+        if not path.is_dir():
             print(
-                f"Warning: '{directory}' is not a valid or accessible directory. Skipping."
+                f"Warning: '{directory}' resolved to '{path}' "
+                f"is not a valid or accessible directory. Skipping."
             )
             continue
-        valid_dirs.append(os.path.abspath(directory))  # Normalize to absolute paths
+
+        valid_dirs.append(str(path))
+
     if not valid_dirs:
         raise ValueError("No valid directories provided.")
+
     return valid_dirs
 
 
@@ -349,6 +370,14 @@ def parse_arguments():
         default=None,
         help="Alternative way to specify query",
     )
+    parser.add_argument(
+        "-b",
+        "--base-dir",
+        type=str,
+        default=None,
+        help="Base directory used to resolve relative search directories",
+    )
+
     parser.add_argument(
         "-d",
         "--directories",
@@ -440,7 +469,10 @@ def parse_arguments():
     directories = (
         args.directories_flag if args.directories_flag is not None else args.directories
     )
-    directories = validate_directories(directories)
+    directories = validate_directories(
+        directories,
+        base_dir=args.base_dir,
+    )
 
     # Parse extensions
     extensions = [ext.strip() for ext in args.extensions.split(",") if ext.strip()]
@@ -470,6 +502,7 @@ def parse_arguments():
         weights=weights_dict,
         use_cache=args.cache,
         verbose=args.verbose,
+        base_dir=args.base_dir,
     )
 
 
