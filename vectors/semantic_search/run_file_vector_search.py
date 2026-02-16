@@ -1,33 +1,48 @@
 import argparse
 import os
-from typing import List, Optional, Tuple, get_args
+from typing import get_args
+
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
-from jet.logger.config import colorize_log
+
 # from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.llm.utils.tokenizer import get_tokenizer
-from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
+from jet.logger.config import colorize_log
+from jet.models.model_registry.transformers.cross_encoder_model_registry import (
+    CrossEncoderRegistry,
+)
+
 # from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.utils.language import DetectLangResult, detect_lang
 from jet.utils.text import format_sub_dir
 from jet.vectors.reranker.bm25 import rerank_bm25
 from jet.vectors.semantic_search.file_vector_search import (
+    DEFAULT_WEIGHTS,
     FileSearchResult,
     Weights,
     merge_results,
     search_files,
-    DEFAULT_WEIGHTS,
 )
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 
 
-def print_results(query: str, results: List[FileSearchResult], split_chunks: bool, detected_lang: Optional[DetectLangResult] = None):
+def print_results(
+    query: str,
+    results: list[FileSearchResult],
+    split_chunks: bool,
+    detected_lang: DetectLangResult | None = None,
+):
     if detected_lang:
-        print(f"[Detected language] lang: {detected_lang.get('lang')} | score: {detected_lang.get('score')}")
+        print(
+            f"[Detected language] lang: {detected_lang.get('lang')} | score: {detected_lang.get('score')}"
+        )
 
     for num, result in enumerate(results[:10], start=1):
         file_path = result["metadata"]["file_path"]
@@ -37,18 +52,23 @@ def print_results(query: str, results: List[FileSearchResult], split_chunks: boo
         num_tokens = result["metadata"]["num_tokens"]
         score = result["score"]
         print(
-            f"{colorize_log(f'{num}.)', 'ORANGE')} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Tokens: {num_tokens} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}")
+            f"{colorize_log(f'{num}.)', 'ORANGE')} Score: {colorize_log(f'{score:.3f}', 'SUCCESS')} | Chunk: {chunk_idx} | Tokens: {num_tokens} | Start - End: {start_idx} - {end_idx}\nFile: {file_path}"
+        )
 
 
-def rerank_results(query: str, results: List[FileSearchResult]) -> Tuple[List[str], List[dict]]:
+def rerank_results(
+    query: str, results: list[FileSearchResult]
+) -> tuple[list[str], list[dict]]:
     """Rerank search results using BM25."""
     texts = [result["text"] for result in results]
     ids = [generate_unique_id() for _ in texts]
     metadatas = [result["metadata"] for result in results]
     query_candidates, reranked_results = rerank_bm25(
-        query, texts, ids=ids, metadatas=metadatas)
-    id_to_embed_score = {id_: result.get(
-        "score", None) for id_, result in zip(ids, results)}
+        query, texts, ids=ids, metadatas=metadatas
+    )
+    id_to_embed_score = {
+        id_: result.get("score", None) for id_, result in zip(ids, results)
+    }
     id_to_embed_rank = {id_: rank for rank, id_ in enumerate(ids, start=1)}
     for reranked in reranked_results:
         reranked["embed_score"] = id_to_embed_score.get(reranked["id"], None)
@@ -56,7 +76,9 @@ def rerank_results(query: str, results: List[FileSearchResult]) -> Tuple[List[st
     return query_candidates, reranked_results
 
 
-def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int = 50) -> List[FileSearchResult]:
+def cross_encoder_rerank(
+    query: str, results: list[FileSearchResult], top_n: int = 50
+) -> list[FileSearchResult]:
     """Rerank search results using CrossEncoder."""
     if not results:
         return results
@@ -67,14 +89,11 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
         # Load cross-encoder model
         cross_encoder = CrossEncoderRegistry.load_model(
             model_id="cross-encoder/ms-marco-MiniLM-L6-v2",
-            device="mps" if os.uname().sysname == "Darwin" else "cpu"
+            device="mps" if os.uname().sysname == "Darwin" else "cpu",
         )
         # Get cross-encoder scores
         scores = CrossEncoderRegistry.predict_scores(
-            input_pairs,
-            batch_size=32,
-            show_progress=True,
-            return_format="list"
+            input_pairs, batch_size=32, show_progress=True, return_format="list"
         )
 
         # Combine cross-encoder scores with original scores
@@ -108,16 +127,16 @@ def cross_encoder_rerank(query: str, results: List[FileSearchResult], top_n: int
 
 def main(
     query: str,
-    directories: List[str],
-    extensions: List[str] = [".py"],
+    directories: list[str],
+    extensions: list[str] = [".py"],
     use_cache: bool = False,
-    embed_model_name: str = "nomic-embed-text",
-    top_k: Optional[int] = None,
+    embed_model_name: str = "nomic-embed-text-v2-moe",
+    top_k: int | None = None,
     threshold: float = 0.0,
-    chunk_size: int = 500,
-    chunk_overlap: int = 100,
+    chunk_size: int = 1000,
+    chunk_overlap: int = 200,
     batch_size: int = 128,
-    weights: 'Weights' = DEFAULT_WEIGHTS,
+    weights: "Weights" = DEFAULT_WEIGHTS,
     verbose: bool = False,
 ):
     """Main function to demonstrate file search with hybrid reranking, using streaming progressive results."""
@@ -165,7 +184,9 @@ def main(
         # Print each streaming result as received
         detected_lang = detect_lang(result["text"])
         if verbose:
-            print_results(query, [result], split_chunks=True, detected_lang=detected_lang)
+            print_results(
+                query, [result], split_chunks=True, detected_lang=detected_lang
+            )
         if detected_lang["lang"] == "en":
             with_split_chunks_results.append(result)
 
@@ -176,12 +197,15 @@ def main(
                 # Update rank
                 for i, res in enumerate(with_split_chunks_results, 1):
                     res["rank"] = i
-                save_file({
-                    "query": query,
-                    "count": len(with_split_chunks_results),
-                    "merged": not split_chunks,
-                    "results": with_split_chunks_results
-                }, f"{output_dir}/search_results_split.json")
+                save_file(
+                    {
+                        "query": query,
+                        "count": len(with_split_chunks_results),
+                        "merged": not split_chunks,
+                        "results": with_split_chunks_results,
+                    },
+                    f"{output_dir}/search_results_split.json",
+                )
 
     # After the loop, save any remaining results that weren't saved in the last group
     if len(with_split_chunks_results) > 0:
@@ -190,44 +214,57 @@ def main(
         # Update rank
         for i, res in enumerate(with_split_chunks_results, 1):
             res["rank"] = i
-        save_file({
-            "query": query,
-            "count": len(with_split_chunks_results),
-            "merged": not split_chunks,
-            "results": with_split_chunks_results
-        }, f"{output_dir}/search_results_split.json")
+        save_file(
+            {
+                "query": query,
+                "count": len(with_split_chunks_results),
+                "merged": not split_chunks,
+                "results": with_split_chunks_results,
+            },
+            f"{output_dir}/search_results_split.json",
+        )
 
     # Merge chunks
     split_chunks = False
-    merged_results = merge_results(
-        with_split_chunks_results, tokenizer=count_tokens)
-    save_file({
-        "query": query,
-        "count": len(merged_results),
-        "merged": not split_chunks,
-        "results": merged_results
-    }, f"{output_dir}/search_results_merged.json")
+    merged_results = merge_results(with_split_chunks_results, tokenizer=count_tokens)
+    save_file(
+        {
+            "query": query,
+            "count": len(merged_results),
+            "merged": not split_chunks,
+            "results": merged_results,
+        },
+        f"{output_dir}/search_results_merged.json",
+    )
 
     # BM25 reranking
     top_n = 50
     query_candidates, bm25_reranked_results = rerank_results(
-        query, merged_results[:top_n])
-    save_file({
-        "query": query,
-        "candidates": query_candidates,
-        "count": len(bm25_reranked_results),
-        "results": bm25_reranked_results
-    }, f"{output_dir}/reranked_results_bm25_split.json")
+        query, merged_results[:top_n]
+    )
+    save_file(
+        {
+            "query": query,
+            "candidates": query_candidates,
+            "count": len(bm25_reranked_results),
+            "results": bm25_reranked_results,
+        },
+        f"{output_dir}/reranked_results_bm25_split.json",
+    )
 
     # BM25 reranking on merged results
     query_candidates, bm25_reranked_merged = rerank_results(
-        query, merged_results[:top_n])
-    save_file({
-        "query": query,
-        "candidates": query_candidates,
-        "count": len(bm25_reranked_merged),
-        "results": bm25_reranked_merged
-    }, f"{output_dir}/reranked_results_bm25_merged.json")
+        query, merged_results[:top_n]
+    )
+    save_file(
+        {
+            "query": query,
+            "candidates": query_candidates,
+            "count": len(bm25_reranked_merged),
+            "results": bm25_reranked_merged,
+        },
+        f"{output_dir}/reranked_results_bm25_merged.json",
+    )
 
     # # Cross-encoder reranking
     # cross_encoder_results = cross_encoder_rerank(
@@ -250,15 +287,19 @@ def main(
     print_results(query, merged_results, split_chunks)
 
 
-def validate_directories(directories: List[str]) -> List[str]:
+def validate_directories(directories: list[str]) -> list[str]:
     """Validate that provided directories exist and are accessible."""
     valid_dirs = []
     for directory in directories:
-        directory = directory.strip()  # Remove any whitespace from individual directories
+        directory = (
+            directory.strip()
+        )  # Remove any whitespace from individual directories
         if not directory:  # Skip empty directory strings
             continue
         if not os.path.isdir(directory):
-            print(f"Warning: '{directory}' is not a valid or accessible directory. Skipping.")
+            print(
+                f"Warning: '{directory}' is not a valid or accessible directory. Skipping."
+            )
             continue
         valid_dirs.append(os.path.abspath(directory))  # Normalize to absolute paths
     if not valid_dirs:
@@ -268,6 +309,7 @@ def validate_directories(directories: List[str]) -> List[str]:
 
 ALLOWED_EMBED_MODELS = get_args(LLAMACPP_EMBED_KEYS)
 
+
 def embed_model_type(value: str) -> str:
     if value not in ALLOWED_EMBED_MODELS:
         raise argparse.ArgumentTypeError(
@@ -276,113 +318,117 @@ def embed_model_type(value: str) -> str:
         )
     return value
 
+
 def parse_arguments():
     """Parse command line arguments for file vector search."""
     parser = argparse.ArgumentParser(
         description="Search files using semantic vector embeddings + hybrid reranking",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     # Positional (required or with smart defaults)
     parser.add_argument(
-        "query",
-        type=str,
-        nargs="?",
-        default="AI Agents",
-        help="Search query"
+        "query", type=str, nargs="?", default="AI Agents", help="Search query"
     )
     parser.add_argument(
         "directories",
         type=str,
-        nargs="?",
-        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts",
-        help="Search directories (comma-separated)"
+        nargs="+",
+        default=[
+            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/converted_doc_scripts"
+        ],
+        help="Search directories (space-separated)",
     )
 
     # Optional flags with short versions
     parser.add_argument(
-        "-q", "--query",
+        "-q",
+        "--query",
         type=str,
         dest="query_flag",
         default=None,
-        help="Alternative way to specify query"
+        help="Alternative way to specify query",
     )
     parser.add_argument(
-        "-d", "--directories",
+        "-d",
+        "--directories",
         type=str,
+        nargs="+",
         dest="directories_flag",
         default=None,
-        help="Alternative way to specify directories (comma-separated)"
+        help="Alternative way to specify directories (space-separated)",
     )
 
     parser.add_argument(
-        "-e", "--extensions",
+        "-e",
+        "--extensions",
         type=str,
         default=".py",
-        help="File extensions to include, comma separated (e.g. .py,.md,.txt)"
+        help="File extensions to include, comma separated (e.g. .py,.md,.txt)",
     )
 
     parser.add_argument(
-        "-m", "--embed-model",
+        "-m",
+        "--embed-model",
         type=embed_model_type,
-        default="nomic-embed-text",
-        help=f"Embedding model to use ({', '.join(ALLOWED_EMBED_MODELS)})"
+        default="nomic-embed-text-v2-moe",
+        help=f"Embedding model to use ({', '.join(ALLOWED_EMBED_MODELS)})",
     )
 
     parser.add_argument(
         "--top-k",
         type=int,
         default=None,
-        help="Maximum number of results to return (None = all)"
+        help="Maximum number of results to return (None = all)",
     )
 
     parser.add_argument(
-        "-t", "--threshold",
+        "-t",
+        "--threshold",
         type=float,
         default=0.0,
-        help="Minimum similarity score threshold"
+        help="Minimum similarity score threshold",
     )
 
     parser.add_argument(
-        "--chunk-size",
-        type=int,
-        default=500,
-        help="Size of text chunks"
+        "--chunk-size", type=int, default=1000, help="Size of text chunks"
     )
 
     parser.add_argument(
         "--chunk-overlap",
         type=int,
-        default=100,
-        help="Overlap between consecutive chunks"
+        default=200,
+        help="Overlap between consecutive chunks",
     )
 
     parser.add_argument(
         "--batch-size",
         type=int,
         default=128,
-        help="Batch size for embedding generation"
+        help="Batch size for embedding generation",
     )
 
     parser.add_argument(
         "--weights",
         type=str,
         default="dir:0.0,name:0.25,content:0.75",
-        help="Similarity weights (format: dir:X,name:Y,content:Z)"
+        help="Similarity weights (format: dir:X,name:Y,content:Z)",
     )
 
     parser.add_argument(
-        "-c", "--cache",
+        "-c",
+        "--cache",
         action="store_true",
         default=False,
-        help="Use cache for embeddings and model loading"
+        help="Use cache for embeddings and model loading",
     )
 
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         default=False,
-        help="Print verbose search progress and result details"
+        help="Print verbose search progress and result details",
     )
 
     args = parser.parse_args()
@@ -390,9 +436,10 @@ def parse_arguments():
     # Resolve query (flag takes precedence over positional)
     query = args.query_flag if args.query_flag is not None else args.query
 
-    # Resolve directories
-    directories_input = args.directories_flag if args.directories_flag is not None else args.directories
-    directories = [d.strip() for d in directories_input.split(",") if d.strip()]
+    # Resolve directories (flag takes precedence)
+    directories = (
+        args.directories_flag if args.directories_flag is not None else args.directories
+    )
     directories = validate_directories(directories)
 
     # Parse extensions
@@ -406,7 +453,9 @@ def parse_arguments():
                 key, value = part.split(":")
                 weights_dict[key.strip()] = float(value.strip())
         except Exception as e:
-            print(f"Warning: Could not parse weights '{args.weights}'. Using defaults. Error: {e}")
+            print(
+                f"Warning: Could not parse weights '{args.weights}'. Using defaults. Error: {e}"
+            )
 
     return argparse.Namespace(
         query=query,
