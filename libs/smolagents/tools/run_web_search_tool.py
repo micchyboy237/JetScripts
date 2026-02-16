@@ -8,9 +8,9 @@ from jet.libs.smolagents.tools.web_search_tool import (
 )
 from smolagents import LogLevel, ToolCallingAgent
 
-OUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
-shutil.rmtree(OUT_DIR, ignore_errors=True)
-OUT_DIR.mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 model = OpenAIModel(
     temperature=0.7,
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     print(result)
     print("=" * 70 + "\n")
 
-    print(f"Logs saved in: {OUT_DIR / 'web_search_logs'}")
+    print(f"Logs saved in: {OUTPUT_DIR / 'web_search_logs'}")
     print("Look for folders like call_0001/ containing:")
     print("  • request.json")
     print("  • response.json")
