@@ -9,11 +9,12 @@ import json
 import os
 from pathlib import Path
 
-from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig, LLMConfig
+from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig
 from crawl4ai.extraction_strategy import (
     JsonCssExtractionStrategy,
     LLMExtractionStrategy,
 )
+from jet.libs.crawl4ai_lib.adaptive_config import get_llm_config
 
 SCHEMA_PATH = Path("cache/fallback_article_schema.json")
 
@@ -39,7 +40,7 @@ async def try_css_extraction(crawler, url):
 
 
 async def llm_fallback(crawler, url):
-    llm_cfg = LLMConfig(
+    llm_cfg = get_llm_config(
         provider="openai/qwen3-instruct-2507:4b",  # or groq/llama-3.1-70b, etc.
         base_url=os.getenv("LLAMA_CPP_LLM_MODEL"),
         temperature=0.1,
