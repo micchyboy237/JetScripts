@@ -6,6 +6,7 @@ This is one of the most practical hybrid approaches.
 
 import asyncio
 import json
+import os
 from pathlib import Path
 
 from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig, LLMConfig
@@ -39,7 +40,8 @@ async def try_css_extraction(crawler, url):
 
 async def llm_fallback(crawler, url):
     llm_cfg = LLMConfig(
-        provider="openai/gpt-4o-mini",  # or groq/llama-3.1-70b, etc.
+        provider="openai/qwen3-instruct-2507:4b",  # or groq/llama-3.1-70b, etc.
+        base_url=os.getenv("LLAMA_CPP_LLM_MODEL"),
         temperature=0.1,
         max_tokens=1800,
     )
