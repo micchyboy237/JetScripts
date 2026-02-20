@@ -11,6 +11,7 @@ from jet.audio.speech.silero.speech_timestamps_extractor import (
     extract_speech_timestamps,
 )
 from jet.file.utils import save_file
+from jet.utils.text import format_sub_dir
 from rich.console import Console
 from silero_vad.utils_vad import read_audio
 
@@ -37,6 +38,7 @@ def main(
     neg_threshold: float = 0.04,
     min_speech_duration_ms: int = 500,
     min_silence_duration_ms: int = 100,
+    normalize_loudness: bool = True,
 ):
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
@@ -50,6 +52,7 @@ def main(
         time_resolution=3,
         with_scores=True,
         neg_threshold=neg_threshold,
+        normalize_loudness=normalize_loudness,
     )
     waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
@@ -121,8 +124,10 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_short.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/preprocessors/recording_2_speakers_short_norm.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment/recording_missav.wav",
     ]
+
+    normalize_loudness = True
 
     summary: dict[str, Any] = {
         "total_files_processed": len(audio_paths),
@@ -130,18 +135,19 @@ if __name__ == "__main__":
         "total_segments": 0,
         "per_file": defaultdict(dict),
     }
-    Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     for audio_path in audio_paths:
-        output_dir = OUTPUT_DIR
-        main(audio_path, output_dir)
-        if (output_dir / "speech_timestamps.json").exists():
-            with open(output_dir / "speech_timestamps.json") as f:
+        sub_output_dir = OUTPUT_DIR / format_sub_dir(Path(audio_path).stem)
+        Path(sub_output_dir).mkdir(parents=True, exist_ok=True)
+        main(audio_path, sub_output_dir, normalize_loudness=normalize_loudness)
+        if (sub_output_dir / "speech_timestamps.json").exists():
+            with open(sub_output_dir / "speech_timestamps.json") as f:
                 segs = json.load(f)
             count = len(segs)
             summary["files_with_speech"] += 1
             summary["total_segments"] += count
             summary["per_file"][str(audio_path)] = {"segments": count}
-    save_file(summary, Path(OUTPUT_DIR) / "summary.json")
-    console.print(
-        f"\n[bold green]Global summary saved to:[/bold green] {Path(OUTPUT_DIR) / 'summary.json'}"
-    )
+
+        save_file(summary, Path(sub_output_dir) / "summary.json")
+        console.print(
+            f"\n[bold green]Global summary saved to:[/bold green] {Path(sub_output_dir) / 'summary.json'}"
+        )
