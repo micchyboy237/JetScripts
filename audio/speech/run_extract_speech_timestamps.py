@@ -29,16 +29,27 @@ def create_sub_dir(file: str):
     pass
 
 
-def main(audio_file: str | Path, output_dir: str | Path, *, threshold: float = 0.3):
+def main(
+    audio_file: str | Path,
+    output_dir: str | Path,
+    *,
+    threshold: float = 0.10,
+    neg_threshold: float = 0.04,
+    min_speech_duration_ms: int = 500,
+    min_silence_duration_ms: int = 100,
+):
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
     console.print(f"[bold cyan]Processing:[/bold cyan] {Path(audio_file).name}")
     segments, all_speech_probs = extract_speech_timestamps(
         audio_file,
         threshold=threshold,
+        min_speech_duration_ms=min_speech_duration_ms,
+        min_silence_duration_ms=min_silence_duration_ms,
         return_seconds=True,
         time_resolution=3,
         with_scores=True,
+        neg_threshold=neg_threshold,
     )
     waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
@@ -110,9 +121,8 @@ if __name__ == "__main__":
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_short.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/preprocessors/recording_2_speakers_short_norm.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay_backup2/segments/segment_0002/sound.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav",
     ]
-    threshold = 0.3
 
     summary: dict[str, Any] = {
         "total_files_processed": len(audio_paths),
@@ -123,7 +133,7 @@ if __name__ == "__main__":
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     for audio_path in audio_paths:
         output_dir = OUTPUT_DIR
-        main(audio_path, output_dir, threshold=threshold)
+        main(audio_path, output_dir)
         if (output_dir / "speech_timestamps.json").exists():
             with open(output_dir / "speech_timestamps.json") as f:
                 segs = json.load(f)

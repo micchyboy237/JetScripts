@@ -1,7 +1,13 @@
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import List
-from jet.audio.helpers.energy import SegmentLike, rms_to_loudness_labels, segment_loudness_energy_weighted, segment_loudness_median_label
+
+from jet.audio.helpers.energy import (
+    SegmentLike,
+    rms_to_loudness_labels,
+    segment_loudness_energy_weighted,
+    segment_loudness_median_label,
+)
 from jet.audio.speech.silero.speech_analyzer import SpeechAnalyzer
 from jet.file.utils import save_file
 
@@ -11,7 +17,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
     # audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav"
-    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay_backup/last_5_mins_1.wav"
+    audio_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav"
     threshold = 0.3
     analyzer = SpeechAnalyzer(
         threshold=threshold,
@@ -25,7 +31,9 @@ if __name__ == "__main__":
     total_sec = num_frames * analyzer.step_sec
 
     metrics = analyzer.get_metrics(probs, segments, raw_segments, num_frames, total_sec)
-    analyzer.plot_insights(probs, segments, raw_segments, num_frames, audio_file, OUTPUT_DIR)
+    analyzer.plot_insights(
+        probs, segments, raw_segments, num_frames, audio_file, OUTPUT_DIR
+    )
 
     extra_info = {
         "total_frames": num_frames,
@@ -49,8 +57,9 @@ if __name__ == "__main__":
         probs,
     )
 
-    from rich.table import Table
     from rich.console import Console
+    from rich.table import Table
+
     console = Console()
     table = Table(title=f"[bold]VAD Metrics – {Path(audio_file).name}[/bold]")
     table.add_column("Metric")
@@ -78,17 +87,27 @@ if __name__ == "__main__":
         SegmentLike(start_frame=int(seg.start), end_frame=int(seg.end))
         for seg in segments
     ]
-    segment_loudness_result_median = segment_loudness_median_label(segments_frames, energy_labels)
-    segment_loudness_result_weighted = segment_loudness_energy_weighted(segments_frames, energy_labels, energies)
+    segment_loudness_result_median = segment_loudness_median_label(
+        segments_frames, energy_labels
+    )
+    segment_loudness_result_weighted = segment_loudness_energy_weighted(
+        segments_frames, energy_labels, energies
+    )
 
     save_file(probs, f"{str(OUTPUT_DIR)}/probs.json")
     save_file(energies, f"{str(OUTPUT_DIR)}/energies.json")
-    save_file({
-        "meta": energy_meta,
-        "labels": energy_labels
-    }, f"{str(OUTPUT_DIR)}/energy_info.json")
+    save_file(
+        {"meta": energy_meta, "labels": energy_labels},
+        f"{str(OUTPUT_DIR)}/energy_info.json",
+    )
     save_file(formatted_segments, f"{str(OUTPUT_DIR)}/segments.json")
-    save_file(segment_loudness_result_median, f"{str(OUTPUT_DIR)}/segment_loudness_result_median.json")
-    save_file(segment_loudness_result_weighted, f"{str(OUTPUT_DIR)}/segment_loudness_result_weighted.json")
+    save_file(
+        segment_loudness_result_median,
+        f"{str(OUTPUT_DIR)}/segment_loudness_result_median.json",
+    )
+    save_file(
+        segment_loudness_result_weighted,
+        f"{str(OUTPUT_DIR)}/segment_loudness_result_weighted.json",
+    )
     save_file(formatted_raw_segments, f"{str(OUTPUT_DIR)}/raw_segments.json")
     save_file(metrics, f"{str(OUTPUT_DIR)}/vad_metrics.json")
