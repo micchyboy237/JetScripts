@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import time
 
-from jet.adapters.llama_cpp.parallel_embeddings import embed_batch
+from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from rich.console import Console
 
 console = Console()
+
+embedder = LlamacppEmbedding()
 
 
 def timed_batch_embed(
@@ -16,7 +18,9 @@ def timed_batch_embed(
 ) -> tuple[list[list[float]], float]:
     """Run batch embed and return results + wall-clock time in seconds."""
     start = time.perf_counter()
-    embeddings = embed_batch(texts, max_workers=max_workers, batch_size=batch_size)
+    embeddings = embedder.embed_parallel(
+        texts, max_workers=max_workers, batch_size=batch_size
+    )
     elapsed = time.perf_counter() - start
     return embeddings, elapsed
 
