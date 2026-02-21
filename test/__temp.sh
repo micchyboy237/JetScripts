@@ -1,440 +1,248 @@
 #!/bin/bash
 
-# Create project folders
+# create_structure.sh - Set up project directory and scaffold all files with the provided code.
+
+set -e
+
+# Create directory structure
 mkdir -p tests
 
 # Create requirements.txt
 cat > requirements.txt << 'EOF'
-# Free, modern, popular packages - install with: pip install -r requirements.txt
-unstructured[all-docs]>=0.20.8
-chromadb>=0.5.0
-openai>=1.35.0
-rich>=13.7.0
-tqdm>=4.66.0
-pytest>=8.0.0
-python-dotenv>=1.0.0
-typing-extensions>=4.0.0
+unstructured[all-docs]
+sentence-transformers
+chromadb
+rich
+tqdm
+pytest
+# Optional for Windows/Mac deps: tesseract, poppler (system packages via brew/choco)
 EOF
 
-# Create rag_document.py
-cat > rag_document.py << 'EOF'
-"""Reusable typed document for the entire RAG pipeline - generic, no business logic."""
-from dataclasses import dataclass
-from typing import Dict, Any, List, TypedDict
+# Create retriever.py
+cat > retriever.py << 'EOF'
+"""Reusable, modular, local-only unstructured data processor/retriever.
 
-class Chunk(TypedDict):
-    """Minimal, reusable chunk structure with text + metadata (from unstructured elements)."""
-    text: str
-    metadata: Dict[str, Any]
+Mirrors blog techniques (element partitioning + rich metadata + embeddings + metadata filtering)
+but fully local with ChromaDB. Generic, configurable, no business logic.
+"""
+import logging
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import chromadb
+from chromadb.utils.embedding_functions import SentenceTransformerEmbeddingFunction
+from rich.console import Console
+from rich.logging import RichHandler
+from tqdm import tqdm
+from unstructured.partition.auto import partition
+
+console = Console()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(rich_tracebacks=True, console=console)],
+)
+logger = logging.getLogger(__name__)
+
 
 @dataclass
-class RAGDocument:
-    """Optional dataclass wrapper for type safety in advanced usage (swapable with TypedDict)."""
-    page_content: str
-    metadata: Dict[str, Any]
+class RetrieverConfig:
+    """Generic configuration - user supplies values at runtime."""
+    collection_name: str
+    persist_directory: str
+    embedding_model_name: str = "all-MiniLM-L6-v2"
 
-RAGDocumentList = List[RAGDocument]
-ChunkList = List[Chunk]
-EOF
 
-# Create rag_processor.py
-cat > rag_processor.py << 'EOF'
-"""DocumentProcessor: small, focused class for loading + smart chunking with unstructured."""
-import os
-from pathlib import Path
-from typing import List, Optional, Any
-from tqdm import tqdm
-from rich.console import Console
-from unstructured.partition.auto import partition
-from unstructured.chunking.title import chunk_by_title
-from rag_document import Chunk, ChunkList
+class UnstructuredIngester:
+    """Single responsibility: partition local files into Unstructured elements."""
 
-console = Console()
+    @staticmethod
+    def partition_file(file_path: Path) -> List[Any]:
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {file_path}")
+        logger.info(f"Partitioning {file_path.name}")
+        return partition(filename=str(file_path))
 
-class DocumentProcessor:
-    """Generic processor - configurable strategy/chunk size, no hard-coded paths or logic."""
+    @staticmethod
+    def get_files_in_directory(directory: Path, pattern: str = "**/*.*") -> List[Path]:
+        return [f for f in directory.glob(pattern) if f.is_file()]
 
-    def __init__(
-        self,
-        max_characters: int = 1000,
-        new_after_n_chars: int = 500,
-        combine_text_under_n_chars: int = 200,
-        strategy: str = "fast",  # "fast" = lightweight cross-platform (M1/Win); override to "hi_res" after deps
-    ):
-        self.max_characters = max_characters
-        self.new_after_n_chars = new_after_n_chars
-        self.combine_text_under_n_chars = combine_text_under_n_chars
-        self.strategy = strategy
 
-    def _partition(self, file_path: str, **kwargs: Any) -> List:
-        """Tiny private method: partition single file."""
-        return partition(filename=file_path, strategy=self.strategy, **kwargs)
+class LocalVectorStore:
+    """Single responsibility: persistent local Chroma storage with metadata filtering."""
 
-    def _chunk(self, elements: List) -> List:
-        """Tiny private method: structure-aware chunking (preserves titles/sections for RAG)."""
-        return chunk_by_title(
-            elements,
-            max_characters=self.max_characters,
-            new_after_n_chars=self.new_after_n_chars,
-            combine_text_under_n_chars=self.combine_text_under_n_chars,
-        )
-
-    def process_file(self, file_path: str, **kwargs: Any) -> ChunkList:
-        """Public API: partition + chunk + convert to reusable Chunk."""
-        elements = self._partition(file_path, **kwargs)
-        chunked_elements = self._chunk(elements)
-        chunks: ChunkList = []
-        for el in chunked_elements:
-            text = getattr(el, "text", str(el)).strip()
-            if text:
-                metadata = getattr(el.metadata, "to_dict", lambda: dict(el.metadata))() if el.metadata else {}
-                chunks.append({"text": text, "metadata": metadata})
-        return chunks
-
-    def process_directory(self, directory: str) -> ChunkList:
-        """Reusable batch processor with progress (tqdm + rich)."""
-        all_chunks: ChunkList = []
-        paths = list(Path(directory).glob("**/*.*"))
-        for path in tqdm(paths, desc="Processing files", console=console):
-            if path.is_file():
-                chunks = self.process_file(str(path))
-                all_chunks.extend(chunks)
-        console.print(f"[green]Processed {len(all_chunks)} chunks from {directory}[/green]")
-        return all_chunks
-EOF
-
-# Create rag_embedder.py
-cat > rag_embedder.py << 'EOF'
-"""LlamaCppEmbedder: generic wrapper for llama.cpp embedding server (OpenAI compatible)."""
-import os
-from typing import List, Optional
-from openai import OpenAI
-from rag_document import ChunkList
-
-class LlamaCppEmbedder:
-    """Reusable embedder - works with any OpenAI-compatible server (llama.cpp embed URL)."""
-
-    def __init__(self, embed_url: Optional[str] = None):
-        url = embed_url or os.getenv("LLAMA_CPP_EMBED_URL")
-        if not url:
-            raise ValueError("LLAMA_CPP_EMBED_URL env var required (or pass embed_url)")
-        self.client = OpenAI(
-            base_url=url.rstrip("/") + "/v1" if not url.endswith("/v1") else url,
-            api_key="sk-no-key-required",
-        )
-
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        """Batch embed - generic, handles empty safely."""
-        if not texts:
-            return []
-        response = self.client.embeddings.create(input=texts, model="dummy")  # model ignored by llama.cpp
-        return [item.embedding for item in response.data]
-
-    def embed_query(self, text: str) -> List[float]:
-        """Single query embed (reusable in retriever)."""
-        return self.embed_documents([text])[0]
-EOF
-
-# Create rag_llm.py
-cat > rag_llm.py << 'EOF'
-"""LlamaCppLLM: generic wrapper for llama.cpp LLM server (OpenAI chat compatible)."""
-import os
-from typing import List, Dict, Optional
-from openai import OpenAI
-
-class LlamaCppLLM:
-    """Reusable LLM generator - flexible messages, temperature etc. No business prompts here."""
-
-    def __init__(self, llm_url: Optional[str] = None):
-        url = llm_url or os.getenv("LLAMA_CPP_LLM_URL")
-        if not url:
-            raise ValueError("LLAMA_CPP_LLM_URL env var required (or pass llm_url)")
-        self.client = OpenAI(
-            base_url=url.rstrip("/") + "/v1" if not url.endswith("/v1") else url,
-            api_key="sk-no-key-required",
-        )
-
-    def generate(
-        self,
-        messages: List[Dict[str, str]],
-        temperature: float = 0.0,
-        max_tokens: int = 1024,
-    ) -> str:
-        """Generic chat completion - returns clean string."""
-        response = self.client.chat.completions.create(
-            model="dummy",  # ignored by server
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        return (response.choices[0].message.content or "").strip()
-EOF
-
-# Create rag_vectorstore.py
-cat > rag_vectorstore.py << 'EOF'
-"""ChromaVectorStore: generic local vector store using pre-computed embeddings."""
-import os
-from typing import List
-from uuid import uuid4
-import chromadb
-from rag_document import Chunk, ChunkList
-
-class ChromaVectorStore:
-    """Reusable Chroma wrapper - persistent by default, metadata-aware."""
-
-    def __init__(self, persist_directory: str = "./chroma_db", collection_name: str = "default_rag"):
+    def __init__(self, persist_directory: str, collection_name: str, embedding_model_name: str):
+        Path(persist_directory).mkdir(parents=True, exist_ok=True)
         self.client = chromadb.PersistentClient(path=persist_directory)
-        self.collection = self.client.get_or_create_collection(name=collection_name)
-
-    def add_documents(self, documents: ChunkList, embeddings: List[List[float]]) -> None:
-        """Add with pre-computed embeds - DRY, handles empty."""
-        if not documents:
-            return
-        ids = [str(uuid4()) for _ in documents]
-        texts = [d["text"] for d in documents]
-        metas = [d["metadata"] for d in documents]
-        self.collection.add(
-            ids=ids,
-            embeddings=embeddings,
-            documents=texts,
-            metadatas=metas,
+        embedding_fn = SentenceTransformerEmbeddingFunction(model_name=embedding_model_name)
+        self.collection = self.client.get_or_create_collection(
+            name=collection_name,
+            embedding_function=embedding_fn,
+            metadata={"hnsw:space": "cosine"},
         )
 
-    def similarity_search(self, query_embedding: List[float], k: int = 5) -> ChunkList:
-        """Retrieve top-k - reconstructs ChunkList."""
-        if not query_embedding:
-            return []
-        results = self.collection.query(
-            query_embeddings=[query_embedding],
-            n_results=k,
-            include=["documents", "metadatas"],
-        )
-        chunks: ChunkList = []
-        for doc, meta in zip(results.get("documents", [[]])[0], results.get("metadatas", [[]])[0]):
-            chunks.append({"text": doc, "metadata": meta or {}})
-        return chunks
-EOF
-
-# Create rag_pipeline.py
-cat > rag_pipeline.py << 'EOF'
-"""RAGPipeline: top-level orchestrator - composable, small methods."""
-import os
-from typing import List, Optional
-from rich.console import Console
-from rag_processor import DocumentProcessor
-from rag_embedder import LlamaCppEmbedder
-from rag_llm import LlamaCppLLM
-from rag_vectorstore import ChromaVectorStore
-from rag_document import ChunkList
-
-console = Console()
-
-class RAGPipeline:
-    """Generic pipeline - dependency injection for testability/reuse."""
-
-    def __init__(
-        self,
-        processor: Optional[DocumentProcessor] = None,
-        embedder: Optional[LlamaCppEmbedder] = None,
-        llm: Optional[LlamaCppLLM] = None,
-        vector_store: Optional[ChromaVectorStore] = None,
-    ):
-        self.processor = processor or DocumentProcessor()
-        self.embedder = embedder or LlamaCppEmbedder()
-        self.llm = llm or LlamaCppLLM()
-        self.vector_store = vector_store or ChromaVectorStore()
-
-    def ingest(self, file_paths_or_dir: str | List[str]) -> None:
-        """Ingest files or dir - uses tqdm + rich for visibility."""
-        if isinstance(file_paths_or_dir, str) and os.path.isdir(file_paths_or_dir):
-            chunks: ChunkList = self.processor.process_directory(file_paths_or_dir)
-        else:
-            paths = [file_paths_or_dir] if isinstance(file_paths_or_dir, str) else file_paths_or_dir
-            chunks = []
-            for p in paths:
-                chunks.extend(self.processor.process_file(p))
-        if not chunks:
-            console.print("[yellow]No chunks to ingest[/yellow]")
+    def add_elements(self, elements: List[Any], source_file: str) -> None:
+        """Prepare elements (text + enriched metadata) and upsert."""
+        if not elements:
             return
-        embeddings = self.embedder.embed_documents([c["text"] for c in chunks])
-        self.vector_store.add_documents(chunks, embeddings)
-        console.print(f"[green]Ingested {len(chunks)} chunks successfully[/green]")
+        documents: List[str] = []
+        metadatas: List[Dict[str, Any]] = []
+        ids: List[str] = []
+        for idx, element in enumerate(elements):
+            text = getattr(element, "text", "").strip()
+            if not text:
+                continue
+            documents.append(text)
+            meta: Dict[str, Any] = {}
+            if hasattr(element, "metadata") and hasattr(element.metadata, "to_dict"):
+                meta.update(element.metadata.to_dict())
+            meta["element_type"] = getattr(element, "category", "Unknown")
+            meta["source_file"] = source_file
+            metadatas.append(meta)
+            ids.append(f"{source_file}_{idx}")
+        self.collection.add(documents=documents, metadatas=metadatas, ids=ids)
+        logger.info(f"Added {len(documents)} elements from {source_file}")
 
-    def query(self, question: str, k: int = 5, temperature: float = 0.0) -> str:
-        """Full RAG query - embed -> retrieve -> generate. Generic prompt (overrideable via subclass)."""
-        query_emb = self.embedder.embed_query(question)
-        retrieved = self.vector_store.similarity_search(query_emb, k=k)
-        if not retrieved:
-            return "No relevant documents found."
-        context = "\n\n---\n\n".join([c["text"] for c in retrieved])
-        system_prompt = "You are a helpful, accurate assistant. Answer only using the provided context. If unsure, say 'I don't have enough information'."
-        user_prompt = f"Context:\n{context}\n\nQuestion: {question}"
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
-        answer = self.llm.generate(messages, temperature=temperature)
-        console.print(f"[blue]Retrieved {len(retrieved)} chunks[/blue]")
-        return answer
+    def query(
+        self, query_text: str, n_results: int = 5, where: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Metadata-filtered retrieval (exact blog-style 'element_type' filter support)."""
+        return self.collection.query(
+            query_texts=[query_text],
+            n_results=n_results,
+            where=where,
+            include=["documents", "metadatas", "distances"],
+        )
+
+
+class UnstructuredLocalRetriever:
+    """High-level facade - easy entry point for users."""
+
+    def __init__(self, config: RetrieverConfig):
+        self.config = config
+        self.ingester = UnstructuredIngester()
+        self.vector_store = LocalVectorStore(
+            config.persist_directory, config.collection_name, config.embedding_model_name
+        )
+
+    def ingest_file(self, file_path: str | Path) -> None:
+        path = Path(file_path)
+        elements = self.ingester.partition_file(path)
+        self.vector_store.add_elements(elements, source_file=path.name)
+        console.print(f"[bold green]✓ Ingested {path.name}[/bold green]")
+
+    def ingest_directory(self, directory: str | Path, pattern: str = "**/*.*") -> None:
+        dir_path = Path(directory)
+        files = self.ingester.get_files_in_directory(dir_path, pattern)
+        for file_path in tqdm(files, desc="Ingesting local files", unit="file"):
+            try:
+                self.ingest_file(file_path)
+            except Exception as e:  # robust per-file
+                logger.error(f"Skipped {file_path.name}: {e}")
+
+    def retrieve(
+        self, query: str, top_k: int = 5, filters: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Example filter: {'element_type': 'Table'} or {'source_file': 'report.pdf'}."""
+        return self.vector_store.query(query, top_k, filters)
+
+
+if __name__ == "__main__":
+    # Quick example usage (uncomment/adapt)
+    config = RetrieverConfig(collection_name="my_local_docs", persist_directory="./chroma_db")
+    retriever = UnstructuredLocalRetriever(config)
+    # retriever.ingest_directory("./my_documents_folder")
+    # results = retriever.retrieve("sales figures", top_k=3, filters={"element_type": "Table"})
+    # console.print(results)
 EOF
 
-# Create test_rag.py
-cat > tests/test_rag.py << 'EOF'
-"""Pytest tests - class-based, BDD style, human-readable examples, exact asserts on lists."""
-import os
-import tempfile
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+# Create tests/test_retriever.py
+cat > tests/test_retriever.py << 'EOF'
+"""pytest tests following your exact style (BDD, result/expected vars, full list asserts, tmp_path cleanup)."""
 import pytest
-from rag_processor import DocumentProcessor
-from rag_embedder import LlamaCppEmbedder
-from rag_llm import LlamaCppLLM
-from rag_vectorstore import ChromaVectorStore
-from rag_pipeline import RAGPipeline
-from rag_document import Chunk
+from pathlib import Path
+from retriever import UnstructuredLocalRetriever, RetrieverConfig
 
-class TestDocumentProcessor:
-    """Behaviors for document loading + chunking."""
 
-    def test_process_file_given_earnings_report_md_when_processed_then_chunks_respect_titles(self, tmp_path: Path):
-        # Given: human-readable sample earnings report with clear sections
-        sample_md = """# Q3 2025 Earnings Report
+@pytest.fixture
+def temp_retriever_dir(tmp_path: Path):
+    """Clean temporary dir + DB for each test."""
+    return tmp_path
 
-Revenue increased 25% YoY.
 
-## Financial Highlights
-Profit reached $15M.
-"""
-        file_path = tmp_path / "earnings.md"
-        file_path.write_text(sample_md)
+class TestUnstructuredLocalRetriever:
+    """Separate test class for behaviors."""
 
-        processor = DocumentProcessor(max_characters=150, new_after_n_chars=100)
+    def test_ingest_text_file_and_retrieve(self, temp_retriever_dir: Path):
+        """BDD: Given a real-world quarterly sales report text file.
+        When ingested.
+        Then retrieve returns exact expected content with metadata.
+        """
+        # Given: real-world sample (like blog PDF excerpt but .txt for easy testing)
+        sample_content = (
+            "Q3 2025 Sales Report\n"
+            "Revenue: $2.3M (up 20%).\n"
+            "Key metric: tables show regional breakdown."
+        )
+        sample_file = temp_retriever_dir / "q3_sales_report.txt"
+        sample_file.write_text(sample_content)
+
+        config = RetrieverConfig(
+            collection_name="test_sales",
+            persist_directory=str(temp_retriever_dir / "chroma"),
+        )
+        retriever = UnstructuredLocalRetriever(config)
 
         # When
-        result: list[Chunk] = processor.process_file(str(file_path))
+        retriever.ingest_file(sample_file)
 
         # Then
+        result = retriever.retrieve("sales revenue", top_k=1)
+        expected_documents = [[sample_content]]
+        expected_metadata_contains = {
+            "element_type": "NarrativeText",
+            "source_file": "q3_sales_report.txt",
+        }
+
+        assert result["documents"] == expected_documents
+        assert expected_metadata_contains["element_type"] in result["metadatas"][0][0]["element_type"]
+        assert expected_metadata_contains["source_file"] == result["metadatas"][0][0]["source_file"]
+
+    def test_ingest_directory_and_filtered_retrieve(self, temp_retriever_dir: Path):
+        """BDD: Given a directory with multiple real-world doc files.
+        When ingested via directory method.
+        Then filtered query returns only matching elements.
+        """
+        # Given: two sample files (realistic content)
+        (temp_retriever_dir / "tech_article.txt").write_text(
+            "Advanced RAG uses element partitioning and metadata filtering."
+        )
+        (temp_retriever_dir / "finance_table.txt").write_text(
+            "Table: Q3 Revenue by region."
+        )
+
+        config = RetrieverConfig(
+            collection_name="test_dir",
+            persist_directory=str(temp_retriever_dir / "chroma_dir"),
+        )
+        retriever = UnstructuredLocalRetriever(config)
+
+        # When
+        retriever.ingest_directory(temp_retriever_dir, pattern="**/*.txt")
+
+        # Then: filter demo (blog-style element_type filter)
+        result = retriever.retrieve(
+            "revenue", top_k=2, filters={"element_type": "NarrativeText"}
+        )
+        result_texts = result["documents"][0]
         expected_texts = [
-            "# Q3 2025 Earnings Report\n\nRevenue increased 25% YoY.",
-            "## Financial Highlights\n\nProfit reached $15M.",
-        ]
-        result_texts = [c["text"] for c in result]
-        assert result_texts == expected_texts  # exact match on structure-aware chunks
-        assert len(result) == 2
-        assert "Q3 2025" in result[0]["text"]  # real-world verification
+            "Advanced RAG uses element partitioning and metadata filtering."
+        ]  # only the narrative one after filter
 
-class TestLlamaCppEmbedder:
-    """Behaviors for embedding server calls."""
-
-    @patch("openai.OpenAI")
-    def test_embed_documents_given_texts_when_called_then_returns_embeddings(self, mock_openai_class):
-        # Given
-        mock_client = MagicMock()
-        mock_openai_class.return_value = mock_client
-        mock_response = MagicMock()
-        mock_response.data = [MagicMock(embedding=[0.1, 0.2]), MagicMock(embedding=[0.3, 0.4])]
-        mock_client.embeddings.create.return_value = mock_response
-
-        embedder = LlamaCppEmbedder(embed_url="http://localhost:8081")  # mock url
-
-        # When
-        result = embedder.embed_documents(["text one", "text two"])
-
-        # Then
-        expected = [[0.1, 0.2], [0.3, 0.4]]
-        assert result == expected
-        mock_client.embeddings.create.assert_called_once()
-
-    def test_embed_query_given_single_text_when_called_then_returns_single_vector(self):
-        # Given
-        embedder = LlamaCppEmbedder(embed_url="http://localhost:8081")  # will be mocked in full run
-
-        # When + Then (integration style with real server when available)
-        # Note: run with real server for full; this verifies method shape
-        pass  # placeholder - full test in pipeline
-
-class TestChromaVectorStore:
-    """Behaviors for vector storage/retrieval."""
-
-    def test_add_and_search_given_chunks_when_searched_then_returns_matching(self, tmp_path: Path):
-        # Given
-        store = ChromaVectorStore(persist_directory=str(tmp_path / "test_db"))
-        chunks: list[Chunk] = [
-            {"text": "Revenue up 25%", "metadata": {"source": "earnings.md"}},
-            {"text": "Profit $15M", "metadata": {"source": "earnings.md"}},
-        ]
-        dummy_embs = [[0.1] * 1536, [0.2] * 1536]
-
-        # When
-        store.add_documents(chunks, dummy_embs)
-        result = store.similarity_search([0.15] * 1536, k=2)
-
-        # Then
-        expected_texts = ["Revenue up 25%", "Profit $15M"]
-        result_texts = [c["text"] for c in result]
-        assert sorted(result_texts) == sorted(expected_texts)
-
-class TestRAGPipeline:
-    """End-to-end pipeline behaviors (with mocks for LLM/embed)."""
-
-    @patch("rag_embedder.LlamaCppEmbedder")
-    @patch("rag_llm.LlamaCppLLM")
-    def test_query_given_mocked_components_when_called_then_returns_generated_answer(
-        self, mock_llm_class, mock_embedder_class
-    ):
-        # Given
-        mock_embedder = MagicMock()
-        mock_embedder.embed_query.return_value = [0.1] * 1536
-        mock_embedder_class.return_value = mock_embedder
-
-        mock_llm = MagicMock()
-        mock_llm.generate.return_value = "Revenue grew 25%."
-        mock_llm_class.return_value = mock_llm
-
-        # fake store with pre-added data
-        with tempfile.TemporaryDirectory() as tmp:
-            store = ChromaVectorStore(persist_directory=tmp)
-            chunks: list[Chunk] = [{"text": "Revenue increased 25% YoY.", "metadata": {}}]
-            store.add_documents(chunks, [[0.1] * 1536])
-
-            pipeline = RAGPipeline(
-                embedder=mock_embedder,
-                llm=mock_llm,
-                vector_store=store,
-            )
-
-            # When
-            result = pipeline.query("What was the revenue growth?")
-
-            # Then
-            expected = "Revenue grew 25%."
-            assert result == expected
-            mock_llm.generate.assert_called_once()
+        assert result_texts == expected_texts  # exact list assert
+        assert result["metadatas"][0][0]["source_file"] == "tech_article.txt"
 EOF
 
-# Print usage instructions
-cat << 'INSTRUCTIONS'
-
-**How to use (after `pip install -r requirements.txt` and running your llama.cpp servers):**
-
-```python
-# example_usage.py
-from dotenv import load_dotenv
-load_dotenv()
-
-from rag_pipeline import RAGPipeline
-
-pipeline = RAGPipeline()
-pipeline.ingest("path/to/your/docs/folder")  # or list of files
-answer = pipeline.query("What is the key finding in the report?")
-print(answer)
-```
-
-Run tests: `python -m pytest tests/test_rag.py -q --tb=no`
-
-All tests use human-readable real-world examples (earnings report), exact list asserts on expected variables, BDD Given/When/Then comments, and mocks/cleanup for isolation.
-
-The code is complete, working, modular, testable, DRY, and follows every style requirement. No static code, no removed definitions, small methods only.
-
-Once you confirm all tests pass (share output), I will provide recommendations for further improvements (e.g., hybrid search, semantic chunking option, async support).
-INSTRUCTIONS
+echo "Project scaffold complete."

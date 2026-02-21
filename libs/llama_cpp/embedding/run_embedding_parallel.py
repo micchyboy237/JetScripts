@@ -8,19 +8,16 @@ from rich.console import Console
 
 console = Console()
 
-embedder = LlamacppEmbedding()
+embedder = LlamacppEmbedding(max_workers=4)
 
 
 def timed_batch_embed(
     texts: list[str],
-    max_workers: int,
     batch_size: int,
 ) -> tuple[list[list[float]], float]:
     """Run batch embed and return results + wall-clock time in seconds."""
     start = time.perf_counter()
-    embeddings = embedder.embed_parallel(
-        texts, max_workers=max_workers, batch_size=batch_size
-    )
+    embeddings = embedder.embed_parallel(texts, batch_size=batch_size)
     elapsed = time.perf_counter() - start
     return embeddings, elapsed
 
@@ -59,7 +56,7 @@ if __name__ == "__main__":
     console.print(
         "[green]Running concurrent version (max_workers=4) – leverages --parallel 4 + cont-batching[/green]"
     )
-    _, time_para = timed_batch_embed(SAMPLE_DOCS, max_workers=4, batch_size=2)
+    _, time_para = timed_batch_embed(SAMPLE_DOCS, batch_size=2)
     throughput_para = len(SAMPLE_DOCS) / time_para if time_para > 0 else 0
     console.print(
         f"→ Concurrent: {time_para:.2f} seconds | ~{throughput_para:.1f} docs/sec\n"
