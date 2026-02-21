@@ -7,8 +7,8 @@ from jet.adapters.llama_cpp.embeddings import LlamacppEmbedding
 from rich.console import Console
 
 console = Console()
-
-embedder = LlamacppEmbedding(max_workers=4)
+MAX_WORKERS = 6
+embedder = LlamacppEmbedding(max_workers=MAX_WORKERS)
 
 
 def timed_batch_embed(
@@ -24,7 +24,7 @@ def timed_batch_embed(
 
 # === Real-world example data ===
 # Simulate 16 support articles / product FAQs (short-medium length)
-SAMPLE_DOCS = [
+ORIGINAL_DOCS = [
     "Our return policy allows returns within 30 days of purchase with original packaging.",
     "To reset your password, click 'Forgot Password' on the login page and follow the email instructions.",
     "The Premium plan includes unlimited storage, priority support, and advanced analytics.",
@@ -43,38 +43,38 @@ SAMPLE_DOCS = [
     "Our team responds to support tickets within 24 hours on business days.",
 ]
 
+# Create larger dataset by repeating the original documents
+SAMPLE_DOCS = ORIGINAL_DOCS * 20  # 16 × 20 = 320 documents
+
 
 if __name__ == "__main__":
     console.rule("llama.cpp Embedding Server Performance Demo")
-
     console.print(
-        "\n[bold cyan]Scenario:[/bold cyan] Indexing 16 customer support articles "
+        "\n[bold cyan]Scenario:[/bold cyan] Indexing customer support articles "
         "for semantic search in a helpdesk RAG system.\n"
-        "Goal: Minimize total time to generate embeddings for vector DB insertion.\n"
+        "Goal: Measure embedding throughput at different dataset sizes.\n"
     )
+
+    console.print(f"[green]Dataset size:[/green] {len(SAMPLE_DOCS)} documents")
+    console.print(
+        f"[green]Using concurrent version[/green] (max_workers={MAX_WORKERS}) – "
+        f"leverages --parallel {MAX_WORKERS} + continuous batching\n"
+    )
+
+    embeddings, time_taken = timed_batch_embed(SAMPLE_DOCS, batch_size=2)
+    throughput = len(SAMPLE_DOCS) / time_taken if time_taken > 0 else 0
 
     console.print(
-        "[green]Running concurrent version (max_workers=4) – leverages --parallel 4 + cont-batching[/green]"
+        f"→ Processed {len(SAMPLE_DOCS)} docs in {time_taken:.2f} seconds "
+        f"| ~{throughput:.1f} docs/sec\n"
     )
-    _, time_para = timed_batch_embed(SAMPLE_DOCS, batch_size=2)
-    throughput_para = len(SAMPLE_DOCS) / time_para if time_para > 0 else 0
+
+    # Optional: uncomment to also test smaller / larger batches
+    # console.print("Testing with batch_size=8...")
+    # _, time_b8 = timed_batch_embed(SAMPLE_DOCS, batch_size=8)
+    # console.print(f"  → batch_size=8: {time_b8:.2f} seconds\n")
+
     console.print(
-        f"→ Concurrent: {time_para:.2f} seconds | ~{throughput_para:.1f} docs/sec\n"
+        "[yellow]Tip:[/yellow] Try changing the multiplier (e.g. *50, *100) "
+        "or using skewed duplication to simulate real-world usage patterns."
     )
-
-    # console.print(
-    #     "[yellow]Running sequential version (max_workers=1) – simulates --parallel 1[/yellow]"
-    # )
-    # _, time_seq = timed_batch_embed(SAMPLE_DOCS, max_workers=1)
-    # throughput_seq = len(SAMPLE_DOCS) / time_seq if time_seq > 0 else 0
-    # console.print(
-    #     f"→ Sequential: {time_seq:.2f} seconds | ~{throughput_seq:.1f} docs/sec\n"
-    # )
-
-    # speedup = time_seq / time_para if time_para > 0 else 1
-    # console.print(
-    #     f"[bold]Speedup factor:[/bold] {speedup:.1f}x faster with parallel requests!"
-    # )
-    # console.print(
-    #     "→ With --parallel + --cont-batching, GPU batches tokens from multiple requests → higher throughput under load."
-    # )
