@@ -5,7 +5,7 @@ if __name__ == "__main__":
     overwrite = True
     extract_code = True
     hf_readme_download_dir = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/docs/hf_readmes"
-    model: ModelType = "SicariusSicariiStuff/Fiendish_LLAMA_3B"
+    model: ModelType = "speechbrain/vad-crdnn-libriparty"
 
     model_value: ModelValue = resolve_model_value(model)
     download_readme(model_value, hf_readme_download_dir, overwrite, extract_code)
