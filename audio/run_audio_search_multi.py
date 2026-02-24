@@ -1,30 +1,12 @@
 import sys
-from pathlib import Path
 
-import numpy as np
 from jet.audio.audio_search import find_audio_offsets
+from jet.audio.utils import load_audio
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
-from scipy.io import wavfile
 
 console = Console()
-
-
-def load_wav_mono(path: str | Path) -> tuple[int, np.ndarray]:
-    """Load a WAV file and ensure it's mono float32 normalized to [-1, 1]."""
-    path = Path(path)
-    if not path.is_file():
-        raise FileNotFoundError(f"Audio file not found: {path}")
-    sample_rate, data = wavfile.read(path)
-    if data.ndim == 2:
-        data = data.mean(axis=1)
-    if data.dtype.kind in "iu":
-        max_val = np.iinfo(data.dtype).max
-        data = data.astype(np.float32) / max_val
-    else:
-        data = data.astype(np.float32)
-    return sample_rate, data
 
 
 if len(sys.argv) != 3:
@@ -46,8 +28,8 @@ short_path = sys.argv[2]
 
 try:
     console.rule("Loading audio files")
-    sr_long, long_signal = load_wav_mono(long_path)
-    sr_short, short_signal = load_wav_mono(short_path)
+    long_signal, sr_long = load_audio(long_path)
+    short_signal, sr_short = load_audio(short_path)
 
     if sr_long != sr_short:
         console.print(
