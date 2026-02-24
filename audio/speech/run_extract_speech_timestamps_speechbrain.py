@@ -1,6 +1,5 @@
 # run_extract_speech_timestamps_speechbrain.py
 import json
-import os
 import shutil
 from collections import defaultdict
 from pathlib import Path
@@ -17,11 +16,7 @@ from silero_vad.utils_vad import read_audio
 
 console = Console()
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__),
-    "generated",
-    os.path.splitext(os.path.basename(__file__))[0],
-)
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -40,7 +35,6 @@ def main(
     min_silence_duration_ms: int = 100,
     normalize_loudness: bool = False,
     include_non_speech: bool = False,
-    double_check: bool = False,
     max_speech_duration_sec: float = float("inf"),
 ):
     audio_file = str(audio_file)
@@ -58,7 +52,6 @@ def main(
         neg_threshold=neg_threshold,
         normalize_loudness=normalize_loudness,
         include_non_speech=include_non_speech,
-        double_check=double_check,
     )
     waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
@@ -71,10 +64,16 @@ def main(
     segments_dir = output_dir / "segments"
     segments_dir.mkdir(parents=True, exist_ok=True)
     for seg in segments:
+        seg_type = seg["type"]
+        if seg_type == "speech":
+            type_color = "bold green"
+        else:
+            type_color = "bold red"
         console.print(
             f"[yellow][[/yellow] [bold white]{seg['start']:.2f}[/bold white] - [bold white]{seg['end']:.2f}[/bold white] [yellow]][/yellow] "
             f"duration=[bold magenta]{seg['duration']}s[/bold magenta] "
-            f"prob=[bold cyan]{seg['prob']:.3f}[/bold cyan]"
+            f"prob=[bold cyan]{seg['prob']:.3f}[/bold cyan] "
+            f"type=[{type_color}]{seg_type}[/{type_color}]"
         )
         folder_name = (
             f"segment_{seg['num']:03d}"  # use segment number for output subdir
@@ -128,9 +127,8 @@ if __name__ == "__main__":
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
     ]
 
-    include_non_speech = False
+    include_non_speech = True
     normalize_loudness = False
-    double_check = False
 
     threshold = 0.5
     neg_threshold = 0.25
@@ -150,7 +148,6 @@ if __name__ == "__main__":
             sub_output_dir,
             normalize_loudness=normalize_loudness,
             include_non_speech=include_non_speech,
-            double_check=double_check,
             threshold=threshold,
             neg_threshold=neg_threshold,
             max_speech_duration_sec=max_speech_duration_sec,

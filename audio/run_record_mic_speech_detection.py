@@ -1,9 +1,9 @@
 # JetScripts/audio/run_record_mic.py
 import json
-from pathlib import Path
 import shutil
-import numpy as np
+from pathlib import Path
 
+import numpy as np
 from jet.audio.helpers.silence import SAMPLE_RATE
 from jet.audio.record_mic_speech_detection import record_from_mic
 from jet.audio.speech.silero.speech_types import SpeechSegment
@@ -14,6 +14,7 @@ from jet.logger import logger
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     segment_root = Path(OUTPUT_DIR) / "segments"
@@ -40,6 +41,10 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     wav_path = seg_dir / "sound.wav"
     metadata_path = seg_dir / "metadata.json"
 
+    if seg_audio_np is None or len(seg_audio_np) == 0:
+        logger.warning("Skipping empty segment (no audio after trimming)")
+        return
+
     seg_sound_file = save_wav_file(wav_path, seg_audio_np)
     metadata_path.write_text(json.dumps(speech_seg, indent=2), encoding="utf-8")
 
@@ -47,13 +52,16 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     logger.success(seg_sound_file, bright=True)
     logger.success(metadata_path, bright=True)
 
+
 if __name__ == "__main__":
     duration_seconds = None
     trim_silent = True
     quit_on_silence = False
 
     # Record with trim_silent=True → returns trimmed np.ndarray directly
-    data_stream = record_from_mic(duration_seconds, trim_silent=trim_silent, quit_on_silence=quit_on_silence)
+    data_stream = record_from_mic(
+        duration_seconds, trim_silent=trim_silent, quit_on_silence=quit_on_silence
+    )
     segments: list[dict] = []
     pending_segments: dict[int, dict] = {}
 
@@ -71,7 +79,6 @@ if __name__ == "__main__":
 
         segments.append(speech_seg_copy)
         save_file(segments, OUTPUT_DIR / "all_segments.json", verbose=False)
-
 
         output_file = f"{OUTPUT_DIR}/full_recording.wav"
         save_wav_file(output_file, full_audio_np)
