@@ -77,6 +77,7 @@ try:
         console.print("[bold red]No good match found[/] (confidence below threshold)")
     else:
         table = Table(show_header=False, expand=False)
+        table.add_row("Sample rate", f"{sr_long:,d} Hz")
         table.add_row("Start sample", f"{result['start_sample']:,d}")
         table.add_row("End sample", f"{result['end_sample']:,d}")
         table.add_row("Start time", f"{result['start_time']:.3f} s")

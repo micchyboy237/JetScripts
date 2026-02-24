@@ -3,7 +3,7 @@ from pathlib import Path  # Needed for Path operations
 import numpy as np
 import torch
 import torchaudio
-from jet.audio.audio_search import AudioSegmentDatabase
+from jet.audio.audio_search2 import AudioSegmentDatabase
 from rich.console import Console
 from rich.table import Table
 from tqdm import tqdm
