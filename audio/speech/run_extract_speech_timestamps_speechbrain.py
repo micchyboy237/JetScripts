@@ -1,6 +1,5 @@
 # run_extract_speech_timestamps_speechbrain.py
 import json
-import os
 import shutil
 import sys
 from collections import defaultdict
@@ -16,11 +15,7 @@ from silero_vad.utils_vad import read_audio
 
 console = Console()
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__),
-    "generated",
-    os.path.splitext(os.path.basename(__file__))[0],
-)
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
