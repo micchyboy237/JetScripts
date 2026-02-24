@@ -1,13 +1,15 @@
 # run_extract_speech_timestamps_speechbrain.py
 import json
+import os
 import shutil
-import sys
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
 import torchaudio
-from jet.audio.speech.speechbrain.vad import SpeechBrainVAD
+from jet.audio.speech.speechbrain.speech_timestamps_extractor import (
+    extract_speech_timestamps,
+)
 from jet.file.utils import save_file
 from jet.utils.text import format_sub_dir
 from rich.console import Console
@@ -15,7 +17,11 @@ from silero_vad.utils_vad import read_audio
 
 console = Console()
 
-OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+OUTPUT_DIR = os.path.join(
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
@@ -35,14 +41,25 @@ def main(
     normalize_loudness: bool = False,
     include_non_speech: bool = False,
     double_check: bool = False,
+    max_speech_duration_sec: float = float("inf"),
 ):
-    vad = SpeechBrainVAD()
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
     console.print(f"[bold cyan]Processing:[/bold cyan] {Path(audio_file).name}")
-    all_speech_probs = vad.get_speech_probs(audio_file)
-    save_file(all_speech_probs, output_dir / "all_speech_probs.json")
-    sys.exit()
+    segments, all_speech_probs = extract_speech_timestamps(
+        audio_file,
+        threshold=threshold,
+        # min_speech_duration_ms=min_speech_duration_ms,
+        # min_silence_duration_ms=min_silence_duration_ms,
+        max_speech_duration_sec=max_speech_duration_sec,
+        return_seconds=True,
+        time_resolution=3,
+        with_scores=True,
+        neg_threshold=neg_threshold,
+        normalize_loudness=normalize_loudness,
+        include_non_speech=include_non_speech,
+        double_check=double_check,
+    )
     waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
     if not segments:
@@ -100,6 +117,7 @@ def main(
                 )
 
         save_file(gaps, output_dir / "segment_gaps.json")
+        save_file(all_speech_probs, output_dir / "all_speech_probs.json")
 
 
 if __name__ == "__main__":
@@ -107,13 +125,7 @@ if __name__ == "__main__":
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
     audio_paths = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_2_speakers_short.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/preprocessors/recording_2_speakers_short_norm.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/utils/generated/run_extract_audio_segment/recording_missav.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_with_overlay/last_5_mins.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
     ]
 
     include_non_speech = False
@@ -122,6 +134,7 @@ if __name__ == "__main__":
 
     threshold = 0.5
     neg_threshold = 0.25
+    max_speech_duration_sec = 15.0
 
     summary: dict[str, Any] = {
         "total_files_processed": len(audio_paths),
@@ -140,6 +153,7 @@ if __name__ == "__main__":
             double_check=double_check,
             threshold=threshold,
             neg_threshold=neg_threshold,
+            max_speech_duration_sec=max_speech_duration_sec,
         )
         if (sub_output_dir / "speech_timestamps.json").exists():
             with open(sub_output_dir / "speech_timestamps.json") as f:
