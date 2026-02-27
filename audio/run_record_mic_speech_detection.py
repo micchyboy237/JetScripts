@@ -41,10 +41,6 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
     wav_path = seg_dir / "sound.wav"
     metadata_path = seg_dir / "metadata.json"
 
-    if seg_audio_np is None or len(seg_audio_np) == 0:
-        logger.warning("Skipping empty segment (no audio after trimming)")
-        return
-
     seg_sound_file = save_wav_file(wav_path, seg_audio_np)
     metadata_path.write_text(json.dumps(speech_seg, indent=2), encoding="utf-8")
 
@@ -55,7 +51,7 @@ def save_segment_data(speech_seg: SpeechSegment, seg_audio_np: np.ndarray):
 
 if __name__ == "__main__":
     duration_seconds = None
-    trim_silent = True
+    trim_silent = False
     quit_on_silence = False
 
     # Record with trim_silent=True → returns trimmed np.ndarray directly

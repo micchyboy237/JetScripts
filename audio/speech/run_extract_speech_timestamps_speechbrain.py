@@ -70,8 +70,8 @@ def main(
         else:
             type_color = "bold red"
         console.print(
-            f"[yellow][[/yellow] [bold white]{seg['start']:.2f}[/bold white] - [bold white]{seg['end']:.2f}[/bold white] [yellow]][/yellow] "
-            f"duration=[bold magenta]{seg['duration']}s[/bold magenta] "
+            f"[yellow][[/yellow] [bold white]{seg['start']:.2f}s[/bold white] - [bold white]{seg['end']:.2f}s[/bold white] [yellow]][/yellow] "
+            f"duration=[bold magenta]{seg['duration']:.2f}s[/bold magenta] "
             f"prob=[bold cyan]{seg['prob']:.3f}[/bold cyan] "
             f"type=[{type_color}]{seg_type}[/{type_color}]"
         )
@@ -124,11 +124,11 @@ if __name__ == "__main__":
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
     audio_paths = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
     ]
 
-    include_non_speech = True
+    include_non_speech = False
     normalize_loudness = False
 
     threshold = 0.5
