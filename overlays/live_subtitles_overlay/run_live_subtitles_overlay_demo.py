@@ -1,4 +1,4 @@
-# run_demo_subtitle_metadata.py
+# run_live_subtitles_overlay_demo.py
 import sys
 import time
 from threading import Thread
@@ -7,7 +7,7 @@ from jet.overlays.live_subtitles_overlay import LiveSubtitlesOverlay
 from PyQt6.QtWidgets import QApplication
 
 
-def demo_subtitle_metadata() -> None:
+def live_subtitles_overlay_demo() -> None:
     """
     Demonstrates the full metadata-rich add_message API with realistic values.
     Now including RMS (normalized + label) values.
@@ -32,7 +32,63 @@ def demo_subtitle_metadata() -> None:
             "translation_confidence": 0.947,  # normalized 0.0–1.0
             "translation_quality": "Very High",
         },
+        # Streaming simulation for segment 2 – partial updates
         {
+            "id": "sample-id-2",
+            "translated_text": "The quick brown fox",
+            "source_text": "素早い茶色のキツネ",
+            "start_sec": 4.50,
+            "end_sec": 5.20,  # early provisional estimate
+            "duration_sec": 0.70,
+            "segment_number": 2,
+            "chunk_index": 0,
+            "is_partial": True,
+            "avg_vad_confidence": 0.38,
+            "transcription_confidence": 0.82,
+            "transcription_quality": "Low",
+            "translation_confidence": 0.79,
+            "translation_quality": "Low",
+        },
+        {
+            "id": "sample-id-2",
+            "translated_text": "The quick brown fox jumps over the lazy dog",
+            "source_text": "素早い茶色のキツネが怠け者の犬を飛び越え",
+            "start_sec": 4.50,
+            "end_sec": 5.90,  # growing estimate
+            "duration_sec": 1.40,
+            "segment_number": 2,
+            "chunk_index": 1,
+            "is_partial": True,
+            "avg_vad_confidence": 0.47,
+            "transcription_confidence": 0.91,
+            "transcription_quality": "Medium",
+            "translation_confidence": 0.87,
+            "translation_quality": "Medium",
+        },
+        {
+            "id": "sample-id-2",
+            "translated_text": (
+                "The quick brown fox jumps over the lazy dog multiple times while exploring the vast forest "
+                "near the quiet mountain village where ancient trees whisper secrets"
+            ),
+            "source_text": (
+                "素早い茶色のキツネが怠け者の犬を何度も飛び越えながら、静かな山間の村の近くにある広大な森を探検しています。"
+                "そこで古い木々が、耳を傾ける気のある人々に秘密を囁き"
+            ),
+            "start_sec": 4.50,
+            "end_sec": 6.60,  # close to final estimate
+            "duration_sec": 2.10,
+            "segment_number": 2,
+            "chunk_index": 2,
+            "is_partial": True,
+            "avg_vad_confidence": 0.52,
+            "transcription_confidence": 0.96,
+            "transcription_quality": "Good",
+            "translation_confidence": 0.91,
+            "translation_quality": "Good",
+        },
+        {
+            "id": "sample-id-2",
             "translated_text": (
                 "The quick brown fox jumps over the lazy dog multiple times while exploring the vast forest "
                 "near the quiet mountain village where ancient trees whisper secrets to anyone willing to "
@@ -48,7 +104,7 @@ def demo_subtitle_metadata() -> None:
             "source_text": (
                 "素早い茶色のキツネが怠け者の犬を何度も飛び越えながら、静かな山間の村の近くにある広大な森を探検しています。"
                 "そこで古い木々が、耳を傾ける気のある人々に秘密を囁き、穏やかな秋の午後に金色の陽光が色とりどりの葉を通して"
-                "ゆっくりと降り注ぎ、柔らかい苔に覆われた地面にゆっくりと落ちて魔法のような絨毯を作り出し、人生や自然、"
+                "ゆっくりと降り注ぎ、柔らかい苔に覆われた地面にゆっくりと落ちて魔法のような絷毯を作り出し、人生や自然、"
                 "そして季節の移り変わりについて静かに考えることを誘います。優しい風が谷の下を流れる小さな澄んだ川のそばを"
                 "通り過ぎ、古い石橋や野花の咲く草原を横切り、ミツバチや蝶が暖かいそよ風の中で踊る様子を運び、無限に広がる"
                 "青い空に浮かぶふわふわした白い雲がゆっくりと形を変えながら、美しい夕焼けへと一日が進み、オレンジ、ピンク、"
@@ -58,6 +114,8 @@ def demo_subtitle_metadata() -> None:
             "end_sec": 6.92,
             "duration_sec": 2.42,
             "segment_number": 2,
+            "chunk_index": 3,
+            "is_partial": False,
             "avg_vad_confidence": 0.500,
             "transcription_confidence": 0.975,
             "transcription_quality": "Good",
@@ -154,6 +212,8 @@ def demo_subtitle_metadata() -> None:
                 end_sec=seg["end_sec"],
                 duration_sec=seg["duration_sec"],
                 segment_number=seg["segment_number"],
+                chunk_index=seg.get("chunk_index"),
+                is_partial=seg.get("is_partial"),
                 avg_vad_confidence=seg.get("avg_vad_confidence"),
                 transcription_confidence=seg.get("transcription_confidence"),
                 transcription_quality=seg.get("transcription_quality"),
@@ -186,6 +246,8 @@ def demo_subtitle_metadata() -> None:
             table.add_row("end_sec", f"{seg['end_sec']:.2f}")
             table.add_row("duration_sec", f"{seg['duration_sec']:.2f}")
             table.add_row("segment_number", str(seg["segment_number"]))
+            table.add_row("chunk_index", str(seg.get("chunk_index")))
+            table.add_row("is_partial", str(seg.get("is_partial")))
             table.add_row(
                 "avg_vad_confidence", f"{seg.get('avg_vad_confidence', '—'):.3f}"
             )
@@ -211,4 +273,4 @@ def demo_subtitle_metadata() -> None:
 
 
 if __name__ == "__main__":
-    demo_subtitle_metadata()
+    live_subtitles_overlay_demo()
