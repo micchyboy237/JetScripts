@@ -1,15 +1,18 @@
 import os
 import shutil
-import asyncio
 import time
 from typing import List, Literal, Optional, TypedDict
-from jet.utils.text import format_sub_dir
+
 from jet.logger import logger
-from jet.scrapers.utils import scrape_links
 from jet.scrapers.playwright_utils import scrape_urls, scrape_urls_sync
+from jet.scrapers.utils import scrape_links
+from jet.utils.text import format_sub_dir
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 log_file = os.path.join(OUTPUT_DIR, "main.log")
@@ -45,7 +48,9 @@ async def async_example(urls: List[str]) -> None:
         with_screenshot=True,
         headless=False,
         wait_for_js=True,
-        use_cache=False
+        use_cache=False,
+        scroll_strategy="until_stable",
+        scroll_mode="increment",
     ):
         if result["status"] == "completed" and result["html"]:
             all_links = scrape_links(result["html"], base_url=result["url"])
@@ -94,7 +99,9 @@ def sync_example(urls: List[str]) -> None:
         with_screenshot=True,
         headless=False,
         wait_for_js=True,
-        use_cache=False
+        use_cache=False,
+        scroll_strategy="until_stable",
+        scroll_mode="increment",
     )
 
     for result in results:
@@ -126,15 +133,17 @@ def sync_example(urls: List[str]) -> None:
 
 if __name__ == "__main__":
     urls = [
-        "https://news.microsoft.com/source/features/ai/6-ai-trends-youll-see-more-of-in-2025",
-        "https://www.morganstanley.com/insights/articles/ai-trends-reasoning-frontier-models-2025-tmt",
-        "https://winbuzzer.com/2024/02/14/windows-10-how-to-find-and-clear-the-all-recent-files-list-xcxwbt",
-        "https://cloud.google.com/blog/topics/public-sector/5-ai-trends-shaping-the-future-of-the-public-sector-in-2025",
-        "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-top-trends-in-tech"
+        # "https://news.microsoft.com/source/features/ai/6-ai-trends-youll-see-more-of-in-2025",
+        # "https://www.morganstanley.com/insights/articles/ai-trends-reasoning-frontier-models-2025-tmt",
+        # "https://winbuzzer.com/2024/02/14/windows-10-how-to-find-and-clear-the-all-recent-files-list-xcxwbt",
+        # "https://cloud.google.com/blog/topics/public-sector/5-ai-trends-shaping-the-future-of-the-public-sector-in-2025",
+        # "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-top-trends-in-tech"
+        "https://missav.ws/en/aed-137",
     ]
 
     logger.info("Running sync example...")
     sync_example(urls)
 
-    logger.info("Running async example...")
-    asyncio.run(async_example(urls))
+    # import asyncio
+    # logger.info("Running async example...")
+    # asyncio.run(async_example(urls))
