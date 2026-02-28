@@ -16,9 +16,9 @@ from jet.logger import logger
 from jet.scrapers.playwright_utils import scrape_urls, scrape_urls_sync
 from jet.scrapers.utils import scrape_links
 from jet.utils.text import format_sub_dir, format_sub_source_dir
+from unstructured.partition.html import partition_html
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 log_file = os.path.join(OUTPUT_DIR, "main.log")
 logger.basicConfig(filename=log_file)
@@ -107,10 +107,16 @@ def sync_example(urls: List[str]) -> None:
         if result["status"] == "completed" and html:
             url = result["url"]
             sub_output_dir = OUTPUT_DIR / format_sub_source_dir(url) / "sync_results"
+            shutil.rmtree(sub_output_dir, ignore_errors=True)
             sub_output_dir.mkdir(parents=True, exist_ok=True)
 
             save_file({"url": url}, sub_output_dir / "input.json")
             save_file(html, sub_output_dir / "page.html")
+
+            unstructured_elements = partition_html(text=html)
+            save_file(
+                unstructured_elements, f"{sub_output_dir}/unstructured_elements.json"
+            )
 
             doc_markdown = convert_html_to_markdown(html, ignore_links=False)
             save_file(doc_markdown, f"{sub_output_dir}/page.md")
@@ -147,7 +153,9 @@ if __name__ == "__main__":
         # "https://winbuzzer.com/2024/02/14/windows-10-how-to-find-and-clear-the-all-recent-files-list-xcxwbt",
         # "https://cloud.google.com/blog/topics/public-sector/5-ai-trends-shaping-the-future-of-the-public-sector-in-2025",
         # "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-top-trends-in-tech"
+        "https://missav.ws/dm223/en",
         "https://missav.ws/en/aed-137",
+        "https://missav.ws/dm13/en/oksn-090",
     ]
 
     logger.info("Running sync example...")

@@ -27,12 +27,13 @@ from jet.scrapers.utils import (
     print_html,
 )
 from jet.transformers.formatters import format_html
+from unstructured.partition.html import partition_html
 
 if __name__ == "__main__":
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
     # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html"
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/missav_ws_en_aed_137/sync_results/page.html"
+    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/missav_ws_dm223_en/sync_results/page.html"
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__),
@@ -69,6 +70,10 @@ if __name__ == "__main__":
 
     text_nodes = extract_text_nodes(html_str)
     save_file(text_nodes, f"{output_dir}/text_nodes.json")
+
+    # unstructured
+    unstructured_elements = partition_html(text=html_str)
+    save_file(unstructured_elements, f"{output_dir}/unstructured_elements.json")
 
     # Headings
     headings = extract_by_heading_hierarchy(html_str)
