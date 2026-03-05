@@ -22,6 +22,7 @@ from jet.scrapers.utils import (
     extract_text_elements,
     extract_tree_with_text,
     flatten_tree_to_base_nodes,
+    get_flattened_parents_with_most_children,
     get_leaf_nodes,
     get_parents_with_common_class,
     print_html,
@@ -231,6 +232,14 @@ if __name__ == "__main__":
 
     parents_with_common_class = get_parents_with_common_class(tree_elements)
     save_file(parents_with_common_class, f"{output_dir}/parents_with_common_class.json")
+
+    flattened_parents_with_most_children = get_flattened_parents_with_most_children(
+        html_str
+    )
+    save_file(
+        flattened_parents_with_most_children,
+        f"{output_dir}/flattened_parents_with_most_children.json",
+    )
 
     formatted_html = format_html(html_str)
     save_file(formatted_html, f"{output_dir}/formatted_html.html")

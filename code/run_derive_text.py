@@ -1,9 +1,7 @@
 import os
 
-from jet.code.markdown_utils import parse_markdown
 from jet.code.markdown_utils._markdown_parser import base_parse_markdown, derive_text
 from jet.file.utils import save_file
-from jet.utils.print_utils import print_dict_types
 
 md_content = """
 Sample title
@@ -60,8 +58,11 @@ Use `print("Hello")` for quick debugging.
 """
 
 if __name__ == "__main__":
-    output_dir = os.path.join(os.path.dirname(
-        __file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    output_dir = os.path.join(
+        os.path.dirname(__file__),
+        "generated",
+        os.path.splitext(os.path.basename(__file__))[0],
+    )
 
     markdown_tokens = base_parse_markdown(md_content)
     save_file(markdown_tokens, f"{output_dir}/markdown_tokens.json")
