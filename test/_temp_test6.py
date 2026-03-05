@@ -40,7 +40,7 @@ def get_chrome_paths() -> Tuple[str, str, str]:
     else:
         raise RuntimeError(f"Unsupported OS: {system}")
 
-    profile_name = "Default"  # ← change if needed
+    profile_name = "Default"  # ← change if you're using a different profile
     resolved = base.resolve()
 
     if not resolved.exists():
@@ -63,7 +63,7 @@ def main():
     user_data_dir, profile_name, os_short = get_chrome_paths()
     user_agent = get_random_ua(os_short)
 
-    # ── Show config ──────────────────────────────────────────────────
+    # ── Configuration panel ──────────────────────────────────────────
     config = (
         f"[b]OS[/b]             : {platform.system()}\n"
         f"[b]User Data Dir[/b]   : {user_data_dir}\n"
@@ -98,21 +98,21 @@ def main():
     with sync_playwright() as p:
         try:
             console.print(
-                "[green]Launching persistent Chrome (without stealth lib)...[/green]"
+                "[green]Launching persistent Chrome (no stealth lib)...[/green]"
             )
 
             lock_file = os.path.join(user_data_dir, "SingletonLock")
             if os.path.exists(lock_file):
                 console.print(
-                    "[bold red]SingletonLock still exists → Chrome/profile is probably still running[/bold red]"
+                    "[bold red]SingletonLock file still exists → Chrome is probably still running[/bold red]"
                 )
-                console.print("→ Close all Chrome windows and retry\n")
+                console.print("→ Close **all** Chrome windows and retry\n")
                 time.sleep(2.5)
 
             context = p.chromium.launch_persistent_context(
                 user_data_dir=user_data_dir,
                 headless=False,
-                channel="chrome",  # use real installed Chrome
+                channel="chrome",
                 args=[
                     f"--profile-directory={profile_name}",
                     "--no-first-run",
@@ -124,33 +124,32 @@ def main():
                     "--disable-dev-shm-usage",
                     "--disable-background-timer-throttling",
                     "--disable-renderer-backgrounding",
-                    "--disable-features=site-per-process",  # sometimes helps
                 ],
                 user_agent=user_agent,
                 viewport={"width": 1280, "height": 900},
                 locale="en-US",
-                timezone_id="America/Los_Angeles",  # ← change if needed
+                timezone_id="America/Los_Angeles",  # ← adjust to your timezone
                 ignore_default_args=["--enable-automation"],
-                java_script_enabled=True,
                 bypass_csp=True,
+                java_script_enabled=True,
             )
 
-            page = context.new_page()
+            # ── Reuse existing page if available (critical for persistent context) ──
+            pages = context.pages
+            if pages:
+                page = pages[0]
+                console.print(
+                    "[dim]→ Reusing existing tab from persistent profile[/dim]"
+                )
+            else:
+                page = context.new_page()
+                console.print("[dim]→ Created new tab[/dim]")
 
-            # Some extra common evasion tricks (without stealth lib)
+            # Apply basic anti-detection script
             page.add_init_script("""
                 Object.defineProperty(navigator, 'webdriver', { get: () => false });
                 Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
-                Object.defineProperty(navigator, 'plugins', {
-                    get: () => [1, 2, 3, 4, 5].map(() => ({ length: 1 }))
-                });
                 window.chrome = { runtime: {}, app: {}, webstore: {} };
-                const originalQuery = window.navigator.permissions.query;
-                window.navigator.permissions.query = (parameters) => (
-                    parameters.name === 'notifications' ?
-                        Promise.resolve({ state: Notification.permission }) :
-                        originalQuery(parameters)
-                );
             """)
 
             # ── Navigation with progress ────────────────────────────────
@@ -167,71 +166,77 @@ def main():
                 progress.update(
                     task, description=f"[yellow]Navigating to {start_url}[/yellow]"
                 )
-                response = page.goto(start_url, wait_until="networkidle", timeout=60000)
-                progress.update(task, advance=40)
-
-                sleep(random.uniform(1.8, 4.2))
 
                 try:
-                    page.wait_for_load_state("networkidle", timeout=18000)
+                    response = page.goto(
+                        start_url,
+                        wait_until="domcontentloaded",  # more reliable than networkidle
+                        timeout=60000,
+                    )
                 except TimeoutError:
                     console.print(
-                        "[dim]→ networkidle timeout — continuing anyway[/dim]"
+                        "[yellow]→ domcontentloaded timeout – continuing anyway[/yellow]"
+                    )
+                    response = None
+
+                progress.update(task, advance=35)
+
+                sleep(random.uniform(2.0, 4.5))
+
+                # Additional safety waits
+                try:
+                    page.wait_for_selector("body", timeout=15000)
+                    console.print("[dim]→ body element detected[/dim]")
+                except:
+                    console.print("[dim yellow]→ No body found after 15s[/dim yellow]")
+
+                try:
+                    page.wait_for_load_state("domcontentloaded", timeout=20000)
+                except TimeoutError:
+                    console.print(
+                        "[dim]→ domcontentloaded state timeout – proceeding[/dim]"
                     )
 
-                # Many SPAs / anti-bot pages keep working after networkidle
+                # Extra wait for JS-heavy sites
                 with console.status(
-                    "[dim]Waiting extra time for JS & anti-bot checks…[/dim]",
+                    "[dim]Waiting extra 5–9s for dynamic content…[/dim]",
                     spinner="dots",
                 ):
-                    sleep(random.uniform(5.5, 10.0))
+                    sleep(random.uniform(5.0, 9.0))
 
-                progress.update(task, advance=60)
+                progress.update(task, advance=65)
 
-                # ── Collect info ────────────────────────────────────────
-                title_immediate = page.title()
-                try:
-                    page.wait_for_function("document.title.trim() !== ''", timeout=7000)
-                except:
-                    pass
-
-                title_final = page.title()
+                # ── Collect information right after navigation ───────
+                title_immediate = page.title() or "(empty)"
                 final_url = page.url
+                webdriver_value = page.evaluate("navigator.webdriver")
+
+                console.print(f"[dim]Current URL:[/dim] {final_url}")
+                console.print(f"[dim]Title:[/dim] {title_immediate}")
+                console.print(f"[dim]navigator.webdriver:[/dim] {webdriver_value}")
 
                 progress.update(task, completed=100)
 
-            # ── Show results ────────────────────────────────────────────
+            # ── Prepare summary ──────────────────────────────────────
             status = response.status if response else "n/a"
-            webdriver = page.evaluate("navigator.webdriver")
             cookies_count = len(context.cookies())
 
             url_diff = list(
                 difflib.unified_diff(
                     [start_url + "\n"],
                     [final_url + "\n"],
-                    fromfile="start_url (typed)",
-                    tofile="final_url (after navigation)",
-                    lineterm="",
-                )
-            )
-
-            title_diff = list(
-                difflib.unified_diff(
-                    [title_immediate + "\n"],
-                    [title_final + "\n"],
-                    fromfile="title (immediate)",
-                    tofile="title (after wait)",
+                    fromfile="start_url",
+                    tofile="final_url",
                     lineterm="",
                 )
             )
 
             meta = (
-                f"[b]Immediate title[/b] : {title_immediate}\n"
-                f"[b]Final title[/b]     : {title_final}\n"
-                f"[b]Final URL[/b]       : {final_url}\n"
-                f"[b]HTTP Status[/b]     : {status}\n"
-                f"[b]navigator.webdriver[/b] : {webdriver}  [green](should be False!)[/green]\n"
-                f"[dim]Cookies count[/dim]   : {cookies_count}"
+                f"[b]Title[/b]            : {title_immediate}\n"
+                f"[b]Final URL[/b]        : {final_url}\n"
+                f"[b]HTTP Status[/b]      : {status}\n"
+                f"[b]navigator.webdriver[/b] : {webdriver_value}  [green](should be False)[/green]\n"
+                f"[dim]Cookies count[/dim]    : {cookies_count}"
             )
 
             console.print(
@@ -245,21 +250,17 @@ def main():
                 console.print("[bold cyan]URL changed during navigation[/bold cyan]")
                 console.print(Markdown("```diff\n" + "\n".join(url_diff) + "\n```"))
 
-            if title_immediate.strip() != title_final.strip():
-                console.print("[bold cyan]Title changed after extra wait[/bold cyan]")
-                console.print(Markdown("```diff\n" + "\n".join(title_diff) + "\n```"))
-
             console.print(
-                "\n[bold bright_green]Browser launched successfully (no stealth lib)[/bold bright_green]\n"
+                "\n[bold bright_green]Browser should now show the page[/bold bright_green]\n"
             )
 
             close_delay = Prompt.ask(
-                "[cyan]Keep browser open for how many seconds?[/cyan]", default="12"
+                "[cyan]Keep browser open for how many seconds?[/cyan]", default="15"
             )
             try:
                 secs = int(close_delay)
             except:
-                secs = 12
+                secs = 15
 
             with console.status(
                 f"[dim]Keeping open for {secs} seconds (or close manually)...[/dim]",
@@ -268,28 +269,25 @@ def main():
                 page.wait_for_timeout(secs * 1000)
 
         except Exception as e:
-            err = str(e).lower()
+            err_str = str(e).lower()
             if any(
-                x in err
-                for x in [
-                    "target closed",
-                    "existing browser session",
-                    "already running",
-                ]
+                x in err_str
+                for x in ["target closed", "existing", "already running", "lock"]
             ):
                 console.print(
-                    "\n[bold red]Chrome is still running with this profile![/bold red]\n"
+                    "\n[bold red]Chrome / profile appears to still be running![/bold red]\n"
                     "→ Close **every** Chrome window\n"
-                    "→ Kill all chrome processes in Task Manager / Activity Monitor"
+                    "→ Kill all chrome processes\n"
+                    "→ Delete SingletonLock file if it remains"
                 )
             else:
-                console.print("\n[bold red]Launch / Playwright error:[/bold red]")
+                console.print("\n[bold red]Playwright / launch error:[/bold red]")
                 console.print(traceback.format_exc())
             raise
 
         finally:
             console.print("[dim]Closing context...[/dim]")
-            sleep(3)
+            time.sleep(3)
             try:
                 context.close()
             except:
