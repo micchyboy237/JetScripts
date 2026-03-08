@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 
@@ -31,10 +32,18 @@ from jet.transformers.formatters import format_html
 from unstructured.partition.html import partition_html
 
 if __name__ == "__main__":
-    # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html"
-    # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_isekai_anime_2025/https_gamerant_com_new_isekai_anime_2025/page.html"
-    # html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/search/playwright/generated/run_playwright_extract/top_rag_context_engineering_tips_2025_reddit/https_www_reddit_com_r_rag_comments_1mvzwrq_context_engineering_for_advanced_rag_curious_how/page.html"
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/missav_ws_dm223_en/sync_results/page.html"
+    parser = argparse.ArgumentParser(
+        description="Format, preprocess, and analyze an HTML file."
+    )
+    parser.add_argument(
+        "html_file",
+        nargs="?",
+        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/missav_ws_dm223_en/sync_results/page.html",
+        help="Path to the HTML file to process",
+    )
+    args = parser.parse_args()
+    html_file = args.html_file
+
     html_dir = os.path.dirname(html_file)
     output_dir = os.path.join(
         os.path.dirname(__file__),
@@ -51,10 +60,7 @@ if __name__ == "__main__":
     save_file(html_str, f"{output_dir}/doc.html")
 
     preprocessed_html_str = convert_dl_blocks_to_md(html_str)
-    preprocessed_html_str = preprocess_html(
-        preprocessed_html_str,
-        excludes=["head", "nav", "footer", "script", "style", "button"],
-    )
+    preprocessed_html_str = preprocess_html(preprocessed_html_str)
     save_file(preprocessed_html_str, f"{output_dir}/doc_preprocessed.html")
 
     html_str = preprocessed_html_str

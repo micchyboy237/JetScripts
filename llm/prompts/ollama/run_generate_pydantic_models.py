@@ -3,7 +3,7 @@ import re
 from jet.llm.ollama.base import Ollama
 from jet.logger import logger
 from jet.transformers.formatters import format_json
-from jet.llm.prompt_templates.base import generate_pydantic_models
+from jet.llm.prompt_templates.ollama import generate_pydantic_models
 from jet.file.utils import save_file
 
 output_dir = os.path.join(
