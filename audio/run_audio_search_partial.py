@@ -13,8 +13,8 @@ console = Console()
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-long_audio = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav"
-short_audio = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/segments/20260309-171141_220a46_1/sound.wav"
+long_audio = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/segments/20260309-171153_220a46_4/sound.wav"
+short_audio = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/segments/20260309-171156_220a46_5/sound.wav"
 min_fraction = 0.5
 threshold = 0.75
 quick = False
@@ -50,10 +50,13 @@ table.add_column("Matched fraction", justify="right")
 table.add_column("Confidence", justify="right", style="green")
 
 for i, m in enumerate(matches, 1):
-    start_t = m.start_sample / sr_long
-    end_t = m.end_sample / sr_long
+    start_sample = m["a_sample"]["start_sample"]
+    end_sample = m["a_sample"]["end_sample"]
+
+    start_t = start_sample / sr_long
+    end_t = end_sample / sr_long
     dur = end_t - start_t
-    matched_frac = m.match_length_samples / len(short_signal)
+    matched_frac = (end_sample - start_sample) / len(short_signal)
 
     table.add_row(
         str(i),
@@ -61,7 +64,7 @@ for i, m in enumerate(matches, 1):
         f"{end_t:.3f} s",
         f"{dur:.3f} s",
         f"{matched_frac:.2%}",
-        f"{m.confidence:.4f}",
+        f"{m['confidence']:.4f}",
     )
 
 title = "Partial matches found" if len(matches) > 1 else "Partial match found"
