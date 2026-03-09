@@ -14,7 +14,7 @@ from jet.code.markdown_utils._preprocessors import extract_markdown_links
 from jet.file.utils import save_file
 from jet.logger import logger
 from jet.scrapers.playwright_utils import scrape_urls, scrape_urls_sync
-from jet.scrapers.utils import scrape_links
+from jet.scrapers.utils import filter_links, scrape_links
 from jet.utils.text import format_sub_dir, format_sub_source_dir
 from unstructured.partition.html import partition_html
 
@@ -83,7 +83,9 @@ async def async_example(urls: List[str]) -> None:
     logger.info(f"Done async scraped {len(html_list)} htmls in {duration:.2f} seconds")
 
 
-def sync_example(urls: List[str]) -> None:
+def sync_example(
+    urls: List[str], base_url: str | None = None, url_patterns: list[str] = []
+) -> None:
     html_list = []
 
     start = time.perf_counter()
@@ -95,9 +97,9 @@ def sync_example(urls: List[str]) -> None:
         timeout=5000,
         max_retries=3,
         with_screenshot=True,
-        headless=False,
+        headless=True,
         wait_for_js=False,
-        use_cache=False,
+        use_cache=True,
         scroll_strategy="until_stable",
         scroll_mode="increment",
     )
@@ -105,7 +107,7 @@ def sync_example(urls: List[str]) -> None:
     for result in results:
         html = result["html"]
         if result["status"] == "completed" and html:
-            url = result["url"]
+            url = base_url or result["url"]
             sub_output_dir = OUTPUT_DIR / format_sub_source_dir(url) / "sync_results"
             shutil.rmtree(sub_output_dir, ignore_errors=True)
             sub_output_dir.mkdir(parents=True, exist_ok=True)
@@ -132,6 +134,14 @@ def sync_example(urls: List[str]) -> None:
                 doc_markdown, base_url=url, ignore_links=True
             )
             save_file(links, sub_output_dir / "links.json")
+            filtered_links = links
+            if filtered_links and url_patterns:
+                links = [o["url"] for o in filtered_links]
+                filtered_links = filter_links(links, url_patterns)
+            save_file(filtered_links, sub_output_dir / "filtered_links.json")
+
+            all_links = scrape_links(doc_markdown)
+            save_file(all_links, sub_output_dir / "all_links.json")
 
             if result["screenshot"]:
                 save_file(result["screenshot"], sub_output_dir / "screenshot.png")
@@ -157,11 +167,17 @@ if __name__ == "__main__":
         # "https://missav.ws/dm223/en",
         # "https://missav.ws/en/aed-137",
         # "https://missav.ws/dm13/en/oksn-090",
-        "https://missav.ws/dm68/en/juc-743",
+        "https://missav.ws/en/juc-743",
+    ]
+    base_url = "https://missav.ws"
+    url_patterns = [
+        "https://missav.ws/*/*-*",  # ← most recommended — clean & readable
+        # or
+        "https://missav.ws/*/*/??-*",  # more strict about the middle segment length
     ]
 
     logger.info("Running sync example...")
-    sync_example(urls)
+    sync_example(urls, base_url, url_patterns)
 
     # import asyncio
     # logger.info("Running async example...")
