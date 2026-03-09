@@ -55,8 +55,10 @@ for i, m in enumerate(matches, 1):
 
     start_t = start_sample / sr_long
     end_t = end_sample / sr_long
-    dur = end_t - start_t
-    matched_frac = (end_sample - start_sample) / len(short_signal)
+
+    dur = m["duration"]
+    matched_length = end_sample - start_sample
+    matched_frac = matched_length / len(short_signal)
 
     table.add_row(
         str(i),
