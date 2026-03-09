@@ -43,30 +43,40 @@ matches = find_partial_audio_matches(
 
 table = Table(show_header=True, header_style="bold magenta")
 table.add_column("#", justify="right", style="dim")
-table.add_column("Start", justify="right")
-table.add_column("End", justify="right")
-table.add_column("Duration", justify="right")
-table.add_column("Matched fraction", justify="right")
+table.add_column("Signal", justify="center")
+table.add_column("Start (s)", justify="right")
+table.add_column("End (s)", justify="right")
+table.add_column("Start sample", justify="right", style="dim")
+table.add_column("End sample", justify="right", style="dim")
+table.add_column("Duration (s)", justify="right")
 table.add_column("Confidence", justify="right", style="green")
 
 for i, m in enumerate(matches, 1):
-    start_sample = m["a_sample"]["start_sample"]
-    end_sample = m["a_sample"]["end_sample"]
+    a = m["a_sample"]
+    b = m["b_sample"]
 
-    start_t = start_sample / sr_long
-    end_t = end_sample / sr_long
-
-    dur = m["duration"]
-    matched_length = end_sample - start_sample
-    matched_frac = matched_length / len(short_signal)
-
+    # Row for signal A
     table.add_row(
         str(i),
-        f"{start_t:.3f} s",
-        f"{end_t:.3f} s",
-        f"{dur:.3f} s",
-        f"{matched_frac:.2%}",
+        "A",
+        f"{a['start_time']:.3f}",
+        f"{a['end_time']:.3f}",
+        str(a["start_sample"]),
+        str(a["end_sample"]),
+        f"{m['duration']:.3f}",
         f"{m['confidence']:.4f}",
+    )
+
+    # Row for signal B
+    table.add_row(
+        "",
+        "B",
+        f"{b['start_time']:.3f}",
+        f"{b['end_time']:.3f}",
+        str(b["start_sample"]),
+        str(b["end_sample"]),
+        "",
+        "",
     )
 
 title = "Partial matches found" if len(matches) > 1 else "Partial match found"
