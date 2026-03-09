@@ -1,4 +1,4 @@
-# run_extract_speech_timestamps_speechbrain.py
+# run_extract_speech_timestamps_firered.py
 import json
 import shutil
 from collections import defaultdict
@@ -15,7 +15,7 @@ from jet.audio.speech.utils import display_segments
 from jet.file.utils import save_file
 from jet.utils.text import format_sub_dir
 from rich.console import Console
-from silero_vad.utils_vad import read_audio
+from scipy.io import wavfile
 
 console = Console()
 
@@ -155,6 +155,13 @@ def main(
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
     console.print(f"[bold cyan]Processing:[/bold cyan] {Path(audio_file).name}")
+
+    # Load ORIGINAL audio (native sample rate + channels preserved)
+    orig_waveform, orig_sr = torchaudio.load(str(audio_file))
+    console.print(
+        f"[dim]Original audio: {orig_sr} Hz, {orig_waveform.shape[0]}ch[/dim]"
+    )
+
     segments, all_speech_probs = extract_speech_timestamps(
         audio_file,
         threshold=threshold,
@@ -169,7 +176,7 @@ def main(
         include_non_speech=include_non_speech,  # already passed but ensure used
         # apply_energy_VAD=apply_energy_VAD,
     )
-    waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
+
     console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
     if not segments:
         console.print(
@@ -187,45 +194,42 @@ def main(
     segments_dir = output_dir / "segments"
     segments_dir.mkdir(parents=True, exist_ok=True)
     for seg in segments:
-        # seg_type = seg["type"]
-        # if seg_type == "speech":
-        #     type_color = "bold green"
-        # else:
-        #     type_color = "bold red"
-        # console.print(
-        #     f"[yellow][[/yellow] [bold white]{seg['start']:.2f}s[/bold white] - [bold white]{seg['end']:.2f}s[/bold white] [yellow]][/yellow] "
-        #     f"duration=[bold magenta]{seg['duration']:.2f}s[/bold magenta] "
-        #     f"prob=[bold cyan]{seg['prob']:.3f}[/bold cyan] "
-        #     f"type=[{type_color}]{seg_type}[/{type_color}]"
-        # )
         folder_name = (
             f"segment_{seg['num']:03d}"  # use segment number for output subdir
         )
         seg_dir = segments_dir / folder_name
         seg_dir.mkdir(parents=True, exist_ok=True)
         save_file(seg, seg_dir / "segment.json", verbose=False)
-        start_sample = int(seg["start"] * 16000)
-        end_sample = int(seg["end"] * 16000)
-        segment_audio = waveform[:, start_sample:end_sample]
 
-        # ─── Save per-segment speech probability plot ───────────────────────
+        # Slice from ORIGINAL audio using time-based timestamps
+        start_sample = int(round(float(seg["start"]) * orig_sr))
+        end_sample = int(round(float(seg["end"]) * orig_sr))
+        end_sample = min(end_sample, orig_waveform.shape[1])
+
+        segment_audio = orig_waveform[
+            :, start_sample:end_sample
+        ]  # (channels, samples), float32
+
         plot_path = seg_dir / "speech_prob_curve.png"
         save_segment_prob_plot(
             seg["segment_probs"],
-            seg["start"] if isinstance(seg["start"], float) else seg["start"] / 16000,
+            seg["start"] if isinstance(seg["start"], float) else seg["start"] / orig_sr,
             seg["duration"],
             threshold,
             neg_threshold,
             plot_path,
         )
 
-        torchaudio.save(
-            str(seg_dir / "sound.wav"),
-            segment_audio,
-            sample_rate=16000,
-            encoding="PCM_S",
-            bits_per_sample=16,
-        )
+        # === Save exactly like your other WAV files (int16) ===
+        # Convert to (samples, channels) or 1D for mono
+        if segment_audio.shape[0] == 1:
+            data = segment_audio.squeeze(0).numpy()  # mono → 1D
+        else:
+            data = segment_audio.numpy().T  # stereo → (samples, channels)
+
+        data_int16 = np.clip(data * 32767.0, -32768, 32767).astype(np.int16)
+        wavfile.write(str(seg_dir / "sound.wav"), orig_sr, data_int16)
+
     save_file(segments, output_dir / "speech_timestamps.json")
 
     # Compute and save segment gaps
@@ -259,8 +263,8 @@ if __name__ == "__main__":
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
     audio_paths = [
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
+        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
         # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
     ]
 
