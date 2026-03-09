@@ -1,6 +1,7 @@
 # run_live_subtitles_overlay_demo.py
 import sys
 import time
+import uuid
 from threading import Thread
 
 from jet.overlays.live_subtitles_overlay import LiveSubtitlesOverlay
@@ -20,6 +21,7 @@ def live_subtitles_overlay_demo() -> None:
     # Simulated real-world subtitle segments with normalized RMS + label added
     demo_segments = [
         {
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "Hello, how are you today?",
             "source_text": "こんにちは、今日はお元気ですか？",
             "start_sec": 1.25,
@@ -35,6 +37,7 @@ def live_subtitles_overlay_demo() -> None:
         # Streaming simulation for segment 2 – partial updates
         {
             "id": "sample-id-2",
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "The quick brown fox",
             "source_text": "素早い茶色のキツネ",
             "start_sec": 4.50,
@@ -51,6 +54,7 @@ def live_subtitles_overlay_demo() -> None:
         },
         {
             "id": "sample-id-2",
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "The quick brown fox jumps over the lazy dog",
             "source_text": "素早い茶色のキツネが怠け者の犬を飛び越え",
             "start_sec": 4.50,
@@ -67,6 +71,7 @@ def live_subtitles_overlay_demo() -> None:
         },
         {
             "id": "sample-id-2",
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": (
                 "The quick brown fox jumps over the lazy dog multiple times while exploring the vast forest "
                 "near the quiet mountain village where ancient trees whisper secrets"
@@ -89,6 +94,7 @@ def live_subtitles_overlay_demo() -> None:
         },
         {
             "id": "sample-id-2",
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": (
                 "The quick brown fox jumps over the lazy dog multiple times while exploring the vast forest "
                 "near the quiet mountain village where ancient trees whisper secrets to anyone willing to "
@@ -123,6 +129,7 @@ def live_subtitles_overlay_demo() -> None:
             "translation_quality": "Good",
         },
         {
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "That's wonderful to hear.",
             "source_text": "それは素晴らしいですね。",
             "start_sec": 7.10,
@@ -136,6 +143,7 @@ def live_subtitles_overlay_demo() -> None:
             "translation_quality": "Very High",
         },
         {
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "What are your plans for the weekend?",
             "source_text": "週末の予定は何ですか？",
             "start_sec": 9.80,
@@ -149,6 +157,7 @@ def live_subtitles_overlay_demo() -> None:
             "translation_quality": "Medium",
         },
         {
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "I plan to visit my family in the countryside.",
             "source_text": "田舎の家族を訪ねるつもりです。",
             "start_sec": 12.80,
@@ -162,6 +171,7 @@ def live_subtitles_overlay_demo() -> None:
             "translation_quality": "High",
         },
         {
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "That sounds relaxing! Will you go hiking too?",
             "source_text": "リラックスできそう！ハイキングもするの？",
             "start_sec": 15.90,
@@ -175,6 +185,7 @@ def live_subtitles_overlay_demo() -> None:
             "translation_quality": "Good",
         },
         {
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "Maybe. I also want to read some books and enjoy the quiet.",
             # source_text omitted to demonstrate fallback
             "start_sec": 19.00,
@@ -188,6 +199,7 @@ def live_subtitles_overlay_demo() -> None:
             "translation_quality": "Very High",
         },
         {
+            "utterance_id": str(uuid.uuid4()),
             "translated_text": "Perfect way to recharge. I hope you have a wonderful time!",
             "source_text": "最高のリフレッシュ方法だね。素敵な時間を過ごしてね！",
             "start_sec": 23.10,
@@ -206,6 +218,7 @@ def live_subtitles_overlay_demo() -> None:
         for seg in demo_segments:
             time.sleep(0.4)  # Slightly slower pacing for better visibility
             overlay.add_message(
+                utterance_id=seg["utterance_id"],
                 translated_text=seg["translated_text"],
                 source_text=seg.get("source_text"),
                 start_sec=seg["start_sec"],
