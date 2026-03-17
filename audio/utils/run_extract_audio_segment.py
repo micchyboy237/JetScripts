@@ -1,17 +1,28 @@
+import argparse
 import shutil
 from pathlib import Path
 
 import soundfile as sf
 from jet.audio.audio_duration import get_audio_duration
+from jet.audio.norm.norm_speech_loudness import normalize_speech_loudness
 from jet.audio.utils import extract_audio_segment
+
+DEFAULT_INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
+
+parser = argparse.ArgumentParser(description="Extract an audio segment from a file.")
+parser.add_argument(
+    "input_audio",
+    nargs="?",
+    default=DEFAULT_INPUT_AUDIO,
+    help=f"Path to input audio file (default: {DEFAULT_INPUT_AUDIO})",
+)
+args = parser.parse_args()
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
-# INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav"
-# INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav"
+INPUT_AUDIO = args.input_audio
 
 start = 0
 end = 15
@@ -26,9 +37,9 @@ sf.write(output_path, segment, sr)
 print("Extracted from raw input. Saved at:")
 print(output_path)
 
-# # Extract from normalized audio
-# norm_segment = normalize_speech_loudness(segment, sr)
-# norm_output_path = OUTPUT_DIR / "extracted_audio_norm.wav"
-# sf.write(norm_output_path, norm_segment, sr)
-# print("Extracted from normalized input. Saved at:")
-# print(norm_output_path)
+# Extract from normalized audio
+norm_segment = normalize_speech_loudness(segment, sr)
+norm_output_path = OUTPUT_DIR / "extracted_audio_norm.wav"
+sf.write(norm_output_path, norm_segment, sr)
+print("Extracted from normalized input. Saved at:")
+print(norm_output_path)
