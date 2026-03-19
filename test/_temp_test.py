@@ -1,48 +1,24 @@
-import os
-import shutil
-from pathlib import Path
+import argparse
 
-from datasets import load_dataset
-from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS
-from jet.adapters.llama_cpp.vector_search import VectorSearch
-from jet.file.utils import save_file
-from jet.logger.config import colorize_log
+from fast_bunkai import FastBunkai
 
-OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
-shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+DEFAULT_TEXT = "羽田から✈️出発して、友だちと🍣食べました。最高！また行きたいな😂でも、予算は大丈夫かな…?"
 
-query = "text translation between Japanese and English"
-
-ds = load_dataset("TFMC/imatrix-dataset-for-japanese-llm", split="train")
-
-docs = [o["text"] for o in ds.to_list() if o["text"]]
-
-save_file(
-    {
-        "count": len(docs),
-        "texts": docs,
-    },
-    OUTPUT_DIR / "docs.json",
+parser = argparse.ArgumentParser(
+    description="Split Japanese text into sentences using FastBunkai."
 )
-
-model: LLAMACPP_EMBED_KEYS = os.getenv("LLAMA_CPP_EMBED_MODEL")
-search_engine = VectorSearch(model)
-
-results = search_engine.search(query, docs)
-
-print(f"\nQuery: {query}")
-print("Top matches:")
-for result in results[:10]:
-    print(
-        f"\n{colorize_log(f'{result["rank"]}.', 'ORANGE')} (Score: "
-        f"{colorize_log(f'{result["score"]:.3f}', 'SUCCESS')})"
-    )
-    print(f"{result['text']}")
-
-save_file(
-    {
-        "count": len(results),
-        "results": results,
-    },
-    OUTPUT_DIR / "search_results.json",
+parser.add_argument(
+    "text",
+    nargs="?",
+    default=DEFAULT_TEXT,
+    help=f"Text to split into sentences (default: '{DEFAULT_TEXT}')",
 )
+args = parser.parse_args()
+
+splitter = FastBunkai()
+
+sentences = list(splitter(args.text))
+
+print(f"Sentences: {len(sentences)}")
+for sent in sentences:
+    print(sent)
