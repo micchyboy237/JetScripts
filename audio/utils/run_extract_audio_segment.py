@@ -7,7 +7,7 @@ from jet.audio.audio_duration import get_audio_duration
 from jet.audio.norm.norm_speech_loudness import normalize_speech_loudness
 from jet.audio.utils import extract_audio_segment
 
-DEFAULT_INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
+DEFAULT_INPUT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav"
 
 parser = argparse.ArgumentParser(description="Extract an audio segment from a file.")
 parser.add_argument(
@@ -25,7 +25,7 @@ OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 INPUT_AUDIO = args.input_audio
 
 start = 0
-end = 15
+end = 32
 
 if end is None:
     end = get_audio_duration(INPUT_AUDIO)
