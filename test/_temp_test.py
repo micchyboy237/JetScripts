@@ -93,3 +93,10 @@ def split_ja_phrases(
             return phrases
     else:
         return list(morphemes)
+
+
+if __name__ == "__main__":
+    for m in ["A", "B", "C"]:
+        ja_phrases = split_ja_phrases("私は昨日東京に行って寿司を食べました。", mode=m)
+        print(f"Mode {m} - JA Phrases ({len(ja_phrases)}):")
+        print(ja_phrases)
