@@ -15,7 +15,7 @@ Use `rich` for beautiful console output, tables, and logging (via `RichHandler`)
 Use pytest for python tests and test classes to separate behaviors. Always create result and expected variables for each test. Instead of asserting list lengths, assert list with expected values. Use pytest clean up methods if applicable. Apply this to relevant cases.
 
 Write step by step analysis before anything else.
-Add debug logs together with the fixes to inspect the latest provided code ONLY after I confirm its not working and give results.
+Always include debug logs together with fixes to pinpoint the root cause of issues faster.
 Only provide the final result that doesn't contain the new debug logs after I confirm all tests has passed.
 Use types, typed dicts and Literal typing if appropriate.
 Do not remove existing function and class definitions. Only update if needed.

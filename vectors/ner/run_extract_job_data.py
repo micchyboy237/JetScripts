@@ -31,20 +31,20 @@ DEFAULT_CHUNK_SIZE = 512
 #   Example job-related labels (zero-shot — GLiNER handles them)
 # ────────────────────────────────────────────────
 JOB_LABELS = [
-    "job title",
-    "posted date",
-    "company name",
-    "job location",
-    "salary range",
-    "experience level",
-    "employment type",
-    "work schedule",
-    "required skills",
-    "used technologies",
-    "programming languages",
-    "key responsibilities",
-    "requirements qualifications",
-    "employee benefits",
+    "job title",  # The official position name (e.g. "Senior Software Engineer", "Marketing Manager")
+    "company name",  # Name of the hiring company or organization (e.g. "Google", "Acme Corp")
+    "job location",  # Physical or remote location of the job (e.g. "New York, NY", "Remote", "London, UK")
+    "salary range",  # Compensation information (e.g. "$120,000 - $160,000", "€65k–€85k per year")
+    "experience level",  # Required or target experience (e.g. "Senior", "Entry-level", "3–5 years", "Mid-level")
+    "employment type",  # Contract nature of the position (e.g. "Full-time", "Part-time", "Contract", "Internship")
+    "required skills",  # Must-have technical, soft, or domain skills (e.g. "Python, SQL", "leadership", "Agile")
+    "key responsibilities",  # Main duties and tasks of the role (usually bullet points or paragraph description)
+    "job requirements",  # Mandatory qualifications (e.g. "Bachelor's degree", "5+ years experience", "PMP certified")
+    "preferred qualifications",  # Nice-to-have but not required items (e.g. "Master's degree preferred", "Experience with AWS")
+    "employee benefits",  # Perks and advantages offered (e.g. "health insurance", "401(k) match", "unlimited PTO")
+    "how to apply",  # Instructions or steps for submitting an application (e.g. "Send resume to …", "Apply via website")
+    "application link",  # Direct URLs or hyperlinks for applying (e.g. "https://company.com/jobs/apply/12345")
+    "work schedule",  # Expected working hours or pattern (e.g. "8am–5pm", "Monday–Friday", "rotating shifts")
 ]
 
 # ────────────────────────────────────────────────
