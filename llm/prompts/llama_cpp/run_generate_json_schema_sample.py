@@ -1,3 +1,4 @@
+import json
 import shutil
 from pathlib import Path
 
@@ -18,7 +19,12 @@ if __name__ == "__main__":
     query = "Top villainess anime 2026"
 
     json_schema = generate_json_schema(query)
+    print("JSON Schema:")
+    print(json.dumps(json_schema, indent=2, ensure_ascii=False))
+
     json_schema_sample = generate_json_schema_sample(json_schema, query)
+    print("JSON Schema Sample:")
+    print(json.dumps(json_schema_sample, indent=2, ensure_ascii=False))
 
     # Validate generated sample with schema
     validation_result = schema_validate_json(json_schema_sample, json_schema)
@@ -34,7 +40,9 @@ if __name__ == "__main__":
     model_instance = DynamicModel(**json_data)
 
     # Output the result
+    print("Data:")
     print(model_instance)
 
     save_file(json_schema, OUTPUT_DIR / "json_schema.json")
     save_file(json_data, OUTPUT_DIR / "json_data.json")
+    save_file(model_instance, OUTPUT_DIR / "model_instance.json")
