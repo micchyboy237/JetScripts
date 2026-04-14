@@ -15,7 +15,7 @@ output_dir = os.path.join(
 
 
 if __name__ == "__main__":
-    query = "Top otome villainess anime 2025"
+    query = "Top villainess anime 2026"
 
     json_schema = generate_json_schema(query)
     json_schema_sample = generate_json_schema_sample(json_schema, query)

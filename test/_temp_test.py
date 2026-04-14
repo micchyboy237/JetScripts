@@ -1,102 +1,40 @@
-from typing import List
+from jet.libs.smolagents.tools.searxng_search_tool import (
+    SearXNGSearchTool,  # or any from jet
+)
+from jet.libs.smolagents.utils.model_utils import (
+    create_local_model,  # reuse your jet module
+)
+from smolagents import CodeAgent, ToolCallingAgent
 
-from sudachipy import dictionary, tokenizer
+# Assume VisitWebpageTool or your custom @tool from previous files
 
-# Initialize tokenizer once (global / singleton style)
-_sudachi_tokenizer = None
+# 1. Create stateless sub-agent (ToolCallingAgent is great for single-timeline tasks)
+web_sub_agent = ToolCallingAgent(
+    tools=[
+        SearXNGSearchTool(max_results=10),
+        # VisitWebpageTool(...) or your custom visit_webpage @tool
+    ],
+    model=create_local_model(temperature=0.65, agent_name="web_sub_agent"),
+    max_steps=10,
+    name="web_agent",  # ← Required for delegation
+    description="Performs web searches and visits pages to gather detailed information.",
+    verbosity_level=1,
+)
 
+# 2. Create manager (CodeAgent) that can delegate to the sub-agent
+manager = CodeAgent(
+    tools=[],  # manager can have its own tools if needed
+    model=create_local_model(temperature=0.7, agent_name="manager_agent"),
+    managed_agents=[web_sub_agent],  # ← sub-agents become callable "tools"
+    max_steps=15,
+    verbosity_level=2,
+    additional_authorized_imports=["time", "numpy", "pandas"],  # for calculations
+)
 
-def get_sudachi_tokenizer(split_mode: str = "B") -> tokenizer.Tokenizer:
-    global _sudachi_tokenizer
-    if _sudachi_tokenizer is None:
-        # Loads core dictionary by default
-        sudachi_dict = dictionary.Dictionary()
-        splitmode_map = {
-            "A": tokenizer.Tokenizer.SplitMode.A,
-            "B": tokenizer.Tokenizer.SplitMode.B,
-            "C": tokenizer.Tokenizer.SplitMode.C,
-            "a": tokenizer.Tokenizer.SplitMode.A,
-            "b": tokenizer.Tokenizer.SplitMode.B,
-            "c": tokenizer.Tokenizer.SplitMode.C,
-        }
-        mode = splitmode_map.get(split_mode.upper(), tokenizer.Tokenizer.SplitMode.B)
-        _sudachi_tokenizer = sudachi_dict.create(
-            tokenizer.Tokenizer.SplitMode.B
-        )  # default
-        # We change mode per call → see below
-    return _sudachi_tokenizer
-
-
-def split_ja_phrases(
-    text: str,
-    mode: str = "B",  # "A", "B", "C"
-    join_with_space: bool = False,
-    filter_stopwords: bool = False,  # optional basic stopword removal
-    return_surfaces_only: bool = True,
-) -> List[str]:
-    """
-    Split Japanese text into phrase-like units using SudachiPy.
-
-    Args:
-        text:               Japanese input text
-        mode:               Splitting granularity ("A"=short, "B"=medium, "C"=long)
-        join_with_space:    Whether to join tokens with space (for Western-style output)
-        filter_stopwords:   Remove very common functional tokens (basic heuristic)
-        return_surfaces_only:
-                            True  → return list of surface strings
-                            False → return list of sudachipy.Morpheme objects
-
-    Returns:
-        List of phrase strings or Morpheme objects
-
-    Example:
-        >>> split_ja_phrases("私は昨日東京に行って寿司を食べました。")
-        ['私', 'は', '昨日', '東京', 'に', '行って', '寿司', 'を', '食べました', '。']
-        # with mode="C" → fewer splits on compounds
-    """
-    if not text.strip():
-        return []
-
-    tokenizer_obj = get_sudachi_tokenizer()
-    sudachi_mode = {
-        "A": tokenizer.Tokenizer.SplitMode.A,
-        "B": tokenizer.Tokenizer.SplitMode.B,
-        "C": tokenizer.Tokenizer.SplitMode.C,
-    }.get(mode.upper(), tokenizer.Tokenizer.SplitMode.B)
-
-    morphemes = tokenizer_obj.tokenize(text, sudachi_mode)
-
-    if filter_stopwords:
-        # Very rough heuristic — customize as needed
-        stopwords = {
-            "は",
-            "が",
-            "を",
-            "に",
-            "へ",
-            "で",
-            "と",
-            "や",
-            "の",
-            "です",
-            "ます",
-            "。",
-            "、",
-        }
-        morphemes = [m for m in morphemes if m.surface() not in stopwords]
-
-    if return_surfaces_only:
-        phrases = [m.surface() for m in morphemes]
-        if join_with_space:
-            return [" ".join(phrases)]
-        else:
-            return phrases
-    else:
-        return list(morphemes)
-
-
-if __name__ == "__main__":
-    for m in ["A", "B", "C"]:
-        ja_phrases = split_ja_phrases("私は昨日東京に行って寿司を食べました。", mode=m)
-        print(f"Mode {m} - JA Phrases ({len(ja_phrases)}):")
-        print(ja_phrases)
+# 3. Run – manager decides when to call the stateless sub-agent
+task = (
+    "Find the latest stable version of Hugging Face Transformers library. "
+    "Then estimate how many parameters the next major release might have based on trends."
+)
+answer = manager.run(task, reset=True)  # reset=True for fresh stateless start
+print(answer)
