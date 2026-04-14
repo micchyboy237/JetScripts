@@ -159,7 +159,9 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
 
     # Initialize tokenizer
     tokenizer = get_tokenizer_fn(
-        "qwen3-1.7b-4bit", add_special_tokens=False, remove_pad_tokens=True
+        os.getenv("LLAMA_CPP_LLM_MODEL"),
+        add_special_tokens=False,
+        remove_pad_tokens=True,
     )
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
@@ -367,8 +369,8 @@ def create_url_dict_list(
 
 async def main(query):
     """Main function to demonstrate file search."""
-    embed_model: LLAMACPP_EMBED_KEYS = "nomic-embed-text"
-    llm_model: LLAMACPP_LLM_KEYS = "qwen3-instruct-2507:4b"
+    embed_model: LLAMACPP_EMBED_KEYS = os.getenv("LLAMA_CPP_EMBED_MODEL")
+    llm_model: LLAMACPP_LLM_KEYS = os.getenv("LLAMA_CPP_LLM_MODEL")
     max_tokens = 4000
     use_cache = True
     urls_limit = 10
@@ -728,7 +730,7 @@ async def main(query):
     context = group_results_by_source_for_llm_context(filtered_results)
     save_file(context, f"{query_output_dir}/context.md")
     llm = LlamacppLLM(
-        model=llm_model, base_url="http://shawn-pc.local:8080/v1", verbose=True
+        model=llm_model, base_url=os.getenv("LLAMA_CPP_LLM_URL"), verbose=True
     )
     prompt = PROMPT_TEMPLATE.format(query=query, context=context)
     messages = [
