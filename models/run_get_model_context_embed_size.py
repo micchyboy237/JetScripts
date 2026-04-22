@@ -1,13 +1,25 @@
+import argparse
 import os
 
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.models.model_types import ModelType
 from jet.models.utils import get_model_limits
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Lookup and save the maximum context and embedding size for a model."
+    )
+    parser.add_argument(
+        "model_id",
+        type=str,
+        nargs="?",
+        default="Qwen/Qwen3.5-2B",
+        help="Model HuggingFace ID (default: 'Qwen/Qwen3.5-2B')",
+    )
+
+    args = parser.parse_args()
     output_dir = os.path.join(os.path.dirname(__file__), "constants")
-    model_id: ModelType = "mistralai/Ministral-3-3B-Instruct-2512"
+    model_id = args.model_id
 
     max_context, max_embeddings = get_model_limits(model_id)
 

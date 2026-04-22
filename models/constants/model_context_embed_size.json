@@ -1,5 +1,5 @@
 {
-  "model_id": "mistralai/Ministral-3-3B-Instruct-2512",
-  "max_context": null,
-  "max_embeddings": null
+  "model_id": "Qwen/Qwen3.5-2B",
+  "max_context": 262144,
+  "max_embeddings": 2048
 }
