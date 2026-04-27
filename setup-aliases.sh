@@ -321,6 +321,7 @@ reinstall_python() {
 large_folders() {
     local base_dir=""
     local min_size=100
+    local min_depth=""
     local includes=""
     local excludes=""
     local max_depth=""
@@ -335,22 +336,24 @@ large_folders() {
         case $1 in
             -b) base_dir="$2"; shift 2;;
             -s) min_size="$2"; shift 2;;
+            -md) min_depth="$2"; shift 2;;          # new: minimum depth
             -i) includes="$2"; shift 2;;
             -e) excludes="$2"; shift 2;;
             -d) max_depth="$2"; shift 2;;
-            -l) limit="$2"; shift 2;;
+            -l) limit="$2"; shift 2;;               # fixed: was missing
             -f) output_file="$2"; shift 2;;
             --max-backward-depth) max_backward_depth="$2"; shift 2;;
             --delete) delete=true; shift;;
             --direction) direction="$2"; shift 2;;
-            --save) save=true; shift;;  # Add condition for --save
-            *) shift;;
+            --save) save=true; shift;;
+            *) shift;;   # ignore unknown flags
         esac
     done
 
     local args=()
     [[ -n "$base_dir" ]] && args+=("-b" "$base_dir")
     [[ -n "$min_size" ]] && args+=("-s" "$min_size")
+    [[ -n "$min_depth" ]] && args+=("-md" "$min_depth")
     [[ -n "$includes" ]] && args+=("-i" "$includes")
     [[ -n "$excludes" ]] && args+=("-e" "$excludes")
     [[ -n "$max_depth" ]] && args+=("-d" "$max_depth")
@@ -359,11 +362,13 @@ large_folders() {
     [[ -n "$max_backward_depth" ]] && args+=(--max-backward-depth "$max_backward_depth")
     [[ "$delete" == true ]] && args+=(--delete)
     [[ -n "$direction" ]] && args+=(--direction "$direction")
-    [[ "$save" == true ]] && args+=(--save)  # Add --save to arguments if specified
+    [[ "$save" == true ]] && args+=(--save)
 
     python /Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/find_large_folders.py "${args[@]}"
 
     # Example:
+    # large_folders -s 50 -m 1 --save
+    # large_folders -b ~/.cache -m 2 --save
     # large_folders -d 3 --save
     # large_folders -b ~/Desktop/External_Projects -s 50 --save
     # large_folders -b . -s 100 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --direction forward --max-backward-depth 3 --save
