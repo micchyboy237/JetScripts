@@ -368,7 +368,7 @@ large_folders() {
 
     # Example:
     # large_folders -s 50 -m 1 --save
-    # large_folders -b ~/.cache -m 2 --save
+    # large_folders -b ~/.cache -m 1 --save
     # large_folders -d 3 --save
     # large_folders -b ~/Desktop/External_Projects -s 50 --save
     # large_folders -b . -s 100 -i "**/*" -e "node_modules,.venv" -d 2 -l 10 -f "out.json" --direction forward --max-backward-depth 3 --save
