@@ -1,26 +1,47 @@
-import torch
-from typing import Tuple
-from scipy.spatial.distance import cdist
-from pyannote.audio import Model, Inference
+#!/usr/bin/env python3
+# -*- encoding: utf-8 -*-
+# Copyright FunASR (https://github.com/alibaba-damo-academy/FunASR). All Rights Reserved.
+#  MIT License  (https://opensource.org/licenses/MIT)
 
-def verify_speakers(audio1: str, audio2: str, threshold: float = 0.6, hf_token: Optional[str] = None) -> Tuple[bool, float]:
-    """Verify if two audio samples are from the same speaker via cosine distance."""
-    model = Model.from_pretrained("pyannote/embedding", token=hf_token)
-    model.eval()
-    if torch.cuda.is_available():
-        model.to(torch.device("cuda"))
-    
-    inference = Inference(model, window="whole")
-    emb1: torch.Tensor = inference(audio1)
-    emb2: torch.Tensor = inference(audio2)
-    
-    # Compute cosine distance (lower = more similar)
-    distance: float = cdist(emb1.detach().numpy(), emb2.detach().numpy(), metric="cosine")[0, 0]
-    is_same: bool = distance < threshold  # Tune threshold based on EER (~0.3-0.6 typical)
-    
-    return is_same, distance
+import os
 
-# Usage
-if __name__ == "__main__":
-    same_speaker, dist = verify_speakers("speaker1.wav", "speaker1_ref.wav", hf_token="your_hf_token_here")
-    print(f"Same speaker? {same_speaker}, Distance: {dist:.4f}")
+from funasr import AutoModel
+
+chunk_size = [0, 10, 5]  # [0, 10, 5] 600ms, [0, 8, 4] 480ms
+encoder_chunk_look_back = 4  # number of chunks to lookback for encoder self-attention
+decoder_chunk_look_back = 1  # number of encoder chunks to lookback for decoder cross-attention
+model = AutoModel(model="iic/speech_paraformer_asr_nat-zh-cn-16k-common-vocab8404-online")
+
+audio_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/sub_audio/start_15s_recording_1_speaker.wav"
+
+wav_file = os.path.join(model.model_path, audio_path)
+res = model.generate(
+    input=wav_file,
+    chunk_size=chunk_size,
+    encoder_chunk_look_back=encoder_chunk_look_back,
+    decoder_chunk_look_back=decoder_chunk_look_back,
+)
+print(res)
+
+
+import soundfile
+
+
+wav_file = os.path.join(model.model_path, audio_path)
+speech, sample_rate = soundfile.read(wav_file)
+
+chunk_stride = chunk_size[1] * 960  # 600ms、480ms
+
+cache = {}
+total_chunk_num = int((len(speech) - 1) / chunk_stride + 
+    speech_chunk = speech[i * chunk_stride : (i + 1) * chunk_stride]
+    is_final = i == total_chunk_num - 1
+    res = model.generate(
+        input=speech_chunk,
+        cache=cache,
+        is_final=is_final,
+        chunk_size=chunk_size,
+        encoder_chunk_look_back=encoder_chunk_look_back,
+        decoder_chunk_look_back=decoder_chunk_look_back,
+    )
+    print(res)
