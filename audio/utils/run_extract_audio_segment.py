@@ -51,12 +51,13 @@ if end is None:
 segment, sr = extract_audio_segment(INPUT_AUDIO, start=start, end=end)
 output_path = OUTPUT_DIR / "extracted_audio.wav"
 sf.write(output_path, segment, sr)
-print("Extracted from raw input. Saved at:")
-print(output_path)
 
 # Extract from normalized audio
 norm_segment = normalize_speech_loudness(segment, sr)
 norm_output_path = OUTPUT_DIR / "extracted_audio_norm.wav"
 sf.write(norm_output_path, norm_segment, sr)
+
+print("Extracted from raw input. Saved at:")
+print(output_path)
 print("Extracted from normalized input. Saved at:")
 print(norm_output_path)
