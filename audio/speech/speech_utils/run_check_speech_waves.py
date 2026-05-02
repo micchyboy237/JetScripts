@@ -1,50 +1,61 @@
-import os
+import argparse
 import shutil
-import torchaudio
+from pathlib import Path
 
-from silero_vad.utils_vad import read_audio
+from jet.audio.speech.firered.speech_waves import (
+    check_speech_waves,
+)
+from jet.file.utils import load_file, save_file
 
-from jet.audio.speech.silero.speech_utils import check_speech_waves
-from jet.audio.utils import resolve_audio_paths
-from jet.file.utils import save_file
-from jet.audio.speech.silero.speech_timestamps_extractor import extract_speech_timestamps
+DEFAULT_SEGMENT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/audio_waveform/generated/speech_tracking/saved_speech_segments/segment_20260502_221930_278"
 
-OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+parser = argparse.ArgumentParser(
+    description="Check speech waves from segment dir and settings."
+)
+parser.add_argument(
+    "segment_dir",
+    nargs="?",
+    default=DEFAULT_SEGMENT_DIR,
+    help="Directory containing the speech segment probs files",
+)
+parser.add_argument(
+    "-sr",
+    "--sample_rate",
+    type=int,
+    default=16000,
+    help="Sample rate of the audio (default: 16000)",
+)
+parser.add_argument(
+    "-t",
+    "--threshold",
+    type=float,
+    default=0.3,
+    help="Speech probability threshold (default: 0.3)",
+)
+args = parser.parse_args()
+
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-audio_inputs = [
-    # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/generated/run_extract_speech_timestamps/segments",
-    "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_live_subtitles/results/full_recording.wav",
-]
-audio_paths = resolve_audio_paths(audio_inputs, recursive=True)
+segment_dir = args.segment_dir
+speech_probs_file = Path(segment_dir) / "probs.json"
+hybrid_speech_probs_file = Path(segment_dir) / "hybrid_probs.json"
 
-segments_dir = f"{OUTPUT_DIR}/segments"
+speech_probs = load_file(str(speech_probs_file))
+hybrid_speech_probs = load_file(str(hybrid_speech_probs_file))
+sample_rate = args.sample_rate
+threshold = args.threshold
 
-for idx, audio_file in enumerate(audio_paths):
-    waveform = read_audio(audio_file, sampling_rate=16000).unsqueeze(0)
-    speech_ts_and_probs = extract_speech_timestamps(audio_file, with_scores=True)
-    if isinstance(speech_ts_and_probs, tuple):
-        speech_ts, speech_probs = speech_ts_and_probs
-    else:
-        speech_ts, speech_probs = speech_ts_and_probs, []
-    threshold = 0.3
-    speech_waves = check_speech_waves(speech_probs, threshold=threshold)
+speech_waves = check_speech_waves(
+    speech_probs=speech_probs,
+    threshold=threshold,
+    sampling_rate=sample_rate,
+)
+hybrid_speech_waves = check_speech_waves(
+    speech_probs=hybrid_speech_probs,
+    threshold=threshold,
+    sampling_rate=sample_rate,
+)
 
-    out_dir = f"{segments_dir}/segment_{int(idx) + 1:03d}"
-    waves_dir = os.path.join(out_dir, "waves")
-    os.makedirs(waves_dir, exist_ok=True)
-
-    save_file(speech_waves, f"{out_dir}/speech_waves.json")
-    save_file(speech_probs, f"{out_dir}/speech_probs.json")
-    save_file(speech_ts, f"{out_dir}/speech_ts.json")
-
-    # Save each speech wave as a separate WAV file regardless of metadata validity
-    for wave in speech_waves:
-        frame_start = wave["details"]["frame_start"]
-        frame_end = wave["details"]["frame_end"]
-        start_sample = frame_start * 512
-        end_sample = (frame_end + 1) * 512
-        wave_audio = waveform[:, start_sample:end_sample]
-        wav_path = os.path.join(waves_dir, f"sound_{frame_start}_{frame_end}.wav")
-        torchaudio.save(wav_path, wave_audio, sample_rate=16000)
+save_file(speech_waves, OUTPUT_DIR / "speech_waves.json")
+save_file(hybrid_speech_waves, OUTPUT_DIR / "hybrid_speech_waves.json")
