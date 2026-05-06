@@ -5,6 +5,9 @@ from pathlib import Path
 import soundfile as sf
 from jet.audio.helpers.energy_base import get_audio_duration
 from jet.audio.norm.norm_speech_loudness import normalize_speech_loudness
+from jet.audio.norm.norm_speech_loudness_firered import (
+    normalize_speech_loudness as normalize_speech_loudness_fr,
+)
 from jet.audio.utils import extract_audio_segment
 from jet.audio.utils.loader import load_audio
 
@@ -52,12 +55,19 @@ segment, sr = extract_audio_segment(INPUT_AUDIO, start=start, end=end)
 output_path = OUTPUT_DIR / "extracted_audio.wav"
 sf.write(output_path, segment, sr)
 
-# Extract from normalized audio
-norm_segment = normalize_speech_loudness(segment, sr)
-norm_output_path = OUTPUT_DIR / "extracted_audio_norm.wav"
-sf.write(norm_output_path, norm_segment, sr)
+# Extract from normalized audio (SIL)
+norm_segment_sil = normalize_speech_loudness(segment, sr)
+norm_output_path_sil = OUTPUT_DIR / "extracted_audio_norm_sil.wav"
+sf.write(norm_output_path_sil, norm_segment_sil, sr)
+
+# Extract from normalized audio (FIR)
+norm_segment_fir = normalize_speech_loudness_fr(segment, sr)
+norm_output_path_fir = OUTPUT_DIR / "extracted_audio_norm_fir.wav"
+sf.write(norm_output_path_fir, norm_segment_fir, sr)
 
 print("Extracted from raw input. Saved at:")
 print(output_path)
-print("Extracted from normalized input. Saved at:")
-print(norm_output_path)
+print("Extracted from normalized input (SIL). Saved at:")
+print(norm_output_path_sil)
+print("Extracted from normalized input (FIR). Saved at:")
+print(norm_output_path_fir)
