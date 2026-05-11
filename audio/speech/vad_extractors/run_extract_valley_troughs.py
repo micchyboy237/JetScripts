@@ -1,9 +1,15 @@
 import numpy as np
+from jet.audio.helpers.config import FRAME_SHIFT_MS
 from jet.audio.speech.firered.speech_timestamps_extractor import (
     extract_speech_timestamps,
 )
 from jet.audio.speech.vad_extractors import extract_valley_troughs
 from jet.audio.utils.loader import load_audio
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+console = Console()
 
 if __name__ == "__main__":
     import argparse
@@ -18,7 +24,7 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # Input options (arguments are now not required to allow default fallback)
+    # Input options
     input_group = parser.add_mutually_exclusive_group(required=False)
     input_group.add_argument(
         "--probs",
@@ -40,7 +46,7 @@ if __name__ == "__main__":
         "-O",
         type=Path,
         default=Path(__file__).parent / "generated" / Path(__file__).stem,
-        help="Output directory to save JSON results (default: generated/)",
+        help="Output directory to save JSON results",
     )
 
     args = parser.parse_args()
@@ -51,20 +57,18 @@ if __name__ == "__main__":
     try:
         # If neither --probs nor --audio is provided, use DEFAULT_AUDIO
         if not getattr(args, "probs", None) and not getattr(args, "audio", None):
-            print(
+            console.print(
                 f"No --audio or --probs provided, using default audio: {DEFAULT_AUDIO}"
             )
             args.audio = Path(DEFAULT_AUDIO)
 
         if args.probs:
-            # Load probabilities from .npy file
-            print(f"Loading probabilities from: {args.probs}")
+            console.print(f"Loading probabilities from: {args.probs}")
             probs = np.load(args.probs)
             if isinstance(probs, np.ndarray):
                 probs = probs.tolist()
         else:
             audio = load_audio(args.audio)
-            # load_audio can return (audio, sr) tuple
             if isinstance(audio, tuple) and len(audio) == 2:
                 audio_np = audio[0]
             else:
@@ -77,6 +81,10 @@ if __name__ == "__main__":
                 with_scores=True,
             )
 
+        # Compute total duration
+        frame_duration = FRAME_SHIFT_MS / 1000.0
+        total_duration_s = len(probs) * frame_duration if probs else 0.0
+
         troughs = extract_valley_troughs(
             probs=probs,
             min_valley_duration_s=0.8,
@@ -86,40 +94,88 @@ if __name__ == "__main__":
             min_trough_offset_s=1.0,
         )
 
-        # Compose output file path
-        output_file = args.output_dir / "valley_troughs.json"
+        # Enrich with percentage offset
+        for trough in troughs:
+            t = trough["time_s"]
+            trough["percentage_offset"] = (
+                round((t / total_duration_s * 100), 2) if total_duration_s > 0 else 0.0
+            )
+
+        # === Add Rank based on final_score (higher = better) ===
+        sorted_troughs = sorted(
+            troughs, key=lambda x: x["valley"]["final_score"], reverse=True
+        )
+        rank_map = {
+            trough["time_s"]: rank for rank, trough in enumerate(sorted_troughs, 1)
+        }
+
+        for trough in troughs:
+            trough["rank"] = rank_map[trough["time_s"]]
+        # =======================================================
 
         # Output results
         if not troughs:
-            print("No valid valley troughs found.")
+            console.print("No valid valley troughs found.")
         else:
-            print(f"\nFound {len(troughs)} valley trough(s):\n")
+            # Enhanced Panel with Total Duration
+            total_min = int(total_duration_s // 60)
+            total_sec = total_duration_s % 60
+            duration_str = (
+                f"{total_min:02d}:{total_sec:05.2f}"
+                if total_min > 0
+                else f"{total_duration_s:.2f}s"
+            )
 
-            for i, trough in enumerate(troughs, 1):
+            console.print(
+                Panel(
+                    f"[bold green]Found {len(troughs)} Valley Trough(s)[/bold green] "
+                    f"• [bold white]Total Duration:[/bold white] [cyan]{duration_str}[/cyan]",
+                    expand=False,
+                )
+            )
+
+            table = Table(
+                title="Valley Troughs", show_header=True, header_style="bold cyan"
+            )
+            table.add_column("Rank", style="bold", justify="center")
+            table.add_column("Time (s)", justify="right")
+            table.add_column("% Offset", justify="right")
+            table.add_column("Prob", justify="right")
+            table.add_column("Final Score", justify="right")
+            table.add_column("Duration (s)", justify="right")
+
+            for trough in troughs:
                 v = trough["valley"]
-                print(
-                    f"{i:2d}. Time: {trough['time_s']:.3f}s  "
-                    f"(Global: {trough.get('global_time_s', trough['time_s']):.3f}s)"
-                )
-                print(
-                    f"    Prob: {trough['prob']:.4f} | "
-                    f"Valley Score: {v['valley_score']:.4f} | "
-                    f"Trough Score: {v['trough_score']:.4f} | "
-                    f"Final Score: {v['final_score']:.4f}"
-                )
-                print(
-                    f"    Duration: {v['duration_s']:.3f}s "
-                    f"({v['frame_start']}–{v['frame_end']} frames)\n"
+                rank = trough["rank"]
+
+                # Color coding for ranks
+                if rank == 1:
+                    row_style = "bold green"  # Rank 1
+                elif rank == 2:
+                    row_style = "bold yellow"  # Rank 2
+                else:
+                    row_style = "bold orange1"  # Rank 3+
+
+                table.add_row(
+                    str(rank),
+                    f"{trough['time_s']:.3f}",
+                    f"{trough['percentage_offset']}%",
+                    f"{trough['prob']:.4f}",
+                    f"{v['final_score']:.4f}",
+                    f"{v['duration_s']:.3f}",
+                    style=row_style,
                 )
 
-            # Save to JSON if requested
-            if args.output_dir:
-                with open(output_file, "w", encoding="utf-8") as f:
-                    json.dump(troughs, f, indent=2, ensure_ascii=False)
-                print(f"Results saved to: {output_file}")
+            console.print(table)
+
+            # Save to JSON
+            output_file = args.output_dir / "valley_troughs.json"
+            with open(output_file, "w", encoding="utf-8") as f:
+                json.dump(troughs, f, indent=2, ensure_ascii=False)
+            console.print(f"[green]Results saved to:[/green] {output_file}")
 
     except Exception as e:
-        print(f"Error: {e}")
+        console.print(f"[bold red]Error:[/bold red] {e}")
         import traceback
 
         traceback.print_exc()

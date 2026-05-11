@@ -1,9 +1,14 @@
 import numpy as np
+from jet.audio.helpers.config import FRAME_SHIFT_MS
 from jet.audio.speech.firered.speech_timestamps_extractor import (
     extract_speech_timestamps,
 )
-from jet.audio.speech.vad_extractors import extract_valley_troughs
+from jet.audio.speech.vad_extractors import get_best_valley_trough
 from jet.audio.utils.loader import load_audio
+from rich.console import Console
+from rich.panel import Panel
+
+console = Console()
 
 if __name__ == "__main__":
     import argparse
@@ -43,7 +48,7 @@ if __name__ == "__main__":
         help="Output directory to save JSON results (default: generated/)",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args()  # keep same CLI for easy use
 
     shutil.rmtree(args.output_dir, ignore_errors=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
@@ -51,14 +56,14 @@ if __name__ == "__main__":
     try:
         # If neither --probs nor --audio is provided, use DEFAULT_AUDIO
         if not getattr(args, "probs", None) and not getattr(args, "audio", None):
-            print(
+            console.print(
                 f"No --audio or --probs provided, using default audio: {DEFAULT_AUDIO}"
             )
             args.audio = Path(DEFAULT_AUDIO)
 
         if args.probs:
             # Load probabilities from .npy file
-            print(f"Loading probabilities from: {args.probs}")
+            console.print(f"Loading probabilities from: {args.probs}")
             probs = np.load(args.probs)
             if isinstance(probs, np.ndarray):
                 probs = probs.tolist()
@@ -69,15 +74,20 @@ if __name__ == "__main__":
                 audio_np = audio[0]
             else:
                 audio_np = audio
-            _, probs = extract_speech_timestamps(
-                audio=audio_np,
-                threshold=0.5,
-                min_speech_duration_sec=0.250,
-                min_silence_duration_sec=0.250,
-                with_scores=True,
+            _, probs = (
+                extract_speech_timestamps(  # still need probs for the best-trough function
+                    audio=audio_np,
+                    threshold=0.5,
+                    min_speech_duration_sec=0.250,
+                    min_silence_duration_sec=0.250,
+                    with_scores=True,
+                )
             )
 
-        troughs = extract_valley_troughs(
+        frame_duration = FRAME_SHIFT_MS / 1000.0
+        total_duration_s = len(probs) * frame_duration if probs else 0.0
+
+        best_trough = get_best_valley_trough(
             probs=probs,
             min_valley_duration_s=0.8,
             smoothing_window=20,
@@ -86,40 +96,43 @@ if __name__ == "__main__":
             min_trough_offset_s=1.0,
         )
 
-        # Compose output file path
-        output_file = args.output_dir / "valley_troughs.json"
+        output_file = args.output_dir / "best_valley_trough.json"
 
-        # Output results
-        if not troughs:
-            print("No valid valley troughs found.")
+        if not best_trough:
+            console.print("[yellow]No valid best valley trough found.[/yellow]")
         else:
-            print(f"\nFound {len(troughs)} valley trough(s):\n")
+            best_trough["percentage_offset"] = (
+                round((best_trough["time_s"] / total_duration_s * 100), 2)
+                if total_duration_s > 0
+                else 0.0
+            )
 
-            for i, trough in enumerate(troughs, 1):
-                v = trough["valley"]
-                print(
-                    f"{i:2d}. Time: {trough['time_s']:.3f}s  "
-                    f"(Global: {trough.get('global_time_s', trough['time_s']):.3f}s)"
+            console.print(
+                Panel(
+                    "[bold magenta]=== BEST VALLEY TROUGH ===[/bold magenta]",
+                    expand=False,
                 )
-                print(
-                    f"    Prob: {trough['prob']:.4f} | "
-                    f"Valley Score: {v['valley_score']:.4f} | "
-                    f"Trough Score: {v['trough_score']:.4f} | "
-                    f"Final Score: {v['final_score']:.4f}"
-                )
-                print(
-                    f"    Duration: {v['duration_s']:.3f}s "
-                    f"({v['frame_start']}–{v['frame_end']} frames)\n"
-                )
+            )
 
-            # Save to JSON if requested
+            v = best_trough["valley"]
+            console.print(
+                f"Time       : {best_trough['time_s']:.3f}s  (Global: {best_trough.get('global_time_s', best_trough['time_s']):.3f}s)"
+            )
+            console.print(
+                f"Percentage : [cyan]{best_trough['percentage_offset']}%[/cyan]"
+            )
+            console.print(
+                f"Prob       : {best_trough['prob']:.4f} | Valley: {v['valley_score']:.4f} | Trough: {v['trough_score']:.4f}"
+            )
+            console.print(f"Duration   : {v['duration_s']:.3f}s")
+
             if args.output_dir:
                 with open(output_file, "w", encoding="utf-8") as f:
-                    json.dump(troughs, f, indent=2, ensure_ascii=False)
-                print(f"Results saved to: {output_file}")
+                    json.dump(best_trough, f, indent=2, ensure_ascii=False)
+                console.print(f"[green]Results saved to:[/green] {output_file}")
 
     except Exception as e:
-        print(f"Error: {e}")
+        console.print(f"[bold red]Error:[/bold red] {e}")
         import traceback
 
         traceback.print_exc()
