@@ -1,4 +1,5 @@
 import numpy as np
+import soundfile as sf
 from jet.audio.helpers.config import FRAME_SHIFT_MS
 from jet.audio.speech.firered.speech_timestamps_extractor import (
     extract_speech_timestamps,
@@ -10,6 +11,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 console = Console()
+SAMPLE_RATE = 16_000
 
 if __name__ == "__main__":
     import argparse
@@ -56,17 +58,16 @@ if __name__ == "__main__":
             )
             args.audio = Path(DEFAULT_AUDIO)
 
+        audio_np = None
+        sr = SAMPLE_RATE
+
         if args.probs:
             console.print(f"Loading probabilities from: {args.probs}")
             probs = np.load(args.probs)
             if isinstance(probs, np.ndarray):
                 probs = probs.tolist()
         else:
-            audio = load_audio(args.audio)
-            if isinstance(audio, tuple) and len(audio) == 2:
-                audio_np = audio[0]
-            else:
-                audio_np = audio
+            audio_np, sr = load_audio(args.audio, SAMPLE_RATE)
             _, probs = extract_speech_timestamps(
                 audio=audio_np,
                 threshold=0.5,
@@ -162,6 +163,67 @@ if __name__ == "__main__":
             )
             console.print(table)
 
+            # ── Save splitted wav files (only when audio was loaded) ─────────
+
+            left_wav_path = None
+            right_wav_path = None
+
+            if audio_np is not None:
+                seconds_per_frame = FRAME_SHIFT_MS / 1000.0
+                split_sample = int(split_frame * seconds_per_frame * sr)
+                split_sample = max(0, min(split_sample, len(audio_np)))
+
+                left_audio = audio_np[:split_sample]
+                right_audio = audio_np[split_sample:]
+
+                splitted_dir = args.output_dir / "splitted_wavs"
+                splitted_dir.mkdir(parents=True, exist_ok=True)
+
+                def linkify(path):
+                    # Provide clickable file link with basename (for rich/terminal that support it)
+                    return f"[link=file://{path}]{path.name}[/link]"
+
+                left_wav_path = splitted_dir / "left.wav"
+                right_wav_path = splitted_dir / "right.wav"
+
+                sf.write(str(left_wav_path), left_audio, sr, subtype="FLOAT")
+                sf.write(str(right_wav_path), right_audio, sr, subtype="FLOAT")
+
+                left_samples = len(left_audio)
+                right_samples = len(right_audio)
+
+                wav_table = Table(
+                    title="Saved WAV Files",
+                    show_header=True,
+                    header_style="bold cyan",
+                )
+                wav_table.add_column("Half", style="bold", justify="left")
+                wav_table.add_column("Samples", justify="right")
+                wav_table.add_column("Duration (s)", justify="right")
+                wav_table.add_column("Path", justify="left")
+
+                wav_table.add_row(
+                    "Left",
+                    str(left_samples),
+                    f"{left_samples / sr:.3f}",
+                    linkify(left_wav_path),
+                    style="bold green",
+                )
+                wav_table.add_row(
+                    "Right",
+                    str(right_samples),
+                    f"{right_samples / sr:.3f}",
+                    linkify(right_wav_path),
+                    style="bold yellow",
+                )
+
+                console.print(wav_table)
+            else:
+                console.print(
+                    "[yellow]Skipping wav export — no audio loaded "
+                    "(use --audio instead of --probs to enable).[/yellow]"
+                )
+
             # ── Save JSON ────────────────────────────────────────────────────
             output = {
                 "split_frame": split_frame,
@@ -180,6 +242,10 @@ if __name__ == "__main__":
                     "frame_end": len(probs) - 1,
                     "num_frames": len(right_probs),
                     "duration_s": right_duration_s,
+                },
+                "wavs": {
+                    "left": str(left_wav_path) if left_wav_path else None,
+                    "right": str(right_wav_path) if right_wav_path else None,
                 },
             }
 
