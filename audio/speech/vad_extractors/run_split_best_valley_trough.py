@@ -142,7 +142,7 @@ if __name__ == "__main__":
             console.print(
                 Panel(
                     f"[bold green]Split at frame {split_frame}[/bold green]"
-                    f"  •  [cyan]{split_time_s:.3f}s[/cyan]"
+                    f"  •  [cyan]{split_time_s:.2f}s[/cyan]"
                     f"  •  [yellow]{split_pct}%[/yellow] of total"
                     f"  •  Score: [magenta]{v['final_score']:.4f}[/magenta]",
                     title="[bold]Best Valley Trough Split[/bold]",
@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
             # ── Trough detail block (mirrors run_get_best_valley_trough) ────
             console.print(
-                f"Time       : {split_time_s:.3f}s  (Global: {global_time_s:.3f}s)"
+                f"Time       : {split_time_s:.2f}s  (Global: {global_time_s:.2f}s)"
             )
             console.print(f"Percentage : [cyan]{split_pct}%[/cyan]")
             console.print(
@@ -160,7 +160,7 @@ if __name__ == "__main__":
                 f" | Valley: {v['valley_score']:.4f}"
                 f" | Trough: {v['trough_score']:.4f}"
             )
-            console.print(f"Duration   : {v['duration_s']:.3f}s")
+            console.print(f"Duration   : {v['duration_s']:.2f}s")
 
             # ── Left / right summary table ───────────────────────────────────
             table = Table(
@@ -176,18 +176,18 @@ if __name__ == "__main__":
 
             table.add_row(
                 "Left  (before split)",
-                str(len(left_probs)),
-                f"{left_duration_s:.3f}",
+                str(len(left_probs) if left_probs is not None else 0),
+                f"{left_duration_s:.2f}",
                 "0",
                 str(split_frame - 1),
                 style="bold green",
             )
             table.add_row(
                 "Right (from split)",
-                str(len(right_probs)),
-                f"{right_duration_s:.3f}",
+                str(len(right_probs) if right_probs is not None else 0),
+                f"{right_duration_s:.2f}",
                 str(split_frame),
-                str(len(probs) - 1),
+                str(len(probs) - 1 if probs is not None else 0),
                 style="bold yellow",
             )
             console.print(table)
@@ -230,14 +230,14 @@ if __name__ == "__main__":
                 wav_table.add_row(
                     "Left",
                     str(left_samples),
-                    f"{left_samples / sr:.3f}",
+                    f"{left_samples / sr:.2f}",
                     linkify(left_wav_path),
                     style="bold green",
                 )
                 wav_table.add_row(
                     "Right",
                     str(right_samples),
-                    f"{right_samples / sr:.3f}",
+                    f"{right_samples / sr:.2f}",
                     linkify(right_wav_path),
                     style="bold yellow",
                 )

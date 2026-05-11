@@ -161,8 +161,8 @@ if __name__ == "__main__":
                 )
             )
             console.print(
-                f"Time       : {last_trough['time_s']:.3f}s"
-                f"  (Global: {last_trough.get('global_time_s', last_trough['time_s']):.3f}s)"
+                f"Time       : {last_trough['time_s']:.2f}s"
+                f"  (Global: {last_trough.get('global_time_s', last_trough['time_s']):.2f}s)"
             )
             console.print(f"Percentage : [cyan]{percentage_offset}%[/cyan]")
             console.print(
@@ -171,9 +171,10 @@ if __name__ == "__main__":
                 f" | Trough: {v['trough_score']:.4f}"
             )
             console.print(
-                f"Duration   : {v['duration_s']:.3f}s"
+                f"Duration   : {v['duration_s']:.2f}s"
                 f"  (frames {v['frame_start']}–{v['frame_end']})"
             )
+
             # is_last should always be True here, but we show it for clarity
             console.print(f"Is last    : [bold green]{v['is_last']}[/bold green]")
 

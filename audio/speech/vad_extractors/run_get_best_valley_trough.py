@@ -164,13 +164,13 @@ if __name__ == "__main__":
 
             v = best_trough["valley"]
             console.print(
-                f"Time       : {best_trough['time_s']:.3f}s  (Global: {best_trough.get('global_time_s', best_trough['time_s']):.3f}s)"
+                f"Time       : {best_trough['time_s']:.2f}s  (Global: {best_trough.get('global_time_s', best_trough['time_s']):.2f}s)"
             )
             console.print(f"Percentage : [cyan]{percentage_offset}%[/cyan]")
             console.print(
                 f"Prob       : {best_trough['prob']:.4f} | Valley: {v['valley_score']:.4f} | Trough: {v['trough_score']:.4f}"
             )
-            console.print(f"Duration   : {v['duration_s']:.3f}s")
+            console.print(f"Duration   : {v['duration_s']:.2f}s")
 
             # Save result including percentage_offset
             output_data = dict(best_trough)

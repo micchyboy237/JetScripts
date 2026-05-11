@@ -173,6 +173,8 @@ if __name__ == "__main__":
             )
             table.add_column("Rank", style="bold", justify="center")
             table.add_column("Time (s)", justify="right")
+            table.add_column("Frame End", justify="right")
+            table.add_column("End (s)", justify="right")
             table.add_column("% Offset", justify="right")
             table.add_column("Prob", justify="right")
             table.add_column("Final Score", justify="right")
@@ -192,11 +194,13 @@ if __name__ == "__main__":
 
                 table.add_row(
                     str(rank),
-                    f"{trough['time_s']:.3f}",
+                    f"{trough['time_s']:.2f}",
+                    str(v["frame_end"]),
+                    f"{v['end_s']:.2f}",
                     f"{trough['percentage_offset']}%",
                     f"{trough['prob']:.4f}",
                     f"{v['final_score']:.4f}",
-                    f"{v['duration_s']:.3f}",
+                    f"{v['duration_s']:.2f}",
                     style=row_style,
                 )
 
