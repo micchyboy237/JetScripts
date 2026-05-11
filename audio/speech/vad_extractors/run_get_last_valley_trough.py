@@ -3,13 +3,8 @@ import json
 import shutil
 from pathlib import Path
 
-import numpy as np
 from jet.audio.helpers.config import FRAME_SHIFT_MS
-from jet.audio.speech.firered.speech_timestamps_extractor import (
-    extract_speech_timestamps,
-)
-from jet.audio.speech.vad_extractors import get_last_valley_trough
-from jet.audio.utils.loader import load_audio
+from jet.audio.speech.vad_extractors import get_last_valley_trough, load_probs
 from rich.console import Console
 from rich.panel import Panel
 
@@ -65,65 +60,7 @@ if __name__ == "__main__":
     try:
         probs = None
         audio_np = None
-        input_path = Path(input_value)
-
-        # ── Load probabilities or audio ──────────────────────────────────────
-        if is_probs_list(input_value):
-            probs = input_value
-
-        elif input_path.is_file():
-            ext = input_path.suffix.lower()
-
-            if ext == ".npy":
-                console.print(f"Loading probabilities from: {linkify(input_path)}")
-                np_load = np.load(input_path, allow_pickle=True)
-                probs = np_load.tolist() if isinstance(np_load, np.ndarray) else np_load
-
-            elif ext in {".json", ".txt"}:
-                console.print(f"Loading probabilities from: {linkify(input_path)}")
-                with open(input_path, "r", encoding="utf-8") as f:
-                    loaded = json.load(f)
-                if is_probs_list(loaded):
-                    probs = loaded
-                else:
-                    raise ValueError(
-                        f"JSON file is not a list of floats: {linkify(input_path)}"
-                    )
-
-            else:
-                console.print(f"Loading audio from: {linkify(input_path)}")
-                audio = load_audio(input_path)
-                audio_np = audio[0] if isinstance(audio, tuple) else audio
-                _, probs = extract_speech_timestamps(
-                    audio=audio_np,
-                    threshold=0.5,
-                    min_speech_duration_sec=0.250,
-                    min_silence_duration_sec=0.250,
-                    with_scores=True,
-                )
-
-        else:
-            # Try parsing the string as raw JSON
-            try:
-                loaded = json.loads(input_value)
-                if is_probs_list(loaded):
-                    probs = loaded
-                else:
-                    raise ValueError()
-            except Exception:
-                console.print(
-                    f"[yellow]Input not recognised — falling back to default audio: "
-                    f"{linkify(Path(DEFAULT_AUDIO))}[/yellow]"
-                )
-                audio = load_audio(DEFAULT_AUDIO)
-                audio_np = audio[0] if isinstance(audio, tuple) else audio
-                _, probs = extract_speech_timestamps(
-                    audio=audio_np,
-                    threshold=0.5,
-                    min_speech_duration_sec=0.250,
-                    min_silence_duration_sec=0.250,
-                    with_scores=True,
-                )
+        probs, audio_np = load_probs(input_value, DEFAULT_AUDIO)
 
         # ── Core call ────────────────────────────────────────────────────────
         frame_duration = FRAME_SHIFT_MS / 1000.0

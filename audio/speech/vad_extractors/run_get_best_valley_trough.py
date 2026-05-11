@@ -3,13 +3,8 @@ import json
 import shutil
 from pathlib import Path
 
-import numpy as np
 from jet.audio.helpers.config import FRAME_SHIFT_MS
-from jet.audio.speech.firered.speech_timestamps_extractor import (
-    extract_speech_timestamps,
-)
-from jet.audio.speech.vad_extractors import get_best_valley_trough
-from jet.audio.utils.loader import load_audio
+from jet.audio.speech.vad_extractors import get_best_valley_trough, load_probs
 from rich.console import Console
 from rich.panel import Panel
 
@@ -61,75 +56,7 @@ if __name__ == "__main__":
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Determine input type and load probs
-        probs = None
-        input_path = Path(input_value)
-        if is_probs_list(input_value):
-            # Passed as inline list of floats (not typical, but technically allowed)
-            probs = input_value
-            audio_np = None
-        elif input_path.is_file():
-            ext = input_path.suffix.lower()
-            if ext == ".npy":
-                console.print(f"Loading probabilities from: {linkify(input_path)}")
-                np_load = np.load(input_path, allow_pickle=True)
-                # Auto-handle npy with array or list
-                if isinstance(np_load, np.ndarray):
-                    np_load = np_load.tolist()
-                probs = np_load
-                audio_np = None
-            elif ext in {".json", ".txt"}:
-                console.print(f"Loading probabilities from: {linkify(input_path)}")
-                with open(input_path, "r", encoding="utf-8") as f:
-                    loaded = json.load(f)
-                if is_probs_list(loaded):
-                    probs = loaded
-                    audio_np = None
-                else:
-                    raise ValueError(
-                        f"JSON file is not a list of floats: {linkify(input_path)}"
-                    )
-            else:
-                # Treat any other file as audio
-                console.print(f"Loading audio from: {linkify(input_path)}")
-                audio = load_audio(input_path)
-                if isinstance(audio, tuple) and len(audio) == 2:
-                    audio_np = audio[0]
-                else:
-                    audio_np = audio
-                _, probs = extract_speech_timestamps(
-                    audio=audio_np,
-                    threshold=0.5,
-                    min_speech_duration_sec=0.250,
-                    min_silence_duration_sec=0.250,
-                    with_scores=True,
-                )
-        else:
-            # Fallback: input provided as inline string/list? (could be args.input = '[0.2, 0.3, ...]')
-            try:
-                loaded = json.loads(input_value)
-                if is_probs_list(loaded):
-                    probs = loaded
-                    audio_np = None
-                else:
-                    raise ValueError()
-            except Exception:
-                # If nothing else, treat as default audio path
-                console.print(
-                    f"[yellow]Input not recognized, falling back to default audio: {linkify(Path(DEFAULT_AUDIO))}[/yellow]"
-                )
-                audio = load_audio(DEFAULT_AUDIO)
-                if isinstance(audio, tuple) and len(audio) == 2:
-                    audio_np = audio[0]
-                else:
-                    audio_np = audio
-                _, probs = extract_speech_timestamps(
-                    audio=audio_np,
-                    threshold=0.5,
-                    min_speech_duration_sec=0.250,
-                    min_silence_duration_sec=0.250,
-                    with_scores=True,
-                )
+        probs, audio_np = load_probs(input_value, DEFAULT_AUDIO)
 
         frame_duration = FRAME_SHIFT_MS / 1000.0
         total_duration_s = len(probs) * frame_duration if probs else 0.0
