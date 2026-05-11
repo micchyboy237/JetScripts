@@ -8,16 +8,16 @@ from jet.audio.helpers.config import FRAME_SHIFT_MS
 from jet.audio.speech.firered.speech_timestamps_extractor import (
     extract_speech_timestamps,
 )
-from jet.audio.speech.vad_extractors import extract_valley_troughs
+from jet.audio.speech.vad_extractors import get_last_valley_trough
 from jet.audio.utils.loader import load_audio
 from rich.console import Console
 from rich.panel import Panel
-from rich.table import Table
 
 console = Console()
 
 
 def is_probs_list(obj):
+    """Returns True if obj is a list of floats."""
     return (
         isinstance(obj, list)
         and len(obj) > 0
@@ -26,7 +26,6 @@ def is_probs_list(obj):
 
 
 def linkify(path: Path):
-    # Provide clickable file link with basename (for rich/terminal that support it)
     return f"[link=file://{path}]{path.name}[/link]"
 
 
@@ -34,7 +33,10 @@ if __name__ == "__main__":
     DEFAULT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
 
     parser = argparse.ArgumentParser(
-        description="Extract valley troughs (strong silence points) from audio file, .npy VAD probs, or JSON list of floats.",
+        description=(
+            "Find the valley trough that covers the last audio frame. "
+            "Accepts an audio file, .npy VAD probs, or a JSON list of floats."
+        ),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
@@ -42,7 +44,10 @@ if __name__ == "__main__":
         nargs="?",
         default=DEFAULT_AUDIO,
         type=str,
-        help="Path to audio file (.wav, .mp3, etc.), .npy file of VAD probs, or JSON file/list of floats",
+        help=(
+            "Path to audio file (.wav, .mp3, etc.), "
+            ".npy file of VAD probs, or JSON file/list of floats"
+        ),
     )
     parser.add_argument(
         "--output-dir",
@@ -51,25 +56,29 @@ if __name__ == "__main__":
         default=Path(__file__).parent / "generated" / Path(__file__).stem,
         help="Output directory to save JSON results",
     )
-
     args = parser.parse_args()
+    input_value = args.input
 
     shutil.rmtree(args.output_dir, ignore_errors=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        input_value = args.input
-        input_path = Path(input_value)
+        probs = None
         audio_np = None
+        input_path = Path(input_value)
 
+        # ── Load probabilities or audio ──────────────────────────────────────
         if is_probs_list(input_value):
             probs = input_value
+
         elif input_path.is_file():
             ext = input_path.suffix.lower()
+
             if ext == ".npy":
                 console.print(f"Loading probabilities from: {linkify(input_path)}")
                 np_load = np.load(input_path, allow_pickle=True)
                 probs = np_load.tolist() if isinstance(np_load, np.ndarray) else np_load
+
             elif ext in {".json", ".txt"}:
                 console.print(f"Loading probabilities from: {linkify(input_path)}")
                 with open(input_path, "r", encoding="utf-8") as f:
@@ -78,14 +87,13 @@ if __name__ == "__main__":
                     probs = loaded
                 else:
                     raise ValueError(
-                        f"JSON is not a list of floats: {linkify(input_path)}"
+                        f"JSON file is not a list of floats: {linkify(input_path)}"
                     )
+
             else:
                 console.print(f"Loading audio from: {linkify(input_path)}")
                 audio = load_audio(input_path)
-                audio_np = (
-                    audio[0] if isinstance(audio, tuple) and len(audio) == 2 else audio
-                )
+                audio_np = audio[0] if isinstance(audio, tuple) else audio
                 _, probs = extract_speech_timestamps(
                     audio=audio_np,
                     threshold=0.5,
@@ -93,7 +101,9 @@ if __name__ == "__main__":
                     min_silence_duration_sec=0.250,
                     with_scores=True,
                 )
+
         else:
+            # Try parsing the string as raw JSON
             try:
                 loaded = json.loads(input_value)
                 if is_probs_list(loaded):
@@ -102,12 +112,11 @@ if __name__ == "__main__":
                     raise ValueError()
             except Exception:
                 console.print(
-                    f"[yellow]Input not recognized, falling back to default audio: {linkify(Path(DEFAULT_AUDIO))}[/yellow]"
+                    f"[yellow]Input not recognised — falling back to default audio: "
+                    f"{linkify(Path(DEFAULT_AUDIO))}[/yellow]"
                 )
                 audio = load_audio(DEFAULT_AUDIO)
-                audio_np = (
-                    audio[0] if isinstance(audio, tuple) and len(audio) == 2 else audio
-                )
+                audio_np = audio[0] if isinstance(audio, tuple) else audio
                 _, probs = extract_speech_timestamps(
                     audio=audio_np,
                     threshold=0.5,
@@ -116,10 +125,12 @@ if __name__ == "__main__":
                     with_scores=True,
                 )
 
+        # ── Core call ────────────────────────────────────────────────────────
         frame_duration = FRAME_SHIFT_MS / 1000.0
-        total_duration_s = len(probs) * frame_duration if probs else 0.0
+        total_frames = len(probs) if probs else 0
+        total_duration_s = total_frames * frame_duration
 
-        troughs = extract_valley_troughs(
+        last_trough = get_last_valley_trough(
             probs=probs,
             min_valley_duration_s=0.8,
             smoothing_window=20,
@@ -128,84 +139,51 @@ if __name__ == "__main__":
             min_trough_offset_s=1.0,
         )
 
-        # Enrich with percentage offset
-        for trough in troughs:
-            t = trough["time_s"]
-            trough["percentage_offset"] = (
-                round((t / total_duration_s * 100), 2) if total_duration_s > 0 else 0.0
+        output_file = args.output_dir / "last_valley_trough.json"
+
+        # ── Display results ──────────────────────────────────────────────────
+        if not last_trough:
+            console.print(
+                "[yellow]No valley trough found that covers the last audio frame.[/yellow]"
             )
-
-        # === Add Rank based on final_score (higher = better) ===
-        sorted_troughs = sorted(
-            troughs, key=lambda x: x["valley"]["final_score"], reverse=True
-        )
-        rank_map = {
-            trough["time_s"]: rank for rank, trough in enumerate(sorted_troughs, 1)
-        }
-
-        for trough in troughs:
-            trough["rank"] = rank_map[trough["time_s"]]
-        # =======================================================
-
-        # Output results
-        if not troughs:
-            console.print("No valid valley troughs found.")
         else:
-            # Enhanced Panel with Total Duration
-            total_min = int(total_duration_s // 60)
-            total_sec = total_duration_s % 60
-            duration_str = (
-                f"{total_min:02d}:{total_sec:05.2f}"
-                if total_min > 0
-                else f"{total_duration_s:.2f}s"
+            v = last_trough["valley"]
+            percentage_offset = (
+                round(last_trough["time_s"] / total_duration_s * 100, 2)
+                if total_duration_s > 0
+                else 0.0
             )
 
             console.print(
                 Panel(
-                    f"[bold green]Found {len(troughs)} Valley Trough(s)[/bold green] "
-                    f"• [bold white]Total Duration:[/bold white] [cyan]{duration_str}[/cyan]",
+                    "[bold magenta]=== LAST VALLEY TROUGH ===[/bold magenta]",
                     expand=False,
                 )
             )
-
-            table = Table(
-                title="Valley Troughs", show_header=True, header_style="bold cyan"
+            console.print(
+                f"Time       : {last_trough['time_s']:.3f}s"
+                f"  (Global: {last_trough.get('global_time_s', last_trough['time_s']):.3f}s)"
             )
-            table.add_column("Rank", style="bold", justify="center")
-            table.add_column("Time (s)", justify="right")
-            table.add_column("% Offset", justify="right")
-            table.add_column("Prob", justify="right")
-            table.add_column("Final Score", justify="right")
-            table.add_column("Duration (s)", justify="right")
+            console.print(f"Percentage : [cyan]{percentage_offset}%[/cyan]")
+            console.print(
+                f"Prob       : {last_trough['prob']:.4f}"
+                f" | Valley: {v['valley_score']:.4f}"
+                f" | Trough: {v['trough_score']:.4f}"
+            )
+            console.print(
+                f"Duration   : {v['duration_s']:.3f}s"
+                f"  (frames {v['frame_start']}–{v['frame_end']})"
+            )
+            # is_last should always be True here, but we show it for clarity
+            console.print(f"Is last    : [bold green]{v['is_last']}[/bold green]")
 
-            for trough in troughs:
-                v = trough["valley"]
-                rank = trough["rank"]
+            output_data = dict(last_trough)
+            output_data["percentage_offset"] = percentage_offset
+            output_data["total_frames"] = total_frames
+            output_data["total_duration_s"] = total_duration_s
 
-                # Color coding for ranks
-                if rank == 1:
-                    row_style = "bold green"  # Rank 1
-                elif rank == 2:
-                    row_style = "bold yellow"  # Rank 2
-                else:
-                    row_style = "bold orange1"  # Rank 3+
-
-                table.add_row(
-                    str(rank),
-                    f"{trough['time_s']:.3f}",
-                    f"{trough['percentage_offset']}%",
-                    f"{trough['prob']:.4f}",
-                    f"{v['final_score']:.4f}",
-                    f"{v['duration_s']:.3f}",
-                    style=row_style,
-                )
-
-            console.print(table)
-
-            # Save to JSON
-            output_file = args.output_dir / "valley_troughs.json"
             with open(output_file, "w", encoding="utf-8") as f:
-                json.dump(troughs, f, indent=2, ensure_ascii=False)
+                json.dump(output_data, f, indent=2, ensure_ascii=False)
             console.print(f"[green]Results saved to:[/green] {linkify(output_file)}")
 
     except Exception as e:

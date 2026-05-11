@@ -1,3 +1,8 @@
+import argparse
+import json
+import shutil
+from pathlib import Path
+
 import numpy as np
 import soundfile as sf
 from jet.audio.helpers.config import FRAME_SHIFT_MS
@@ -13,31 +18,25 @@ from rich.table import Table
 console = Console()
 SAMPLE_RATE = 16_000
 
-if __name__ == "__main__":
-    import argparse
-    import json
-    import shutil
-    from pathlib import Path
 
+def linkify(path: Path):
+    # Provide clickable file link with basename (for rich/terminal that support it)
+    return f"[link=file://{path}]{path.name}[/link]"
+
+
+if __name__ == "__main__":
     DEFAULT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
 
     parser = argparse.ArgumentParser(
         description="Split VAD probabilities into two halves at the best valley trough.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    input_group = parser.add_mutually_exclusive_group(required=False)
-    input_group.add_argument(
-        "--probs",
-        "-p",
-        type=Path,
-        help="Path to .npy file containing VAD probabilities",
-    )
-    input_group.add_argument(
-        "--audio",
-        "-a",
-        type=Path,
+    parser.add_argument(
+        "input",
+        nargs="?",
         default=DEFAULT_AUDIO,
-        help="Path to audio file (.wav, .mp3, etc.)",
+        type=str,
+        help="Path to audio file (.wav, .mp3, etc.), .npy file of VAD probs, or JSON file/list of floats",
     )
     parser.add_argument(
         "--output-dir",
@@ -51,30 +50,60 @@ if __name__ == "__main__":
     shutil.rmtree(args.output_dir, ignore_errors=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    try:
-        if not getattr(args, "probs", None) and not getattr(args, "audio", None):
-            console.print(
-                f"No --audio or --probs provided, using default audio: {DEFAULT_AUDIO}"
-            )
-            args.audio = Path(DEFAULT_AUDIO)
+    def is_probs_list(obj):
+        return (
+            isinstance(obj, list)
+            and len(obj) > 0
+            and all(isinstance(x, float) for x in obj)
+        )
 
+    try:
+        input_value = args.input
+        input_path = Path(input_value)
         audio_np = None
         sr = SAMPLE_RATE
 
-        if args.probs:
-            console.print(f"Loading probabilities from: {args.probs}")
-            probs = np.load(args.probs)
-            if isinstance(probs, np.ndarray):
-                probs = probs.tolist()
+        # Try to load from a recognized input type
+        probs = None
+        if is_probs_list(input_value):
+            probs = input_value
+        elif input_path.is_file():
+            ext = input_path.suffix.lower()
+            if ext == ".npy":
+                console.print(f"Loading probabilities from: {input_path}")
+                np_load = np.load(input_path, allow_pickle=True)
+                probs = np_load.tolist() if isinstance(np_load, np.ndarray) else np_load
+            elif ext in {".json", ".txt"}:
+                console.print(f"Loading probabilities from: {input_path}")
+                with open(input_path, "r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                probs = loaded if is_probs_list(loaded) else None
+            else:
+                console.print(f"Loading audio from: {input_path}")
+                audio_np, sr = load_audio(input_path, SAMPLE_RATE)
+                _, probs = extract_speech_timestamps(
+                    audio=audio_np,
+                    threshold=0.5,
+                    min_speech_duration_sec=0.250,
+                    min_silence_duration_sec=0.250,
+                    with_scores=True,
+                )
         else:
-            audio_np, sr = load_audio(args.audio, SAMPLE_RATE)
-            _, probs = extract_speech_timestamps(
-                audio=audio_np,
-                threshold=0.5,
-                min_speech_duration_sec=0.250,
-                min_silence_duration_sec=0.250,
-                with_scores=True,
-            )
+            try:
+                loaded = json.loads(input_value)
+                probs = loaded if is_probs_list(loaded) else None
+            except Exception:
+                console.print(
+                    f"[yellow]Input not recognized, falling back to default audio: {DEFAULT_AUDIO}[/yellow]"
+                )
+                audio_np, sr = load_audio(DEFAULT_AUDIO, SAMPLE_RATE)
+                _, probs = extract_speech_timestamps(
+                    audio=audio_np,
+                    threshold=0.5,
+                    min_speech_duration_sec=0.250,
+                    min_silence_duration_sec=0.250,
+                    with_scores=True,
+                )
 
         frame_duration = FRAME_SHIFT_MS / 1000.0
         total_duration_s = len(probs) * frame_duration if probs else 0.0
@@ -178,10 +207,6 @@ if __name__ == "__main__":
 
                 splitted_dir = args.output_dir / "splitted_wavs"
                 splitted_dir.mkdir(parents=True, exist_ok=True)
-
-                def linkify(path):
-                    # Provide clickable file link with basename (for rich/terminal that support it)
-                    return f"[link=file://{path}]{path.name}[/link]"
 
                 left_wav_path = splitted_dir / "left.wav"
                 right_wav_path = splitted_dir / "right.wav"

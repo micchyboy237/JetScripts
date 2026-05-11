@@ -1,3 +1,8 @@
+import argparse
+import json
+import shutil
+from pathlib import Path
+
 import numpy as np
 from jet.audio.helpers.config import FRAME_SHIFT_MS
 from jet.audio.speech.firered.speech_timestamps_extractor import (
@@ -10,36 +15,37 @@ from rich.panel import Panel
 
 console = Console()
 
-if __name__ == "__main__":
-    import argparse
-    import json
-    import shutil
-    from pathlib import Path
 
+def is_probs_list(obj):
+    """Returns True if obj is a list of floats."""
+    return (
+        isinstance(obj, list)
+        and len(obj) > 0
+        and all(isinstance(x, float) for x in obj)
+    )
+
+
+def linkify(path: Path):
+    return f"[link=file://{path}]{path.name}[/link]"
+
+
+if __name__ == "__main__":
     DEFAULT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
 
     parser = argparse.ArgumentParser(
-        description="Extract valley troughs (strong silence points) from audio or VAD probabilities.",
+        description="Extract valley troughs (strong silence points) from audio file, .npy VAD probs, or JSON list of floats.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # Input options (arguments are now not required to allow default fallback)
-    input_group = parser.add_mutually_exclusive_group(required=False)
-    input_group.add_argument(
-        "--probs",
-        "-p",
-        type=Path,
-        help="Path to .npy file containing VAD probabilities",
-    )
-    input_group.add_argument(
-        "--audio",
-        "-a",
-        type=Path,
+    # Merge input to a single arg
+    parser.add_argument(
+        "input",
+        nargs="?",
         default=DEFAULT_AUDIO,
-        help="Path to audio file (.wav, .mp3, etc.)",
+        type=str,
+        help="Path to audio file (.wav, .mp3, etc.), .npy file of VAD probs, or JSON file/list of floats",
     )
 
-    # Output options
     parser.add_argument(
         "--output-dir",
         "-O",
@@ -48,41 +54,80 @@ if __name__ == "__main__":
         help="Output directory to save JSON results (default: generated/)",
     )
 
-    args = parser.parse_args()  # keep same CLI for easy use
+    args = parser.parse_args()
+    input_value = args.input
 
     shutil.rmtree(args.output_dir, ignore_errors=True)
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # If neither --probs nor --audio is provided, use DEFAULT_AUDIO
-        if not getattr(args, "probs", None) and not getattr(args, "audio", None):
-            console.print(
-                f"No --audio or --probs provided, using default audio: {DEFAULT_AUDIO}"
-            )
-            args.audio = Path(DEFAULT_AUDIO)
-
-        if args.probs:
-            # Load probabilities from .npy file
-            console.print(f"Loading probabilities from: {args.probs}")
-            probs = np.load(args.probs)
-            if isinstance(probs, np.ndarray):
-                probs = probs.tolist()
-        else:
-            audio = load_audio(args.audio)
-            # load_audio can return (audio, sr) tuple
-            if isinstance(audio, tuple) and len(audio) == 2:
-                audio_np = audio[0]
+        # Determine input type and load probs
+        probs = None
+        input_path = Path(input_value)
+        if is_probs_list(input_value):
+            # Passed as inline list of floats (not typical, but technically allowed)
+            probs = input_value
+            audio_np = None
+        elif input_path.is_file():
+            ext = input_path.suffix.lower()
+            if ext == ".npy":
+                console.print(f"Loading probabilities from: {input_path}")
+                np_load = np.load(input_path, allow_pickle=True)
+                # Auto-handle npy with array or list
+                if isinstance(np_load, np.ndarray):
+                    np_load = np_load.tolist()
+                probs = np_load
+                audio_np = None
+            elif ext in {".json", ".txt"}:
+                console.print(f"Loading probabilities from: {input_path}")
+                with open(input_path, "r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                if is_probs_list(loaded):
+                    probs = loaded
+                    audio_np = None
+                else:
+                    raise ValueError(f"JSON file is not a list of floats: {input_path}")
             else:
-                audio_np = audio
-            _, probs = (
-                extract_speech_timestamps(  # still need probs for the best-trough function
+                # Treat any other file as audio
+                console.print(f"Loading audio from: {input_path}")
+                audio = load_audio(input_path)
+                if isinstance(audio, tuple) and len(audio) == 2:
+                    audio_np = audio[0]
+                else:
+                    audio_np = audio
+                _, probs = extract_speech_timestamps(
                     audio=audio_np,
                     threshold=0.5,
                     min_speech_duration_sec=0.250,
                     min_silence_duration_sec=0.250,
                     with_scores=True,
                 )
-            )
+        else:
+            # Fallback: input provided as inline string/list? (could be args.input = '[0.2, 0.3, ...]')
+            try:
+                loaded = json.loads(input_value)
+                if is_probs_list(loaded):
+                    probs = loaded
+                    audio_np = None
+                else:
+                    raise ValueError()
+            except Exception:
+                # If nothing else, treat as default audio path
+                console.print(
+                    f"[yellow]Input not recognized, falling back to default audio: {DEFAULT_AUDIO}[/yellow]"
+                )
+                audio = load_audio(DEFAULT_AUDIO)
+                if isinstance(audio, tuple) and len(audio) == 2:
+                    audio_np = audio[0]
+                else:
+                    audio_np = audio
+                _, probs = extract_speech_timestamps(
+                    audio=audio_np,
+                    threshold=0.5,
+                    min_speech_duration_sec=0.250,
+                    min_silence_duration_sec=0.250,
+                    with_scores=True,
+                )
 
         frame_duration = FRAME_SHIFT_MS / 1000.0
         total_duration_s = len(probs) * frame_duration if probs else 0.0
@@ -101,7 +146,8 @@ if __name__ == "__main__":
         if not best_trough:
             console.print("[yellow]No valid best valley trough found.[/yellow]")
         else:
-            best_trough["percentage_offset"] = (
+            # Use a local var to store percentage (do not mutate ValleyTrough object directly!)
+            percentage_offset = (
                 round((best_trough["time_s"] / total_duration_s * 100), 2)
                 if total_duration_s > 0
                 else 0.0
@@ -118,17 +164,18 @@ if __name__ == "__main__":
             console.print(
                 f"Time       : {best_trough['time_s']:.3f}s  (Global: {best_trough.get('global_time_s', best_trough['time_s']):.3f}s)"
             )
-            console.print(
-                f"Percentage : [cyan]{best_trough['percentage_offset']}%[/cyan]"
-            )
+            console.print(f"Percentage : [cyan]{percentage_offset}%[/cyan]")
             console.print(
                 f"Prob       : {best_trough['prob']:.4f} | Valley: {v['valley_score']:.4f} | Trough: {v['trough_score']:.4f}"
             )
             console.print(f"Duration   : {v['duration_s']:.3f}s")
 
+            # Save result including percentage_offset
+            output_data = dict(best_trough)
+            output_data["percentage_offset"] = percentage_offset
             if args.output_dir:
                 with open(output_file, "w", encoding="utf-8") as f:
-                    json.dump(best_trough, f, indent=2, ensure_ascii=False)
+                    json.dump(output_data, f, indent=2, ensure_ascii=False)
                 console.print(f"[green]Results saved to:[/green] {output_file}")
 
     except Exception as e:
