@@ -70,16 +70,16 @@ if __name__ == "__main__":
         elif input_path.is_file():
             ext = input_path.suffix.lower()
             if ext == ".npy":
-                console.print(f"Loading probabilities from: {input_path}")
+                console.print(f"Loading probabilities from: {linkify(input_path)}")
                 np_load = np.load(input_path, allow_pickle=True)
                 probs = np_load.tolist() if isinstance(np_load, np.ndarray) else np_load
             elif ext in {".json", ".txt"}:
-                console.print(f"Loading probabilities from: {input_path}")
+                console.print(f"Loading probabilities from: {linkify(input_path)}")
                 with open(input_path, "r", encoding="utf-8") as f:
                     loaded = json.load(f)
                 probs = loaded if is_probs_list(loaded) else None
             else:
-                console.print(f"Loading audio from: {input_path}")
+                console.print(f"Loading audio from: {linkify(input_path)}")
                 audio_np, sr = load_audio(input_path, SAMPLE_RATE)
                 _, probs = extract_speech_timestamps(
                     audio=audio_np,
@@ -94,7 +94,7 @@ if __name__ == "__main__":
                 probs = loaded if is_probs_list(loaded) else None
             except Exception:
                 console.print(
-                    f"[yellow]Input not recognized, falling back to default audio: {DEFAULT_AUDIO}[/yellow]"
+                    f"[yellow]Input not recognized, falling back to default audio: {linkify(Path(DEFAULT_AUDIO))}[/yellow]"
                 )
                 audio_np, sr = load_audio(DEFAULT_AUDIO, SAMPLE_RATE)
                 _, probs = extract_speech_timestamps(
@@ -277,7 +277,7 @@ if __name__ == "__main__":
             output_file = args.output_dir / "split_best_valley_trough.json"
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(output, f, indent=2, ensure_ascii=False)
-            console.print(f"[green]Results saved to:[/green] {output_file}")
+            console.print(f"[green]Results saved to:[/green] {linkify(output_file)}")
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
