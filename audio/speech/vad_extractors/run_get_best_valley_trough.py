@@ -71,7 +71,7 @@ if __name__ == "__main__":
         elif input_path.is_file():
             ext = input_path.suffix.lower()
             if ext == ".npy":
-                console.print(f"Loading probabilities from: {input_path}")
+                console.print(f"Loading probabilities from: {linkify(input_path)}")
                 np_load = np.load(input_path, allow_pickle=True)
                 # Auto-handle npy with array or list
                 if isinstance(np_load, np.ndarray):
@@ -79,17 +79,19 @@ if __name__ == "__main__":
                 probs = np_load
                 audio_np = None
             elif ext in {".json", ".txt"}:
-                console.print(f"Loading probabilities from: {input_path}")
+                console.print(f"Loading probabilities from: {linkify(input_path)}")
                 with open(input_path, "r", encoding="utf-8") as f:
                     loaded = json.load(f)
                 if is_probs_list(loaded):
                     probs = loaded
                     audio_np = None
                 else:
-                    raise ValueError(f"JSON file is not a list of floats: {input_path}")
+                    raise ValueError(
+                        f"JSON file is not a list of floats: {linkify(input_path)}"
+                    )
             else:
                 # Treat any other file as audio
-                console.print(f"Loading audio from: {input_path}")
+                console.print(f"Loading audio from: {linkify(input_path)}")
                 audio = load_audio(input_path)
                 if isinstance(audio, tuple) and len(audio) == 2:
                     audio_np = audio[0]
@@ -114,7 +116,7 @@ if __name__ == "__main__":
             except Exception:
                 # If nothing else, treat as default audio path
                 console.print(
-                    f"[yellow]Input not recognized, falling back to default audio: {DEFAULT_AUDIO}[/yellow]"
+                    f"[yellow]Input not recognized, falling back to default audio: {linkify(Path(DEFAULT_AUDIO))}[/yellow]"
                 )
                 audio = load_audio(DEFAULT_AUDIO)
                 if isinstance(audio, tuple) and len(audio) == 2:
@@ -176,7 +178,9 @@ if __name__ == "__main__":
             if args.output_dir:
                 with open(output_file, "w", encoding="utf-8") as f:
                     json.dump(output_data, f, indent=2, ensure_ascii=False)
-                console.print(f"[green]Results saved to:[/green] {output_file}")
+                console.print(
+                    f"[green]Results saved to:[/green] {linkify(output_file)}"
+                )
 
     except Exception as e:
         console.print(f"[bold red]Error:[/bold red] {e}")
