@@ -3,8 +3,8 @@ import shutil
 from pathlib import Path
 
 import soundfile as sf
-from jet.audio.norm.norm_speech_loudness import normalize_speech_loudness
-from jet.audio.norm.norm_speech_loudness_firered import (
+from jet.audio.normalization.norm_speech_loudness import normalize_speech_loudness
+from jet.audio.normalization.norm_speech_loudness_firered import (
     normalize_speech_loudness as normalize_speech_loudness_fr,
 )
 from jet.audio.utils.loader import load_audio
