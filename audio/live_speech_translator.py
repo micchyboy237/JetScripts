@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 from jet.audio.audio_waveform.vad._types import SpeechSegment
-from jet.audio.record_mic_speech_detection import record_from_mic
 from jet.audio.speech.wav_utils import save_wav_file
+from jet.audio.speech_detector import record_from_mic
 from jet.audio.speech_handlers.base import SpeechSegmentHandler
 from jet.audio.speech_handlers.speech_events import SpeechSegmentEndEvent
 from jet.file.utils import save_file
@@ -369,7 +369,10 @@ if __name__ == "__main__":
     quit_on_silence = False
 
     handlers: list[SpeechSegmentHandler] = [
-        WebsocketSubtitleSender(),  # add or remove handlers here
+        # add or remove handlers here
+        WebsocketSubtitleSender(
+            global_srt_path=OUTPUT_DIR,
+        ),
     ]
     recording_started_at = datetime.now(timezone.utc)
 
