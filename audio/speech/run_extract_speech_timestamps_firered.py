@@ -259,65 +259,161 @@ def main(
 
 
 if __name__ == "__main__":
-    OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+    import argparse
+    import json
+    import shutil
+    from collections import defaultdict
+    from pathlib import Path
+
+    # Default audio path (the one that was uncommented)
+    DEFAULT_AUDIO_PATH = (
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/"
+        "audio/generated/run_record_mic/recording_3_speakers.wav"
+    )
+
+    parser = argparse.ArgumentParser(
+        description="Process audio file for speech segmentation and VAD."
+    )
+
+    # Positional argument
+    parser.add_argument(
+        "audio_path",
+        nargs="?",
+        type=Path,
+        default=Path(DEFAULT_AUDIO_PATH),
+        help="Path to the audio file to process",
+    )
+
+    # Optional arguments with short flags
+    parser.add_argument(
+        "-o",
+        "--output-dir",
+        type=Path,
+        default=None,
+        help="Base output directory",
+    )
+    parser.add_argument(
+        "-n",
+        "--include-non-speech",
+        action="store_true",
+        default=True,
+        help="Include non-speech segments (default: True)",
+    )
+    parser.add_argument(
+        "-N",
+        "--no-include-non-speech",
+        dest="include_non_speech",
+        action="store_false",
+        help="Disable non-speech segments",
+    )
+    parser.add_argument(
+        "-l",
+        "--normalize-loudness",
+        action="store_true",
+        default=False,
+        help="Normalize loudness (default: False)",
+    )
+    parser.add_argument(
+        "-e",
+        "--apply-energy-vad",
+        action="store_true",
+        default=True,
+        help="Apply energy-based VAD (default: True)",
+    )
+    parser.add_argument(
+        "-t",
+        "--threshold",
+        type=float,
+        default=0.5,
+        help="Speech threshold (default: 0.5)",
+    )
+    parser.add_argument(
+        "-T",
+        "--neg-threshold",
+        type=float,
+        default=0.25,
+        help="Non-speech threshold (default: 0.25)",
+    )
+    parser.add_argument(
+        "-s",
+        "--min-silence",
+        type=float,
+        default=0.2,
+        help="Minimum silence duration in seconds (default: 0.2)",
+    )
+    parser.add_argument(
+        "-m",
+        "--min-speech",
+        type=float,
+        default=0.3,
+        help="Minimum speech duration in seconds (default: 0.3)",
+    )
+    parser.add_argument(
+        "-M",
+        "--max-speech",
+        type=float,
+        default=6.0,
+        help="Maximum speech duration in seconds (default: 6.0)",
+    )
+
+    args = parser.parse_args()
+
+    # Setup output directory
+    if args.output_dir is None:
+        OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+    else:
+        OUTPUT_DIR = args.output_dir
+
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    audio_paths = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Windows_Workspace/servers/live_subtitles/generated/live_subtitles_client_per_speech/last_5_mins.wav",
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
-    ]
-
-    include_non_speech = True
-    normalize_loudness = False
-    apply_energy_VAD = True
-
-    threshold = 0.5
-    neg_threshold = 0.25
-    min_silence_duration_sec = 0.4
-    min_speech_duration_sec = 0.5
-    max_speech_duration_sec = 6.0
+    # Single audio file processing
+    audio_path = args.audio_path
+    sub_output_dir = OUTPUT_DIR / format_sub_dir(audio_path.stem)
+    sub_output_dir.mkdir(parents=True, exist_ok=True)
 
     summary: dict[str, Any] = {
-        "total_files_processed": len(audio_paths),
+        "total_files_processed": 1,
         "files_with_speech": 0,
         "total_segments": 0,
         "per_file": defaultdict(dict),
     }
-    for audio_path in audio_paths:
-        sub_output_dir = OUTPUT_DIR / format_sub_dir(Path(audio_path).stem)
-        Path(sub_output_dir).mkdir(parents=True, exist_ok=True)
-        # --- run with per-file stats ---
-        main(
-            audio_path,
-            sub_output_dir,
-            normalize_loudness=normalize_loudness,
-            include_non_speech=include_non_speech,
-            threshold=threshold,
-            neg_threshold=neg_threshold,
-            min_silence_duration_sec=min_silence_duration_sec,
-            min_speech_duration_sec=min_speech_duration_sec,
-            max_speech_duration_sec=max_speech_duration_sec,
-            apply_energy_VAD=apply_energy_VAD,
-        )
-        per_file_stats = {}
-        if (sub_output_dir / "speech_timestamps.json").exists():
-            with open(sub_output_dir / "speech_timestamps.json") as f:
-                segs = json.load(f)
-            per_file_stats = compute_speech_stats(
-                segs, include_non_speech=include_non_speech
-            )
-            # Rich stats replace simple count
-            summary["files_with_speech"] += (
-                1 if per_file_stats["num_speech_segments"] > 0 else 0
-            )
-            summary["total_segments"] += (
-                per_file_stats["num_speech_segments"]
-                + per_file_stats["num_non_speech_segments"]
-            )
-            summary["per_file"][str(audio_path)] = per_file_stats
 
-        save_file(summary, Path(sub_output_dir) / "summary.json")
-        console.print(
-            f"\n[bold green]Global summary saved to:[/bold green] {Path(sub_output_dir) / 'summary.json'}"
+    # Run main processing
+    main(
+        str(audio_path),
+        sub_output_dir,
+        normalize_loudness=args.normalize_loudness,
+        include_non_speech=args.include_non_speech,
+        threshold=args.threshold,
+        neg_threshold=args.neg_threshold,
+        min_silence_duration_sec=args.min_silence,
+        min_speech_duration_sec=args.min_speech,
+        max_speech_duration_sec=args.max_speech,
+        apply_energy_VAD=args.apply_energy_vad,
+    )
+
+    # Compute and save stats
+    per_file_stats = {}
+    speech_json = sub_output_dir / "speech_timestamps.json"
+    if speech_json.exists():
+        with open(speech_json) as f:
+            segs = json.load(f)
+
+        per_file_stats = compute_speech_stats(
+            segs, include_non_speech=args.include_non_speech
         )
+
+        summary["files_with_speech"] = (
+            1 if per_file_stats.get("num_speech_segments", 0) > 0 else 0
+        )
+        summary["total_segments"] = per_file_stats.get(
+            "num_speech_segments", 0
+        ) + per_file_stats.get("num_non_speech_segments", 0)
+        summary["per_file"][str(audio_path)] = per_file_stats
+
+    save_file(summary, sub_output_dir / "summary.json")
+
+    console.print(
+        f"\n[bold green]Processing complete! Summary saved to:[/bold green] {sub_output_dir / 'summary.json'}"
+    )
