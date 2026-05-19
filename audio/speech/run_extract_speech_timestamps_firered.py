@@ -143,14 +143,17 @@ def main(
     audio_file: str | Path,
     output_dir: str | Path,
     *,
-    threshold: float = 0.5,  # activation_th
-    neg_threshold: float = 0.25,  # deactivation_th
+    threshold: float = 0.5,
+    neg_threshold: float = 0.25,
     min_silence_duration_sec: float = 0.250,
     min_speech_duration_sec: float = 0.250,
     max_speech_duration_sec: float = float("inf"),
     normalize_loudness: bool = False,
     include_non_speech: bool = False,
     apply_energy_VAD: bool = False,
+    # New filters
+    min_duration_sec: float = 0.0,  # -md / --min-duration
+    min_prob: float = 0.0,  # -mp / --min-probs
 ):
     audio_file = str(audio_file)
     output_dir = Path(output_dir)
@@ -169,18 +172,47 @@ def main(
         min_speech_duration_sec=min_speech_duration_sec,
         max_speech_duration_sec=max_speech_duration_sec,
         return_seconds=True,
-        # time_resolution=3,
         with_scores=True,
-        # neg_threshold=neg_threshold,
-        # normalize_loudness=normalize_loudness,
-        include_non_speech=include_non_speech,  # already passed but ensure used
-        # apply_energy_VAD=apply_energy_VAD,
+        include_non_speech=include_non_speech,
     )
 
-    console.print(f"\n[bold green]Segments found:[/bold green] {len(segments or [])}\n")
     if not segments:
         console.print(
             "[bold yellow]No speech segments detected – skipping save.[/bold yellow]"
+        )
+        return
+
+    # === NEW: Apply min_duration and min_prob filtering ===
+    original_count = len(segments)
+
+    filtered_segments = []
+    for seg in segments:
+        duration_ok = seg["duration"] >= min_duration_sec
+        prob_ok = seg["prob"] >= min_prob
+
+        if duration_ok and prob_ok:
+            filtered_segments.append(seg)
+        else:
+            console.print(
+                f"[dim]Filtered out segment {seg['num']}: "
+                f"dur={seg['duration']:.3f}s (min={min_duration_sec}), "
+                f"prob={seg['prob']:.4f} (min={min_prob})[/dim]"
+            )
+
+    segments = filtered_segments
+
+    # Renumber segments after filtering
+    for i, seg in enumerate(segments, start=1):
+        seg["num"] = i
+
+    console.print(
+        f"[bold green]Segments after filtering:[/bold green] {len(segments)} "
+        f"(filtered {original_count - len(segments)})"
+    )
+
+    if not segments:
+        console.print(
+            "[bold yellow]No segments remained after filtering – skipping save.[/bold yellow]"
         )
         return
 
@@ -193,12 +225,12 @@ def main(
 
     segments_dir = output_dir / "segments"
     segments_dir.mkdir(parents=True, exist_ok=True)
+
     for seg in segments:
-        folder_name = (
-            f"segment_{seg['num']:03d}"  # use segment number for output subdir
-        )
+        folder_name = f"segment_{seg['num']:03d}"
         seg_dir = segments_dir / folder_name
         seg_dir.mkdir(parents=True, exist_ok=True)
+
         save_file(seg, seg_dir / "segment.json", verbose=False)
 
         # Slice from ORIGINAL audio using time-based timestamps
@@ -206,9 +238,7 @@ def main(
         end_sample = int(round(float(seg["end"]) * orig_sr))
         end_sample = min(end_sample, orig_waveform.shape[1])
 
-        segment_audio = orig_waveform[
-            :, start_sample:end_sample
-        ]  # (channels, samples), float32
+        segment_audio = orig_waveform[:, start_sample:end_sample]
 
         plot_path = seg_dir / "speech_prob_curve.png"
         save_segment_prob_plot(
@@ -220,24 +250,20 @@ def main(
             plot_path,
         )
 
-        # === Save exactly like your other WAV files (int16) ===
-        # Convert to (samples, channels) or 1D for mono
+        # Save WAV (int16)
         if segment_audio.shape[0] == 1:
-            data = segment_audio.squeeze(0).numpy()  # mono → 1D
+            data = segment_audio.squeeze(0).numpy()
         else:
-            data = segment_audio.numpy().T  # stereo → (samples, channels)
+            data = segment_audio.numpy().T
 
         data_int16 = np.clip(data * 32767.0, -32768, 32767).astype(np.int16)
         wavfile.write(str(seg_dir / "sound.wav"), orig_sr, data_int16)
 
     save_file(segments, output_dir / "speech_timestamps.json")
 
-    # Compute and save segment gaps
-
-    if segments:
+    # Compute and save segment gaps (only between remaining segments)
+    if len(segments) > 1:
         gaps: list[dict[str, Any]] = []
-
-        # Inter-segment silences: between consecutive speech segments
         for i in range(1, len(segments)):
             prev_end = segments[i - 1]["end"]
             curr_start = segments[i]["start"]
@@ -255,7 +281,8 @@ def main(
                 )
 
         save_file(gaps, output_dir / "segment_gaps.json")
-        save_file(all_speech_probs, output_dir / "all_speech_probs.json")
+
+    save_file(all_speech_probs, output_dir / "all_speech_probs.json")
 
 
 if __name__ == "__main__":
@@ -265,7 +292,6 @@ if __name__ == "__main__":
     from collections import defaultdict
     from pathlib import Path
 
-    # Default audio path (the one that was uncommented)
     DEFAULT_AUDIO_PATH = (
         "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/"
         "audio/generated/run_record_mic/recording_3_speakers.wav"
@@ -275,7 +301,6 @@ if __name__ == "__main__":
         description="Process audio file for speech segmentation and VAD."
     )
 
-    # Positional argument
     parser.add_argument(
         "audio_path",
         nargs="?",
@@ -286,11 +311,7 @@ if __name__ == "__main__":
 
     # Optional arguments with short flags
     parser.add_argument(
-        "-o",
-        "--output-dir",
-        type=Path,
-        default=None,
-        help="Base output directory",
+        "-o", "--output-dir", type=Path, default=None, help="Base output directory"
     )
     parser.add_argument(
         "-n",
@@ -356,6 +377,22 @@ if __name__ == "__main__":
         help="Maximum speech duration in seconds (default: 6.0)",
     )
 
+    # New filtering arguments
+    parser.add_argument(
+        "-md",
+        "--min-duration-sec",
+        type=float,
+        default=0.0,
+        help="Minimum segment duration in seconds to keep (default: 0.0 = no filter)",
+    )
+    parser.add_argument(
+        "-mp",
+        "--min-prob",
+        type=float,
+        default=0.0,
+        help="Minimum average probability / score to keep segment (default: 0.0 = no filter)",
+    )
+
     args = parser.parse_args()
 
     # Setup output directory
@@ -367,7 +404,6 @@ if __name__ == "__main__":
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Single audio file processing
     audio_path = args.audio_path
     sub_output_dir = OUTPUT_DIR / format_sub_dir(audio_path.stem)
     sub_output_dir.mkdir(parents=True, exist_ok=True)
@@ -379,7 +415,7 @@ if __name__ == "__main__":
         "per_file": defaultdict(dict),
     }
 
-    # Run main processing
+    # Run main with new filters
     main(
         str(audio_path),
         sub_output_dir,
@@ -391,9 +427,11 @@ if __name__ == "__main__":
         min_speech_duration_sec=args.min_speech,
         max_speech_duration_sec=args.max_speech,
         apply_energy_VAD=args.apply_energy_vad,
+        min_duration_sec=args.min_duration_sec,
+        min_prob=args.min_prob,
     )
 
-    # Compute and save stats
+    # Stats saving (unchanged)
     per_file_stats = {}
     speech_json = sub_output_dir / "speech_timestamps.json"
     if speech_json.exists():
