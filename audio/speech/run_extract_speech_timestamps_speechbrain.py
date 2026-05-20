@@ -1,4 +1,5 @@
 # run_extract_speech_timestamps_speechbrain.py
+import argparse
 import json
 import shutil
 from collections import defaultdict
@@ -258,10 +259,32 @@ if __name__ == "__main__":
     OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
-    audio_paths = [
-        # "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav",
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_3_speakers.wav",
-    ]
+    DEFAULT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
+
+    parser = argparse.ArgumentParser(
+        description="Split VAD probabilities into two halves at the best valley trough.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "audio_path",
+        nargs="?",
+        default=DEFAULT_AUDIO,
+        type=str,
+        help="Path to audio file (.wav, .mp3, etc.)",
+    )
+    parser.add_argument(
+        "--output-dir",
+        "-O",
+        type=Path,
+        default=OUTPUT_DIR,
+        help="Output directory to save JSON results",
+    )
+    args = parser.parse_args()
+
+    shutil.rmtree(args.output_dir, ignore_errors=True)
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    audio_paths = [args.audio_path]
 
     include_non_speech = True
     normalize_loudness = False
