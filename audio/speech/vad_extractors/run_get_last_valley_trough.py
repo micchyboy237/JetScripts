@@ -68,12 +68,12 @@ if __name__ == "__main__":
         total_duration_s = total_frames * frame_duration
 
         last_trough = get_last_valley_trough(
-            probs=probs,
-            min_valley_duration_s=0.8,
-            smoothing_window=20,
-            trough_prominence=0.15,
-            valley_threshold=None,
-            min_trough_offset_s=1.0,
+            probs_or_audio=probs,
+            smoothing_window=0,
+            trough_height=0.3,
+            trough_prominence=0.0,
+            min_valley_duration_s=0.1,
+            min_trough_offset_s=2.0,
         )
 
         output_file = args.output_dir / "last_valley_trough.json"

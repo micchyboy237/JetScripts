@@ -62,12 +62,12 @@ if __name__ == "__main__":
         total_duration_s = len(probs) * frame_duration if probs else 0.0
 
         result = split_best_valley_trough(
-            probs=probs,
-            min_valley_duration_s=0.8,
-            smoothing_window=20,
-            trough_prominence=0.15,
-            valley_threshold=None,
-            min_trough_offset_s=1.0,
+            probs_or_audio=audio_np,
+            smoothing_window=0,
+            trough_height=0.3,
+            trough_prominence=0.0,
+            min_valley_duration_s=0.1,
+            min_trough_offset_s=2.0,
         )
 
         if result is None:
@@ -75,7 +75,9 @@ if __name__ == "__main__":
                 "[yellow]No suitable valley trough found — cannot split.[/yellow]"
             )
         else:
-            (left_probs, best_trough), (right_probs, _) = result
+            (left_probs, right_probs, best_trough, left_audio_np, right_audio_np) = (
+                result
+            )
 
             split_frame = best_trough["frame"]
             split_time_s = best_trough["time_s"]
@@ -151,24 +153,17 @@ if __name__ == "__main__":
             right_wav_path = None
 
             if audio_np is not None:
-                seconds_per_frame = FRAME_SHIFT_MS / 1000.0
-                split_sample = int(split_frame * seconds_per_frame * sr)
-                split_sample = max(0, min(split_sample, len(audio_np)))
-
-                left_audio = audio_np[:split_sample]
-                right_audio = audio_np[split_sample:]
-
                 splitted_dir = args.output_dir / "splitted_wavs"
                 splitted_dir.mkdir(parents=True, exist_ok=True)
 
                 left_wav_path = splitted_dir / "left.wav"
                 right_wav_path = splitted_dir / "right.wav"
 
-                sf.write(str(left_wav_path), left_audio, sr, subtype="FLOAT")
-                sf.write(str(right_wav_path), right_audio, sr, subtype="FLOAT")
+                sf.write(str(left_wav_path), left_audio_np, sr, subtype="FLOAT")
+                sf.write(str(right_wav_path), right_audio_np, sr, subtype="FLOAT")
 
-                left_samples = len(left_audio)
-                right_samples = len(right_audio)
+                left_samples = len(left_audio_np)
+                right_samples = len(right_audio_np)
 
                 wav_table = Table(
                     title="Saved WAV Files",
