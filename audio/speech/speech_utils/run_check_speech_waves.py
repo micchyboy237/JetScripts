@@ -2,22 +2,22 @@ import argparse
 import shutil
 from pathlib import Path
 
-from jet.audio.speech.firered.speech_waves import (
-    check_speech_waves,
-)
+from jet.audio.speech.firered.speech_waves import check_speech_waves
 from jet.file.utils import load_file, save_file
 
-DEFAULT_SEGMENT_DIR = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/audio_waveform/generated/speech_tracking/saved_speech_segments/segment_20260502_221930_278"
+DEFAULT_PROBS_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/speech/vad_loaders/generated/run_load_vad_hybrid_probs/segments/segment_002/hybrid_probs.json"
 
 parser = argparse.ArgumentParser(
-    description="Check speech waves from segment dir and settings."
+    description="Check speech waves from a single probs.json file."
 )
+
 parser.add_argument(
-    "segment_dir",
+    "probs_path",
     nargs="?",
-    default=DEFAULT_SEGMENT_DIR,
-    help="Directory containing the speech segment probs files",
+    default=DEFAULT_PROBS_PATH,
+    help="Path to the probs.json file",
 )
+
 parser.add_argument(
     "-sr",
     "--sample_rate",
@@ -25,6 +25,7 @@ parser.add_argument(
     default=16000,
     help="Sample rate of the audio (default: 16000)",
 )
+
 parser.add_argument(
     "-t",
     "--threshold",
@@ -32,30 +33,31 @@ parser.add_argument(
     default=0.3,
     help="Speech probability threshold (default: 0.3)",
 )
+
 args = parser.parse_args()
 
+# Output directory
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-segment_dir = args.segment_dir
-speech_probs_file = Path(segment_dir) / "probs.json"
-hybrid_speech_probs_file = Path(segment_dir) / "hybrid_probs.json"
+# Load probabilities
+probs_path = Path(args.probs_path)
+speech_probs = load_file(str(probs_path))
 
-speech_probs = load_file(str(speech_probs_file))
-hybrid_speech_probs = load_file(str(hybrid_speech_probs_file))
 sample_rate = args.sample_rate
 threshold = args.threshold
 
+# Run check
 speech_waves = check_speech_waves(
     speech_probs=speech_probs,
     threshold=threshold,
     sampling_rate=sample_rate,
 )
-hybrid_speech_waves = check_speech_waves(
-    speech_probs=hybrid_speech_probs,
-    threshold=threshold,
-    sampling_rate=sample_rate,
-)
 
-save_file(speech_waves, OUTPUT_DIR / "speech_waves.json")
-save_file(hybrid_speech_waves, OUTPUT_DIR / "hybrid_speech_waves.json")
+# Save result
+output_file = OUTPUT_DIR / "speech_waves.json"
+save_file(speech_waves, output_file)
+
+print(f"✅ Done! Speech waves saved to: {output_file}")
+print(f"   Found {len(speech_waves)} speech segments")

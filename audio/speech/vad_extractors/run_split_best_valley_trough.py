@@ -5,7 +5,10 @@ from pathlib import Path
 
 import soundfile as sf
 from jet.audio.helpers.config import FRAME_SHIFT_MS
-from jet.audio.speech.vad_extractors import load_probs, split_best_valley_trough
+from jet.audio.speech.vad_extractors import split_best_valley_trough
+from jet.audio.speech.vad_loaders import load_vad_hybrid_probs
+from jet.audio.utils.base import extract_audio_segment
+from jet.audio.utils.loader import load_audio
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -54,20 +57,23 @@ if __name__ == "__main__":
 
     try:
         input_value = args.input
-        probs, audio_np = load_probs(input_value, DEFAULT_AUDIO)
 
-        sr = SAMPLE_RATE
+        max_seg_limit_s = 8.0
+        audio_np, sr = load_audio(input_value)
+        left_audio_np, _ = extract_audio_segment(audio_np, end=max_seg_limit_s)
+
+        probs, _ = load_vad_hybrid_probs(left_audio_np)
 
         frame_duration = FRAME_SHIFT_MS / 1000.0
         total_duration_s = len(probs) * frame_duration if probs else 0.0
 
         result = split_best_valley_trough(
-            probs_or_audio=audio_np,
-            smoothing_window=0,
-            trough_height=0.3,
-            trough_prominence=0.0,
-            min_valley_duration_s=0.1,
-            min_trough_offset_s=2.0,
+            probs_or_audio=left_audio_np,
+            smoothing_window=20,
+            trough_height=None,
+            trough_prominence=0.15,
+            min_valley_duration_s=0.2,
+            min_trough_offset_s=1.0,
         )
 
         if result is None:

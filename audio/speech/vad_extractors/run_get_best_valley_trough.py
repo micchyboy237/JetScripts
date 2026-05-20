@@ -63,11 +63,11 @@ if __name__ == "__main__":
 
         best_trough = get_best_valley_trough(
             probs_or_audio=probs,
-            smoothing_window=0,
-            trough_height=0.3,
-            trough_prominence=0.0,
-            min_valley_duration_s=0.1,
-            min_trough_offset_s=2.0,
+            smoothing_window=20,
+            trough_height=None,
+            trough_prominence=0.15,
+            min_valley_duration_s=0.2,
+            min_trough_offset_s=1.0,
         )
 
         output_file = args.output_dir / "best_valley_trough.json"
