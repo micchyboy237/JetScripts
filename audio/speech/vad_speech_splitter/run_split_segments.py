@@ -5,6 +5,7 @@ from pathlib import Path
 from jet.audio.audio_waveform.vad.vad_speech_splitter import split_segments
 from jet.audio.audio_waveform.vad.vad_utils import save_segments
 from jet.audio.speech.utils import display_segments
+from jet.audio.utils.base import extract_audio_segment
 from jet.audio.utils.loader import load_audio
 from rich.console import Console
 
@@ -46,10 +47,9 @@ if __name__ == "__main__":
 
     try:
         audio_np, sr = load_audio(args.audio_path)
+        left_audio_np, _ = extract_audio_segment(audio_np, end=max_seg_limit_s)
 
-        segments, audio_chunks = split_segments(
-            audio_np, max_seg_limit_s=max_seg_limit_s
-        )
+        segments, audio_chunks = split_segments(left_audio_np)
 
         saved_segments = save_segments(
             segments=segments,
