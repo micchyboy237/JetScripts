@@ -4,9 +4,10 @@ import shutil
 from pathlib import Path
 
 import soundfile as sf
-from jet.audio.audio_waveform.vad.vad_logging import linkify
-from jet.audio.normalization.norm_audio import normalize_audio_for_vad
-from jet.audio.normalization.norm_speech_loudness import normalize_speech_loudness
+from jet.audio.normalization.norm_speech_loudness import (
+    normalize_audio_for_vad,
+    normalize_speech_loudness,
+)
 from jet.audio.normalization.norm_speech_loudness_firered import (
     normalize_speech_loudness as normalize_speech_loudness_fr,
 )
