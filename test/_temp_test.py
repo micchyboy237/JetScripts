@@ -7,12 +7,10 @@ from openai import OpenAI, Stream
 from openai.types.chat import ChatCompletionChunk
 from rich import box
 from rich.console import Console
-from rich.live import Live
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.syntax import Syntax
 from rich.table import Table
-from rich.text import Text
 
 # Initialize rich console
 console = Console()
@@ -161,29 +159,23 @@ stream: Stream[ChatCompletionChunk] = client.chat.completions.create(
 console.print("\n[bold cyan]📝 LLM Response:[/bold cyan]")
 console.print("[dim]" + "─" * 50 + "[/dim]")
 
-# Simple clean cyan streaming
-response_text = Text()
+# Use standard print with flush for immediate token display
 char_count = 0
 start_time = time.time()
 
-with Live(
-    response_text, console=console, refresh_per_second=30, auto_refresh=True
-) as live:
-    for part in stream:
-        if part.choices and part.choices[0].delta:
-            delta = part.choices[0].delta
-            if delta.content:
-                chunk = delta.content
-                char_count += len(chunk)
-
-                # Style each character with clean cyan
-                styled_chunk = Text(chunk, style="cyan")
-                response_text.append(styled_chunk)
-                live.update(response_text)
+for part in stream:
+    if part.choices and part.choices[0].delta:
+        delta = part.choices[0].delta
+        if delta.content:
+            chunk = delta.content
+            char_count += len(chunk)
+            # Print with cyan color using ANSI codes, flush immediately
+            print(f"\033[36m{chunk}\033[0m", end="", flush=True)
 
 elapsed_time = time.time() - start_time
 
-console.print("\n[dim]" + "─" * 50 + "[/dim]")
+print()  # New line after streaming
+console.print("[dim]" + "─" * 50 + "[/dim]")
 console.print(
     f"[dim]📊 Response Stats: {char_count:,} chars in {elapsed_time:.2f}s ({char_count / elapsed_time:.1f} chars/s)[/dim]"
 )
