@@ -432,7 +432,7 @@ git_stats() {
 
     # General Examples
     # git_stats
-    # git_stats -e ".py,.ipynb"
+    # git_stats -e ".py,.ipynb,.md,.mdx"
     # git_stats -e ".py" -p "test_*.py"
     # git_stats -e ".py,.md" -t files -m file
     # git_stats -e ".py,.md" -t dirs -m git -d 3
