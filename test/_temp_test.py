@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 from headroom import compress  # pip install "headroom-ai[all]"
 from openai import OpenAI, Stream
@@ -157,21 +158,33 @@ stream: Stream[ChatCompletionChunk] = client.chat.completions.create(
     stream=True,
 )
 
-console.print("\n[bold green]📝 LLM Response:[/bold green]")
+console.print("\n[bold cyan]📝 LLM Response:[/bold cyan]")
 console.print("[dim]" + "─" * 50 + "[/dim]")
 
-# Method 1: Using Live display for smooth streaming
+# Simple clean cyan streaming
 response_text = Text()
+char_count = 0
+start_time = time.time()
+
 with Live(
-    response_text, console=console, refresh_per_second=10, auto_refresh=True
+    response_text, console=console, refresh_per_second=30, auto_refresh=True
 ) as live:
     for part in stream:
         if part.choices and part.choices[0].delta:
             delta = part.choices[0].delta
             if delta.content:
-                response_text.append(delta.content)
+                chunk = delta.content
+                char_count += len(chunk)
+
+                # Style each character with clean cyan
+                styled_chunk = Text(chunk, style="cyan")
+                response_text.append(styled_chunk)
                 live.update(response_text)
 
+elapsed_time = time.time() - start_time
+
 console.print("\n[dim]" + "─" * 50 + "[/dim]")
-console.print(f"[dim]Response length: {len(response_text.plain)} characters[/dim]")
+console.print(
+    f"[dim]📊 Response Stats: {char_count:,} chars in {elapsed_time:.2f}s ({char_count / elapsed_time:.1f} chars/s)[/dim]"
+)
 console.print("[bold green]✅ Complete![/bold green]")
