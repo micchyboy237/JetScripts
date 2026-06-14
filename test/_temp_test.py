@@ -1,40 +1,54 @@
-from jet.libs.smolagents.tools.searxng_search_tool import (
-    SearXNGSearchTool,  # or any from jet
-)
-from jet.libs.smolagents.utils.model_utils import (
-    create_local_model,  # reuse your jet module
-)
-from smolagents import CodeAgent, ToolCallingAgent
+import json
 
-# Assume VisitWebpageTool or your custom @tool from previous files
+from headroom import compress  # pip install "headroom-ai[all]"
+from openai import OpenAI
 
-# 1. Create stateless sub-agent (ToolCallingAgent is great for single-timeline tasks)
-web_sub_agent = ToolCallingAgent(
-    tools=[
-        SearXNGSearchTool(max_results=10),
-        # VisitWebpageTool(...) or your custom visit_webpage @tool
+# Example: Large tool output (e.g., search results or DB query)
+large_tool_output = {
+    "results": [
+        {
+            "id": i,
+            "title": f"Item {i}",
+            "description": f"Long description with details {i} " * 50,
+            "score": 100 - i,
+        }
+        for i in range(500)  # Simulate 500 items
     ],
-    model=create_local_model(temperature=0.65, agent_name="web_sub_agent"),
-    max_steps=10,
-    name="web_agent",  # ← Required for delegation
-    description="Performs web searches and visits pages to gather detailed information.",
-    verbosity_level=1,
+    "metadata": {"total": 500, "query": "example search"},
+}
+
+messages = [
+    {
+        "role": "system",
+        "content": "You are a helpful assistant. Analyze tool outputs carefully.",
+    },
+    {"role": "user", "content": "Summarize the top results from this search."},
+    {
+        "role": "tool",
+        "tool_call_id": "call_1",
+        "content": json.dumps(large_tool_output),  # This is what gets huge
+    },
+]
+
+# === Compression Step ===
+result = compress(
+    messages,
+    model="gpt-4o",  # Helps choose optimal strategy
+    # Optional: token_budget=8000, ccr_enabled=True (default)
 )
 
-# 2. Create manager (CodeAgent) that can delegate to the sub-agent
-manager = CodeAgent(
-    tools=[],  # manager can have its own tools if needed
-    model=create_local_model(temperature=0.7, agent_name="manager_agent"),
-    managed_agents=[web_sub_agent],  # ← sub-agents become callable "tools"
-    max_steps=15,
-    verbosity_level=2,
-    additional_authorized_imports=["time", "numpy", "pandas"],  # for calculations
+print(f"Tokens before: {result.tokens_before}")
+print(f"Tokens after:  {result.tokens_after}")
+print(f"Saved: {result.tokens_saved} tokens ({result.compression_ratio:.1%})")
+print(f"Transforms: {result.transforms_applied}")
+
+# === Send to OpenAI ===
+client = OpenAI()
+
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=result.messages,  # Use the compressed version
 )
 
-# 3. Run – manager decides when to call the stateless sub-agent
-task = (
-    "Find the latest stable version of Hugging Face Transformers library. "
-    "Then estimate how many parameters the next major release might have based on trends."
-)
-answer = manager.run(task, reset=True)  # reset=True for fresh stateless start
-print(answer)
+print("\nLLM Response:")
+print(response.choices[0].message.content)
