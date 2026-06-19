@@ -1,40 +1,611 @@
-<script src="https://cdn.jsdelivr.net/npm/hls.js@1"></script>
-<!-- Or if you want the latest version from the main branch -->
-<!-- <script src="https://cdn.jsdelivr.net/npm/hls.js@canary"></script> -->
-<video id="video"></video>
-<script>
-  var video = document.getElementById("video");
-  var videoSrc = "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8";
+<!-- speaker_metrics.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"
+    />
+    <title>Speaker diarization · variance & separation</title>
+    <style>
+      /* ── design tokens (light/dark friendly) ── */
+      :root {
+        --color-bg: #ffffff;
+        --color-surface-primary: #ffffff;
+        --color-surface-secondary: #f5f6f8;
+        --color-text-primary: #0f1825;
+        --color-text-secondary: #5a6270;
+        --color-text-tertiary: #8b919d;
+        --color-border-tertiary: #e3e6ec;
+        --border-radius-md: 10px;
+        --border-radius-lg: 16px;
+        --font-sans:
+          system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+          sans-serif;
+        --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.02);
+      }
 
-  console.log("Attempting to load video:", videoSrc);
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-  if (Hls.isSupported()) {
-    console.log("Hls.js is supported in this browser.");
-    var hls = new Hls();
-    hls.loadSource(videoSrc);
-    console.log("Loaded source into hls.js:", videoSrc);
-    hls.attachMedia(video);
-    console.log("Attached video element to hls.js");
-    hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
-      console.log(
-        "Manifest loaded, found",
-        data.levels.length,
-        "quality levels",
-      );
-    });
-    hls.on(Hls.Events.ERROR, function (event, data) {
-      console.error("Hls.js error:", data);
-    });
-  } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-    console.log("HLS is natively supported. Setting video src directly.");
-    video.src = videoSrc;
-    video.addEventListener("loadedmetadata", function () {
-      console.log("Native HLS: Video metadata loaded.");
-    });
-    video.addEventListener("error", function (e) {
-      console.error("Native HLS: Error loading video.", e);
-    });
-  } else {
-    console.warn("HLS is not supported in this browser.");
-  }
-</script>
+      body {
+        background: var(--color-bg);
+        font-family: var(--font-sans);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 1.5rem;
+        color: var(--color-text-primary);
+      }
+
+      .dashboard {
+        max-width: 720px;
+        width: 100%;
+        background: var(--color-bg);
+        padding: 1.25rem 0.5rem;
+      }
+
+      /* ── reused component styles ── */
+      .section-label {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--color-text-tertiary);
+        margin: 0 0 10px;
+      }
+
+      .metric-card {
+        background: var(--color-surface-secondary);
+        border-radius: var(--border-radius-md);
+        padding: 12px 16px;
+      }
+
+      .metric-val {
+        font-size: 22px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+        margin: 2px 0 0;
+        line-height: 1.2;
+      }
+
+      .metric-lbl {
+        font-size: 12px;
+        color: var(--color-text-secondary);
+      }
+
+      .speaker-card {
+        background: var(--color-surface-primary);
+        border: 0.5px solid var(--color-border-tertiary);
+        border-radius: var(--border-radius-lg);
+        padding: 1rem 1.25rem;
+        margin-bottom: 10px;
+        box-shadow: var(--shadow-sm);
+      }
+
+      .badge {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 3px 9px;
+        border-radius: 99px;
+        line-height: 1.4;
+      }
+
+      .badge-healthy {
+        background: #eaf3de;
+        color: #3b6d11;
+      }
+
+      .badge-warning {
+        background: #faeeda;
+        color: #854f0b;
+      }
+
+      .badge-unhealthy {
+        background: #fcebeb;
+        color: #a32d2d;
+      }
+
+      .dist-bar-bg {
+        background: var(--color-surface-secondary);
+        border-radius: 4px;
+        height: 6px;
+        overflow: hidden;
+        width: 100%;
+      }
+
+      .dist-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        width: 0%;
+      }
+
+      .seg-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+      }
+
+      .seg-id {
+        font-size: 12px;
+        color: var(--color-text-secondary);
+        min-width: 80px;
+      }
+
+      .seg-val {
+        font-size: 12px;
+        color: var(--color-text-primary);
+        min-width: 36px;
+        text-align: right;
+        font-weight: 500;
+      }
+
+      .pair-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 0;
+        border-bottom: 0.5px solid var(--color-border-tertiary);
+        font-size: 13px;
+      }
+
+      .pair-row:last-child {
+        border-bottom: none;
+      }
+
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-bottom: 1.5rem;
+      }
+
+      .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .speaker-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 500;
+      }
+
+      .speaker-name {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+      }
+
+      .speaker-meta {
+        font-size: 11px;
+        color: var(--color-text-secondary);
+      }
+
+      .flex-between {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+      }
+
+      button {
+        background: var(--color-surface-secondary);
+        border: 0.5px solid var(--color-border-tertiary);
+        border-radius: 40px;
+        padding: 0.4rem 1rem;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--color-text-primary);
+        cursor: pointer;
+        background: white;
+        transition: 0.2s;
+      }
+
+      button:hover {
+        background: #f0f2f5;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        border: 0;
+      }
+
+      @media (max-width: 500px) {
+        .grid-4 {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .grid-2 {
+          grid-template-columns: 1fr;
+        }
+        body {
+          padding: 0.8rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="dashboard" id="dashboard-root">
+      <!-- JS will inject everything here -->
+    </div>
+
+    <script>
+      (function () {
+        // ───────────────────────────────────
+        // get_* functions : prepare static data
+        // ───────────────────────────────────
+
+        function getSpeakers() {
+          return [
+            {
+              id: "A",
+              label: "speaker_A",
+              segmentsCount: 6,
+              health: "healthy",
+              color: "#3C3489",
+              bg: "#EEEDFE",
+              meanDist: 0.12,
+              stdDev: 0.03,
+              segments: [
+                { id: "segment_0", d: 0.09 },
+                { id: "segment_1", d: 0.14 },
+                { id: "segment_2", d: 0.11 },
+                { id: "segment_3", d: 0.15 },
+                { id: "segment_4", d: 0.1 },
+                { id: "segment_5", d: 0.13 },
+              ],
+            },
+            {
+              id: "B",
+              label: "speaker_B",
+              segmentsCount: 6,
+              health: "warning",
+              color: "#085041",
+              bg: "#E1F5EE",
+              meanDist: 0.38,
+              stdDev: 0.07,
+              segments: [
+                { id: "segment_0", d: 0.31 },
+                { id: "segment_1", d: 0.4 },
+                { id: "segment_2", d: 0.38 },
+                { id: "segment_3", d: 0.45 },
+                { id: "segment_4", d: 0.36 },
+                { id: "segment_5", d: 0.39 },
+              ],
+            },
+            {
+              id: "C",
+              label: "speaker_C",
+              segmentsCount: 4,
+              health: "unhealthy",
+              color: "#712B13",
+              bg: "#FAECE7",
+              meanDist: 0.61,
+              stdDev: 0.12,
+              minDist: 0.48,
+              maxDist: 0.77,
+              segments: [
+                { id: "segment_0", d: 0.48 },
+                { id: "segment_1", d: 0.65 },
+                { id: "segment_2", d: 0.77 },
+                { id: "segment_3", d: 0.54 },
+              ],
+            },
+          ];
+        }
+
+        function getSeparationPairs() {
+          return [
+            { from: "speaker_A", to: "speaker_B", distance: 0.75 },
+            { from: "speaker_A", to: "speaker_C", distance: 0.91 },
+            { from: "speaker_B", to: "speaker_C", distance: 0.8 },
+          ];
+        }
+
+        function getSeparationStats(pairs) {
+          const values = pairs.map((p) => p.distance);
+          const mean = values.reduce((a, b) => a + b, 0) / values.length;
+          const variance =
+            values.reduce((sum, v) => sum + (v - mean) ** 2, 0) / values.length;
+          const stdDev = Math.sqrt(variance);
+          const min = Math.min(...values);
+          const max = Math.max(...values);
+          return { mean, stdDev, min, max };
+        }
+
+        function getOverallHealth(pairs) {
+          const meanSep =
+            pairs.reduce((s, p) => s + p.distance, 0) / pairs.length;
+          if (meanSep >= 0.8) return "healthy";
+          if (meanSep >= 0.6) return "warning";
+          return "unhealthy";
+        }
+
+        // ───────────────────────────────────
+        // helper: bar color based on distance
+        // ───────────────────────────────────
+        function barColor(d) {
+          if (d <= 0.3) return "#1D9E75";
+          if (d <= 0.5) return "#EF9F27";
+          return "#E24B4A";
+        }
+
+        // ───────────────────────────────────
+        // rendering helpers (returns HTML strings)
+        // ───────────────────────────────────
+        function renderSeparationCard(pairs, stats, health) {
+          const badgeClass =
+            health === "healthy"
+              ? "badge-healthy"
+              : health === "warning"
+                ? "badge-warning"
+                : "badge-unhealthy";
+          const meanFixed = stats.mean.toFixed(2);
+
+          return `
+        <div class="speaker-card" style="margin-bottom: 1.5rem;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;">
+            <span class="badge ${badgeClass}">${health}</span>
+            <span style="font-size: 13px; color: var(--color-text-secondary);">Mean separation: <strong style="color: var(--color-text-primary);">${meanFixed}</strong></span>
+            <span style="font-size: 13px; color: var(--color-text-secondary); margin-left: auto;">${pairs.length} speakers</span>
+          </div>
+          <div class="grid-4" style="margin-bottom: 1rem;">
+            <div class="metric-card"><div class="metric-lbl">Mean</div><div class="metric-val">${meanFixed}</div></div>
+            <div class="metric-card"><div class="metric-lbl">Std dev</div><div class="metric-val">${stats.stdDev.toFixed(2)}</div></div>
+            <div class="metric-card"><div class="metric-lbl">Min</div><div class="metric-val">${stats.min.toFixed(2)}</div></div>
+            <div class="metric-card"><div class="metric-lbl">Max</div><div class="metric-val">${stats.max.toFixed(2)}</div></div>
+          </div>
+          <p class="section-label" style="margin-bottom: 8px;">Pairwise distances</p>
+          <div>
+            ${pairs
+              .map((p) => {
+                const pct = (p.distance / 1.0) * 100; // scale to max 1.0
+                return `
+                <div class="pair-row">
+                  <span style="color: var(--color-text-secondary);">${p.from} → ${p.to}</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="dist-bar-bg" style="width: 80px;"><div class="dist-bar-fill" style="width:${pct}%; background:#1D9E75;"></div></div>
+                    <span style="font-size: 12px; font-weight: 500;">${p.distance.toFixed(2)}</span>
+                  </div>
+                </div>
+              `;
+              })
+              .join("")}
+          </div>
+        </div>
+      `;
+        }
+
+        function renderSpeakerCard(speaker, isFullWidth = false) {
+          const badgeClass =
+            speaker.health === "healthy"
+              ? "badge-healthy"
+              : speaker.health === "warning"
+                ? "badge-warning"
+                : "badge-unhealthy";
+
+          // metric cards grid varies for speaker C (full width, 4 cols) vs A/B (2 cols)
+          const metricsHtml = (() => {
+            if (speaker.id === "C") {
+              return `
+            <div class="grid-4" style="margin-bottom: 12px;">
+              <div class="metric-card"><div class="metric-lbl">Mean dist</div><div class="metric-val" style="font-size: 17px;">${speaker.meanDist.toFixed(2)}</div></div>
+              <div class="metric-card"><div class="metric-lbl">Std dev</div><div class="metric-val" style="font-size: 17px;">${speaker.stdDev.toFixed(2)}</div></div>
+              <div class="metric-card"><div class="metric-lbl">Min</div><div class="metric-val" style="font-size: 17px;">${speaker.minDist.toFixed(2)}</div></div>
+              <div class="metric-card"><div class="metric-lbl">Max</div><div class="metric-val" style="font-size: 17px;">${speaker.maxDist.toFixed(2)}</div></div>
+            </div>
+          `;
+            }
+            return `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+            <div class="metric-card"><div class="metric-lbl">Mean dist</div><div class="metric-val" style="font-size: 17px;">${speaker.meanDist.toFixed(2)}</div></div>
+            <div class="metric-card"><div class="metric-lbl">Std dev</div><div class="metric-val" style="font-size: 17px;">${speaker.stdDev.toFixed(2)}</div></div>
+          </div>
+        `;
+          })();
+
+          const maxSegVal = Math.max(...speaker.segments.map((s) => s.d), 0.8);
+          const segmentsHtml = speaker.segments
+            .map((s) => {
+              const widthPercent = (s.d / maxSegVal) * 100;
+              return `
+          <div class="seg-row">
+            <span class="seg-id">${s.id}</span>
+            <div class="dist-bar-bg" style="flex:1">
+              <div class="dist-bar-fill" style="width:${widthPercent.toFixed(1)}%; background:${barColor(s.d)};"></div>
+            </div>
+            <span class="seg-val">${s.d.toFixed(2)}</span>
+          </div>
+        `;
+            })
+            .join("");
+
+          // speaker C uses 2-column grid for segments
+          const segmentContainerStyle =
+            speaker.id === "C"
+              ? "display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem;"
+              : "";
+
+          return `
+        <div class="speaker-card" style="${isFullWidth ? "grid-column: 1 / -1;" : ""}">
+          <div class="speaker-header">
+            <div class="avatar" style="background: ${speaker.bg}; color: ${speaker.color};">${speaker.id}</div>
+            <div>
+              <div class="speaker-name">${speaker.label}</div>
+              <div class="speaker-meta">${speaker.segmentsCount} segments</div>
+            </div>
+            <span class="badge ${badgeClass}" style="margin-left: auto;">${speaker.health}</span>
+          </div>
+          ${metricsHtml}
+          <p class="section-label" style="margin-bottom: 6px;">Segment distances</p>
+          <div style="${segmentContainerStyle}">
+            ${segmentsHtml}
+          </div>
+        </div>
+      `;
+        }
+
+        // ───────────────────────────────────
+        // Main render: inject into DOM
+        // ───────────────────────────────────
+        function renderDashboard() {
+          const speakers = getSpeakers();
+          const pairs = getSeparationPairs();
+          const stats = getSeparationStats(pairs);
+          const overallHealth = getOverallHealth(pairs);
+
+          // split speakers: A, B in two-column grid; C full width
+          const speakerA = speakers.find((s) => s.id === "A");
+          const speakerB = speakers.find((s) => s.id === "B");
+          const speakerC = speakers.find((s) => s.id === "C");
+
+          const html = `
+        <h2 class="sr-only">Speaker diarization metrics dashboard showing intra-speaker variance and inter-speaker separation results</h2>
+        <div style="padding: 1rem 0;">
+          <div class="flex-between">
+            <div>
+              <div style="font-size: 18px; font-weight: 500; color: var(--color-text-primary);">Speaker metrics</div>
+              <div style="font-size: 13px; color: var(--color-text-secondary); margin-top: 2px;">${speakers.length} speakers · ${pairs.length} separation pairs</div>
+            </div>
+            <button id="randomizeBtn">Randomize ↗</button>
+          </div>
+
+          <p class="section-label">Inter-speaker separation</p>
+          ${renderSeparationCard(pairs, stats, overallHealth)}
+
+          <p class="section-label">Intra-speaker variance</p>
+          <div class="grid-2">
+            ${renderSpeakerCard(speakerA, false)}
+            ${renderSpeakerCard(speakerB, false)}
+            ${renderSpeakerCard(speakerC, true)}
+          </div>
+        </div>
+      `;
+
+          const root = document.getElementById("dashboard-root");
+          root.innerHTML = html;
+
+          // attach randomize event (simulates new data)
+          document
+            .getElementById("randomizeBtn")
+            ?.addEventListener("click", function () {
+              // Simulate new random metrics (keep structure identical but randomize values)
+              const newSpeakers = getSpeakers().map((s) => {
+                const newSegments = s.segments.map((seg) => ({
+                  ...seg,
+                  d: Math.round((Math.random() * 0.5 + 0.05) * 100) / 100,
+                }));
+                const mean =
+                  newSegments.reduce((a, b) => a + b.d, 0) / newSegments.length;
+                const variance =
+                  newSegments.reduce((sum, v) => sum + (v.d - mean) ** 2, 0) /
+                  newSegments.length;
+                return {
+                  ...s,
+                  segments: newSegments,
+                  meanDist: Math.round(mean * 100) / 100,
+                  stdDev: Math.round(Math.sqrt(variance) * 100) / 100,
+                  minDist: Math.min(...newSegments.map((x) => x.d)),
+                  maxDist: Math.max(...newSegments.map((x) => x.d)),
+                  health:
+                    mean < 0.25
+                      ? "healthy"
+                      : mean < 0.5
+                        ? "warning"
+                        : "unhealthy",
+                };
+              });
+
+              const newPairs = [
+                {
+                  from: "speaker_A",
+                  to: "speaker_B",
+                  distance: Math.round((Math.random() * 0.4 + 0.5) * 100) / 100,
+                },
+                {
+                  from: "speaker_A",
+                  to: "speaker_C",
+                  distance: Math.round((Math.random() * 0.5 + 0.5) * 100) / 100,
+                },
+                {
+                  from: "speaker_B",
+                  to: "speaker_C",
+                  distance: Math.round((Math.random() * 0.5 + 0.5) * 100) / 100,
+                },
+              ];
+
+              // override get functions temporarily by re-rendering with new data
+              // We'll create a fresh render using same structure but custom data
+              const newStats = getSeparationStats(newPairs);
+              const newHealth = getOverallHealth(newPairs);
+
+              const updatedHtml = `
+          <h2 class="sr-only">Speaker diarization metrics dashboard (randomized example)</h2>
+          <div style="padding: 1rem 0;">
+            <div class="flex-between">
+              <div>
+                <div style="font-size: 18px; font-weight: 500;">Speaker metrics</div>
+                <div style="font-size: 13px; color: var(--color-text-secondary); margin-top: 2px;">${newSpeakers.length} speakers · ${newPairs.length} separation pairs</div>
+              </div>
+              <button id="randomizeBtn">Randomize ↗</button>
+            </div>
+            <p class="section-label">Inter-speaker separation</p>
+            ${renderSeparationCard(newPairs, newStats, newHealth)}
+            <p class="section-label">Intra-speaker variance</p>
+            <div class="grid-2">
+              ${renderSpeakerCard(
+                newSpeakers.find((s) => s.id === "A"),
+                false,
+              )}
+              ${renderSpeakerCard(
+                newSpeakers.find((s) => s.id === "B"),
+                false,
+              )}
+              ${renderSpeakerCard(
+                newSpeakers.find((s) => s.id === "C"),
+                true,
+              )}
+            </div>
+          </div>
+        `;
+              root.innerHTML = updatedHtml;
+              // reattach listener to new button
+              document
+                .getElementById("randomizeBtn")
+                ?.addEventListener("click", arguments.callee);
+            });
+        }
+
+        // initial paint
+        renderDashboard();
+      })();
+    </script>
+  </body>
+</html>
