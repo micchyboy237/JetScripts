@@ -41,8 +41,8 @@ parser.add_argument(
     "--min-duration",
     "-d",
     type=float,
-    default=0.25,
-    help="Minimum segment duration in seconds (default: 0.25)",
+    default=1.0,
+    help="Minimum segment duration in seconds (default: 1.0)",
 )
 args = parser.parse_args()
 frame_offset = 0
