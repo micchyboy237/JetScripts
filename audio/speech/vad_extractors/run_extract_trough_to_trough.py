@@ -87,20 +87,7 @@ for idx, (seg_meta, audio_slice) in enumerate(segments_with_audio):
             }
             with open(seg_dir / "probs_info.json", "w", encoding="utf-8") as fh:
                 json.dump(probs_info, fh, ensure_ascii=False, indent=2)
-    # ─── UPDATED: Show actual segment duration + per-speech-segment durations ───
-    segment_duration = seg_meta.get("duration_s", 0)
-    if seg_meta.get("segments"):
-        with open(seg_dir / "speech_segments.json", "w", encoding="utf-8") as fh:
-            json.dump(seg_meta["segments"], fh, ensure_ascii=False, indent=2)
-        speech_seg_count = len(seg_meta["segments"])
-        console.print(
-            f"  Segment {idx:03d}: dur={segment_duration:.2f}s, "
-            f"{speech_seg_count} speech seg(s)"
-        )
-    else:
-        console.print(
-            f"  Segment {idx:03d}: dur={segment_duration:.2f}s, no speech segments"
-        )
+
     # ─── END UPDATED ───
     # ─── Generate plot.png for this segment ───
     if n_frames > 0:
@@ -173,9 +160,11 @@ for idx, (seg_meta, audio_slice) in enumerate(segments_with_audio):
         plt.savefig(str(plot_path), dpi=150, bbox_inches="tight")
         plt.close()
         console.print(
-            f"  [dim]Segment {idx:03d}: "
-            f"frames {f_start}-{f_end} | {len(zoomed)} points[/dim]"
+            f"  [dim]Segment {idx:03d}:[/dim] "
+            f"duration: {seg_meta['duration_s']:.2f}s | "
+            f"frames {f_start}-{f_end} | {len(zoomed)} count"
         )
+
 summary_path = output_dir / "trough_to_trough.json"
 with open(summary_path, "w", encoding="utf-8") as fh:
     json.dump(all_segments_meta, fh, ensure_ascii=False, indent=2)

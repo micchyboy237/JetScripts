@@ -5,8 +5,7 @@ from pathlib import Path
 
 import soundfile as sf
 from jet.audio.helpers.config import FRAME_SHIFT_MS
-from jet.audio.speech.vad_extractors import split_best_valley_trough
-from jet.audio.speech.vad_loaders import load_vad_hybrid_probs
+from jet.audio.speech.vad_extractors import load_probs, split_best_valley_trough
 from jet.audio.utils.base import extract_audio_segment
 from jet.audio.utils.loader import load_audio
 from rich.console import Console
@@ -62,7 +61,7 @@ if __name__ == "__main__":
         audio_np, sr = load_audio(input_value)
         left_audio_np, _ = extract_audio_segment(audio_np, end=max_seg_limit_s)
 
-        probs, _ = load_vad_hybrid_probs(left_audio_np)
+        probs, _ = load_probs(left_audio_np)
 
         frame_duration = FRAME_SHIFT_MS / 1000.0
         total_duration_s = len(probs) * frame_duration if probs else 0.0
