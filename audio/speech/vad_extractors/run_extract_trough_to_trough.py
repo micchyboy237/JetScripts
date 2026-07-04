@@ -697,7 +697,7 @@ if args.sort_by != "time" and len(segments_with_audio) >= 5:
 console.print("\n[bold cyan]═══ Trough Results ═══[/bold cyan]")
 if segments_with_audio:
     trough_table = Table(
-        title="Trough Details",
+        title="Trough Results",
         show_lines=True,
         show_header=True,
         header_style="bold cyan",
