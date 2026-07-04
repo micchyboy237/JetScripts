@@ -693,6 +693,106 @@ if args.sort_by != "time" and len(segments_with_audio) >= 5:
 
     console.print(top_table)
 
+# Trough Results Table
+console.print("\n[bold cyan]═══ Trough Results ═══[/bold cyan]")
+if segments_with_audio:
+    trough_table = Table(
+        title="Trough Details",
+        show_lines=True,
+        show_header=True,
+        header_style="bold cyan",
+    )
+    trough_table.add_column("#", style="bold yellow", width=4, justify="right")
+    trough_table.add_column("Frame", style="cyan", width=7, justify="right")
+    trough_table.add_column("Time", style="green", width=8, justify="right")
+    trough_table.add_column("Prob", style="magenta", width=7, justify="right")
+    trough_table.add_column("Seg.Dur", style="bold blue", width=8, justify="right")
+    trough_table.add_column("V.Start", style="blue", width=8, justify="right")
+    trough_table.add_column("V.End", style="blue", width=8, justify="right")
+    trough_table.add_column("V.Dur", style="blue", width=7, justify="right")
+    trough_table.add_column("V.Score", style="yellow", width=8, justify="right")
+    trough_table.add_column("T.Score", style="yellow", width=8, justify="right")
+    trough_table.add_column("Final", style="bold green", width=8, justify="right")
+    trough_table.add_column("Actions", style="bold white", width=10, justify="center")
+
+    # Track unique troughs to avoid duplicates
+    seen_troughs = set()
+    trough_count = 0
+
+    for idx, (seg_meta, _) in enumerate(segments_with_audio):
+        seg_duration = seg_meta.get("duration_s", 0)
+        seg_index = seg_meta.get("original_index", idx)
+        seg_dir = segs_out_dir / f"segment_{seg_index:03d}"
+        folder_uri = f"file://{seg_dir.absolute()}"
+        audio_uri = f"file://{seg_dir.absolute()}/sound.wav"
+
+        # Build action buttons with cmd+click links
+        folder_link = f"[link={folder_uri}]📁[/link]"
+        audio_link = f"[link={audio_uri}]🔊[/link]"
+        actions = f"{folder_link} {audio_link}"
+
+        # End trough of this segment
+        if seg_meta.get("trough_end"):
+            trough = seg_meta["trough_end"]
+            trough_frame = trough.get("global_frame", trough.get("frame"))
+            if trough_frame not in seen_troughs:
+                seen_troughs.add(trough_frame)
+                trough_count += 1
+                valley = trough.get("valley", {})
+                trough_table.add_row(
+                    str(trough_count),
+                    str(trough_frame),
+                    f"{trough.get('global_time_s', trough.get('time_s', 0)):.2f}s",
+                    f"{trough.get('prob', 0):.3f}",
+                    f"{seg_duration:.2f}s",
+                    f"{valley.get('global_start_s', valley.get('start_s', 0)):.2f}s",
+                    f"{valley.get('global_end_s', valley.get('end_s', 0)):.2f}s",
+                    f"{valley.get('global_duration_s', valley.get('duration_s', 0)):.2f}s",
+                    f"{valley.get('global_valley_score', valley.get('valley_score', 0)):.3f}",
+                    f"{valley.get('global_trough_score', valley.get('trough_score', 0)):.3f}",
+                    f"{valley.get('global_final_score', valley.get('final_score', 0)):.3f}",
+                    actions,
+                )
+
+        # Start trough of this segment
+        if seg_meta.get("trough_start") is not None:
+            trough = seg_meta["trough_start"]
+            trough_frame = trough.get("global_frame", trough.get("frame"))
+            if trough_frame not in seen_troughs:
+                seen_troughs.add(trough_frame)
+                trough_count += 1
+                valley = trough.get("valley", {})
+                trough_table.add_row(
+                    str(trough_count),
+                    str(trough_frame),
+                    f"{trough.get('global_time_s', trough.get('time_s', 0)):.2f}s",
+                    f"{trough.get('prob', 0):.3f}",
+                    f"{seg_duration:.2f}s",
+                    f"{valley.get('global_start_s', valley.get('start_s', 0)):.2f}s",
+                    f"{valley.get('global_end_s', valley.get('end_s', 0)):.2f}s",
+                    f"{valley.get('global_duration_s', valley.get('duration_s', 0)):.2f}s",
+                    f"{valley.get('global_valley_score', valley.get('valley_score', 0)):.3f}",
+                    f"{valley.get('global_trough_score', valley.get('trough_score', 0)):.3f}",
+                    f"{valley.get('global_final_score', valley.get('final_score', 0)):.3f}",
+                    actions,
+                )
+
+    console.print(trough_table)
+    console.print(f"[dim]Total unique troughs: {trough_count}[/dim]")
+
+    # Add legend
+    console.print("\n[dim]Legend:[/dim]")
+    console.print(
+        "[dim]  Seg.Dur = Duration of the segment starting/ending at this trough[/dim]"
+    )
+    console.print("[dim]  V.Start/V.End/V.Dur = Valley start/end/duration[/dim]")
+    console.print("[dim]  V.Score/T.Score = Valley/Trough quality scores[/dim]")
+    console.print("[dim]  Final = Composite score (V.Score × T.Score)[/dim]")
+    console.print("[dim]  📁 = Open segment folder | 🔊 = Play segment audio[/dim]")
+    console.print("[dim]  Tip: Cmd+Click the icons to open[/dim]")
+else:
+    console.print("[yellow]No segments available for trough analysis[/yellow]")
+
 console.print(
     f"\n[bold green]Segments saved under:[/bold green] {linkify(segs_out_dir)}"
 )
