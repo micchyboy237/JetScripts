@@ -6,6 +6,17 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
+from jet.audio.audio_waveform.vad.vad_config import (
+    DEFAULT_FRAME_OFFSET,
+    DEFAULT_MIN_TROUGH_OFFSET,
+    DEFAULT_MIN_VALLEY_DURATION,
+    DEFAULT_MIN_VALLEY_FRAMES,
+    DEFAULT_SMOOTHING_WINDOW,
+    DEFAULT_TROUGH_DISTANCE,
+    DEFAULT_TROUGH_HEIGHT,
+    DEFAULT_TROUGH_PROMINENCE,
+    DEFAULT_VALLEY_THRESHOLD,
+)
 from jet.audio.audio_waveform.vad.vad_logging import linkify
 from jet.audio.helpers.config import FRAME_SHIFT_MS, SAMPLE_RATE
 from jet.audio.normalization.dtype_conversion import convert_audio_dtype
@@ -86,56 +97,56 @@ parser.add_argument(
 parser.add_argument(
     "--smoothing-window",
     type=int,
-    default=0,
-    help="Smoothing window size for VAD probabilities (0 = disabled).",
+    default=DEFAULT_SMOOTHING_WINDOW,
+    help=f"Smoothing window size for VAD probabilities (default: {DEFAULT_SMOOTHING_WINDOW}, 0 = disabled).",
 )
 parser.add_argument(
     "--trough-height",
     type=float,
-    default=None,
-    help="Min trough height (None = auto-computed).",
+    default=DEFAULT_TROUGH_HEIGHT,
+    help=f"Min trough height (default: {DEFAULT_TROUGH_HEIGHT} - None = auto-computed).",
 )
 parser.add_argument(
     "--trough-prominence",
     type=float,
-    default=0.15,
-    help="Trough prominence (default: 0.15).",
+    default=DEFAULT_TROUGH_PROMINENCE,
+    help=f"Trough prominence (default: {DEFAULT_TROUGH_PROMINENCE}).",
 )
 parser.add_argument(
     "--trough-distance",
     type=int,
-    default=5,
-    help="Min frames between troughs (default: 5).",
+    default=DEFAULT_TROUGH_DISTANCE,
+    help=f"Min frames between troughs (default: {DEFAULT_TROUGH_DISTANCE}).",
 )
 parser.add_argument(
     "--valley-threshold",
     type=float,
-    default=None,
-    help="Valley threshold (None = auto-computed).",
+    default=DEFAULT_VALLEY_THRESHOLD,
+    help=f"Valley threshold (default: {DEFAULT_VALLEY_THRESHOLD}, None = auto-computed).",
 )
 parser.add_argument(
     "--min-valley-duration",
     type=float,
-    default=0.25,
-    help="Minimum valley duration in seconds (default: 0.25).",
+    default=DEFAULT_MIN_VALLEY_DURATION,
+    help=f"Minimum valley duration in seconds (default: {DEFAULT_MIN_VALLEY_DURATION}).",
 )
 parser.add_argument(
     "--min-valley-frames",
     type=int,
-    default=None,
-    help="Minimum valley frames (overrides duration if set).",
+    default=DEFAULT_MIN_VALLEY_FRAMES,
+    help=f"Minimum valley frames (default: {DEFAULT_MIN_VALLEY_FRAMES}, overrides duration if set).",
 )
 parser.add_argument(
     "--frame-offset",
     type=int,
-    default=0,
-    help="Global frame offset for chunked processing.",
+    default=DEFAULT_FRAME_OFFSET,
+    help=f"Global frame offset for chunked processing (default: {DEFAULT_FRAME_OFFSET}).",
 )
 parser.add_argument(
     "--min-trough-offset",
     type=float,
-    default=0.4,
-    help="Min seconds from start for valid trough (default: 0.4).",
+    default=DEFAULT_MIN_TROUGH_OFFSET,
+    help=f"Min seconds from start for valid trough (default: {DEFAULT_MIN_TROUGH_OFFSET}).",
 )
 args = parser.parse_args()
 frame_offset = 0
