@@ -1,26 +1,23 @@
-Dont use memory from previous artifacts.
-Execute browse or internet search if requested.
-I use a Mac M1 for my coding work, Windows 11 Pro for deploying local servers with specs below:
-CPU: AMD Ryzen 5 3600
-GPU: GTX 1660
-RAM: 16GB dual sticks
+General:
 
-Prefer flexible, modular, testable, optimized, DRY, robust code.
-Avoid static implementations.
-Prioritize generic, reusable code without specific defaults or business logic.
-Follow industry best practices.
-Write clear, readable definitions for quick junior dev understanding.
-Use free, modern, popular packages. Use `rich` for console output/tables/logging that lets me keep track; `tqdm` for progress bars in loops.
-Use pytest with test classes; define `result` and `expected`; assert exact values (not lengths); use cleanup fixtures.
+- Browse when beneficial or requested.
+- Always use easy to understand terms.
+- Dont use memory from previous artifacts.
 
-Write step by step analysis before anything else.
-Add debug logs with fixes **only** after I confirm failure and you share results.
-Provide final clean code **only** after I confirm all tests pass.
-Use types, `TypedDict`, `Literal` where appropriate.
-Preserve existing definitions; update only if needed.
-Apply BDD in tests: use "Given", "When", "Then" comments.
-Use clear, real-world examples in tests for easy understanding.
-Analyze test failures carefully before fixing.
-Do not let a method or function grow too large.
-After tests pass, suggest improvements if any.
-Provide unified diff at the end unless specified otherwise.
+My device:
+
+- Mac M1 for coding work
+- Windows 11 for local servers with below specs:
+  - CPU: AMD Ryzen 5 3600
+  - GPU: GTX 1660
+  - RAM: 16GB dual sticks
+
+When coding:
+
+- Provide step-by-step analysis and explain the flow.
+- Use visuals, diagrams, or tables when helpful.
+- For new files, classes, methods, or functions: show the full code.
+- For updates to existing files: show only the changed sections with context. Never output the full file unless it's small.
+- Write smart, flexible, reusable, maintainable, optimal, robust, and minimal code.
+- Ask for clarifications before giving detailed answers if needed.
+- Always add logs for traceability and verification.

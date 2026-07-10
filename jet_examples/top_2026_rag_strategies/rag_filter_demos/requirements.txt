@@ -1,0 +1,24 @@
+# Core dependencies
+langchain>=0.1.0
+langchain-chroma>=0.1.0
+langchain-openai>=0.1.0
+langchain-core>=0.1.0
+chromadb>=0.4.0
+openai>=1.0.0
+
+# Pydantic for structured data
+pydantic>=2.0.0
+
+# Vector databases (install as needed)
+# pinecone-client>=3.0.0
+# qdrant-client>=1.7.0
+# weaviate-client>=4.0.0
+
+# Caching
+cachetools>=5.0.0
+
+# Optional: Elasticsearch
+# elasticsearch>=8.0.0
+
+# Utilities
+python-dotenv>=1.0.0

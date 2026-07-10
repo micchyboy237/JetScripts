@@ -25,7 +25,7 @@ def linkify(path: Path):
 
 
 if __name__ == "__main__":
-    DEFAULT_AUDIO = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/audio/generated/run_record_mic/recording_1_speaker.wav"
+    DEFAULT_AUDIO = "/Users/jethroestrada/.cache/files/audio/sub_audio/start_12s_recording_2_speakers.wav"
 
     parser = argparse.ArgumentParser(
         description="Extract valley troughs (strong silence points) from audio file, .npy VAD probs, or JSON list of floats.",

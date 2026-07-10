@@ -378,6 +378,12 @@ Rules:
                 stream=True,
                 temperature=0.1,
                 max_tokens=500,
+                extra_body={
+                    # "top_k": 20,
+                    "chat_template_kwargs": {
+                        "enable_thinking": False,
+                    },
+                },
             )
 
             chunk_count = 0
