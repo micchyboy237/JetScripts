@@ -1,306 +1,220 @@
 """
-09_demo_llamacpp_local_embeddings.py
+job_chunker.py
 
-PURPOSE
--------
-Use YOUR local llama.cpp embedding server (running on the Windows box)
-as BERTopic's embedding backend, instead of downloading a
-sentence-transformers model.
+Chunking pipeline for jobs.json-style records.
 
-WHY THIS WORKS
---------------
-llama-server exposes an OpenAI-compatible `/v1/embeddings` route. BERTopic
-doesn't ship a built-in "llama.cpp backend," but it exposes a
-`bertopic.backend.BaseEmbedder` class specifically so you can wrap ANY
-embedding source - you just implement one method: `embed()`. Internally
-we call it through the official `openai` Python SDK, simply pointed at
-your local server's base_url. No API key is actually checked by
-llama.cpp, but the SDK requires a non-empty string, so we pass a dummy.
+Strategy:
+- Each job is treated as one retrieval unit by default (jobs are already
+  short, self-contained, and splitting across jobs would destroy meaning).
+- A "context header" built from the structured fields (title, company,
+  salary, job_type, tags, domain, hours_per_week) is prepended to every
+  chunk so no chunk loses track of which job / role / pay it belongs to.
+- Only the `details` field is split, and only when it's long enough to
+  exceed max_tokens. Splitting happens on paragraph boundaries first,
+  falling back to sentence boundaries, never mid-sentence.
+- Structured fields (domain, job_type, salary, tags) are also kept as
+  separate metadata so they can be used for hybrid filtering at query
+  time instead of relying purely on embeddings to "understand" them.
 
-YOUR SERVER (per your env vars)
---------------------------------
-    export LLAMA_CPP_EMBED_MODEL="nomic-embed-text-v2-moe"
-    export LLAMA_CPP_EMBED_DIMS=768
-    export HOST_PC="192.168.68.150"
-    export LLAMA_CPP_EMBED_URL="http://${HOST_PC}:8081/v1"
-
-Make sure llama-server was started WITH embeddings enabled, e.g.:
-    llama-server -m nomic-embed-text-v2-moe.gguf --embeddings \
-        --host 0.0.0.0 --port 8081
-
-IMPORTANT MODEL-SPECIFIC NOTE
--------------------------------
-nomic-embed-text models (v1.5 and v2-moe) were trained with TASK
-PREFIXES and score meaningfully worse without them:
-    "search_document: <text>"   for the documents you are clustering
-    "search_query: <text>"      only if you later embed a search query
-This script prepends "search_document: " automatically - remove/adjust
-the `DOC_PREFIX` constant below if you switch to a model that doesn't
-use this convention (e.g. plain "all-MiniLM-L6-v2" style models).
-
-TOKEN LIMIT / TRUNCATION
---------------------------
-nomic-embed-text-v2-moe has a hard MODEL limit of 512 tokens - this is
-the model's own training limit, not just a server flag. Longer inputs
-are rejected by llama.cpp's server with a 400 "exceed_context_size_error"
-instead of being silently truncated.
-
-Rather than estimate token count from character length, this script asks
-the SAME server for an exact count, using its built-in tokenizer
-endpoints (these tokenize with the exact model/vocab that's loaded):
-  - POST /tokenize    text -> list of token ids
-  - POST /detokenize  list of token ids -> text
-For each document we tokenize, and only if it exceeds the safe budget do
-we slice the token id list and detokenize it back into truncated text
-before sending it to /v1/embeddings. This costs one extra HTTP call per
-document (two if truncation is needed) but guarantees we never send an
-over-length request and never truncate more aggressively than necessary.
-If you need the full text of long documents represented well, consider
-chunking long documents into multiple passages and averaging/pooling
-their embeddings, rather than relying on truncation.
-
-INSTALL (once)
----------------
-pip install bertopic scikit-learn openai requests
-
-RUN
----
-python 09_demo_llamacpp_local_embeddings.py
+No external dependencies required (token estimate is character-based,
+~4 chars/token, which is a standard rough approximation for English).
+Swap `estimate_tokens` for a real tokenizer (e.g. tiktoken) if you want
+exact counts.
 """
 
+import json
 import logging
-import os
-import time
-
-import numpy as np
-import requests
-from openai import OpenAI
-from sklearn.datasets import fetch_20newsgroups
-from bertopic import BERTopic
-from bertopic.backend import BaseEmbedder
+import re
+from typing import Any
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s | %(levelname)-7s | %(message)s",
-    datefmt="%H:%M:%S",
+    format="%(asctime)s [%(levelname)s] %(message)s",
 )
-log = logging.getLogger("demo09")
+logger = logging.getLogger("job_chunker")
 
-# ---------------------------------------------------------------------------
-# Config, pulled straight from your shell env vars.
-# ---------------------------------------------------------------------------
-EMBED_MODEL = os.environ.get("LLAMA_CPP_EMBED_MODEL", "nomic-embed-text-v2-moe")
-EMBED_DIMS = int(os.environ.get("LLAMA_CPP_EMBED_DIMS", "768"))
-EMBED_URL = os.environ.get("LLAMA_CPP_EMBED_URL", "http://127.0.0.1:8081/v1")
+# ---- Tunables -----------------------------------------------------------
 
-# nomic-embed-* convention - see note above. Set to "" to disable.
-DOC_PREFIX = "search_document: "
-
-# llama.cpp servers are usually run with a modest batch size (-ub/-b flags).
-# Sending too many strings in one request can hit context-length limits or
-# time out, so we chunk requests client-side.
-BATCH_SIZE = 32
-MAX_RETRIES = 3
+MAX_TOKENS = 400  # target max tokens per chunk (excluding header)
+OVERLAP_TOKENS = 60  # ~15% overlap between consecutive sub-chunks
+CHARS_PER_TOKEN = 4  # rough estimate, no external tokenizer needed
 
 
-# --- Context-length truncation (using the SERVER's real tokenizer) ---------
-# nomic-embed-text-v2-moe has a hard MODEL limit of 512 tokens - this is not
-# just a server flag (-c), the model itself was only trained up to 512
-# tokens. llama.cpp's server rejects over-length inputs with a 400 error
-# instead of silently truncating, so we must truncate client-side.
-#
-# llama-server's /tokenize and /detokenize routes live at the server ROOT,
-# not under /v1 (they are llama.cpp-native, not OpenAI-compatible routes).
-def _derive_base_server_url(embed_url: str) -> str:
-    trimmed = embed_url.rstrip("/")
-    if trimmed.endswith("/v1"):
-        trimmed = trimmed[: -len("/v1")]
-    return trimmed.rstrip("/")
+def estimate_tokens(text: str) -> int:
+    """Rough token count estimate (chars / 4). Good enough for chunk sizing."""
+    return max(1, len(text) // CHARS_PER_TOKEN)
 
 
-BASE_SERVER_URL = _derive_base_server_url(EMBED_URL)
-TOKENIZE_URL = f"{BASE_SERVER_URL}/tokenize"
-DETOKENIZE_URL = f"{BASE_SERVER_URL}/detokenize"
-
-MAX_MODEL_TOKENS = int(os.environ.get("LLAMA_CPP_CTX_SIZE", "512"))
-SAFETY_MARGIN_TOKENS = 16  # headroom for the model's special/BOS tokens
-TOKEN_BUDGET = MAX_MODEL_TOKENS - SAFETY_MARGIN_TOKENS
-
-
-class LlamaCppEmbedder(BaseEmbedder):
+def build_context_header(job: dict[str, Any]) -> str:
     """
-    BERTopic-compatible wrapper around a local llama.cpp OpenAI-compatible
-    embeddings endpoint. Implements the single method BaseEmbedder requires.
+    Build the metadata header prepended to every chunk for this job.
+    This is what keeps a lone fragment of `details` meaningful on its own.
     """
+    parts = [f"Job: {job.get('title', 'Unknown title')}"]
 
-    def __init__(self, client: OpenAI, model: str, dims: int):
-        super().__init__()
-        self.client = client
-        self.model = model
-        self.dims = dims
+    if job.get("company"):
+        parts.append(f"Company: {job['company']}")
 
-    def embed(self, documents: list[str], verbose: bool = False) -> np.ndarray:
-        all_embeddings: list[list[float]] = []
-        n_batches = (len(documents) + BATCH_SIZE - 1) // BATCH_SIZE
+    if job.get("salary"):
+        parts.append(f"Salary: {job['salary']}")
 
-        prepared_all, n_truncated = self._prepare_inputs(documents)
-        if n_truncated:
-            log.warning(
-                "%d/%d documents exceeded the %d-token model budget and were "
-                "truncated (via the server's own tokenizer) before embedding.",
-                n_truncated,
-                len(documents),
-                TOKEN_BUDGET,
-            )
+    if job.get("job_type"):
+        parts.append(f"Type: {job['job_type']}")
 
-        for i in range(0, len(prepared_all), BATCH_SIZE):
-            batch_num = i // BATCH_SIZE + 1
-            batch = prepared_all[i : i + BATCH_SIZE]
+    if job.get("hours_per_week"):
+        parts.append(f"Hours/week: {job['hours_per_week']}")
 
-            if verbose:
-                log.info(
-                    "Embedding batch %d/%d (%d texts)...",
-                    batch_num,
-                    n_batches,
-                    len(batch),
-                )
+    if job.get("tags"):
+        parts.append(f"Tags: {', '.join(job['tags'])}")
 
-            all_embeddings.extend(self._embed_batch_with_retry(batch, batch_num))
+    parts.append(f"Source: {job.get('domain', 'unknown')}")
 
-        embeddings = np.array(all_embeddings, dtype=np.float32)
-        log.info("Embedded %d documents -> shape %s", len(documents), embeddings.shape)
-
-        if embeddings.shape[1] != self.dims:
-            log.warning(
-                "Embedding dim mismatch: server returned %d dims, "
-                "LLAMA_CPP_EMBED_DIMS says %d. Check your model/env var.",
-                embeddings.shape[1],
-                self.dims,
-            )
-        return embeddings
-
-    def _prepare_inputs(self, documents: list[str]) -> tuple[list[str], int]:
-        """Apply the task prefix, then use the SERVER's real tokenizer to
-        check exact token count and truncate anything over budget.
-        Returns (prepared_texts, n_truncated)."""
-        prepared = []
-        n_truncated = 0
-
-        for doc in documents:
-            text = f"{DOC_PREFIX}{doc}"
-            tokens = self._tokenize(text)
-
-            if len(tokens) > TOKEN_BUDGET:
-                truncated_tokens = tokens[:TOKEN_BUDGET]
-                text = self._detokenize(truncated_tokens)
-                n_truncated += 1
-
-            prepared.append(text)
-
-        return prepared, n_truncated
-
-    @staticmethod
-    def _tokenize(text: str) -> list[int]:
-        """Exact token count via llama.cpp's own tokenizer (matches the
-        loaded model precisely, unlike a character-based estimate)."""
-        response = requests.post(TOKENIZE_URL, json={"content": text}, timeout=15)
-        response.raise_for_status()
-        return response.json()["tokens"]
-
-    @staticmethod
-    def _detokenize(tokens: list[int]) -> str:
-        response = requests.post(DETOKENIZE_URL, json={"tokens": tokens}, timeout=15)
-        response.raise_for_status()
-        return response.json()["content"]
-
-    def _embed_batch_with_retry(
-        self, batch: list[str], batch_num: int
-    ) -> list[list[float]]:
-        last_error = None
-        for attempt in range(1, MAX_RETRIES + 1):
-            try:
-                response = self.client.embeddings.create(
-                    input=batch,
-                    model=self.model,
-                    encoding_format="float",
-                )
-                return [item.embedding for item in response.data]
-            except Exception as exc:  # noqa: BLE001 - log and retry deliberately
-                last_error = exc
-                log.warning(
-                    "Batch %d failed (attempt %d/%d): %s",
-                    batch_num,
-                    attempt,
-                    MAX_RETRIES,
-                    exc,
-                )
-                time.sleep(1.5 * attempt)  # simple backoff
-        raise RuntimeError(
-            f"Batch {batch_num} failed after {MAX_RETRIES} attempts"
-        ) from last_error
+    header = " | ".join(parts)
+    logger.debug(f"[{job.get('id')}] Built header: {header}")
+    return header
 
 
-def build_llamacpp_client() -> OpenAI:
-    log.info(
-        "Connecting to llama.cpp embed server at %s (model=%s, dims=%d)...",
-        EMBED_URL,
-        EMBED_MODEL,
-        EMBED_DIMS,
+def split_long_details(details: str, max_tokens: int, overlap_tokens: int) -> list[str]:
+    """
+    Split long `details` text into sub-chunks on paragraph boundaries.
+    Falls back to sentence boundaries within a paragraph if a single
+    paragraph itself exceeds max_tokens. Never cuts mid-sentence.
+    """
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n|\n", details) if p.strip()]
+
+    # Further split any oversized "paragraph" into sentences
+    units: list[str] = []
+    for para in paragraphs:
+        if estimate_tokens(para) <= max_tokens:
+            units.append(para)
+        else:
+            sentences = re.split(r"(?<=[.!?])\s+", para)
+            units.extend(s.strip() for s in sentences if s.strip())
+
+    chunks: list[str] = []
+    current: list[str] = []
+    current_tokens = 0
+
+    for unit in units:
+        unit_tokens = estimate_tokens(unit)
+
+        if current_tokens + unit_tokens > max_tokens and current:
+            chunks.append(" ".join(current))
+
+            # Build overlap: carry trailing units forward until overlap budget spent
+            overlap_units: list[str] = []
+            overlap_tok = 0
+            for u in reversed(current):
+                t = estimate_tokens(u)
+                if overlap_tok + t > overlap_tokens:
+                    break
+                overlap_units.insert(0, u)
+                overlap_tok += t
+
+            current = overlap_units
+            current_tokens = overlap_tok
+
+        current.append(unit)
+        current_tokens += unit_tokens
+
+    if current:
+        chunks.append(" ".join(current))
+
+    return chunks
+
+
+def chunk_job(
+    job: dict[str, Any],
+    max_tokens: int = MAX_TOKENS,
+    overlap_tokens: int = OVERLAP_TOKENS,
+) -> list[dict[str, Any]]:
+    """
+    Produce one or more retrieval-ready chunks for a single job record.
+    Returns a list of dicts: {chunk_id, text, metadata}
+    """
+    job_id = job.get("id", "unknown")
+    details = (job.get("details") or "").strip()
+    header = build_context_header(job)
+
+    base_metadata = {
+        "job_id": job_id,
+        "link": job.get("link"),
+        "title": job.get("title"),
+        "company": job.get("company"),
+        "posted_date": job.get("posted_date"),
+        "domain": job.get("domain"),
+        "salary": job.get("salary"),
+        "job_type": job.get("job_type"),
+        "hours_per_week": job.get("hours_per_week"),
+        "tags": job.get("tags", []),
+    }
+
+    details_tokens = estimate_tokens(details)
+
+    if details_tokens <= max_tokens:
+        logger.info(f"[{job_id}] Single chunk ({details_tokens} est. tokens)")
+        return [
+            {
+                "chunk_id": f"{job_id}_0",
+                "text": f"{header}\n\n{details}" if details else header,
+                "metadata": {**base_metadata, "chunk_index": 0, "chunk_count": 1},
+            }
+        ]
+
+    logger.info(f"[{job_id}] Long details ({details_tokens} est. tokens) -> splitting")
+    sub_chunks = split_long_details(
+        details, max_tokens - estimate_tokens(header), overlap_tokens
     )
-    # api_key is ignored by llama.cpp unless you started it with --api-key,
-    # but the OpenAI SDK requires a non-empty string.
-    return OpenAI(base_url=EMBED_URL, api_key="not-needed")
 
-
-def sanity_check_server(embedder: LlamaCppEmbedder) -> None:
-    """Fail fast with a clear message if the server isn't reachable/configured
-    for embeddings, rather than surfacing a confusing BERTopic stack trace."""
-    log.info("Running a 1-document sanity check against the embed server...")
-    try:
-        test_vec = embedder.embed(["connectivity check"], verbose=False)
-        log.info("Sanity check OK: got vector of shape %s", test_vec.shape)
-    except Exception as exc:
-        log.error(
-            "Could not reach/embed via %s. Confirm llama-server is running "
-            "with --embeddings enabled and reachable from this machine.",
-            EMBED_URL,
+    result = []
+    for i, sub in enumerate(sub_chunks):
+        result.append(
+            {
+                "chunk_id": f"{job_id}_{i}",
+                "text": f"{header}\n\n{sub}",
+                "metadata": {
+                    **base_metadata,
+                    "chunk_index": i,
+                    "chunk_count": len(sub_chunks),
+                },
+            }
         )
-        raise
+
+    logger.info(f"[{job_id}] Produced {len(result)} sub-chunks")
+    return result
 
 
-def load_sample_documents(n_docs: int = 600) -> list[str]:
-    # Smaller sample than earlier demos - local CPU/GPU embedding servers
-    # are typically slower per-request than a local sentence-transformers
-    # call, so we keep this demo quick to run end-to-end.
-    log.info("Loading 20-newsgroups sample (n_docs=%d)...", n_docs)
-    data = fetch_20newsgroups(subset="all", remove=("headers", "footers", "quotes"))[
-        "data"
-    ]
-    docs = [d for d in data if len(d.strip()) > 20][:n_docs]
-    log.info("Loaded %d documents.", len(docs))
-    return docs
+def process_jobs(jobs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Run chunk_job over the full jobs.json list, logging summary stats."""
+    all_chunks: list[dict[str, Any]] = []
+    single_chunk_count = 0
+    split_count = 0
 
+    for job in jobs:
+        chunks = chunk_job(job)
+        all_chunks.extend(chunks)
+        if len(chunks) == 1:
+            single_chunk_count += 1
+        else:
+            split_count += 1
 
-def fit_with_llamacpp_backend(docs: list[str], embedder: LlamaCppEmbedder) -> BERTopic:
-    log.info("Fitting BERTopic using the llama.cpp embedding backend...")
-    topic_model = BERTopic(embedding_model=embedder, min_topic_size=10, verbose=True)
-    topics, _ = topic_model.fit_transform(docs)
-    info = topic_model.get_topic_info()
-    log.info("Fit complete: %d topics.\n%s", len(info) - 1, info.head(10).to_string())
-    return topic_model
+    logger.info(
+        f"Done. {len(jobs)} jobs -> {len(all_chunks)} chunks "
+        f"({single_chunk_count} single-chunk jobs, {split_count} jobs split further)"
+    )
+    return all_chunks
 
 
 if __name__ == "__main__":
-    client = build_llamacpp_client()
-    embedder = LlamaCppEmbedder(client, model=EMBED_MODEL, dims=EMBED_DIMS)
+    jobs_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Apps/my-jobs/saved/jobs.json"
 
-    sanity_check_server(embedder)
+    # Example usage
+    with open(jobs_path, "r", encoding="utf-8") as f:
+        jobs_data = json.load(f)
 
-    documents = load_sample_documents()
-    model = fit_with_llamacpp_backend(documents, embedder)
+    chunks = process_jobs(jobs_data)
 
-    log.info(
-        "Done. Reuse `embedder` in any earlier demo file by passing it as "
-        "`embedding_model=embedder` to BERTopic(...) instead of a "
-        "sentence-transformers model name."
-    )
+    with open("jobs_chunked.json", "w", encoding="utf-8") as f:
+        json.dump(chunks, f, indent=2, ensure_ascii=False)
+
+    logger.info("Wrote jobs_chunked.json")

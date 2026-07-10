@@ -1,98 +1,163 @@
-import numpy as np
-import sounddevice as sd
-import torch
-from faster_whisper import WhisperModel
-from queue import Queue
-from threading import Thread
+import json
+import logging
+from pathlib import Path
+from typing import Any, Dict, List
 
-class JapaneseToEnglishLiveTranscriber:
-    """Live Japanese → English translator using faster-whisper large-v3 + Silero VAD (segmented)."""
+import tiktoken
 
-    def __init__(
-        self,
-        model_size: str = "large-v3",          # or "large-v3-turbo" / "medium" for faster
-        compute_type: str = "int8_float16",    # int8_float16 is fastest on GTX 1660 with negligible quality loss
-        beam_size: int = 5,
-        vad_threshold: float = 0.6,          # 0.5–0.7 works well for Japanese
-        min_silence_duration_ms: int = 400,     # adjust if too chatty or too slow
-    ):
-        self.model = WhisperModel(model_size, device="cuda", compute_type=compute_type, download_root="./models")
-        self.beam_size = beam_size
-        self.samplerate = 16000
-        self.block_size = 1024  # ~64 ms chunks, good reactivity
-        self.vad_model, utils = torch.hub.load(repo_or_dir="snakers4/silero-vad", model="silero_vad", trust_repo=True)
-        self.VADIterator = utils[3]  # VADIterator class
-        self.vad_iterator = self.VADIterator(self.vad_model, threshold=vad_threshold, sampling_rate=self.samplerate, min_silence_duration_ms=min_silence_duration_ms)
-        self.audio_queue = Queue()
-        self.current_speech_chunks = []
+# ========================= CONFIG =========================
+CHUNK_SIZE = 512  # Tokens - good default for most embedding models
+CHUNK_OVERLAP = 80  # Tokens - helps preserve context
+LOG_LEVEL = logging.INFO
+# =======================================================
 
-    def _transcribe_buffer(self, audio: np.ndarray):
-        segments, _ = self.model.transcribe(
-            audio,
-            language="ja",
-            task="translate",
-            beam_size=self.beam_size,
-            temperature=0.0,
-            best_of=5,
-            patience=1.0,
-            compression_ratio_threshold=2.4,  # filter bad segments
-            logprob_threshold=-0.5,
-            no_speech_threshold=0.6,
-            vad_filter=False,  # we already did VAD
-        )
-        text = "".join(segment.text for segment in segments).strip()
-        if text:
-            print(text, flush=True)
+logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
-    def _processing_thread(self):
-        while True:
-            chunk = self.audio_queue.get()
-            if chunk is None:  # poison pill for shutdown
-                break
 
-            speech_event = self.vad_iterator(torch.from_numpy(chunk), self.samplerate)
+def get_token_count(text: str) -> int:
+    """Accurate token counting using tiktoken (cl100k_base is common)."""
+    enc = tiktoken.get_encoding("cl100k_base")
+    return len(enc.encode(text))
 
-            if speech_event:
-                if "start" in speech_event:
-                    self.current_speech_chunks = [chunk]
-                    print("\r[Speaking...]", end="", flush=True)
 
-                if "end" in speech_event:
-                    self.current_speech_chunks.append(chunk)
-                    audio_np = np.concatenate(self.current_speech_chunks)
-                    self._transcribe_buffer(audio_np)
-                    self.current_speech_chunks = []
-                    self.vad_iterator.reset_states()  # important: fresh state for next utterance
-                    print("\r" + " " * 80 + "\r", end="", flush=True)  # clear line
+def load_jobs(file_path: str = "jobs.json") -> List[Dict]:
+    """Load jobs from JSON file (list or NDJSON)."""
+    path = Path(file_path)
+    if not path.exists():
+        logger.error(f"File {file_path} not found. Create it with your job data.")
+        raise FileNotFoundError(f"File {file_path} not found.")
 
-            else:
-                if self.current_speech_chunks:
-                    self.current_speech_chunks.append(chunk)
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read().strip()
+        if content.startswith("["):
+            jobs = json.loads(content)
+        else:
+            # NDJSON fallback
+            jobs = [json.loads(line) for line in content.splitlines() if line.strip()]
+    logger.info(f"Loaded {len(jobs)} jobs from {file_path}")
+    return jobs
 
-    def audio_callback(self, indata: np.ndarray, frames, time, status):
-        if status:
-            print(status)
-        self.audio_queue.put(indata.copy()[:, 0])  # mono float32
 
-    def run(self):
-        print("Japanese → English live translation ready (Ctrl+C to stop)")
-        with sd.InputStream(samplerate=self.samplerate, channels=1, dtype="float32", blocksize=self.block_size, callback=self.audio_callback):
-            thread = Thread(target=self._processing_thread, daemon=True)
-            thread.start()
-            try:
-                while True:
-                    sd.sleep(100)
-            except KeyboardInterrupt:
-                print("\nStopped.")
-                self.audio_queue.put(None)
-                thread.join()
-
-if __name__ == "__main__":
-    model_size = "small"
-    compute_type = "int8"
-
-    transcriber = JapaneseToEnglishLiveTranscriber(
-        model_size=model_size,
-        compute_type=compute_type,
+def enrich_chunk_text(job: Dict, details_chunk: str) -> str:
+    """Create rich text for embedding - metadata + content."""
+    return (
+        f"Job Title: {job.get('title', 'N/A')}\n"
+        f"Company: {job.get('company', 'N/A')}\n"
+        f"Domain: {job.get('domain', 'N/A')}\n"
+        f"Job Type: {job.get('job_type', 'N/A')} | Salary: {job.get('salary', 'N/A')}\n"
+        f"Tags: {', '.join(job.get('tags', []))}\n"
+        f"Posted: {job.get('posted_date', 'N/A')}\n\n"
+        f"Details:\n{details_chunk}"
     )
-    transcriber.run()
+
+
+def chunk_job(
+    job: Dict, chunk_size: int = CHUNK_SIZE, chunk_overlap: int = CHUNK_OVERLAP
+) -> List[Dict]:
+    """Chunk a single job with metadata enrichment."""
+    job_id = job.get("id")
+    details = (job.get("details") or "").strip()
+
+    if not details:
+        logger.warning(f"Job {job_id} has no details.")
+        chunk_text = enrich_chunk_text(job, f"Title: {job.get('title')}")
+        return [{**job, "chunk_text": chunk_text, "chunk_id": f"{job_id}_full"}]
+
+    token_count = get_token_count(details)
+    logger.debug(f"Job {job_id} details tokens: {token_count}")
+
+    # Short job -> single chunk
+    if token_count <= int(chunk_size * 1.5):
+        chunk_text = enrich_chunk_text(job, details)
+        return [{**job, "chunk_text": chunk_text, "chunk_id": f"{job_id}_full"}]
+
+    # Recursive splitting for longer details
+    from langchain_text_splitters import RecursiveCharacterTextSplitter
+
+    splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        length_function=get_token_count,
+        separators=[
+            "\n\n",
+            "\n",
+            ". ",
+            "• ",
+            " ",
+            "",
+        ],  # Job-friendly (paragraphs, bullets)
+    )
+
+    detail_chunks = splitter.split_text(details)
+    enriched_chunks = []
+
+    for i, chunk in enumerate(detail_chunks):
+        chunk_text = enrich_chunk_text(job, chunk)
+        enriched = {
+            **job,  # Full original metadata
+            "chunk_text": chunk_text,  # For embedding
+            "chunk_id": f"{job_id}_{i}",
+            "chunk_index": i,
+            "total_chunks": len(detail_chunks),
+            "original_details_tokens": token_count,
+        }
+        enriched_chunks.append(enriched)
+
+    logger.info(f"Job {job_id} split into {len(detail_chunks)} chunks")
+    return enriched_chunks
+
+
+def chunk_all_jobs(jobs: List[Dict]) -> List[Dict]:
+    """Process all jobs."""
+    all_chunks = []
+    for job in jobs:
+        try:
+            chunks = chunk_job(job)
+            all_chunks.extend(chunks)
+        except Exception as e:
+            logger.error(f"Error chunking job {job.get('id')}: {e}")
+    logger.info(f"Total chunks created: {len(all_chunks)} from {len(jobs)} jobs")
+    return all_chunks
+
+
+def save_chunks(chunks: List[Dict], output_path: str = "job_chunks.json"):
+    """Save chunks for later use / inspection."""
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(chunks, f, indent=2, ensure_ascii=False)
+    logger.info(f"Saved {len(chunks)} chunks to {output_path}")
+
+
+# ========================= DEMO / USAGE =========================
+if __name__ == "__main__":
+    # Sample data for quick testing (remove when using real jobs.json)
+    sample_jobs = [
+        {
+            "id": "1591976",
+            "link": "https://www.onlinejobs.ph/jobseekers/job/1591976",
+            "title": "Part-Time Programming Tutor (JavaScript, React, Django) - 5-10 hrs/week",
+            "company": "",
+            "posted_date": "2026-06-20T19:31:26",
+            "details": "I am currently enrolled in an online Computer Science program and am looking for a part-time virtual programming tutor to supplement my coursework.\n\nThis role is focused on structured learning and ...",
+            "domain": "onlinejobs.ph",
+            "salary": "Negotiable",
+            "job_type": "Any",
+            "hours_per_week": 10,
+            "tags": ["Javascript", "React JS", "Python"],
+        },
+        # Add more from your file...
+    ]
+
+    jobs = load_jobs() if Path("jobs.json").exists() else sample_jobs
+    chunks = chunk_all_jobs(jobs)
+    save_chunks(chunks)
+
+    # Preview first chunk
+    if chunks:
+        print("\n=== SAMPLE CHUNK PREVIEW ===")
+        sample = chunks[0]
+        print(f"Chunk ID: {sample['chunk_id']}")
+        print(f"Title: {sample.get('title')}")
+        print(f"Tokens in chunk_text: {get_token_count(sample['chunk_text'])}")
+        print("Chunk text preview:")
+        print(sample["chunk_text"][:500] + "...")
