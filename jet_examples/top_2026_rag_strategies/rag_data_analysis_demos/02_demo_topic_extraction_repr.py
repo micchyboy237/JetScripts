@@ -1,7 +1,10 @@
 """
 02_demo_topic_extraction_repr.py
 
-Extract topics from text documents using BERTopic with local embeddings.
+Enhanced topic extraction with improved representation models.
+Demonstrates KeyBERT-inspired topic labeling and stop word removal
+for cleaner, more meaningful topic keywords.
+
 Uses reusable factory functions from jet.adapters.bertopic.factory.
 """
 
