@@ -19,7 +19,7 @@ from jet.adapters.bertopic.factory_with_repr import (
 def run_topic_extraction_demo(
     documents: List[str],
     min_topic_size: int = 3,
-    top_n_words: int = 5,
+    top_n_words: int = 10,
 ) -> TopicExtractionResult:
     """
     Demonstrate topic extraction using the reusable factory functions.
@@ -32,40 +32,35 @@ def run_topic_extraction_demo(
     Returns:
         Structured topic extraction results
     """
-    # Create embedder using factory (reads config from environment)
     embedder = create_bertopic_embedder()
-
-    # Verify the embedding server is working
     sanity_check_embedder(embedder)
 
-    # Extract topics with improved defaults (stop words removed, KeyBERT)
     result = extract_topics(
         documents=documents,
         embedder=embedder,
         min_topic_size=min_topic_size,
         top_n_words=top_n_words,
-        remove_stop_words=True,  # Cleaner keywords
-        use_keybert=True,  # Better topic representations
+        remove_stop_words=True,
+        use_keybert=True,
         verbose=True,
     )
 
-    # Display results
     print(f"\n{'=' * 60}")
     print(f"Extracted {len(result['topics'])} topics from {len(documents)} documents")
-    print(f"Embedding shape: {result['embeddings'].shape}")
     print(f"{'=' * 60}")
 
     for topic in result["topics"]:
         print(f"\n  Topic {topic['topic_id']}: {topic['name']}")
         print(f"    Size: {topic['size']} documents")
-        print(f"    Keywords: {', '.join(topic['keywords'])}")
-        print(f"    Representative: {topic['representative_doc'][:100]}...")
+        print(f"    Keywords: {', '.join(topic['keywords'][:5])}")
+        if len(topic["keywords"]) > 5:
+            print(f"             {', '.join(topic['keywords'][5:10])}")
+        print(f"    Representative: {topic['representative_doc'][:120]}...")
 
     return result
 
 
 if __name__ == "__main__":
-    # Example documents across different themes
     sample_docs = [
         "Machine learning is a subset of artificial intelligence that enables systems to learn from data.",
         "Deep learning uses neural networks with many layers to model complex patterns in data.",
