@@ -13,8 +13,8 @@ if __name__ == "__main__":
         "model_id",
         type=str,
         nargs="?",
-        default="Qwen/Qwen3.5-2B",
-        help="Model HuggingFace ID (default: 'Qwen/Qwen3.5-2B')",
+        default="google/embeddinggemma-300m",
+        help="Model HuggingFace ID (ex: 'Qwen/Qwen3.5-2B')",
     )
 
     args = parser.parse_args()
