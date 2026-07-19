@@ -5,10 +5,13 @@ Extract topics from text documents using BERTopic with local embeddings.
 Uses reusable factory functions from jet.adapters.bertopic.factory.
 """
 
+from jet.libs.bertopic.monkey_patches.add_check_array import init_patch
+
+init_patch()
+
 from typing import List
 
 from jet.adapters.bertopic.factory import (
-    Topic,
     TopicExtractionResult,
     create_bertopic_embedder,
     extract_topics,
@@ -65,18 +68,8 @@ def run_topic_extraction_demo(
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # Example with sample documents
-    sample_docs = [
-        "Machine learning is a subset of artificial intelligence that enables systems to learn from data.",
-        "Deep learning uses neural networks with many layers to model complex patterns in data.",
-        "Natural language processing helps computers understand and generate human language.",
-        "Computer vision allows machines to interpret and analyze visual information from the world.",
-        "Reinforcement learning trains agents to make decisions through trial and error interactions.",
-        "Python is a popular programming language for data science and machine learning projects.",
-        "JavaScript is widely used for web development and building interactive user interfaces.",
-        "Docker containers help package applications with their dependencies for consistent deployment.",
-        "Git is a version control system that tracks changes in source code during development.",
-        "REST APIs enable communication between different software systems over HTTP protocols.",
-    ]
+    from mocks import DOCS
+
+    sample_docs = DOCS
 
     result = run_topic_extraction_demo(sample_docs)
