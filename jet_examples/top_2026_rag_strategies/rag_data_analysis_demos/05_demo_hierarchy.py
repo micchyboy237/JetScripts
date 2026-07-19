@@ -20,17 +20,21 @@ from jet.adapters.bertopic.factory_with_repr import (
 def run_hierarchy_demo(documents: List[str]):
     embedder = create_bertopic_embedder()
     sanity_check_embedder(embedder)
+
     topic_model = create_topic_model(embedder=embedder, min_topic_size=2, verbose=True)
-    _, _ = topic_model.fit_transform(documents)
+
+    # Compute embeddings explicitly and pass them into fit_transform so
+    # BERTopic doesn't re-embed the documents internally (avoids a
+    # duplicate embedding call to the llama.cpp server).
+    embeddings = embedder.embed(documents, verbose=True)
+    _, _ = topic_model.fit_transform(documents, embeddings=embeddings)
 
     hier_df = explore_hierarchy(topic_model, documents, linkage="ward")
     print("\nFull hierarchy shape:", hier_df.shape)
-    # Optional: topic_model.visualize_hierarchy(hier_df)  # if Plotly available
 
 
 if __name__ == "__main__":
     from mocks import DOCS
 
     sample_docs = DOCS
-
     run_hierarchy_demo(sample_docs)
