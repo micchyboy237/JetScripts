@@ -50,11 +50,6 @@ EMBED_DIMS = int(os.getenv("LLAMA_CPP_EMBED_DIMS", "768"))
 USE_INFERENCE = True
 USE_STREAMING = True
 
-PG_DB = DEFAULT_DB
-PG_USER = DEFAULT_USER
-PG_PASSWORD = DEFAULT_PASSWORD
-PG_HOST = DEFAULT_HOST
-PG_PORT = DEFAULT_PORT
 
 config_dict = {
     "llm": {
@@ -79,11 +74,11 @@ config_dict = {
         "config": {
             "collection_name": "my_memories",
             "embedding_model_dims": EMBED_DIMS,
-            "dbname": PG_DB,
-            "user": PG_USER,
-            "password": PG_PASSWORD,
-            "host": PG_HOST,
-            "port": PG_PORT,
+            "dbname": DEFAULT_DB,
+            "user": DEFAULT_USER,
+            "password": DEFAULT_PASSWORD,
+            "host": DEFAULT_HOST,
+            "port": DEFAULT_PORT,
         },
     },
 }
