@@ -10,6 +10,14 @@ from jet.adapters.llama_cpp.llm_utils import (
     LLMContext,
     chat,
 )
+from jet.db.postgres.cleanup import drop_table_if_exists, drop_type_if_exists
+from jet.db.postgres.config import (
+    DEFAULT_DB,
+    DEFAULT_HOST,
+    DEFAULT_PASSWORD,
+    DEFAULT_PORT,
+    DEFAULT_USER,
+)
 from mem0 import Memory
 from mem0.configs.base import MemoryConfig
 from rich.console import Console
@@ -42,6 +50,12 @@ EMBED_DIMS = int(os.getenv("LLAMA_CPP_EMBED_DIMS", "768"))
 USE_INFERENCE = True
 USE_STREAMING = True
 
+PG_DB = DEFAULT_DB
+PG_USER = DEFAULT_USER
+PG_PASSWORD = DEFAULT_PASSWORD
+PG_HOST = DEFAULT_HOST
+PG_PORT = DEFAULT_PORT
+
 config_dict = {
     "llm": {
         "provider": "openai",
@@ -61,14 +75,22 @@ config_dict = {
         },
     },
     "vector_store": {
-        "provider": "faiss",
+        "provider": "pgvector",
         "config": {
             "collection_name": "my_memories",
             "embedding_model_dims": EMBED_DIMS,
-            "path": "./mem0_faiss_store",
+            "dbname": PG_DB,
+            "user": PG_USER,
+            "password": PG_PASSWORD,
+            "host": PG_HOST,
+            "port": PG_PORT,
         },
     },
 }
+
+collection_name = config_dict["vector_store"]["config"]["collection_name"]
+drop_table_if_exists(f"public.{collection_name}_entities")
+drop_type_if_exists(f"public.{collection_name}_entities")
 
 with console.status("[bold cyan]Connecting to LLM & Embedding services..."):
     config = MemoryConfig(**config_dict)
