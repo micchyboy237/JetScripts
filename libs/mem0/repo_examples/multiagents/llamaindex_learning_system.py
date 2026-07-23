@@ -13,13 +13,23 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from jet.adapters.llama_index.factory import get_llama_cpp_llm, get_mem0_local_memory
-from llama_index.core.agent.workflow import AgentWorkflow, FunctionAgent
+from llama_index.core.agent.workflow import (
+    AgentInput,
+    AgentOutput,
+    AgentStream,
+    AgentWorkflow,
+    FunctionAgent,
+    ToolCall,
+    ToolCallResult,
+)
 from llama_index.core.tools import FunctionTool
 
 load_dotenv()
+
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
@@ -81,6 +91,7 @@ class MultiAgentLearningSystem:
             FunctionTool.from_defaults(async_fn=assess_understanding),
             FunctionTool.from_defaults(async_fn=track_progress),
         ]
+
         self.tutor_agent = FunctionAgent(
             name="TutorAgent",
             description="Primary instructor that explains concepts and adapts to student needs",
@@ -102,6 +113,7 @@ class MultiAgentLearningSystem:
             llm=self.llm,
             can_handoff_to=["PracticeAgent"],
         )
+
         self.practice_agent = FunctionAgent(
             name="PracticeAgent",
             description="Creates practice exercises and tracks progress based on student's learning history",
@@ -123,6 +135,7 @@ class MultiAgentLearningSystem:
             llm=self.llm,
             can_handoff_to=["TutorAgent"],
         )
+
         self.workflow = AgentWorkflow(
             agents=[self.tutor_agent, self.practice_agent],
             root_agent=self.tutor_agent.name,
@@ -138,13 +151,89 @@ class MultiAgentLearningSystem:
         self, topic: str, student_message: str = ""
     ) -> str:
         """
-        Start a learning session with multi-agent memory-aware teaching
+        Start a learning session with multi-agent memory-aware teaching.
+
+        Streams the LLM output as it's generated instead of waiting for the
+        full response. Each streamed chunk (delta) is logged immediately with
+        flush=True so output is visible in real time in both console and log
+        file, rather than buffering until the full response completes.
+
+        Also logs timing around workflow start and the first received event,
+        so slow steps (e.g. mem0's first-call model loading inside
+        SafeMem0Memory.get()) are visible instead of looking like a hang.
         """
+        import time
+
         if student_message:
             request = f"I want to learn about {topic}. {student_message}"
         else:
             request = f"I want to learn about {topic}."
-        response = await self.workflow.run(user_msg=request, memory=self.memory)
+
+        logger.info(f"Starting session for topic='{topic}'")
+        logger.info(f"Request: {request}")
+
+        t_start = time.time()
+        logger.info("Calling workflow.run() — awaiting first event...")
+
+        handler = self.workflow.run(user_msg=request, memory=self.memory)
+
+        current_agent = None
+        full_response = ""
+        chunk_count = 0
+        first_event_logged = False
+
+        async for event in handler.stream_events():
+            if not first_event_logged:
+                logger.info(
+                    f"First event received after {time.time() - t_start:.2f}s: "
+                    f"{type(event).__name__}"
+                )
+                first_event_logged = True
+
+            if isinstance(event, AgentInput):
+                current_agent = event.current_agent_name
+                logger.info(f"[{current_agent}] received input")
+
+            elif isinstance(event, AgentStream):
+                # Read the agent name directly off the event itself — this is
+                # exactly how function_agent.py / multi_agent_workflow.py set
+                # it (current_agent_name=self.name at emit time), so it's
+                # always correct per-chunk even across TutorAgent <-> PracticeAgent
+                # handoffs, with no dependency on event-ordering assumptions.
+                agent_name = event.current_agent_name or current_agent or "agent"
+                chunk_count += 1
+                full_response += event.delta
+                print(event.delta, end="", flush=True)
+                # INFO (not DEBUG) — logging.basicConfig is set to INFO, so
+                # DEBUG records were silently dropped and never reached
+                # console or the log file. INFO guarantees every chunk is
+                # actually recorded for traceability.
+                logger.info(f"[{agent_name}] chunk#{chunk_count}: {event.delta!r}")
+
+            elif isinstance(event, ToolCall):
+                logger.info(
+                    f"[{current_agent}] tool_call -> {event.tool_name}({event.tool_kwargs})"
+                )
+
+            elif isinstance(event, ToolCallResult):
+                logger.info(
+                    f"[{current_agent}] tool_result <- {event.tool_name}: {event.tool_output}"
+                )
+
+            elif isinstance(event, AgentOutput):
+                current_agent = event.current_agent_name or current_agent
+                logger.info(f"[{current_agent}] finished output")
+
+        # Trailing newline so subsequent log lines don't run into the last
+        # streamed chunk on the console.
+        print(flush=True)
+
+        response = await handler
+        logger.info(
+            f"Session complete for topic='{topic}' — {chunk_count} chunk(s) streamed, "
+            f"total_time={time.time() - t_start:.2f}s, "
+            f"final_response_len={len(str(response))}"
+        )
         return str(response)
 
     async def get_learning_history(self) -> str:
@@ -166,17 +255,20 @@ class MultiAgentLearningSystem:
 
 async def run_learning_agent():
     learning_system = MultiAgentLearningSystem(student_id="Alexander")
+
     logger.info("Session 1:")
     response = await learning_system.start_learning_session(
         "Vision Language Models",
         "I'm new to machine learning but I have good hold on Python and have 4 years of work experience.",
     )
     logger.info(response)
+
     logger.info("\nSession 2:")
     response2 = await learning_system.start_learning_session(
         "Machine Learning", "what all did I cover so far?"
     )
     logger.info(response2)
+
     logger.info("\nLearning History:")
     history = await learning_system.get_learning_history()
     logger.info(history)
