@@ -1,34 +1,32 @@
 """
 Multi-Agent Personal Learning System: Mem0 + LlamaIndex AgentWorkflow Example
-
 INSTALLATIONS:
 !pip install llama-index-core llama-index-memory-mem0 openai
-
 You need MEM0_API_KEY and OPENAI_API_KEY to run the example.
 """
 
 import asyncio
 import logging
+import shutil
 from datetime import datetime
+from pathlib import Path
 
 from dotenv import load_dotenv
-
-# from llama_index.llms.openai import OpenAI
-# Memory integration
-# from llama_index.memory.mem0 import Mem0Memory
 from jet.adapters.llama_index.factory import get_llama_cpp_llm, get_mem0_local_memory
-
-# LlamaIndex imports
 from llama_index.core.agent.workflow import AgentWorkflow, FunctionAgent
 from llama_index.core.tools import FunctionTool
 
 load_dotenv()
-
-# Configure logging
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(), logging.FileHandler("learning_system.log")],
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler(str(OUTPUT_DIR / "learning_system.log")),
+    ],
 )
 logger = logging.getLogger(__name__)
 
@@ -43,23 +41,16 @@ class MultiAgentLearningSystem:
 
     def __init__(self, student_id: str):
         self.student_id = student_id
-        # self.llm = OpenAI(model="gpt-4.1-nano-2025-04-14", temperature=0.2)
         self.llm = get_llama_cpp_llm()
-
-        # Memory context for this student
         self.memory_context = {"user_id": student_id, "app": "learning_assistant"}
-        # self.memory = Mem0Memory.from_client(context=self.memory_context)
         self.memory = get_mem0_local_memory(user_id=student_id)
-
         self._setup_agents()
 
     def _setup_agents(self):
         """Setup two agents that work together and share memory"""
 
-        # TOOLS
         async def assess_understanding(topic: str, student_response: str) -> str:
             """Assess student's understanding of a topic and save insights"""
-            # Simulate assessment logic
             if (
                 "confused" in student_response.lower()
                 or "don't understand" in student_response.lower()
@@ -79,7 +70,6 @@ class MultiAgentLearningSystem:
                 insight = (
                     f"Student has basic understanding of {topic}. Needs reinforcement."
                 )
-
             return f"Assessment: {assessment}\nInsight saved: {insight}"
 
         async def track_progress(topic: str, success_rate: str) -> str:
@@ -87,66 +77,52 @@ class MultiAgentLearningSystem:
             progress_note = f"Progress on {topic}: {success_rate} - {datetime.now().strftime('%Y-%m-%d')}"
             return f"Progress tracked: {progress_note}"
 
-        # Convert to FunctionTools
         tools = [
             FunctionTool.from_defaults(async_fn=assess_understanding),
             FunctionTool.from_defaults(async_fn=track_progress),
         ]
-
-        # === AGENTS ===
-        # Tutor Agent - Main teaching and explanation
         self.tutor_agent = FunctionAgent(
             name="TutorAgent",
             description="Primary instructor that explains concepts and adapts to student needs",
             system_prompt="""
             You are a patient, adaptive programming tutor. Your key strength is REMEMBERING and BUILDING on previous interactions.
-
             Key Behaviors:
             1. Always check what the student has learned before (use memory context)
             2. Adapt explanations based on their preferred learning style
             3. Reference previous struggles or successes
             4. Build progressively on past lessons
             5. Use assess_understanding to evaluate responses and save insights
-
             MEMORY-DRIVEN TEACHING:
             - "Last time you struggled with X, so let's approach Y differently..."
             - "Since you prefer visual examples, here's a diagram..."
             - "Building on the functions we covered yesterday..."
-
             When student shows understanding, hand off to PracticeAgent for exercises.
             """,
             tools=tools,
             llm=self.llm,
             can_handoff_to=["PracticeAgent"],
         )
-
-        # Practice Agent - Exercises and reinforcement
         self.practice_agent = FunctionAgent(
             name="PracticeAgent",
             description="Creates practice exercises and tracks progress based on student's learning history",
             system_prompt="""
             You create personalized practice exercises based on the student's learning history and current level.
-
             Key Behaviors:
             1. Generate problems that match their skill level (from memory)
             2. Focus on areas they've struggled with previously
             3. Gradually increase difficulty based on their progress
             4. Use track_progress to record their performance
             5. Provide encouraging feedback that references their growth
-
             MEMORY-DRIVEN PRACTICE:
             - "Let's practice loops again since you wanted more examples..."
             - "Here's a harder version of the problem you solved yesterday..."
             - "You've improved a lot in functions, ready for the next level?"
-
             After practice, can hand back to TutorAgent for concept review if needed.
             """,
             tools=tools,
             llm=self.llm,
             can_handoff_to=["TutorAgent"],
         )
-
-        # Create the multi-agent workflow
         self.workflow = AgentWorkflow(
             agents=[self.tutor_agent, self.practice_agent],
             root_agent=self.tutor_agent.name,
@@ -164,25 +140,19 @@ class MultiAgentLearningSystem:
         """
         Start a learning session with multi-agent memory-aware teaching
         """
-
         if student_message:
             request = f"I want to learn about {topic}. {student_message}"
         else:
             request = f"I want to learn about {topic}."
-
-        # The magic happens here - multi-agent memory is automatically shared!
         response = await self.workflow.run(user_msg=request, memory=self.memory)
-
         return str(response)
 
     async def get_learning_history(self) -> str:
         """Show what the system remembers about this student"""
         try:
-            # Search memory for learning patterns
             memories = self.memory.search(
                 user_id=self.student_id, query="learning machine learning"
             )
-
             if memories and len(memories):
                 history = "\n".join(f"- {m['memory']}" for m in memories)
                 return history
@@ -190,30 +160,23 @@ class MultiAgentLearningSystem:
                 return (
                     "No learning history found yet. Let's start building your profile!"
                 )
-
         except Exception as e:
             return f"Memory retrieval error: {str(e)}"
 
 
 async def run_learning_agent():
     learning_system = MultiAgentLearningSystem(student_id="Alexander")
-
-    # First session
     logger.info("Session 1:")
     response = await learning_system.start_learning_session(
         "Vision Language Models",
         "I'm new to machine learning but I have good hold on Python and have 4 years of work experience.",
     )
     logger.info(response)
-
-    # Second session - multi-agent memory will remember the first
     logger.info("\nSession 2:")
     response2 = await learning_system.start_learning_session(
         "Machine Learning", "what all did I cover so far?"
     )
     logger.info(response2)
-
-    # Show what the multi-agent system remembers
     logger.info("\nLearning History:")
     history = await learning_system.get_learning_history()
     logger.info(history)
