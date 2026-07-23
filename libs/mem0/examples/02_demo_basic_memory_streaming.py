@@ -1,10 +1,13 @@
+import json
 import logging
 import os
+import re
 import time
 from contextlib import contextmanager
 
 from mem0 import Memory
 from mem0.configs.base import MemoryConfig
+from openai import OpenAI
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
@@ -28,6 +31,54 @@ console = Console()
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("openai").setLevel(logging.WARNING)
+
+
+# ═══════════════════════════════════════════════
+# CONFIGURATION
+# ═══════════════════════════════════════════════
+
+console.print("\n[bold blue]🔧 Initializing Memory System...[/bold blue]")
+
+LLM_BASE_URL = os.getenv("LLAMA_CPP_LLM_URL", "http://localhost:8080/v1")
+LLM_MODEL = os.getenv("LLAMA_CPP_LLM_MODEL", "llama-3-8b")
+EMBED_MODEL = os.getenv("LLAMA_CPP_EMBED_MODEL", "nomic-embed-text")
+EMBED_BASE_URL = os.getenv("LLAMA_CPP_EMBED_URL", "http://localhost:8080/v1")
+EMBED_DIMS = int(os.getenv("LLAMA_CPP_EMBED_DIMS", "768"))
+
+USE_INFERENCE = True
+USE_STREAMING = True
+
+config_dict = {
+    "llm": {
+        "provider": "openai",
+        "config": {
+            "model": LLM_MODEL,
+            "api_key": "not-needed",
+            "openai_base_url": LLM_BASE_URL,
+        },
+    },
+    "embedder": {
+        "provider": "openai",
+        "config": {
+            "model": EMBED_MODEL,
+            "api_key": "not-needed",
+            "openai_base_url": EMBED_BASE_URL,
+            "embedding_dims": EMBED_DIMS,
+        },
+    },
+    "vector_store": {
+        "provider": "faiss",
+        "config": {
+            "collection_name": "my_memories",
+            "embedding_model_dims": EMBED_DIMS,
+            "path": "./mem0_faiss_store",
+        },
+    },
+}
+
+with console.status("[bold cyan]Connecting to LLM & Embedding services..."):
+    config = MemoryConfig(**config_dict)
+    base_memory = Memory(config)
 
 
 # ═══════════════════════════════════════════════
@@ -184,11 +235,6 @@ class StreamingDisplay:
 # ═══════════════════════════════════════════════
 # CUSTOM LLM WRAPPER WITH STREAMING
 # ═══════════════════════════════════════════════
-
-import json
-import re
-
-from openai import OpenAI
 
 
 class StreamingMemory:
@@ -427,53 +473,6 @@ Rules:
     def close(self):
         self.memory.close()
 
-
-# ═══════════════════════════════════════════════
-# CONFIGURATION
-# ═══════════════════════════════════════════════
-
-console.print("\n[bold blue]🔧 Initializing Memory System...[/bold blue]")
-
-LLM_BASE_URL = os.getenv("LLAMA_CPP_LLM_URL", "http://localhost:8080/v1")
-LLM_MODEL = os.getenv("LLAMA_CPP_LLM_MODEL", "llama-3-8b")
-EMBED_MODEL = os.getenv("LLAMA_CPP_EMBED_MODEL", "nomic-embed-text")
-EMBED_BASE_URL = os.getenv("LLAMA_CPP_EMBED_URL", "http://localhost:8080/v1")
-EMBED_DIMS = int(os.getenv("LLAMA_CPP_EMBED_DIMS", "768"))
-
-USE_INFERENCE = True
-USE_STREAMING = True
-
-config_dict = {
-    "llm": {
-        "provider": "openai",
-        "config": {
-            "model": LLM_MODEL,
-            "api_key": "not-needed",
-            "openai_base_url": LLM_BASE_URL,
-        },
-    },
-    "embedder": {
-        "provider": "openai",
-        "config": {
-            "model": EMBED_MODEL,
-            "api_key": "not-needed",
-            "openai_base_url": EMBED_BASE_URL,
-            "embedding_dims": EMBED_DIMS,
-        },
-    },
-    "vector_store": {
-        "provider": "faiss",
-        "config": {
-            "collection_name": "my_memories",
-            "embedding_model_dims": EMBED_DIMS,
-            "path": "./mem0_faiss_store",
-        },
-    },
-}
-
-with console.status("[bold cyan]Connecting to LLM & Embedding services..."):
-    config = MemoryConfig(**config_dict)
-    base_memory = Memory(config)
 
 streaming_mem = StreamingMemory(base_memory, LLM_BASE_URL, LLM_MODEL)
 
