@@ -5,9 +5,13 @@ import re
 import time
 from contextlib import contextmanager
 
+# NEW: Import from llm_utils instead of raw OpenAI
+from jet.adapters.llama_cpp.llm_utils import (
+    LLMContext,
+    chat,
+)
 from mem0 import Memory
 from mem0.configs.base import MemoryConfig
-from openai import OpenAI
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
@@ -23,19 +27,10 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
-# ═══════════════════════════════════════════════
-# RICH CONSOLE SETUP
-# ═══════════════════════════════════════════════
-
 console = Console()
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("openai").setLevel(logging.WARNING)
-
-
-# ═══════════════════════════════════════════════
-# CONFIGURATION
-# ═══════════════════════════════════════════════
 
 console.print("\n[bold blue]🔧 Initializing Memory System...[/bold blue]")
 
@@ -44,7 +39,6 @@ LLM_MODEL = os.getenv("LLAMA_CPP_LLM_MODEL", "llama-3-8b")
 EMBED_MODEL = os.getenv("LLAMA_CPP_EMBED_MODEL", "nomic-embed-text")
 EMBED_BASE_URL = os.getenv("LLAMA_CPP_EMBED_URL", "http://localhost:8080/v1")
 EMBED_DIMS = int(os.getenv("LLAMA_CPP_EMBED_DIMS", "768"))
-
 USE_INFERENCE = True
 USE_STREAMING = True
 
@@ -80,10 +74,13 @@ with console.status("[bold cyan]Connecting to LLM & Embedding services..."):
     config = MemoryConfig(**config_dict)
     base_memory = Memory(config)
 
-
-# ═══════════════════════════════════════════════
-# PROGRESS TRACKING
-# ═══════════════════════════════════════════════
+# NEW: Create LLMContext for streaming memory via llm_utils
+streaming_ctx = LLMContext.from_params(
+    model=LLM_MODEL,
+    base_url=LLM_BASE_URL,
+    verbose=False,  # We handle display ourselves via StreamingDisplay
+)
+console.print("[dim]LLMContext initialized for streaming[/dim]")
 
 
 class ProgressTracker:
@@ -122,7 +119,6 @@ def track_operation(description: str, steps: list[str] = None):
     """Track operation with optional sub-steps progress bar."""
     console.print(f"\n[bold yellow]▶ {description}[/bold yellow]")
     start_time = time.perf_counter()
-
     if steps:
         tracker = ProgressTracker()
         task_id = tracker.start(description, total=len(steps))
@@ -131,7 +127,6 @@ def track_operation(description: str, steps: list[str] = None):
     else:
         with console.status(f"[bold cyan]{description}..."):
             yield None, None
-
     elapsed = time.perf_counter() - start_time
     console.print(f"[dim]⏱  Completed in {elapsed:.2f}s[/dim]")
 
@@ -145,7 +140,6 @@ def display_results(results: dict, title: str = "Results", max_items: int = 10):
     if not results.get("results"):
         console.print("[dim]  (no results)[/dim]")
         return
-
     table = Table(
         title=f"[bold green]{title} ({len(results['results'])} items)",
         show_header=True,
@@ -156,7 +150,6 @@ def display_results(results: dict, title: str = "Results", max_items: int = 10):
     table.add_column("ID", style="dim", width=12)
     table.add_column("Memory", style="white")
     table.add_column("Score", style="yellow", width=8)
-
     for item in results["results"][:max_items]:
         event_map = {
             "ADD": "[green]ADD[/green]",
@@ -170,13 +163,7 @@ def display_results(results: dict, title: str = "Results", max_items: int = 10):
             memory = memory[:97] + "..."
         score = f"{item['score']:.3f}" if item.get("score") is not None else "-"
         table.add_row(event, mem_id, memory, score)
-
     console.print(table)
-
-
-# ═══════════════════════════════════════════════
-# STREAMING UTILITIES
-# ═══════════════════════════════════════════════
 
 
 class StreamingDisplay:
@@ -204,11 +191,9 @@ class StreamingDisplay:
     def __exit__(self, *args):
         if self._live:
             text = "".join(self.chunks)
-            # Show last 800 chars
             display_text = text[-800:] if len(text) > 800 else text
             if len(text) > 800:
                 display_text = f"...(earlier output)...\n{display_text}"
-
             self._panel.renderable = Text(display_text, style="white")
             self._panel.title = f"[bold green]✅ {self.title} (complete)"
             self._panel.border_style = "green"
@@ -224,7 +209,6 @@ class StreamingDisplay:
         display_text = text[-500:] if len(text) > 500 else text
         if len(text) > 500:
             display_text = f"...(earlier output)...\n{display_text}"
-
         self._panel.renderable = Text(display_text, style="white")
         self._live.update(self._panel)
 
@@ -232,21 +216,18 @@ class StreamingDisplay:
         return "".join(self.chunks)
 
 
-# ═══════════════════════════════════════════════
-# CUSTOM LLM WRAPPER WITH STREAMING
-# ═══════════════════════════════════════════════
-
-
 class StreamingMemory:
-    """Wrapper around Memory that adds streaming visibility."""
+    """Wrapper around Memory that adds streaming visibility using llm_utils."""
 
-    def __init__(self, memory: Memory, llm_base_url: str, llm_model: str):
+    def __init__(self, memory: Memory, ctx: LLMContext):
         self.memory = memory
-        self.llm_client = OpenAI(
-            base_url=llm_base_url,
-            api_key="not-needed",
+        self.ctx = ctx
+        self.logger = logging.getLogger(__name__)
+        self.logger.info(
+            "StreamingMemory initialized | model=%s | base_url=%s",
+            ctx.model,
+            ctx.sync_client.base_url,
         )
-        self.llm_model = llm_model
 
     def _parse_llm_output(self, raw_text: str) -> list[dict]:
         """
@@ -257,24 +238,15 @@ class StreamingMemory:
         - ```json ... ```
         - Plain JSON array
         """
-        # Clean the text
         text = raw_text.strip()
-
-        # Remove markdown code blocks
         if "```" in text:
-            # Extract content between ```json and ```
             match = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
             if match:
                 text = match.group(1).strip()
-
-        # Try multiple parsing strategies
         strategies = [
-            # Strategy 1: Direct JSON parse
             lambda t: json.loads(t),
-            # Strategy 2: Fix common JSON issues (trailing commas, etc.)
             lambda t: json.loads(re.sub(r",\s*}", "}", re.sub(r",\s*]", "]", t))),
         ]
-
         parsed = None
         for strategy in strategies:
             try:
@@ -282,27 +254,19 @@ class StreamingMemory:
                 break
             except json.JSONDecodeError:
                 continue
-
         if parsed is None:
             console.print("[red]⚠ Failed to parse LLM output[/red]")
             console.print(f"[dim]Raw: {text[:300]}...[/dim]")
             return []
-
-        # Handle different JSON structures
         if isinstance(parsed, list):
-            # Direct array: [{"text": "..."}, ...]
             return parsed
         elif isinstance(parsed, dict):
-            # Object with "memory" key: {"memory": [{"text": "..."}]}
             if "memory" in parsed:
                 return parsed["memory"]
-            # Object with "facts" key
             if "facts" in parsed:
                 return parsed["facts"]
-            # Single memory object
             if "text" in parsed:
                 return [parsed]
-
         console.print(f"[yellow]⚠ Unexpected JSON structure: {type(parsed)}[/yellow]")
         return []
 
@@ -315,7 +279,7 @@ class StreamingMemory:
         infer: bool = True,
     ) -> dict:
         """
-        Add memories with real-time streaming of LLM output.
+        Add memories with real-time streaming of LLM output via llm_utils.chat.
         """
         if not infer:
             return self.memory.add(
@@ -326,17 +290,14 @@ class StreamingMemory:
                 infer=False,
             )
 
-        # Smart mode: stream LLM extraction
         console.print(
             "\n[bold magenta]🤖 Starting LLM Memory Extraction...[/bold magenta]"
         )
         console.print("[dim]Streaming chunks below:[/dim]\n")
 
-        # Stream the LLM extraction
         with StreamingDisplay("LLM Memory Extraction") as display:
             extraction_result = self._stream_extraction(messages, display)
 
-        # Parse the response
         console.print("\n[bold cyan]🔍 Parsing extracted memories...[/bold cyan]")
         extracted_memories = self._parse_llm_output(extraction_result)
 
@@ -344,7 +305,6 @@ class StreamingMemory:
             console.print(
                 "[yellow]⚠ No memories extracted. Storing raw input instead.[/yellow]"
             )
-            # Fallback: store messages directly
             return self.memory.add(
                 messages,
                 user_id=user_id,
@@ -353,7 +313,6 @@ class StreamingMemory:
                 infer=False,
             )
 
-        # Filter valid memories
         valid_memories = []
         for mem in extracted_memories:
             if isinstance(mem, dict) and "text" in mem and mem["text"].strip():
@@ -362,12 +321,9 @@ class StreamingMemory:
                 valid_memories.append({"text": mem.strip()})
 
         console.print(f"[green]✓ Extracted {len(valid_memories)} memories[/green]")
-
-        # Store each extracted memory
         results = []
         for i, mem in enumerate(valid_memories):
             text = mem["text"]
-
             with console.status(
                 f"[cyan]Embedding {i + 1}/{len(valid_memories)}: {text[:60]}..."
             ):
@@ -378,33 +334,27 @@ class StreamingMemory:
                     run_id=run_id,
                     infer=False,
                 )
-
             if result.get("results"):
                 results.extend(result["results"])
                 mem_id = result["results"][0]["id"][:8]
                 console.print(
                     f"  [green]✓ [{mem_id}...][/green] [white]{text[:80]}[/white]"
                 )
-
         return {"results": results}
 
     def _stream_extraction(self, messages, display: StreamingDisplay) -> str:
-        """Stream LLM extraction response chunk-by-chunk."""
-        full_response = []
-
-        # Build prompt that requests proper JSON format
+        """
+        Stream LLM extraction response chunk-by-chunk using llm_utils.chat.
+        """
         system_prompt = """You are a memory extraction system. Extract key facts from conversations.
-
 Output ONLY a JSON object with this exact structure:
 {"memory": [{"text": "fact 1"}, {"text": "fact 2"}]}
-
 Rules:
 - Extract specific, standalone facts
 - Each fact must be a complete sentence
 - Output ONLY the JSON, no markdown, no explanations
 - Do NOT wrap in ```json code blocks"""
 
-        # Format messages for the prompt
         if isinstance(messages, list):
             conversation = "\n".join(
                 f"{msg['role'].upper()}: {msg['content']}" for msg in messages
@@ -414,41 +364,39 @@ Rules:
 
         user_content = f"Extract key facts from:\n\n{conversation}"
 
+        chat_messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ]
+
+        full_response_chunks: list[str] = []
+        chunk_count = 0
+
+        self.logger.info("Starting streaming extraction via llm_utils.chat")
         try:
-            stream = self.llm_client.chat.completions.create(
-                model=self.llm_model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_content},
-                ],
-                stream=True,
+            # Use llm_utils.chat with stream=True
+            stream = chat(
+                messages=chat_messages,
                 temperature=0.1,
                 max_tokens=500,
-                extra_body={
-                    # "top_k": 20,
-                    "chat_template_kwargs": {
-                        "enable_thinking": False,
-                    },
-                },
+                stream=True,
+                enable_thinking=False,
+                ctx=self.ctx,
             )
-
-            chunk_count = 0
             for chunk in stream:
-                if chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
-                    full_response.append(content)
-                    display.add_chunk(content)
-                    chunk_count += 1
+                full_response_chunks.append(chunk)
+                display.add_chunk(chunk)
+                chunk_count += 1
 
             console.print(f"\n[dim]Streamed {chunk_count} chunks total[/dim]")
-
+            self.logger.info("Streaming extraction complete | chunks=%d", chunk_count)
         except Exception as e:
+            self.logger.error("Streaming extraction failed | error=%s", e)
             console.print(f"\n[red]✗ Streaming error: {e}[/red]")
             raise
 
-        return "".join(full_response)
+        return "".join(full_response_chunks)
 
-    # Passthrough methods
     def get(self, memory_id):
         return self.memory.get(memory_id)
 
@@ -474,9 +422,10 @@ Rules:
         self.memory.close()
 
 
-streaming_mem = StreamingMemory(base_memory, LLM_BASE_URL, LLM_MODEL)
+# UPDATED: Pass LLMContext instead of raw URL/model strings
+streaming_mem = StreamingMemory(base_memory, streaming_ctx)
+console.print("[green]✓ StreamingMemory wrapper ready[/green]")
 
-# Show mode
 if USE_INFERENCE and USE_STREAMING:
     mode_text = (
         "[bold green]STREAMING MODE[/bold green] - LLM output shown in real-time"
@@ -487,16 +436,10 @@ elif USE_INFERENCE:
     )
 else:
     mode_text = "[bold cyan]FAST MODE[/bold cyan] - No LLM, instant storage"
-
 console.print(f"\n{mode_text}")
 console.print(f"[dim]LLM: {LLM_MODEL} | Embedding: {EMBED_MODEL}[/dim]")
 
-# ═══════════════════════════════════════════════
-# WARMUP
-# ═══════════════════════════════════════════════
-
 print_section("0. WARMUP")
-
 with track_operation("Warming up services"):
     try:
         _ = base_memory.embedding_model.embed("warmup", "add")
@@ -504,15 +447,9 @@ with track_operation("Warming up services"):
     except Exception as e:
         console.print(f"[red]✗ Embedding error: {e}[/red]")
 
-# ═══════════════════════════════════════════════
-# DEMONSTRATION
-# ═══════════════════════════════════════════════
-
 USER_ID = "demo_user"
 
-# --- 1. Add Memories with Streaming ---
 print_section("1. ADDING MEMORIES WITH STREAMING")
-
 console.print("[bold]📝 Input conversation:[/bold]")
 console.print(
     Panel(
@@ -541,12 +478,9 @@ add_result = streaming_mem.add_with_streaming(
     user_id=USER_ID,
     infer=USE_INFERENCE,
 )
-
 display_results(add_result, "Added Memories")
 
-# --- 2. Add Work Info (Fast) ---
 print_section("2. ADDING WORK INFO (FAST)")
-
 with track_operation("Storing work information"):
     streaming_mem.memory.add(
         "I'm a software engineer working remotely, using Python daily.",
@@ -555,22 +489,16 @@ with track_operation("Storing work information"):
     )
 console.print("[green]✓ Work info stored[/green]")
 
-# --- 3. Get All Memories ---
 print_section("3. GET ALL MEMORIES")
-
 with track_operation("Fetching all memories"):
     all_memories = streaming_mem.get_all(filters={"user_id": USER_ID})
-
 display_results(all_memories, f"All Memories for {USER_ID}")
 
-# --- 4. Search ---
 print_section("4. SEARCHING MEMORIES")
-
 search_queries = [
     ("Japan food travel", "Travel-related"),
     ("programming Python engineer", "Work-related"),
 ]
-
 for query, label in search_queries:
     with track_operation(f'Searching: "{query}"'):
         search_result = streaming_mem.search(
@@ -578,14 +506,11 @@ for query, label in search_queries:
         )
     display_results(search_result, label)
 
-# --- 5. Get Single Memory ---
 print_section("5. GET SINGLE MEMORY")
-
 if all_memories["results"]:
     first_id = all_memories["results"][0]["id"]
     with track_operation(f"Retrieving {first_id[:8]}..."):
         single = streaming_mem.get(first_id)
-
     if single:
         console.print(
             Panel(
@@ -596,30 +521,23 @@ if all_memories["results"]:
             )
         )
 
-# --- 6. Update ---
 print_section("6. UPDATING A MEMORY")
-
 if all_memories["results"]:
     target = all_memories["results"][0]
     console.print(f"  [yellow]Before:[/yellow] {target['memory'][:80]}")
-
     with track_operation("Updating memory"):
         streaming_mem.update(
             target["id"],
             data=f"{target['memory']} I'm also planning a trip to Kyoto.",
         )
-
     updated = streaming_mem.get(target["id"])
     if updated:
         console.print(f"  [green]After:[/green]  {updated['memory'][:80]}")
 
-# --- 7. History ---
 print_section("7. MEMORY HISTORY")
-
 if all_memories["results"]:
     with track_operation("Fetching history"):
         history = streaming_mem.history(all_memories["results"][0]["id"])
-
     history_tree = Tree(
         f"[bold cyan]History: {all_memories['results'][0]['id'][:8]}..."
     )
@@ -634,9 +552,7 @@ if all_memories["results"]:
             node.add(f"[dim]{entry['created_at']}[/dim]")
     console.print(history_tree)
 
-# --- 8. Delete ---
 print_section("8. DELETE A MEMORY")
-
 if len(all_memories["results"]) > 1:
     to_delete = all_memories["results"][1]["id"]
     with track_operation(f"Deleting {to_delete[:8]}..."):
@@ -644,9 +560,7 @@ if len(all_memories["results"]) > 1:
     remaining = streaming_mem.get_all(filters={"user_id": USER_ID})
     console.print(f"  [green]✓ Remaining: {len(remaining['results'])}[/green]")
 
-# --- Summary ---
 print_section("SUMMARY")
-
 final_memories = streaming_mem.get_all(filters={"user_id": USER_ID})
 stats_table = Table(title="[bold]Final Stats", show_header=False)
 stats_table.add_column("Metric", style="cyan")
@@ -661,13 +575,11 @@ mode = (
 stats_table.add_row("Mode", mode)
 console.print(stats_table)
 
-# --- Cleanup ---
 print_section("CLEANUP")
 with track_operation("Resetting memory store"):
     streaming_mem.reset()
 console.print("[green]✓ All memories cleared[/green]")
 streaming_mem.close()
-
 console.print()
 console.rule("[bold green]✨ DEMO COMPLETE")
 console.print()
