@@ -1,0 +1,17 @@
+[
+  {
+    "ctx": 1024,
+    "ctx_train": 8192,
+    "embd_dims": 1024
+  },
+  {
+    "ctx": 512,
+    "ctx_train": 512,
+    "embd_dims": 768
+  },
+  {
+    "ctx": 12288,
+    "ctx_train": 262144,
+    "embd_dims": 2048
+  }
+]

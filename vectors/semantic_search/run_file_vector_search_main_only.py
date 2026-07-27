@@ -15,14 +15,17 @@ from jet.utils.text import format_sub_dir
 from jet.vectors.semantic_search.file_vector_search import (
     search_files as search_files_vector,
 )
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 
 OUTPUT_DIR = os.path.join(
     os.path.dirname(__file__),
     "generated",
     os.path.splitext(os.path.basename(__file__))[0],
 )
-
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+CONTEXT_SAFETY_MARGIN = 32
 
 
 def main(
@@ -48,10 +51,13 @@ def main(
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
     def get_tokens(text):
-        return count_tokens(text)
+        return count_tokens(text, model=embed_model)
 
     def preprocess_text(text):
         return clean_markdown_links(text)
+
+    # Track saved files for summary
+    saved_files = []
 
     try:
         all_results = list(
@@ -76,7 +82,10 @@ def main(
                 },
             )
         )
+        # Sort all_results by rank in ascending order
+        all_results.sort(key=lambda x: x.get("rank", float("inf")))
 
+        all_results_path = f"{output_dir}/all_results.json"
         save_file(
             {
                 "query": query,
@@ -85,9 +94,10 @@ def main(
                 "excludes": exclude_files,
                 "results": all_results,
             },
-            f"{output_dir}/all_results.json",
+            all_results_path,
             verbose=True,
         )
+        saved_files.append(("All Results", all_results_path, len(all_results)))
 
         all_files = search_files(
             search_dir,
@@ -96,6 +106,7 @@ def main(
             exclude_files=exclude_files,
         )
 
+        files_path = f"{output_dir}/files.json"
         save_file(
             {
                 "query": query,
@@ -104,29 +115,29 @@ def main(
                 "excludes": exclude_files,
                 "files": all_files,
             },
-            f"{output_dir}/files.json",
+            files_path,
             verbose=True,
         )
+        saved_files.append(("File List", files_path, len(all_files)))
 
         grouped_dirs = group_by_base_dir(
             all_files, search_dir, max_depth=max_group_depth
         )
 
+        grouped_dirs_path = f"{output_dir}/grouped_dirs.json"
         save_file(
             {"query": query, "count": len(grouped_dirs), "groups": grouped_dirs},
-            f"{output_dir}/grouped_dirs.json",
+            grouped_dirs_path,
             verbose=True,
         )
+        saved_files.append(("Directory Groups", grouped_dirs_path, len(grouped_dirs)))
 
         for dir_group in grouped_dirs:
             base_dir = Path(search_dir) / dir_group
             base_name = base_dir.name
-
             top_k = None
             threshold = 0.0
-            chunk_size = 512
             chunk_overlap = 80
-
             results = list(
                 search_files_vector(
                     str(base_dir),
@@ -135,7 +146,7 @@ def main(
                     top_k=top_k,
                     threshold=threshold,
                     embed_model=embed_model,
-                    chunk_size=chunk_size,
+                    chunk_size=512 - CONTEXT_SAFETY_MARGIN,
                     chunk_overlap=chunk_overlap,
                     split_chunks=False,
                     tokenizer=get_tokens,
@@ -149,12 +160,13 @@ def main(
                     },
                 )
             )
-
             filtered_results = [
                 result
                 for result in results
                 if detect_lang(result["text"])["lang"] == "en"
             ]
+            # Sort filtered_results by rank in ascending order
+            filtered_results.sort(key=lambda x: x.get("rank", float("inf")))
 
             search_results_path = f"{output_dir}/{base_name}/search_results.json"
             save_file(
@@ -167,6 +179,53 @@ def main(
                 search_results_path,
                 verbose=True,
             )
+            saved_files.append(
+                (f"Group: {base_name}", search_results_path, len(filtered_results))
+            )
+
+        # Display summary using rich console
+        console = Console()
+        console.print("\n")
+
+        # Title
+        title = Text("📊 Vector Search Results Summary", style="bold cyan")
+        console.print(title)
+        console.print("─" * 50, style="dim")
+
+        # Query info
+        console.print(f"🔍 Query: [bold yellow]{query}[/bold yellow]")
+        console.print(
+            f"📁 Output Directory: [bold blue]{Path(output_dir).name}[/bold blue]"
+        )
+        console.print("─" * 50, style="dim")
+
+        # Create table for saved files
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Type", style="cyan", width=25)
+        table.add_column("File", style="green", width=30)
+        table.add_column("Items", justify="right", style="yellow", width=10)
+
+        for file_type, file_path, item_count in saved_files:
+            # Shorten path to base name
+            short_path = Path(file_path).name
+            # Create clickable file link
+            file_link = f"file://{file_path}"
+            table.add_row(
+                file_type, f"[link={file_link}]{short_path}[/link]", str(item_count)
+            )
+
+        console.print(table)
+        console.print("─" * 50, style="dim")
+
+        # Total summary
+        total_items = sum(count for _, _, count in saved_files)
+        console.print(
+            f"✅ Total files saved: [bold green]{len(saved_files)}[/bold green]"
+        )
+        console.print(
+            f"📈 Total items across all files: [bold green]{total_items}[/bold green]"
+        )
+        console.print("\n")
 
     except Exception as e:
         logger.error(f"Error in file search or saving: {str(e)}")
@@ -177,12 +236,10 @@ if __name__ == "__main__":
     query = "research multi agent"
     search_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents/docs/source/en"
     extensions = [".md"]
-    # include_files = ["examples"]
     include_files = []
     exclude_files = [".venv", ".pytest_cache", "node_modules"]
     max_group_depth = 2
     embed_model: LLAMACPP_EMBED_KEYS = EMBED_MODEL
-
     main(
         query,
         search_dir,

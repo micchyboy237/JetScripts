@@ -4,13 +4,14 @@ import shutil
 from pathlib import Path
 from typing import get_args
 
+from jet.adapters.llama_cpp.config import EMBED_MODEL
+
+# from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
+from jet.adapters.llama_cpp.token_utils import get_tokenizer
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
-
-# from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
-from jet.llm.utils.tokenizer import get_tokenizer
 from jet.logger.config import colorize_log
 from jet.models.model_registry.transformers.cross_encoder_model_registry import (
     CrossEncoderRegistry,
@@ -128,11 +129,11 @@ def main(
     directories: list[str],
     extensions: list[str] = [".py"],
     use_cache: bool = False,
-    embed_model_name: str = "nomic-embed-text-v2-moe",
+    embed_model_name: str = EMBED_MODEL,
     top_k: int | None = None,
     threshold: float = 0.0,
-    chunk_size: int = 1000,
-    chunk_overlap: int = 200,
+    chunk_size: int = 400,
+    chunk_overlap: int = 100,
     batch_size: int = 128,
     weights: "Weights" = DEFAULT_WEIGHTS,
     verbose: bool = False,
@@ -400,7 +401,7 @@ def parse_arguments():
         "-m",
         "--embed-model",
         type=embed_model_type,
-        default="nomic-embed-text-v2-moe",
+        default=EMBED_MODEL,
         help=f"Embedding model to use ({', '.join(ALLOWED_EMBED_MODELS)})",
     )
 
@@ -420,13 +421,13 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--chunk-size", type=int, default=1000, help="Size of text chunks"
+        "--chunk-size", type=int, default=400, help="Size of text chunks"
     )
 
     parser.add_argument(
         "--chunk-overlap",
         type=int,
-        default=200,
+        default=100,
         help="Overlap between consecutive chunks",
     )
 
