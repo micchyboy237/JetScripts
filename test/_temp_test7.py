@@ -1,164 +1,177 @@
-from pathlib import Path
-from typing import Dict, Optional
+import json
+import os
+from typing import Type, TypeVar
 
-import requests
+from jet.adapters.llama_cpp.factory import get_llm_client
+from jet.logger import logger
+from openai import Stream
+from openai.types.chat import ChatCompletionChunk
+from pydantic import BaseModel, ValidationError
 
-# ==================== CONFIG ====================
-SERVER_URL = "http://192.168.68.150:8000"
-
-
-def read_audio_bytes(file_path: str) -> bytes:
-    """Read audio file as raw bytes"""
-    path = Path(file_path)
-    if not path.exists():
-        raise FileNotFoundError(f"Audio file not found: {file_path}")
-    audio_bytes = path.read_bytes()
-    print(f"Loaded audio file: {len(audio_bytes):,} bytes")
-    return audio_bytes
+# Type variable for Pydantic models
+T = TypeVar("T", bound=BaseModel)
 
 
-def transcribe_audio(audio_bytes: bytes, sample_rate: int = 16000) -> Optional[Dict]:
-    """Call /transcribe endpoint"""
-    print("\n🎤 Sending audio to /transcribe ...")
+def extract_entities_from_text(
+    text: str,
+    model_class: Type[T],
+    temperature: float = 0.2,
+    max_tokens: int = 1000,
+    timeout: float = 30.0,
+) -> T:
+    """
+    Extract structured entities from text using a local llama.cpp LLM server.
 
-    files = {"audio_file": ("audio.wav", audio_bytes, "audio/wav")}
-    data = {"sample_rate": str(sample_rate)}
+    This function uses OpenAI-compatible API to call a local llama.cpp server
+    and extract entities based on a Pydantic model schema.
 
-    response = requests.post(
-        f"{SERVER_URL}/transcribe", files=files, data=data, timeout=30
-    )
+    Args:
+        text: The input text from which to extract entities.
+        model_class: A Pydantic BaseModel class defining the structure of entities to extract.
+        temperature: Sampling temperature (0-2). Lower values make output more deterministic.
+        max_tokens: Maximum number of tokens to generate in the response.
+        timeout: Request timeout in seconds.
 
-    if response.status_code == 200:
-        result = response.json()
-        ja_text = result.get("transcription_ja", "").strip()
+    Returns:
+        An instance of the provided Pydantic model with extracted entities.
 
-        print("✅ Transcription successful!")
-        print(f"Japanese: {ja_text}")
+    Raises:
+        ValueError: If the LLM response cannot be parsed into the expected model.
+        ValidationError: If the extracted data doesn't match the Pydantic model schema.
+        Exception: If there's an error communicating with the LLM server.
 
-        if not ja_text:
-            print("⚠️  No transcription text returned.")
+    Example:
+        >>> from pydantic import BaseModel, Field
+        >>>
+        >>> class Person(BaseModel):
+        ...     name: str = Field(description="Person's full name")
+        ...     age: int = Field(description="Person's age in years")
+        ...     occupation: str = Field(description="Person's job or profession")
+        >>>
+        >>> text = "John Doe is a 35-year-old software engineer."
+        >>> result = extract_entities_from_text(text, Person)
+        >>> print(result.name)  # "John Doe"
+        >>> print(result.age)   # 35
+    """
 
-        return result
-    else:
-        print(f"❌ Transcription failed: {response.status_code}")
-        print(response.text)
-        return None
+    # Get configuration from environment variables
+    model_name = os.getenv("LLAMA_CPP_LLM_MODEL", "qwen3.5-uncensored:2b")
+    host = os.getenv("LLAMA_CPP_LLM_HOST", "http://localhost:8080")
 
+    # Initialize OpenAI client pointing to local llama.cpp server
+    client = get_llm_client()
 
-def translate_text(japanese_text: str, temperature: float = 0.35) -> Optional[Dict]:
-    """Call /translate endpoint"""
-    if not japanese_text:
-        print("⚠️  Empty Japanese text, skipping translation.")
-        return None
+    # Convert Pydantic model to JSON schema
+    schema = model_class.model_json_schema()
 
-    print(
-        f"\n🌐 Sending to /translate: {japanese_text[:80]}{'...' if len(japanese_text) > 80 else ''}"
-    )
+    # Create system prompt with instructions
+    system_prompt = f"""You are an entity extraction assistant. Your task is to extract structured information from the given text according to the provided JSON schema.
 
-    payload = {"japanese_text": japanese_text, "temperature": temperature}
+Instructions:
+1. Read the input text carefully
+2. Extract only the information that matches the schema
+3. Return ONLY valid JSON matching the schema exactly
+4. Do not include any explanations, markdown formatting, or additional text
+5. If information is not available in the text, use null for optional fields or best guess for required fields
 
-    response = requests.post(f"{SERVER_URL}/translate", json=payload, timeout=15)
+JSON Schema:
+{json.dumps(schema, indent=2)}
+"""
 
-    if response.status_code == 200:
-        result = response.json()
-        print("✅ Translation successful!")
-        print(f"English : {result.get('translation_en')}")
-        print(f"Quality : {result.get('quality')}")
-        return result
-    else:
-        print(f"❌ Translation failed: {response.status_code}")
-        print(response.text)
-        return None
+    # Create user message with the text to process
+    user_message = f"""Extract entities from the following text:
 
+{text}"""
 
-def transcribe_and_translate(
-    audio_path: str, sample_rate: int = 16000, temperature: float = 0.35
-):
-    """Complete pipeline: Transcribe → Translate"""
     try:
-        # Step 1: Read audio bytes
-        audio_bytes = read_audio_bytes(audio_path)
+        # Call the LLM using OpenAI-compatible API with structured output
+        stream: Stream[ChatCompletionChunk] = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format={"type": "json_object"},
+            stream=True,
+            extra_body={
+                "chat_template_kwargs": {
+                    "enable_thinking": False,
+                },
+            },
+        )
 
-        # Step 2: Transcribe
-        trans_result = transcribe_audio(audio_bytes, sample_rate)
+        # Extract the response content
+        content = ""
+        for part in stream:
+            if part.choices and part.choices[0].delta:
+                delta = part.choices[0].delta
 
-        if not trans_result:
-            return None
+                # Check for reasoning_content first
+                if hasattr(delta, "reasoning_content") and delta.reasoning_content:
+                    content += delta.reasoning_content
+                    logger.orange(delta.reasoning_content, flush=True, end="")
 
-        ja_text = trans_result.get("transcription_ja", "").strip()
+                # Then check for regular content
+                elif hasattr(delta, "content") and delta.content:
+                    content += delta.content
+                    logger.teal(delta.content, flush=True, end="")
 
-        # Step 3: Translate the transcription result
-        if ja_text:
-            trans_result["translation"] = translate_text(ja_text, temperature)
-        else:
-            print("⚠️  Skipping translation because transcription returned empty text.")
+        if not content:
+            raise ValueError("Empty response from LLM")
 
-        print("\n" + "=" * 60)
-        print("🎉 PIPELINE COMPLETE")
-        print("=" * 60)
+        # Parse the JSON response
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError as e:
+            # Try to extract JSON from the response if it contains extra text
+            import re
 
-        return trans_result
+            json_match = re.search(
+                r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", content, re.DOTALL
+            )
+            if json_match:
+                data = json.loads(json_match.group())
+            else:
+                raise ValueError(f"Failed to parse JSON from LLM response: {content}")
+
+        # Validate and return the Pydantic model instance
+        return model_class(**data)
 
     except Exception as e:
-        print(f"❌ Client error: {e}")
-        return None
+        if isinstance(e, ValidationError):
+            raise
+        raise Exception(f"Error extracting entities: {str(e)}") from e
 
 
-# ==================== RUN ====================
 if __name__ == "__main__":
-    import argparse
+    # Example usage
+    from typing import Optional
 
-    DEFAULT_AUDIO_PATH = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/audio/audio_waveform/generated/speech_tracking/saved_speech_segments/segment_20260502_050846_463/sound.wav"
+    from pydantic import BaseModel, Field
 
-    parser = argparse.ArgumentParser(
-        description="Transcribe a Japanese audio segment and translate it to English."
-    )
-    parser.add_argument(
-        "audio_path",
-        nargs="?",
-        default=DEFAULT_AUDIO_PATH,
-        type=str,
-        help=f"Path to the audio file (default: {DEFAULT_AUDIO_PATH})",
-    )
-    parser.add_argument(
-        "-r",
-        "--sample-rate",
-        type=int,
-        default=16000,
-        help="Sample rate in Hz (default: 16000)",
-    )
-    parser.add_argument(
-        "-t",
-        "--temperature",
-        type=float,
-        default=0.35,
-        help="Temperature for translation model (default: 0.35)",
-    )
-    args = parser.parse_args()
-
-    result = transcribe_and_translate(
-        audio_path=args.audio_path,
-        sample_rate=args.sample_rate,
-        temperature=args.temperature,
-    )
-
-    # Optional: Pretty print final result
-    if result:
-        import json
-
-        print("\nFinal combined result:")
-        print(
-            json.dumps(
-                {
-                    "transcription_ja": result.get("transcription_ja"),
-                    "translation_en": result.get("translation", {}).get(
-                        "translation_en"
-                    )
-                    if result.get("translation")
-                    else None,
-                    "metadata": result.get("metadata"),
-                },
-                indent=2,
-                ensure_ascii=False,
-            )
+    class PersonInfo(BaseModel):
+        name: str = Field(description="Person's full name")
+        age: Optional[int] = Field(default=None, description="Person's age in years")
+        occupation: Optional[str] = Field(
+            default=None, description="Person's job or profession"
         )
+        location: Optional[str] = Field(
+            default=None, description="City or location where person lives"
+        )
+
+    sample_text = """
+    Sarah Johnson is a 28-year-old data scientist living in San Francisco. 
+    She specializes in machine learning and natural language processing.
+    """
+
+    try:
+        result = extract_entities_from_text(sample_text, PersonInfo)
+        print("Extracted entities:")
+        print(f"  Name: {result.name}")
+        print(f"  Age: {result.age}")
+        print(f"  Occupation: {result.occupation}")
+        print(f"  Location: {result.location}")
+    except Exception as e:
+        print(f"Error: {e}")
