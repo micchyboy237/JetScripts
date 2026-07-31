@@ -1,29 +1,39 @@
+import shutil
+from pathlib import Path
+
+from jet.adapters.llama_cpp.config import LLM_MODEL
+from jet.adapters.llama_cpp.token_utils import get_tokenizer
 from jet.code.splitter_markdown_utils import extract_md_header_contents
-from jet.llm.query.splitters import split_markdown_header_nodes
+from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet._token.token_utils import get_tokenizer
-from jet.transformers.formatters import format_json
-from llama_index.core.readers.file.base import SimpleDirectoryReader
-from llama_index.core.schema import Document
-import numpy as np
-from jet.file.utils import load_file
+
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def main():
-    items = load_file(
-        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/scrapy/generated/passport/_main_preprocessed.json")
-    # documents = [Document(text=item['content']) for item in items]
-    # all_nodes = split_markdown_header_nodes(documents)
-    # texts = [item.text for item in all_nodes]
-    # markdown_text = "\n\n".join(texts)
+    markdown_text = load_file(
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/smolagents/tools/generated/visit_webpage_tool/visit_webpage_tool_logs/call_0013/page.md"
+    )
 
-    markdown_text = "\n\n".join([item['content'] for item in items])
-
-    tokenizer = get_tokenizer("llama3.2")
+    tokenizer = get_tokenizer(LLM_MODEL)
     header_contents = extract_md_header_contents(
-        markdown_text, tokenizer=tokenizer.encode)
+        markdown_text,
+        min_tokens_per_chunk=64,
+        max_tokens_per_chunk=128,
+        model=LLM_MODEL,
+    )
     # logger.success(format_json(all_nodes))
-    logger.success(format_json(header_contents))
+    logger.success(f"Headers ({len(header_contents)})")
+    # logger.success(
+    #     f"num_tokens_content: {[h['num_tokens_content'] for h in header_contents]}"
+    # )
+    # logger.success(
+    #     f"num_tokens_merged_content: {[h['num_tokens_merged_content'] for h in header_contents]}"
+    # )
+
+    save_file(header_contents, f"{OUTPUT_DIR}/header_contents.json")
 
 
 if __name__ == "__main__":

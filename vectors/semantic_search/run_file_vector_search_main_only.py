@@ -232,20 +232,78 @@ def main(
         raise
 
 
+import argparse
+
+
+def get_args():
+    parser = argparse.ArgumentParser(
+        description="Run file vector search with options.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "-q",
+        "--query",
+        type=str,
+        default="research multi agent",
+        help="Search query",
+    )
+    parser.add_argument(
+        "-s",
+        "--search-dir",
+        type=str,
+        default="/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents/docs/source/en",
+        help="Directory to search in",
+    )
+    parser.add_argument(
+        "-e",
+        "--extensions",
+        type=str,
+        default=".md",
+        help="Comma-separated list of file extensions to include (e.g. .md,.py)",
+    )
+    parser.add_argument(
+        "-i",
+        "--include",
+        nargs="*",
+        default=[],
+        help="Files or subdirectories to include",
+    )
+    parser.add_argument(
+        "-x",
+        "--exclude",
+        nargs="*",
+        default=[".venv", ".pytest_cache", "node_modules"],
+        help="Files or subdirectories to exclude",
+    )
+    parser.add_argument(
+        "-d",
+        "--depth",
+        type=int,
+        default=2,
+        help="Maximum group depth",
+    )
+    parser.add_argument(
+        "-m",
+        "--embed-model",
+        type=str,
+        default=EMBED_MODEL,
+        help=f"Embedding model to use (default: {EMBED_MODEL})",
+    )
+    args = parser.parse_args()
+
+    # Parse extensions as list
+    args.extensions = [ext.strip() for ext in args.extensions.split(",") if ext.strip()]
+    return args
+
+
 if __name__ == "__main__":
-    query = "research multi agent"
-    search_dir = "/Users/jethroestrada/Desktop/External_Projects/AI/repo-libs/smolagents/docs/source/en"
-    extensions = [".md"]
-    include_files = []
-    exclude_files = [".venv", ".pytest_cache", "node_modules"]
-    max_group_depth = 2
-    embed_model: LLAMACPP_EMBED_KEYS = EMBED_MODEL
+    args = get_args()
     main(
-        query,
-        search_dir,
-        extensions,
-        include_files,
-        exclude_files,
-        max_group_depth,
-        embed_model,
+        args.query,
+        args.search_dir,
+        args.extensions,
+        args.include,
+        args.exclude,
+        args.depth,
+        args.embed_model,
     )
