@@ -1,27 +1,19 @@
-import os
 import shutil
+from pathlib import Path
 
 from jet.file.utils import save_file
 from jet.libs.bertopic.examples.mock import load_sample_jobs_ai_llm_python
-from jet.logger import logger
-from jet.wordnet.analyzers.analyze_subject import analyze_subjects
+from jet.transformers.object import make_serializable
+from jet.wordnet.analyzers.analyze_ner import analyze_ner
 
-# Define file paths
-docs_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/features/generated/run_search_and_rerank/docs.json"
-output_dir = os.path.join(
-    os.path.dirname(__file__),
-    "generated",
-    os.path.splitext(os.path.basename(__file__))[0],
-)
-shutil.rmtree(output_dir, ignore_errors=True)
+if __name__ == "__main__":
+    OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+    shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Load texts
-texts = load_sample_jobs_ai_llm_python()
+    texts = load_sample_jobs_ai_llm_python()
 
-# Analyze subjects
-results = analyze_subjects(texts)
+    result = analyze_ner(texts)
 
-# Save results
-logger.info(f"Results: {len(results)}")
-os.makedirs(output_dir, exist_ok=True)
-save_file(results, f"{output_dir}/results.json")
+    for key, value in result.items():
+        save_file(make_serializable(value), OUTPUT_DIR / f"{key}.json")
