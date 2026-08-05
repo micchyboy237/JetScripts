@@ -1,40 +1,34 @@
-# === Controlled logging configuration ===
+"""Generic document parser using only unstructured auto partition."""
+
+import json
 import logging
+import os
 import sys
+from typing import Any, Dict, List, Set
 
-# Root logger stays at WARNING to suppress noisy third-party libs (pdfminer, urllib3, etc.)
+os.environ["OPENCV_LOG_LEVEL"] = "SILENT"
+os.environ["OPENCV_VIDEOIO_DEBUG"] = "0"
+
 logging.getLogger().setLevel(logging.WARNING)
-
-# Only OUR logger gets INFO-level output; DEBUG available on demand
 logger = logging.getLogger("doc_parser")
-logger.setLevel(logging.INFO)  # ← Change to logging.DEBUG only when troubleshooting
-
+logger.setLevel(logging.INFO)
 _formatter = logging.Formatter("%(asctime)s [%(levelname)-8s] %(name)s | %(message)s")
-
-_stream_handler = logging.StreamHandler(sys.stdout)
-_stream_handler.setFormatter(_formatter)
-_stream_handler.setLevel(logging.INFO)  # Console shows INFO+
-
-_file_handler = logging.FileHandler(
+_stream = logging.StreamHandler(sys.stdout)
+_stream.setFormatter(_formatter)
+_file = logging.FileHandler(
     "/Users/jethroestrada/Desktop/External_Projects/"
     "Jet_Projects/JetScripts/test/__sample.log",
-    mode="w",  # ← Changed to "w" so each run starts fresh for evaluation
+    mode="w",
     encoding="utf-8",
 )
-_file_handler.setFormatter(_formatter)
-_file_handler.setLevel(logging.INFO)  # File captures INFO+
+_file.setFormatter(_formatter)
+logger.addHandler(_stream)
+logger.addHandler(_file)
 
-logger.addHandler(_stream_handler)
-logger.addHandler(_file_handler)
+for _noisy in ("pdfminer", "urllib3", "PIL", "fontTools", "opencv"):
+    logging.getLogger(_noisy).setLevel(logging.ERROR)
 
-# Suppress known noisy libraries explicitly as safety net
-for _noisy in ("pdfminer", "urllib3", "PIL", "fontTools", "unstructured.partition.pdf"):
-    logging.getLogger(_noisy).setLevel(logging.WARNING)
-
-# Validate critical dependencies at import time
 try:
-    # Single unified entry point — replaces all type-specific partitioners
-    from unstructured.documents.elements import Text
     from unstructured.partition.auto import partition
 
     logger.info("✅ unstructured.partition.auto imported successfully")
@@ -43,398 +37,232 @@ except ImportError as e:
     logger.critical("   Fix: pip install 'unstructured[all-docs]'")
     sys.exit(1)
 
-from pathlib import Path
-from typing import List, Literal, Optional, Protocol, TypedDict
-
-import nbformat
-import requests
-from unstructured.partition.md import partition_md
-from unstructured.staging.base import convert_to_dict
-
-
-# --- Type Definitions ---
-class ElementMetadata(TypedDict):
-    """Metadata for a single parsed element."""
-
-    element_id: str
-    text: str
-    type: str
-    page_number: Optional[int]
-    coordinates: Optional[dict]
-    metadata: Optional[dict]
+# High-value element types for RAG context (based on latest unstructured docs)
+RAG_CONTEXT_TYPES: Set[str] = {
+    "NarrativeText",
+    "ListItem",
+    "Title",
+    "Header",
+    "Table",
+    "FigureCaption",
+    "CodeSnippet",
+    "Formula",
+}
 
 
-class DocumentMetadata(TypedDict):
-    """Metadata for the entire document."""
-
-    file_path: str
-    file_type: str
-    structure: Literal["structured", "semi-structured", "unstructured", "empty"]
-    document_type: str
-    length: Literal["short", "medium", "long", "empty"]
-    word_count: int
-    page_count: Optional[int]
-    elements: List[ElementMetadata]
-    is_web_scraped: bool
-
-
-class DocumentClassifier(Protocol):
-    """Protocol for document type classifiers."""
-
-    def classify(
-        self, text: str, elements: List[ElementMetadata], file_type: str
-    ) -> str:
-        """Classify the document type (e.g., 'invoice', 'code', 'log')."""
-        ...
-
-
-# --- Helper Functions ---
-def count_words(text: str) -> int:
-    """Count words in a string."""
-    return len(text.split())
-
-
-def detect_file_type(file_path: str) -> str:
-    """Detect file type from extension or URL."""
-    if file_path.startswith(("http://", "https://")):
-        return "html"
-    suffix = Path(file_path).suffix.lower()
-    type_map = {
-        ".pdf": "pdf",
-        ".docx": "docx",
-        ".html": "html",
-        ".htm": "html",
-        ".md": "md",
-        ".mdx": "md",
-        ".rst": "rst",
-        ".py": "py",
-        ".ipynb": "ipynb",
-        ".log": "log",
-        ".txt": "txt",
-    }
-    return type_map.get(suffix, "unknown")
-
-
-def fetch_web_page(url: str) -> str:
-    """Fetch HTML content from a URL."""
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        return response.text
-    except requests.RequestException as e:
-        raise ValueError(f"Failed to fetch URL {url}: {e}")
-
-
-def parse_web_page(url: str) -> List[ElementMetadata]:
-    """Parse a remote web page using auto partition with url= parameter."""
-    logger.debug(f"parse_web_page | url={url}")
-    elements = partition(url=url)
-    return _convert_elements(elements)
-
-
-def _parse_ipynb_elements(file_path: str) -> list:
-    """Parse Jupyter notebook manually — not supported by auto partition."""
-    with open(file_path, "r", encoding="utf-8") as f:
-        notebook = nbformat.read(f, as_version=4)
-
-    all_elements = []
-    for cell in notebook.cells:
-        if cell.cell_type == "markdown":
-            sub_elements = partition_md(text=cell.source)
-            all_elements.extend(sub_elements)
-        elif cell.cell_type == "code":
-            code_el = Text(text=cell.source)
-            code_el.metadata.language = "python"
-            code_el.metadata.cell_type = "code"
-            all_elements.append(code_el)
-
-    logger.debug(
-        f"_parse_ipynb_elements | cells={len(notebook.cells)} | elements={len(all_elements)}"
-    )
-    return all_elements
-
-
-def _convert_elements(raw_elements: list) -> List[ElementMetadata]:
-    """Convert unstructured elements to typed dicts with traceability."""
-    typed_elements = []
-    for element in raw_elements:
-        element_dict = convert_to_dict(element)
-        typed_el = ElementMetadata(
-            element_id=element_dict.get("element_id", str(hash(str(element)))),
-            text=element_dict.get("text", ""),
-            type=element_dict.get("type", "Unknown"),
-            page_number=element_dict.get("metadata", {}).get("page_number"),
-            coordinates=element_dict.get("metadata", {}).get("coordinates"),
-            metadata=element_dict.get("metadata", {}),
-        )
-        typed_elements.append(typed_el)
-    return typed_elements
-
-
-def parse_document(file_path: str) -> List[ElementMetadata]:
+def _parse_notebook(path: str) -> List[Dict[str, Any]]:
     """
-    Parse a document using auto partition for all supported types.
-    Falls back to manual parsing only for .ipynb (not supported by auto).
+    Parse .ipynb files natively since unstructured's auto partition
+    does not reliably produce semantic elements for notebooks.
+    Converts markdown/code cells into unstructured-compatible element dicts.
     """
-    file_type = detect_file_type(file_path)
-    logger.debug(f"parse_document | path={file_path} | detected_type={file_type}")
-
     try:
-        # .ipynb is NOT supported by auto partition — handle manually
-        if file_type == "ipynb":
-            logger.debug("parse_document | strategy=manual_ipynb (not in auto)")
-            raw_elements = _parse_ipynb_elements(file_path)
-        else:
-            # ALL other types use unified auto partition
-            # Auto detects file type via libmagic and routes internally
-            logger.debug(f"parse_document | strategy=auto_partition(filename=)")
-            raw_elements = partition(filename=file_path)
-
+        with open(path, "r", encoding="utf-8") as f:
+            nb = json.load(f)
     except Exception as e:
-        logger.error(
-            f"parse_document | FAILED | type={file_type} | error={e}", exc_info=True
-        )
-        raise
+        logger.error(f"_parse_notebook | FAILED | path={path} | error={e}")
+        return []
 
-    typed_elements = _convert_elements(raw_elements)
+    elements: List[Dict[str, Any]] = []
+    cells = nb.get("cells", [])
+    kernel_lang = nb.get("metadata", {}).get("language_info", {}).get("name", "")
 
-    logger.info(
-        f"parse_document | SUCCESS | type={file_type} | "
-        f"raw={len(raw_elements)} | typed={len(typed_elements)} | "
-        f"categories={sorted(set(e['type'] for e in typed_elements))}"
-    )
-    return typed_elements
+    for cell in cells:
+        cell_type = cell.get("cell_type", "")
+        source_lines = cell.get("source", [])
+        text = "".join(source_lines).strip()
+        if not text:
+            continue
+
+        if cell_type == "markdown":
+            # Split markdown into titles and narrative paragraphs
+            for line in text.split("\n"):
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                if stripped.startswith("#"):
+                    elements.append(
+                        {
+                            "type": "Title",
+                            "text": stripped.lstrip("#").strip(),
+                            "metadata": {},
+                        }
+                    )
+                elif stripped.startswith("- ") or stripped.startswith("* "):
+                    elements.append(
+                        {
+                            "type": "ListItem",
+                            "text": stripped[2:].strip(),
+                            "metadata": {},
+                        }
+                    )
+                else:
+                    elements.append(
+                        {"type": "NarrativeText", "text": stripped, "metadata": {}}
+                    )
+        elif cell_type == "code":
+            elements.append(
+                {
+                    "type": "CodeSnippet",
+                    "text": text,
+                    "metadata": {"language": kernel_lang},
+                }
+            )
+
+    logger.info(f"_parse_notebook | parsed {len(elements)} elements from {path}")
+    return elements
 
 
-def classify_structure(
-    elements: List[ElementMetadata], file_type: str
-) -> Literal["structured", "semi-structured", "unstructured", "empty"]:
-    """Classify document structure based on element types and file type."""
+def extract_rag_context(elements: List[Dict[str, Any]]) -> str:
+    """
+    Extract clean RAG-ready text from parsed unstructured elements.
+
+    Filters to high-value semantic element types, strips boilerplate,
+    and joins into a single context string suitable for embedding or LLM input.
+
+    Args:
+        elements: List of element dicts (output of parse_document()["elements"])
+
+    Returns:
+        Cleaned, concatenated text containing only RAG-relevant content.
+    """
     if not elements:
-        return "empty"
+        return ""
 
-    if file_type in ("py", "ipynb"):
-        return "structured"
-    if file_type in ("md", "mdx", "rst"):
-        return "semi-structured"
-    if file_type == "log":
-        return "unstructured"
+    rag_parts: List[str] = []
+    for elem in elements:
+        elem_type = elem.get("type", "")
+        text = elem.get("text", "").strip()
+        if elem_type in RAG_CONTEXT_TYPES and text:
+            if elem_type == "Table":
+                rag_parts.append(f"[TABLE]\n{text}\n[/TABLE]")
+            elif elem_type == "CodeSnippet":
+                lang = elem.get("metadata", {}).get("language", "")
+                header = f"[CODE{f' ({lang})' if lang else ''}]"
+                rag_parts.append(f"{header}\n{text}\n[/CODE]")
+            elif elem_type == "Formula":
+                rag_parts.append(f"[FORMULA]{text}[/FORMULA]")
+            else:
+                rag_parts.append(text)
 
-    total_elements = len(elements)
-    table_count = sum(1 for e in elements if e["type"] == "Table")
-    list_count = sum(1 for e in elements if e["type"] == "ListItem")
-    heading_count = sum(
-        1 for e in elements if e["type"] in ("Title", "Header", "Subheader")
+    context = "\n\n".join(rag_parts)
+    logger.info(
+        f"extract_rag_context | kept={len(rag_parts)} elements | "
+        f"chars={len(context)} | types_used="
+        f"{sorted({e.get('type') for e in elements if e.get('type') in RAG_CONTEXT_TYPES})}"
     )
-    code_count = sum(1 for e in elements if e["type"] == "Code")
-
-    table_ratio = table_count / total_elements
-    heading_ratio = heading_count / total_elements
-    code_ratio = code_count / total_elements
-
-    if table_ratio > 0.3 or code_ratio > 0.5:
-        return "structured"
-    elif heading_ratio > 0.2 or (heading_count + list_count) / total_elements > 0.3:
-        return "semi-structured"
-    else:
-        return "unstructured"
+    return context
 
 
-def classify_length(
-    word_count: int, page_count: Optional[int] = None
-) -> Literal["short", "medium", "long", "empty"]:
-    """Classify document length."""
-    if word_count == 0:
-        return "empty"
-    if page_count and page_count > 20:
-        return "long"
-    elif word_count > 5000:
-        return "long"
-    elif word_count > 500:
-        return "medium"
-    else:
-        return "short"
-
-
-# --- Classifiers ---
-class KeywordDocumentClassifier:
-    """Classify document type using keyword matching."""
-
-    def __init__(self):
-        self.keywords = {
-            "invoice": ["invoice", "total", "amount due", "billing", "receipt", "$"],
-            "research_paper": [
-                "abstract",
-                "methodology",
-                "results",
-                "references",
-                "citation",
-                "introduction",
-            ],
-            "email": ["subject:", "from:", "to:", "cc:", "best regards", "sincerely"],
-            "contract": [
-                "agreement",
-                "party",
-                "clause",
-                "signatures",
-                "terms and conditions",
-            ],
-            "medical_record": [
-                "patient",
-                "diagnosis",
-                "treatment",
-                "symptoms",
-                "history",
-            ],
-            "code": ["def ", "class ", "import ", "function", "return ", "#!/usr/bin"],
-            "log": ["error", "warning", "info", "debug", "exception", "traceback"],
-            "web_page": ["<html", "<head", "<body", "DOCTYPE html"],
-        }
-
-    def classify(
-        self, text: str, elements: List[ElementMetadata], file_type: str
-    ) -> str:
-        text_lower = text.lower()
-        for doc_type, keywords in self.keywords.items():
-            if any(keyword in text_lower for keyword in keywords):
-                return doc_type
-        if file_type == "py":
-            return "code"
-        elif file_type == "ipynb":
-            return "code"
-        elif file_type == "log":
-            return "log"
-        elif file_type == "html":
-            return "web_page"
-        elif file_type in ("md", "mdx", "rst"):
-            return "markdown"
+def parse_document(path: str) -> Dict[str, Any]:
+    """
+    Parse any document using auto partition. Returns a standardized result dict.
+    Handles local files, URLs, notebooks, and unsupported types gracefully.
+    """
+    logger.info(f"parse_document | START | path={path}")
+    try:
+        # ✅ Native notebook parsing — unstructured auto partition does not
+        # reliably produce semantic elements for .ipynb files
+        if path.endswith(".ipynb"):
+            element_dicts = _parse_notebook(path)
+            categories = sorted({e.get("type", "Unknown") for e in element_dicts})
+            full_text = " ".join(e.get("text", "") for e in element_dicts)
+            word_count = len(full_text.split())
+            rag_context = extract_rag_context(element_dicts)
+            result = {
+                "path": path,
+                "element_count": len(element_dicts),
+                "categories": categories,
+                "word_count": word_count,
+                "page_count": None,
+                "elements": element_dicts,
+                "rag_context": rag_context,
+                "status": "success",
+            }
         else:
-            return "unknown"
+            if path.startswith(("http://", "https://")):
+                elements = partition(url=path)
+            else:
+                elements = partition(filename=path)
 
+            categories = [getattr(e, "category", "Unknown") for e in elements]
+            full_text = " ".join(str(e) for e in elements)
+            word_count = len(full_text.split())
+            page_numbers = [
+                getattr(e.metadata, "page_number", None)
+                for e in elements
+                if hasattr(e, "metadata")
+            ]
+            page_count = max((p for p in page_numbers if p is not None), default=None)
 
-# --- Main Parser Class ---
-class DocumentParser:
-    """Parse and classify documents with type safety."""
+            element_dicts = [e.to_dict() for e in elements]
+            rag_context = extract_rag_context(element_dicts)
 
-    def __init__(self, classifier: Optional[DocumentClassifier] = None):
-        self.classifier = classifier or KeywordDocumentClassifier()
-
-    def parse_and_classify(self, file_path: str) -> DocumentMetadata:
-        """Parse and classify with full error visibility."""
-        logger.info(f"parse_and_classify | START | path={file_path}")
-
-        try:
-            elements = parse_document(file_path)
-        except Exception as e:
-            logger.error(
-                f"parse_and_classify | PARSE_FAILED | path={file_path} | error={e}",
-                exc_info=True,
-            )
-            return DocumentMetadata(
-                file_path=file_path,
-                file_type=detect_file_type(file_path),
-                structure="empty",
-                document_type="unknown",
-                length="empty",
-                word_count=0,
-                page_count=None,
-                elements=[],
-                is_web_scraped=file_path.startswith(("http://", "https://")),
-            )
-
-        full_text = " ".join(e["text"] for e in elements)
-        file_type = detect_file_type(file_path)
-        structure = classify_structure(elements, file_type)
-        document_type = self.classifier.classify(full_text, elements, file_type)
-        word_count = count_words(full_text)
-        page_count = next(
-            (
-                e["page_number"]
-                for e in reversed(elements)
-                if e.get("page_number") is not None
-            ),
-            None,
-        )
-        length = classify_length(word_count, page_count)
-
-        result = DocumentMetadata(
-            file_path=file_path,
-            file_type=file_type,
-            structure=structure,
-            document_type=document_type,
-            length=length,
-            word_count=word_count,
-            page_count=page_count,
-            elements=elements,
-            is_web_scraped=file_path.startswith(("http://", "https://")),
-        )
+            result = {
+                "path": path,
+                "element_count": len(elements),
+                "categories": sorted(set(categories)),
+                "word_count": word_count,
+                "page_count": page_count,
+                "elements": element_dicts,
+                "rag_context": rag_context,
+                "status": "success",
+            }
 
         logger.info(
-            f"parse_and_classify | DONE | type={document_type} | "
-            f"structure={structure} | length={length} | "
-            f"words={word_count} | elements={len(elements)}"
+            f"parse_document | DONE | elements={result['element_count']} | "
+            f"words={result['word_count']} | pages={result['page_count']} | "
+            f"categories={result['categories']}"
         )
         return result
+    except Exception as e:
+        logger.error(
+            f"parse_document | FAILED | path={path} | error={e}", exc_info=True
+        )
+        return {
+            "path": path,
+            "element_count": 0,
+            "categories": [],
+            "word_count": 0,
+            "page_count": None,
+            "elements": [],
+            "rag_context": "",
+            "status": f"error: {e}",
+        }
 
 
-# --- Example Usage ---
 if __name__ == "__main__":
-    parser = DocumentParser()
-
-    test_files = [
-        ("/Users/jethroestrada/Downloads/Resume Latest - Jethro Estrada.pdf", "PDF"),
-        ("https://example.com", "Web URL"),
-        (
-            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.html",
-            "Local HTML",
-        ),
-        (
-            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.py",
-            "Python",
-        ),
-        (
-            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.ipynb",
-            "Jupyter",
-        ),
-        (
-            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.log",
-            "Log",
-        ),
-        (
-            "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.txt",
-            "Empty TXT",
-        ),
+    test_inputs = [
+        "/Users/jethroestrada/Downloads/Resume Latest - Jethro Estrada.pdf",
+        "https://example.com",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.html",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.py",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.ipynb",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.log",
+        "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.txt",
     ]
 
     logger.info("=" * 70)
-    logger.info("BATCH DOCUMENT PARSING START")
+    logger.info("BATCH START")
     logger.info("=" * 70)
 
-    results_summary = []
-    passed = 0
-    failed = 0
-
-    for path, label in test_files:
-        try:
-            meta = parser.parse_and_classify(path)
-            summary = (
-                f"{label:12s} | ✅ type={meta['document_type']:15s} | "
-                f"struct={meta['structure']:16s} | len={meta['length']:6s} | "
-                f"elems={len(meta['elements'])}"
-            )
-            passed += 1
-        except Exception as e:
-            summary = f"{label:12s} | ❌ FAILED: {e}"
-            logger.error(f"BATCH | {label} failed unexpectedly: {e}", exc_info=True)
-            failed += 1
-
-        results_summary.append(summary)
+    results = []
+    for path in test_inputs:
+        result = parse_document(path)
+        label = path.split("/")[-1] if "/" in path else path
+        status_icon = "✅" if result["status"] == "success" else "❌"
+        rag_chars = len(result.get("rag_context", ""))
+        summary = (
+            f"{label:20s} | {status_icon} elems={result['element_count']:4d} | "
+            f"words={result['word_count']:5d} | rag_chars={rag_chars:5d} | "
+            f"cats={result['categories']}"
+        )
+        results.append(summary)
         print(summary)
 
+    succeeded = sum(1 for r in results if "✅" in r)
     logger.info("=" * 70)
-    logger.info(
-        f"BATCH COMPLETE | passed={passed} | failed={failed} | total={len(test_files)}"
-    )
-    for line in results_summary:
+    logger.info(f"BATCH COMPLETE | {succeeded}/{len(results)} succeeded")
+    for line in results:
         logger.info(line)
     logger.info("=" * 70)
