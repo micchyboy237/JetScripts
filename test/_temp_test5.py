@@ -1,21 +1,35 @@
-# === Logging configuration + safe imports ===
+# === Controlled logging configuration ===
 import logging
 import sys
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)-8s] %(name)s | %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler(
-            "/Users/jethroestrada/Desktop/External_Projects/"
-            "Jet_Projects/JetScripts/test/__sample.log",
-            mode="a",
-            encoding="utf-8",
-        ),
-    ],
-)
+# Root logger stays at WARNING to suppress noisy third-party libs (pdfminer, urllib3, etc.)
+logging.getLogger().setLevel(logging.WARNING)
+
+# Only OUR logger gets INFO-level output; DEBUG available on demand
 logger = logging.getLogger("doc_parser")
+logger.setLevel(logging.INFO)  # ← Change to logging.DEBUG only when troubleshooting
+
+_formatter = logging.Formatter("%(asctime)s [%(levelname)-8s] %(name)s | %(message)s")
+
+_stream_handler = logging.StreamHandler(sys.stdout)
+_stream_handler.setFormatter(_formatter)
+_stream_handler.setLevel(logging.INFO)  # Console shows INFO+
+
+_file_handler = logging.FileHandler(
+    "/Users/jethroestrada/Desktop/External_Projects/"
+    "Jet_Projects/JetScripts/test/__sample.log",
+    mode="w",  # ← Changed to "w" so each run starts fresh for evaluation
+    encoding="utf-8",
+)
+_file_handler.setFormatter(_formatter)
+_file_handler.setLevel(logging.INFO)  # File captures INFO+
+
+logger.addHandler(_stream_handler)
+logger.addHandler(_file_handler)
+
+# Suppress known noisy libraries explicitly as safety net
+for _noisy in ("pdfminer", "urllib3", "PIL", "fontTools", "unstructured.partition.pdf"):
+    logging.getLogger(_noisy).setLevel(logging.WARNING)
 
 # Validate critical dependencies at import time
 try:
@@ -397,18 +411,30 @@ if __name__ == "__main__":
     logger.info("=" * 70)
 
     results_summary = []
+    passed = 0
+    failed = 0
+
     for path, label in test_files:
-        meta = parser.parse_and_classify(path)
-        summary = (
-            f"{label:12s} | type={meta['document_type']:15s} | "
-            f"struct={meta['structure']:16s} | len={meta['length']:6s} | "
-            f"elems={len(meta['elements'])}"
-        )
+        try:
+            meta = parser.parse_and_classify(path)
+            summary = (
+                f"{label:12s} | ✅ type={meta['document_type']:15s} | "
+                f"struct={meta['structure']:16s} | len={meta['length']:6s} | "
+                f"elems={len(meta['elements'])}"
+            )
+            passed += 1
+        except Exception as e:
+            summary = f"{label:12s} | ❌ FAILED: {e}"
+            logger.error(f"BATCH | {label} failed unexpectedly: {e}", exc_info=True)
+            failed += 1
+
         results_summary.append(summary)
         print(summary)
 
     logger.info("=" * 70)
-    logger.info("BATCH COMPLETE")
+    logger.info(
+        f"BATCH COMPLETE | passed={passed} | failed={failed} | total={len(test_files)}"
+    )
     for line in results_summary:
         logger.info(line)
     logger.info("=" * 70)
