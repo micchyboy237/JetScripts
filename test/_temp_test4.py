@@ -1,14 +1,19 @@
-from unstructured.partition.pdf import partition_pdf
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 
-# hi_res strategy uses layout detection + OCR for complex PDFs
-elements = partition_pdf(
-    filename="report.pdf",
-    strategy="hi_res",
-    extract_images_in_pdf=True,  # Save embedded images as separate elements
-    extract_table_structure=True,  # Preserve table rows/columns
-    languages=["eng"],
+provider = TracerProvider()
+
+# ⚠️ Note: NO http:// prefix, and insecure=True for plaintext gRPC
+exporter = OTLPSpanExporter(
+    endpoint="192.168.68.151:4317",
+    insecure=True,
 )
+provider.add_span_processor(SimpleSpanProcessor(exporter))
+trace.set_tracer_provider(provider)
 
-# Inspect element types and content
-for el in elements[:5]:
-    print(f"[{el.category}] {str(el)[:120]}")
+tracer = trace.get_tracer("connectivity-test")
+with tracer.start_as_current_span("test-span") as span:
+    span.set_attribute("project", "mem0-langgraph-dual-scope")
+    print("✅ Span exported successfully")
