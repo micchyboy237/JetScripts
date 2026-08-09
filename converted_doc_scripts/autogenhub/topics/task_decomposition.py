@@ -25,10 +25,10 @@ initialize_ollama_settings()
 
 On this page, we demonstrate several different ways to achieve task decomposition in AutoGen.
 
-First make sure the `pyautogen` package is installed.
+First make sure the `ag2` package is installed.
 """
 
-# ! pip install "pyautogen>=0.2.18"
+# ! pip install "ag2>=0.2.18"
 
 """
 Import the relevant modules and configure the LLM.
