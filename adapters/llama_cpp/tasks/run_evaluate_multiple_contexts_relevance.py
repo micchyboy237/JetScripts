@@ -31,8 +31,9 @@ config = {
     "source_file": str(docs_file),
     "llm_model": LLM_MODEL,
     "evaluation_method": "grammar_constrained_llm",
-    "evaluation_type": "answer_containment",
-    "scoring_scale": {"true": "contains answer", "false": "no answer"},
+    "evaluation_type": "sparse_answer_score",
+    "output_format": "positive_only_with_scores",
+    "scoring_scale": {"0": "no answer (implicit)", "1": "partial", "2": "direct"},
     "query": query,
     "num_documents": len(documents),
     "document_previews": [
@@ -62,21 +63,20 @@ with open(inputs_path, "w", encoding="utf-8") as f:
 console.print(f"[dim]Inputs saved to {inputs_path}[/dim]")
 
 # --- Run evaluation ---
-console.print(
-    "\n[bold cyan]Running multi-context answer containment evaluation...[/bold cyan]"
-)
+console.print("\n[bold cyan]Running sparse answer-score evaluation...[/bold cyan]")
 eval_results = evaluate_multiple_contexts_relevance(query, documents)
 
 # --- Transform & rank results ---
+score_labels = {0: "none", 1: "partial", 2: "direct"}
 results = []
 for r in eval_results:
-    has_answer = r["has_answer"]
-    label = "contains answer" if has_answer else "no answer"
+    label = score_labels.get(r["answer_score"], "unknown")
     results.append(
         {
             "rank": 0,
             "document": documents[r["context_index"]],
-            "has_answer": has_answer,
+            "answer_score": r["answer_score"],
+            "has_answer": r["has_answer"],
             "label": label,
             "is_valid": r["is_valid"],
             "error": r["error"],
@@ -84,8 +84,8 @@ for r in eval_results:
         }
     )
 
-# Sort: valid first, then has_answer=True first, then original index for stability
-results.sort(key=lambda x: (-x["is_valid"], -x["has_answer"], x["original_index"]))
+# Sort: valid first, then score descending, then original index for stability
+results.sort(key=lambda x: (-x["is_valid"], -x["answer_score"], x["original_index"]))
 for rank, r in enumerate(results, start=1):
     r["rank"] = rank
 
@@ -96,7 +96,7 @@ with open(json_path, "w", encoding="utf-8") as f:
         {
             "query": query,
             "evaluation_method": "grammar_constrained_llm",
-            "evaluation_type": "answer_containment",
+            "evaluation_type": "sparse_answer_score",
             "documents_evaluated": len(documents),
             "results": results,
         },
@@ -111,15 +111,24 @@ csv_path = OUTPUT_DIR / "results.csv"
 with open(csv_path, "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerow(
-        ["rank", "document", "has_answer", "label", "is_valid", "original_index"]
+        [
+            "rank",
+            "document",
+            "answer_score",
+            "label",
+            "has_answer",
+            "is_valid",
+            "original_index",
+        ]
     )
     for r in results:
         writer.writerow(
             [
                 r["rank"],
                 r["document"][:120],
-                r["has_answer"],
+                r["answer_score"],
                 r["label"],
+                r["has_answer"],
                 r["is_valid"],
                 r["original_index"],
             ]
@@ -131,17 +140,26 @@ valid_results = [r for r in results if r["is_valid"]]
 summary = {
     "total_documents": len(results),
     "valid_evaluations": len(valid_results),
-    "containment_distribution": {
-        "contains_answer": sum(1 for r in valid_results if r["has_answer"]),
-        "no_answer": sum(1 for r in valid_results if not r["has_answer"]),
+    "score_distribution": {
+        "direct": sum(1 for r in valid_results if r["answer_score"] == 2),
+        "partial": sum(1 for r in valid_results if r["answer_score"] == 1),
+        "none": sum(1 for r in valid_results if r["answer_score"] == 0),
     },
     "containment_rate": round(
         sum(1 for r in valid_results if r["has_answer"]) / len(valid_results), 4
     )
     if valid_results
     else 0,
+    "avg_score": round(
+        sum(r["answer_score"] for r in valid_results) / len(valid_results), 4
+    )
+    if valid_results
+    else 0,
+    "positive_indices": sorted(
+        r["original_index"] for r in valid_results if r["has_answer"]
+    ),
     "top_document": results[0]["document"][:200] if results else "",
-    "top_has_answer": results[0]["has_answer"] if results else False,
+    "top_score": results[0]["answer_score"] if results else 0,
     "top_label": results[0]["label"] if results else "",
 }
 summary_path = OUTPUT_DIR / "summary.json"
@@ -150,24 +168,25 @@ with open(summary_path, "w", encoding="utf-8") as f:
 console.print(f"[dim]Summary saved to {summary_path}[/dim]")
 
 # --- Display table ---
-console.print("\n[bold green]Multi-Context Answer Containment Results[/bold green]")
+console.print("\n[bold green]Sparse Answer-Score Results[/bold green]")
 table = Table(show_header=True, header_style="bold magenta", show_lines=True)
 table.add_column("Rank", justify="center", style="dim", width=4)
 table.add_column("Document", style="white", no_wrap=False, max_width=60)
-table.add_column("Has Answer", justify="center", width=12)
+table.add_column("Score", justify="center", width=10)
+table.add_column("Label", justify="center", width=10)
 table.add_column("Valid", justify="center", width=6)
 
+score_styles = {0: "dim red", 1: "yellow", 2: "bold green"}
+
 for r in results[:15]:
-    if r["has_answer"]:
-        ans_str = "[bold green]✓ Yes[/bold green]"
-    else:
-        ans_str = "[dim red]✗ No[/dim red]"
+    style = score_styles.get(r["answer_score"], "dim")
     v_str = "[bold green]✓[/bold green]" if r["is_valid"] else "[bold red]✗[/bold red]"
     doc_preview = r["document"][:100] + ("..." if len(r["document"]) > 100 else "")
     table.add_row(
         str(r["rank"]),
         doc_preview,
-        ans_str,
+        f"[{style}]{r['answer_score']}[/{style}]",
+        f"[{style}]{r['label']}[/{style}]",
         v_str,
     )
 
