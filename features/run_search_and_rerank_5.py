@@ -6,6 +6,7 @@ import string
 from collections import defaultdict
 
 from jet.adapters.llama_cpp.llm import LlamacppLLM
+from jet.adapters.llama_cpp.token_utils import count_tokens, get_tokenizer_fn
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS, LLAMACPP_LLM_KEYS
 from jet.code.html_utils import preprocess_html
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc, HeaderSearchResult
@@ -18,7 +19,6 @@ from jet.code.markdown_utils._markdown_parser import (
 from jet.code.markdown_utils._preprocessors import link_to_text_ratio
 from jet.file.utils import load_file, save_file
 from jet.logger import logger
-from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.models.utils import resolve_model_value
 from jet.scrapers.hrequests_utils import scrape_urls
 from jet.scrapers.utils import scrape_links, search_data
@@ -157,16 +157,14 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
             return text.lstrip("#").strip()
         return text
 
-    # Initialize tokenizer
     tokenizer = get_tokenizer_fn(
         os.getenv("LLAMA_CPP_LLM_MODEL"),
         add_special_tokens=False,
-        remove_pad_tokens=True,
     )
-    separator = "\n\n"
-    separator_tokens = len(tokenizer.encode(separator))
 
-    # Calculate high and medium score tokens per URL
+    separator = "\n\n"
+    separator_tokens = len(tokenizer(separator))  # ✅ Fixed: call function directly
+
     url_score_tokens = defaultdict(
         lambda: {"high_score_tokens": 0, "medium_score_tokens": 0}
     )
@@ -181,7 +179,6 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
                 "num_tokens", 0
             )
 
-    # Sort URLs by high_score_tokens, then medium_score_tokens (descending)
     sorted_urls = sorted(
         url_score_tokens.keys(),
         key=lambda url: (
@@ -191,20 +188,21 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
         reverse=True,
     )
 
-    # Group results by URL and sort within each URL by score
     grouped_temp: defaultdict[str, list[HeaderSearchResult]] = defaultdict(list)
     seen_header_text: defaultdict[str, set[str]] = defaultdict(set)
+
     for result in results:
         url = result["metadata"].get("source", "Unknown")
         grouped_temp[url].append(result)
 
     context_blocks = []
+
     for url in sorted_urls:
         docs = sorted(grouped_temp[url], key=lambda x: x["score"], reverse=True)
         block = f"<!-- Source: {url} -->\n\n"
+
         seen_header_text_in_block = set()
 
-        # Group by doc_index and header to handle overlaps
         grouped_by_header: defaultdict[tuple[int, str], list[HeaderSearchResult]] = (
             defaultdict(list)
         )
@@ -227,6 +225,7 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
                 if chunks[0]["metadata"].get("level") is not None
                 else 0
             )
+
             parent_header_key = (
                 strip_hashtags(parent_header)
                 if parent_header and parent_header != "None"
@@ -234,21 +233,17 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
             )
             header_key = strip_hashtags(header) if header else None
 
-            # Check for matching child headers to avoid redundant parent headers
             has_matching_child = any(
                 strip_hashtags(d.get("header", "")) == parent_header_key
                 for d in docs
                 if d.get("header") and d["metadata"].get("level", 0) >= 0
             )
-
-            # Check if parent_header appears as a header in any other chunk within the same source
             has_matching_child = any(
                 strip_hashtags(d.get("header", "")) == parent_header_key
                 for d in docs
                 if d.get("header") and strip_hashtags(d.get("header", "")) != header_key
             )
 
-            # Add parent header only if it appears as a header in another chunk and hasn't been added
             if (
                 parent_header_key
                 and parent_level is not None
@@ -258,7 +253,6 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
                 block += f"{parent_header}\n\n"
                 seen_header_text_in_block.add(parent_header_key)
 
-            # Add header if it hasn't been added
             if (
                 header_key
                 and header_key not in seen_header_text_in_block
@@ -268,8 +262,8 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
                 seen_header_text_in_block.add(header_key)
                 seen_header_text[url].add(header_key)
 
-            # Sort chunks by start_idx and merge overlapping or adjacent chunks
             chunks.sort(key=lambda x: x["metadata"]["start_idx"])
+
             merged_content = ""
             start_idx = chunks[0]["metadata"]["start_idx"]
             end_idx = chunks[0]["metadata"]["end_idx"]
@@ -280,13 +274,13 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
                 next_start = next_chunk["metadata"]["start_idx"]
                 next_end = next_chunk["metadata"]["end_idx"]
                 next_content = next_chunk["content"]
+
                 if not isinstance(next_content, str):
                     logger.debug(
                         f"Non-string content in chunk for source: {url}, doc_index: {doc_index}, type: {type(next_content)}. Converting to string."
                     )
                     next_content = str(next_content) if next_content else ""
 
-                # Merge if chunks overlap or are adjacent
                 if next_start <= end_idx + 1:
                     overlap = end_idx - next_start + 1 if next_start <= end_idx else 0
                     additional_content = (
@@ -295,24 +289,23 @@ def group_results_by_source_for_llm_context(results: list[HeaderSearchResult]) -
                     merged_content += additional_content
                     end_idx = max(end_idx, next_end)
                 else:
-                    # Append merged content to block
                     block += merged_content + "\n\n"
-                    # Start new merged chunk
                     merged_content = next_content
                     start_idx = next_start
                     end_idx = next_end
 
-            # Append the last merged chunk
             block += merged_content + "\n\n"
 
-        block_tokens = len(tokenizer.encode(block))
-        if block_tokens > len(tokenizer.encode(f"<!-- Source: {url} -->\n\n")):
+        block_tokens = len(tokenizer(block))  # ✅ Fixed: call function directly
+        if block_tokens > len(
+            tokenizer(f"<!-- Source: {url} -->\n\n")
+        ):  # ✅ Fixed: call function directly
             context_blocks.append(block.strip())
         else:
             logger.warning(f"Empty block for {url} after processing; skipping.")
 
     result = "\n\n".join(context_blocks)
-    final_token_count = len(tokenizer.encode(result))
+    final_token_count = len(tokenizer(result))  # ✅ Fixed: call function directly
     logger.debug(
         f"Grouped context created with {final_token_count} tokens for {len(grouped_temp)} sources"
     )
@@ -677,7 +670,7 @@ async def main(query):
     filtered_results = []
     for result in sorted_results:
         content = f"{result['header']}\n{result['content']}"
-        tokens = count_tokens(llm_model, content)
+        tokens = count_tokens(content, model=llm_model)
         if current_tokens + tokens > max_tokens:
             break
         filtered_results.append(result)
@@ -744,8 +737,8 @@ async def main(query):
         llm_response += chunk
     save_file(llm_response, f"{query_output_dir}/response.md")
 
-    input_tokens = count_tokens(llm_model, prompt)
-    output_tokens = count_tokens(llm_model, llm_response)
+    input_tokens = count_tokens(prompt, model=llm_model)
+    output_tokens = count_tokens(llm_response, model=llm_model)
 
     save_file(
         {
