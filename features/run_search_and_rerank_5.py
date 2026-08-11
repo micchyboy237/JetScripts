@@ -6,6 +6,9 @@ import string
 from collections import defaultdict
 
 from jet.adapters.llama_cpp.llm import LlamacppLLM
+from jet.adapters.llama_cpp.tasks.evaluate_multiple_contexts_relevance import (
+    evaluate_multiple_contexts_relevance,
+)
 from jet.adapters.llama_cpp.token_utils import count_tokens, get_tokenizer_fn
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS, LLAMACPP_LLM_KEYS
 from jet.code.html_utils import preprocess_html
@@ -664,6 +667,66 @@ async def main(query):
         },
         f"{query_output_dir}/sorted_search_results.json",
     )
+
+    # === NEW: Semantic Relevance Evaluation ===
+    logger.info(
+        f"Evaluating relevance for top {min(len(sorted_results), 30)} sorted results..."
+    )
+    eval_candidates = sorted_results[
+        :30
+    ]  # Limit to avoid excessive LLM calls on GTX 1660
+    eval_documents = [f"{r['header']}\n{r['content']}" for r in eval_candidates]
+
+    try:
+        relevance_results = evaluate_multiple_contexts_relevance(
+            query=query,
+            contexts=eval_documents,
+            temperature=0.0,
+            max_tokens=1024,
+        )
+        # Map scores back to candidates
+        score_map = {r["context_index"]: r["answer_score"] for r in relevance_results}
+        for idx, result in enumerate(eval_candidates):
+            result["metadata"]["answer_score"] = score_map.get(idx, 0)
+            result["metadata"]["has_answer"] = score_map.get(idx, 0) > 0
+
+        # Log evaluation summary
+        positive_count = sum(1 for s in score_map.values() if s > 0)
+        direct_count = sum(1 for s in score_map.values() if s == 2)
+        logger.info(
+            f"Relevance eval complete: {positive_count}/{len(eval_candidates)} contain answers "
+            f"({direct_count} direct, {positive_count - direct_count} partial)"
+        )
+    except Exception as e:
+        logger.error(
+            f"Relevance evaluation failed, falling back to score-only ranking: {e}"
+        )
+        for result in eval_candidates:
+            result["metadata"]["answer_score"] = 0
+            result["metadata"]["has_answer"] = False
+
+    # Re-rerank: answer_score DESC, then original score DESC
+    sorted_results.sort(
+        key=lambda x: (-x["metadata"].get("answer_score", 0), -x["score"])
+    )
+
+    # Filter out zero-answer results from evaluated set; keep unevaluated tail as-is
+    evaluated_indices = set(range(len(eval_candidates)))
+    filtered_by_relevance = [
+        r
+        for i, r in enumerate(sorted_results)
+        if i not in evaluated_indices or r["metadata"].get("answer_score", 0) > 0
+    ]
+
+    save_file(
+        {
+            "query": query,
+            "count": len(filtered_by_relevance),
+            "results": filtered_by_relevance,
+        },
+        f"{query_output_dir}/relevance_filtered_results.json",
+    )
+    # === END NEW ===
 
     # Filter search_results directly based on score, MTLD, and link-to-text ratio
     current_tokens = 0
