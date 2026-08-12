@@ -150,12 +150,11 @@ def read_url(url: str, max_chars: int = 8000) -> str:
 def rerank_results(query: str, documents: list[dict], top_n: int = 3) -> list[dict]:
     """
     Rerank search results using the centralized llama.cpp rerank adapter.
-    Maps adapter output back to original document dicts with relevance scores.
+    Scores are normalized to 0-1 by the adapter; raw scores preserved.
     """
     if not documents:
         return []
 
-    # Extract text snippets for the reranker; track index mapping
     valid_docs: list[str] = []
     index_map: list[int] = []
     for i, d in enumerate(documents):
@@ -172,14 +171,14 @@ def rerank_results(query: str, documents: list[dict], top_n: int = 3) -> list[di
         logger.info(
             f"Reranking {len(valid_docs)} docs via adapter (model={RERANK_MODEL})"
         )
-        # Adapter returns list[RerankResult] sorted by score desc
         ranked = adapter_rerank(query=query, documents=valid_docs, top_n=top_n)
 
         output: list[dict] = []
         for item in ranked:
             orig_idx = index_map[item["index"]]
             doc = documents[orig_idx].copy()
-            doc["relevance_score"] = item["score"]
+            doc["relevance_score"] = item["score"]  # Normalized 0-1
+            doc["relevance_score_raw"] = item["raw_score"]  # Original
             output.append(doc)
 
         logger.info(f"Reranked {len(valid_docs)} valid docs → top {len(output)}")
