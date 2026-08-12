@@ -1,22 +1,25 @@
+import os
+import shutil
+from typing import List
+
 from jet.adapters.langchain.chat_ollama import ChatOllama
-from jet.adapters.langchain.tavily_search_tool import TavilySearchResults
+from jet.adapters.langchain.tools.tavily_search_tool import TavilySearchResults
 from jet.file.utils import save_file
 from jet.logger import logger
 from jet.transformers.object import make_serializable
 from jet.visualization.langchain.mermaid_graph import render_mermaid_graph
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
-from langchain_core.output_parsers import JsonOutputParser
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import END, StateGraph, START
+from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
-from typing import List
 from typing_extensions import TypedDict
-import os
-import shutil
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 log_file = os.path.join(OUTPUT_DIR, "main.log")
@@ -28,13 +31,13 @@ logger.info(f"Logs: {log_file}")
 class Anime(BaseModel):
     title: str = Field(description="Title of the isekai anime")
     release_date: str = Field(
-        description="Release date of the anime (e.g., January 2025)")
+        description="Release date of the anime (e.g., January 2025)"
+    )
     synopsis: str = Field(description="Brief synopsis of the anime")
 
 
 class AnimeList(BaseModel):
-    data: List[Anime] = Field(
-        description="List of top 10 isekai anime for 2025")
+    data: List[Anime] = Field(description="List of top 10 isekai anime for 2025")
 
 
 # Define graph state
@@ -80,7 +83,7 @@ def web_search(state):
         "documents": [web_results],
         "question": question,
         "search_query": question,
-        "search_results": make_serializable(docs)
+        "search_results": make_serializable(docs),
     }
 
 
@@ -96,13 +99,14 @@ def generate(state):
     question = state["question"]
     documents = state["documents"]
     generation = anime_chain.invoke(
-        {"documents": [doc.page_content for doc in documents]})
+        {"documents": [doc.page_content for doc in documents]}
+    )
     return {
         "documents": documents,
         "question": question,
         "search_query": state["search_query"],
         "search_results": state["search_results"],
-        "generation": generation.data  # Extract data list from AnimeList
+        "generation": generation.data,  # Extract data list from AnimeList
     }
 
 
@@ -124,11 +128,8 @@ config = {"configurable": {"thread_id": "1"}}  # Add config for checkpointer
 state = app.invoke(inputs, config)
 save_file(state, f"{OUTPUT_DIR}/workflow_state.json")
 save_file(
-    {
-        "search_query": state["search_query"],
-        "search_results": state["search_results"]
-    },
-    f"{OUTPUT_DIR}/search_data.json"
+    {"search_query": state["search_query"], "search_results": state["search_results"]},
+    f"{OUTPUT_DIR}/search_data.json",
 )
 logger.debug(f"Generated anime list: {state['generation']}")
 logger.info("\n\n[DONE]", bright=True)

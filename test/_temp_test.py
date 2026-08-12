@@ -1,7 +1,13 @@
 import asyncio
 
-from crawl4ai import AsyncWebCrawler, CacheMode, CrawlerRunConfig
-from crawl4ai.extraction_strategy import LLMExtractionStrategy
+# ✅ NEW IMPORT: LLMConfig is now required for provider settings
+from crawl4ai import (
+    AsyncWebCrawler,
+    CacheMode,
+    CrawlerRunConfig,
+    LLMConfig,
+    LLMExtractionStrategy,
+)
 
 QUERY = "chunking strategies for PDF tables"
 ROOT_URL = "https://docs.unstructured.io"
@@ -15,8 +21,11 @@ async def crawl_until_satisfied():
         exclude_external_links=True,  # INNER LINKS ONLY
         keep_data_attributes=True,
         extraction_strategy=LLMExtractionStrategy(
-            provider="openai/gpt-4o-mini",
-            api_token="YOUR_API_KEY",
+            # ✅ FIX: Wrap provider and api_token in LLMConfig
+            llm_config=LLMConfig(
+                provider="openai/gpt-4o-mini",
+                api_token="YOUR_API_KEY",
+            ),
             instruction=f"""Extract content relevant to: '{QUERY}'.
             Return JSON: {{"relevant": bool, "summary": str, "key_points": list}}.
             If page has NO useful info about this query, set relevant=false.""",
@@ -27,6 +36,14 @@ async def crawl_until_satisfied():
                     "summary": {"type": "string"},
                     "key_points": {"type": "array", "items": {"type": "string"}},
                 },
+            },
+            extra_args={
+                "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+                # You can also pass other LiteLLM params here
+                "max_tokens": 2048,
+                "temperature": 0.3,
+                "top_p": 0.95,
+                "presence_penalty": 1.5,
             },
         ),
     )
