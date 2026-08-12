@@ -1,10 +1,34 @@
+"""
+File Vector Search with Hybrid Reranking.
+
+Performs semantic search over local files using llama.cpp embeddings,
+followed by optional BM25 and cross-encoder reranking stages. Results
+are streamed progressively and saved as JSON artifacts.
+
+Usage Examples:
+    # Basic search with defaults
+    python run_file_vector_search.py "AI Agents" /path/to/docs
+
+    # Search multiple directories with custom extensions
+    python run_file_vector_search.py "error handling" ./src ./tests -e .py,.md
+
+    # Use flag-based query and custom weights
+    python run_file_vector_search.py -q "async patterns" -d ./lib -w dir:0.1,name:0.3,content:0.6
+
+    # Verbose output with caching and result limit
+    python run_file_vector_search.py "deployment config" /ops -v -c --top-k 20
+
+    # Custom chunking parameters
+    python run_file_vector_search.py "API design" ./docs --chunk-size 512 --chunk-overlap 128 -b /base/path
+"""
+
 import argparse
-import os
 import shutil
 from pathlib import Path
 from typing import get_args
 
 from jet.adapters.llama_cpp.config import EMBED_MODEL
+from jet.adapters.llama_cpp.rerank_utils import rerank
 
 # from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
 from jet.adapters.llama_cpp.token_utils import get_tokenizer
@@ -12,10 +36,8 @@ from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
 from jet.data.utils import generate_unique_id
 from jet.file.utils import save_file
+from jet.logger import logger
 from jet.logger.config import colorize_log
-from jet.models.model_registry.transformers.cross_encoder_model_registry import (
-    CrossEncoderRegistry,
-)
 
 # from jet.models.tokenizer.base import get_tokenizer_fn
 from jet.utils.language import DetectLangResult, detect_lang
@@ -78,48 +100,79 @@ def rerank_results(
 def cross_encoder_rerank(
     query: str, results: list[FileSearchResult], top_n: int = 50
 ) -> list[FileSearchResult]:
-    """Rerank search results using CrossEncoder."""
+    """Rerank search results using the llama.cpp reranker server."""
     if not results:
+        logger.debug("cross_encoder_rerank: No results to rerank")
         return results
 
-    # Prepare input pairs for cross-encoder
-    input_pairs = [(query, result["text"]) for result in results[:top_n]]
+    candidates = results[:top_n]
+    texts = [result["text"] for result in candidates]
+
+    logger.info(
+        f"Starting cross-encoder reranking for {len(candidates)} candidates "
+        f"(query='{query[:50]}...')"
+    )
+
     try:
-        # Load cross-encoder model
-        cross_encoder = CrossEncoderRegistry.load_model(
-            model_id="cross-encoder/ms-marco-MiniLM-L6-v2",
-            device="mps" if os.uname().sysname == "Darwin" else "cpu",
-        )
-        # Get cross-encoder scores
-        scores = CrossEncoderRegistry.predict_scores(
-            input_pairs, batch_size=32, show_progress=True, return_format="list"
+        # Use the new server-based reranker
+        # normalize_scores=True is default, providing 0-1 range compatible with embed scores
+        reranked_outputs = rerank(
+            query=query,
+            documents=texts,
+            top_n=len(candidates),
+            normalize_scores=True,
         )
 
-        # Combine cross-encoder scores with original scores
+        logger.info(f"Received {len(reranked_outputs)} reranked results from server")
+
         reranked_results = []
-        for idx, (result, ce_score) in enumerate(zip(results[:top_n], scores)):
-            # Normalize cross-encoder score (sigmoid output) and combine with original
-            normalized_ce_score = float(ce_score)
-            hybrid_score = 0.6 * result["score"] + 0.4 * normalized_ce_score
-            reranked_result = result.copy()
+        for rr in reranked_outputs:
+            # Map back to original result using index
+            original_idx = rr["index"]
+            if original_idx >= len(candidates):
+                logger.warning(
+                    f"Rerank returned invalid index {original_idx} for {len(candidates)} candidates"
+                )
+                continue
+
+            original_result = candidates[original_idx]
+            ce_score = float(rr["score"])
+
+            # Hybrid scoring: 60% embedding + 40% cross-encoder
+            # Both scores should be in comparable 0-1 ranges
+            hybrid_score = 0.6 * original_result["score"] + 0.4 * ce_score
+
+            reranked_result = original_result.copy()
             reranked_result["score"] = hybrid_score
-            reranked_result["metadata"] = result["metadata"].copy()
-            reranked_result["metadata"]["cross_encoder_score"] = normalized_ce_score
+            reranked_result["metadata"] = original_result["metadata"].copy()
+            reranked_result["metadata"]["cross_encoder_score"] = ce_score
+            reranked_result["metadata"]["cross_encoder_raw_score"] = float(
+                rr.get("raw_score", 0.0)
+            )
             reranked_results.append(reranked_result)
 
-        # Sort by hybrid score
+        # Sort by new hybrid score
         reranked_results.sort(key=lambda x: x["score"], reverse=True)
 
-        # Update ranks
+        # Reassign ranks
         for i, result in enumerate(reranked_results, 1):
             result["rank"] = i
 
-        # Include any remaining results beyond top_n
+        logger.info(
+            f"Cross-encoder reranking complete. Top score: "
+            f"{reranked_results[0]['score']:.4f}"
+            if reranked_results
+            else "N/A"
+        )
+
+        # Append any remaining results beyond top_n that weren't reranked
         if len(results) > top_n:
             reranked_results.extend(results[top_n:])
 
         return reranked_results
+
     except Exception as e:
+        logger.error(f"Cross-encoder reranking failed: {str(e)}", exc_info=True)
         print(f"Cross-encoder reranking failed: {str(e)}")
         return results
 

@@ -1,3 +1,27 @@
+"""
+File Vector Search with Grouped Directory Results.
+
+Searches a directory tree using semantic vector embeddings, groups results
+by subdirectory structure, and saves per-group JSON artifacts. Displays a
+rich console summary with clickable file links upon completion.
+
+Usage Examples:
+    # Basic search with defaults
+    python run_file_vector_search_main_only.py
+
+    # Custom query and search directory
+    python run_file_vector_search_main_only.py -q "prompt engineering" -s /path/to/docs
+
+    # Multiple extensions with include/exclude filters
+    python run_file_vector_search_main_only.py -e ".py,.md" -i src tests -x .venv node_modules
+
+    # Adjust grouping depth and embedding model
+    python run_file_vector_search_main_only.py -d 3 -m nomic-embed-text-v1.5
+
+    # Full example with all options
+    python run_file_vector_search_main_only.py -q "RAG pipeline" -s ./docs -e ".md,.rst" -i guides tutorials -x archive -d 4
+"""
+
 import os
 import shutil
 from pathlib import Path
