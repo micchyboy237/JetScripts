@@ -18,8 +18,11 @@ Usage Examples:
     # Adjust grouping depth and embedding model
     python run_file_vector_search_main_only.py -d 3 -m nomic-embed-text-v1.5
 
+    # Custom chunk size and overlap
+    python run_file_vector_search_main_only.py --chunk-size 512 --chunk-overlap 80
+
     # Full example with all options
-    python run_file_vector_search_main_only.py -q "RAG pipeline" -s ./docs -e ".md,.rst" -i guides tutorials -x archive -d 4
+    python run_file_vector_search_main_only.py -q "RAG pipeline" -s ./docs -e ".md,.rst" -i guides tutorials -x archive -d 4 --chunk-size 512 --chunk-overlap 80
 """
 
 import os
@@ -60,6 +63,8 @@ def main(
     exclude_files: List[str],
     max_group_depth: int,
     embed_model: LLAMACPP_EMBED_KEYS = EMBED_MODEL,
+    chunk_size: int = 256,
+    chunk_overlap: int = 40,
 ) -> None:
     """
     Run file vector search and save results to JSON files.
@@ -70,6 +75,9 @@ def main(
         include_files: Files or directories to include.
         exclude_files: Files or directories to exclude.
         max_group_depth: Maximum depth for grouping directories.
+        embed_model: Embedding model to use.
+        chunk_size: Size of text chunks for initial search.
+        chunk_overlap: Overlap between chunks for initial search.
     """
     output_dir = f"{OUTPUT_DIR}/{format_sub_dir(query)}"
     shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
@@ -92,8 +100,8 @@ def main(
                 top_k=50,
                 threshold=0.2,
                 embed_model=embed_model,
-                chunk_size=256,
-                chunk_overlap=40,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
                 split_chunks=True,
                 tokenizer=get_tokens,
                 preprocess=preprocess_text,
@@ -161,7 +169,7 @@ def main(
             base_name = base_dir.name
             top_k = None
             threshold = 0.0
-            chunk_overlap = 80
+            group_chunk_overlap = 80
             results = list(
                 search_files_vector(
                     str(base_dir),
@@ -170,8 +178,8 @@ def main(
                     top_k=top_k,
                     threshold=threshold,
                     embed_model=embed_model,
-                    chunk_size=512 - CONTEXT_SAFETY_MARGIN,
-                    chunk_overlap=chunk_overlap,
+                    chunk_size=chunk_size - CONTEXT_SAFETY_MARGIN,
+                    chunk_overlap=group_chunk_overlap,
                     split_chunks=False,
                     tokenizer=get_tokens,
                     preprocess=preprocess_text,
@@ -313,6 +321,18 @@ def get_args():
         default=EMBED_MODEL,
         help=f"Embedding model to use (default: {EMBED_MODEL})",
     )
+    parser.add_argument(
+        "--chunk-size",
+        type=int,
+        default=256,
+        help="Size of text chunks for initial search (default: 256)",
+    )
+    parser.add_argument(
+        "--chunk-overlap",
+        type=int,
+        default=40,
+        help="Overlap between chunks for initial search (default: 40)",
+    )
     args = parser.parse_args()
 
     # Parse extensions as list
@@ -330,4 +350,6 @@ if __name__ == "__main__":
         args.exclude,
         args.depth,
         args.embed_model,
+        args.chunk_size,
+        args.chunk_overlap,
     )
