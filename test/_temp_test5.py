@@ -1,408 +1,275 @@
-Here are the workflow diagrams and full Python implementations for each scenario. These examples use `langchain` and `tiktoken` for token management, but the architectural patterns are framework-agnostic.
+import logging
+import os
 
-### 1. Markdown Repo: Structure-Aware Map-Reduce
-
-**Workflow Diagram:**
-```mermaid
-graph TD
-    A[Scan docs/ Folder] --> B{Parse Frontmatter}
-    B -- Irrelevant --> C[Skip File]
-    B -- Relevant --> D[Split by H1/H2 Headers]
-    D --> E[Inject Parent Headers into Each Chunk]
-    E --> F[Map: Summarize Each Chunk]
-    F --> G{Total Summary Tokens > Budget?}
-    G -- Yes --> H[Recursive Reduce: Summarize Summaries]
-    G -- No --> I[Final Reduce: Synthesize Repo Summary]
-    H --> I
-```
-
-**Full Implementation:**
-```python
-import os, re, tiktoken
-from langchain.text_splitter import MarkdownHeaderTextSplitter
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
-
-llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)  # Small context model
-enc = tiktoken.encoding_for_model("gpt-4o-mini")
-TOKEN_BUDGET = 3500
-
-def load_and_filter_markdown(docs_dir: str, filter_tag: str = "core"):
-    """Filter files using frontmatter BEFORE consuming context."""
-    relevant_files = []
-    for root, _, files in os.walk(docs_dir):
-        for f in files:
-            if not f.endswith(".md"): continue
-            path = os.path.join(root, f)
-            content = open(path).read()
-            # Simple frontmatter parse (use python-frontmatter in production)
-            match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-            if match and filter_tag in match.group(1):
-                relevant_files.append(content)
-    return relevant_files
-
-def structure_aware_chunk(markdown_docs: list[str]):
-    """Split by headers, preserving hierarchy in metadata."""
-    splitter = MarkdownHeaderTextSplitter(headers_to_split_on=[
-        ("#", "H1"), ("##", "H2"), ("###", "H3")
-    ])
-    all_chunks = []
-    for doc in markdown_docs:
-        chunks = splitter.split_text(doc)
-        for chunk in chunks:
-            # Re-inject parent headers so small model has context
-            header_ctx = " > ".join(
-                v for k, v in chunk.metadata.items() if v
-            )
-            chunk.page_content = f"[Section: {header_ctx}]\n{chunk.page_content}"
-            all_chunks.append(chunk)
-    return all_chunks
-
-async def map_reduce_summarize(chunks, budget=TOKEN_BUDGET):
-    map_prompt = ChatPromptTemplate.from_template(
-        "Summarize this documentation section in ≤150 tokens. "
-        "Focus on API contracts, constraints, and key decisions.\n\n{text}"
-    )
-    reduce_prompt = ChatPromptTemplate.from_template(
-        "Synthesize these section summaries into a unified repo overview. "
-        "Eliminate redundancy. Max {max_tokens} tokens.\n\n{summaries}"
-    )
-
-    # MAP phase
-    summaries = []
-    for chunk in chunks:
-        resp = await llm.ainvoke(map_prompt.format_messages(text=chunk.page_content))
-        summaries.append(resp.content)
-
-    # RECURSIVE REDUCE phase
-    while len(enc.encode("\n".join(summaries))) > budget:
-        batch_size = max(2, budget // 200)  # Dynamic batching based on budget
-        new_summaries = []
-        for i in range(0, len(summaries), batch_size):
-            batch = "\n---\n".join(summaries[i:i+batch_size])
-            resp = await llm.ainvoke(reduce_prompt.format_messages(
-                summaries=batch, max_tokens=budget // 2
-            ))
-            new_summaries.append(resp.content)
-        summaries = new_summaries
-
-    # FINAL REDUCE
-    final = await llm.ainvoke(reduce_prompt.format_messages(
-        summaries="\n---\n".join(summaries), max_tokens=budget
-    ))
-    return final.content
-```
-
----
-
-### 2. Docs Site: Hub-First Deduplicated Traversal
-
-**Workflow Diagram:**
-```mermaid
-graph TD
-    A[Crawl Sitemap] --> B[Build Page Graph]
-    B --> C[Identify Hub Pages via Link Count]
-    C --> D[Extract Main Content Only]
-    D --> E[Summarize Hub Pages First]
-    E --> F{Hub Summary Indicates Relevance?}
-    F -- Yes --> G[Fetch & Summarize Child Pages]
-    F -- No --> H[Skip Subtree]
-    G --> I[Deduplicate Across Page Summaries]
-    I --> J[Link-Aware Final Synthesis]
-```
-
-**Full Implementation:**
-```python
+import requests
 import trafilatura
-from collections import defaultdict
 
-async def summarize_docs_site(sitemap_urls: list[str], llm, budget=3500):
-    # Step 1: Build page graph and identify hubs
-    page_graph = defaultdict(list)
-    page_contents = {}
-    for url in sitemap_urls:
-        downloaded = trafilatura.fetch_url(url)
-        main_content = trafilatura.extract(downloaded, include_tables=True)
-        if not main_content: continue
-        page_contents[url] = main_content
-        # Extract internal links to build graph
-        links = trafilatura.extract(downloaded, include_links=True) or ""
-        for link_url in sitemap_urls:
-            if link_url != url and link_url in links:
-                page_graph[url].append(link_url)
+# Centralized adapters & config
+from jet.adapters.llama_cpp.config import (
+    LLM_BASE_URL,
+    LLM_MODEL,
+    RERANK_BASE_URL,
+    RERANK_MODEL,
+)
+from jet.adapters.llama_cpp.llm_utils import chat
+from jet.adapters.llama_cpp.rerank_utils import rerank as adapter_rerank
+from trafilatura.settings import use_config
 
-    # Step 2: Sort by hub score (outgoing links = importance proxy)
-    hub_sorted = sorted(page_contents.keys(),
-                        key=lambda u: len(page_graph.get(u, [])),
-                        reverse=True)
+logger = logging.getLogger(__name__)
 
-    # Step 3: Progressive disclosure summarization
-    page_summaries = {}
-    child_queue = []
+# SearXNG and Trafilatura have no adapter equivalents; keep local config
+SEARXNG_URL = os.environ.get("SEARXNG_URL", "http://localhost:8888")
 
-    hub_prompt = ChatPromptTemplate.from_template(
-        "Summarize this documentation page in ≤200 tokens. "
-        "End with: 'RELEVANT_CHILDREN: [list child topics if this page references them]'\n\n{text}"
-    )
+TRAFA_CONFIG = use_config()
+TRAFA_CONFIG.set("DEFAULT", "EXTRACTION_TIMEOUT", "30")
+TRAFA_CONFIG.set("DEFAULT", "NO_FALLBACK", "False")
 
-    for url in hub_sorted[:10]:  # Process top 10 hubs first
-        resp = await llm.ainvoke(hub_prompt.format_messages(text=page_contents[url]))
-        page_summaries[url] = resp.content
-        # Parse relevant children from structured output
-        if "RELEVANT_CHILDREN:" in resp.content:
-            child_queue.extend(page_graph.get(url, []))
+BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/125.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+}
 
-    # Step 4: Summarize only relevant children
-    child_prompt = ChatPromptTemplate.from_template(
-        "Parent page summary: {parent_summary}\n\n"
-        "Summarize this child page in ≤150 tokens, focusing ONLY on details "
-        "not already covered in the parent.\n\n{text}"
-    )
-    for child_url in set(child_queue):
-        if child_url in page_summaries or child_url not in page_contents:
-            continue
-        parent = next((s for u, s in page_summaries.items()
-                       if child_url in page_graph.get(u, [])), "N/A")
-        resp = await llm.ainvoke(child_prompt.format_messages(
-            parent_summary=parent, text=page_contents[child_url]
-        ))
-        page_summaries[child_url] = resp.content
 
-    # Step 5: Link-aware final synthesis
-    combined = "\n\n".join(
-        f"[Page: {url}]\n{summary}"
-        for url, summary in page_summaries.items()
-    )
-    final_prompt = ChatPromptTemplate.from_template(
-        "Synthesize these documentation page summaries into a coherent guide. "
-        "Preserve cross-references between pages. Max {budget} tokens.\n\n{content}"
-    )
-    final = await llm.ainvoke(final_prompt.format_messages(
-        content=combined, budget=budget
-    ))
-    return final.content
-```
-
----
-
-### 3. RAG Results: Rerank → Dedup → Grounded Synthesis
-
-**Workflow Diagram:**
-```mermaid
-graph TD
-    A[Raw Retrieval Top-50] --> B[Cross-Encoder Reranker]
-    B --> C[Top-20 Reranked Chunks]
-    C --> D[Embed All Chunks]
-    D --> E[Semantic Clustering threshold=0.92]
-    E --> F[Select Centroid Per Cluster]
-    F --> G{Fit Within Token Budget?}
-    G -- No --> H[Drop Lowest-Ranked Clusters]
-    G -- Yes --> I[Order: High-Rank at Start & End]
-    I --> J[Citation-Grounded Summarization]
-    J --> K[Verify Citations Exist in Source]
-```
-
-**Full Implementation:**
-```python
-import numpy as np
-from sklearn.cluster import AgglomerativeClustering
-from sentence_transformers import SentenceTransformer, CrossEncoder
-
-reranker = CrossEncoder("BAAI/bge-reranker-v2-m3")
-embedder = SentenceTransformer("BAAI/bge-small-en-v1.5")
-
-async def summarize_rag_results(query: str, raw_chunks: list[dict], llm, budget=3500):
+def web_search(query: str, num_results: int = 10) -> list[dict]:
     """
-    raw_chunks: [{"id": "c1", "text": "...", "score": 0.8}, ...]
+    Production SearXNG integration with error handling and structured output.
+    Returns results formatted for downstream reranking.
     """
-    # Step 1: Rerank
-    pairs = [[query, c["text"]] for c in raw_chunks]
-    rerank_scores = reranker.predict(pairs)
-    ranked = sorted(zip(raw_chunks, rerank_scores), key=lambda x: x[1], reverse=True)
-    top_k = [item[0] for item in ranked[:20]]
-
-    # Step 2: Semantic deduplication
-    embeddings = embedder.encode([c["text"] for c in top_k])
-    clustering = AgglomerativeClustering(
-        n_clusters=None, distance_threshold=0.08, metric="cosine", linkage="average"
-    ).fit(embeddings)
-
-    # Select highest-ranked chunk per cluster
-    seen_clusters = set()
-    deduped = []
-    for chunk, _ in ranked[:20]:
-        idx = top_k.index(chunk)
-        cluster_id = clustering.labels_[idx]
-        if cluster_id not in seen_clusters:
-            deduped.append(chunk)
-            seen_clusters.add(cluster_id)
-
-    # Step 3: Budget fitting + Lost-in-the-Middle ordering
-    final_chunks = []
-    used_tokens = 0
-    high_rank, low_rank = [], []
-    for i, chunk in enumerate(deduped):
-        tokens = len(enc.encode(chunk["text"]))
-        if used_tokens + tokens > budget - 500:  # Reserve for prompt + output
-            break
-        used_tokens += tokens
-        if i < len(deduped) // 3 or i > 2 * len(deduped) // 3:
-            high_rank.append(chunk)
-        else:
-            low_rank.append(chunk)
-
-    ordered = high_rank[:len(high_rank)//2] + low_rank + high_rank[len(high_rank)//2:]
-
-    # Step 4: Citation-grounded synthesis
-    numbered = "\n\n".join(
-        f"[{i}] (ID:{c['id']}) {c['text']}" for i, c in enumerate(ordered)
-    )
-    prompt = ChatPromptTemplate.from_template(
-        "Answer the query using ONLY the provided chunks. "
-        "Cite every claim as [N]. If information conflicts, note both views.\n\n"
-        "Query: {query}\n\nChunks:\n{chunks}"
-    )
-    response = await llm.ainvoke(prompt.format_messages(query=query, chunks=numbered))
-
-    # Step 5: Post-hoc citation verification
-    cited_ids = set(re.findall(r"\[(\d+)\]", response.content))
-    valid_indices = {str(i) for i in range(len(ordered))}
-    if not cited_ids.issubset(valid_indices):
-        response = await llm.ainvoke(
-            "Your previous response contained invalid citations. "
-            f"Valid indices: {valid_indices}. Regenerate.\n\n" + 
-            prompt.format_messages(query=query, chunks=numbered)[0].content
+    try:
+        resp = requests.get(
+            f"{SEARXNG_URL}/search",
+            params={
+                "q": query,
+                "format": "json",
+                "pageno": 1,
+                "categories": "general",
+                "language": "en",
+            },
+            timeout=15,
+            headers={"Accept": "application/json"},
         )
+        resp.raise_for_status()
+        data = resp.json()
 
-    return response.content
-```
+        results = []
+        for r in data.get("results", [])[:num_results]:
+            results.append(
+                {
+                    "title": r.get("title", ""),
+                    "url": r.get("url", ""),
+                    "snippet": r.get("content", ""),
+                    "engine": r.get("engine", "unknown"),
+                }
+            )
+        logger.info(f"Search returned {len(results)} results for: {query}")
+        return results
 
----
+    except requests.exceptions.Timeout:
+        logger.error(f"SearXNG timeout for query: {query}")
+        return []
+    except Exception as e:
+        logger.error(f"SearXNG error: {e}")
+        return []
 
-### 4. Very Long Text: Recursive Abstractive + Running Summary
 
-**Workflow Diagram:**
-```mermaid
-graph TD
-    A[Full Text] --> B[Lightweight Key-Phrase Extraction]
-    B --> C[Anchor-Based Intelligent Chunking]
-    C --> D[Initialize Running Summary State]
-    D --> E{More Chunks?}
-    E -- Yes --> F[Update Running Summary with Next Chunk]
-    F --> G{Running Summary Exceeds Budget?}
-    G -- Yes --> H[Compress Running Summary In-Place]
-    G -- No --> E
-    H --> E
-    E -- No --> I[Final Polish Pass]
-    I --> J[Output Summary]
-```
+def _truncate_content(content: str, max_chars: int) -> str:
+    """Intelligently truncate at paragraph boundaries."""
+    if len(content) <= max_chars:
+        return content.strip()
 
-**Full Implementation:**
-```python
-from langchain.text_splitter import TextSplitter
-import spacy
+    truncated = content[:max_chars]
+    last_para = truncated.rfind("\n\n")
+    if last_para > max_chars * 0.7:
+        return truncated[:last_para] + "\n\n[... content truncated ...]"
+    return truncated + "\n\n[... content truncated ...]"
 
-nlp = spacy.load("en_core_web_sm")
 
-class AnchorTextSplitter(TextSplitter):
-    """Split at paragraph boundaries near key phrase anchors."""
-    def split_text(self, text: str) -> list[str]:
-        doc = nlp(text[:100000])  # Limit NER pass for speed
-        # Find entity positions as anchor points
-        anchors = sorted(set(ent.start_char for ent in doc.ents))
-        
-        chunks, start = [], 0
-        target_size = self.chunk_size
-        
-        for anchor in anchors:
-            if anchor - start >= target_size:
-                # Find nearest paragraph break before anchor
-                search_zone = text[start:anchor]
-                last_para = search_zone.rfind("\n\n")
-                split_point = start + last_para if last_para > 0 else anchor
-                chunks.append(text[start:split_point].strip())
-                start = split_point
-        
-        if start < len(text):
-            chunks.append(text[start:].strip())
-        return [c for c in chunks if c]
+def read_url(url: str, max_chars: int = 8000) -> str:
+    """
+    Robust URL extraction with multi-strategy fallback.
+    1. Try trafilatura with default config
+    2. Fallback to raw requests with browser headers + manual parse
+    3. Return structured error if all fail
+    """
+    # Strategy 1: trafilatura fetch_url
+    try:
+        downloaded = trafilatura.fetch_url(url, config=TRAFA_CONFIG)
+        if downloaded:
+            content = trafilatura.extract(
+                downloaded,
+                config=TRAFA_CONFIG,
+                output_format="markdown",
+                include_tables=True,
+                include_links=True,
+                deduplicate=True,
+            )
+            if content and len(content.strip()) > 100:
+                logger.info(f"[Strategy 1] Extracted {len(content)} chars from {url}")
+                return _truncate_content(content, max_chars)
+    except Exception as e:
+        logger.warning(f"[Strategy 1] Failed for {url}: {e}")
 
-async def summarize_long_text(text: str, llm, budget=3500):
-    splitter = AnchorTextSplitter(chunk_size=2000, chunk_overlap=200)
-    chunks = splitter.split_text(text)
+    # Strategy 2: raw requests + trafilatura extract
+    try:
+        logger.info(f"[Strategy 2] Retrying {url} with browser headers")
+        resp = requests.get(
+            url, headers=BROWSER_HEADERS, timeout=20, allow_redirects=True
+        )
+        resp.raise_for_status()
 
-    update_prompt = ChatPromptTemplate.from_template(
-        "CURRENT RUNNING SUMMARY ({current_tokens} tokens):\n{summary}\n\n"
-        "NEW TEXT SEGMENT:\n{new_text}\n\n"
-        "Update the running summary with NEW information only. "
-        "Do NOT repeat already-covered points. "
-        "Maintain chronological/thematic flow. "
-        "Output ONLY the updated summary, ≤{max_tokens} tokens."
+        if not resp.encoding or resp.encoding == "ISO-8859-1":
+            resp.encoding = resp.apparent_encoding
+
+        content = trafilatura.extract(
+            resp.text,
+            output_format="markdown",
+            include_tables=True,
+            include_links=True,
+        )
+        if content and len(content.strip()) > 100:
+            logger.info(f"[Strategy 2] Extracted {len(content)} chars via raw requests")
+            return _truncate_content(content, max_chars)
+
+    except Exception as e:
+        logger.warning(f"[Strategy 2] Failed for {url}: {e}")
+
+    logger.error(f"All extraction strategies failed for {url}")
+    return (
+        f"[ERROR] Could not extract readable content from {url}. "
+        "Site may require JavaScript rendering or block automated access."
     )
 
-    compress_prompt = ChatPromptTemplate.from_template(
-        "Compress this summary to ≤{target} tokens without losing key facts, "
-        "entities, dates, or conclusions. Remove examples and elaborations.\n\n{summary}"
+
+def rerank_results(query: str, documents: list[dict], top_n: int = 3) -> list[dict]:
+    """
+    Rerank search results using the centralized llama.cpp rerank adapter.
+    Maps adapter output back to original document dicts with relevance scores.
+    """
+    if not documents:
+        return []
+
+    # Extract text snippets for the reranker; track index mapping
+    valid_docs: list[str] = []
+    index_map: list[int] = []
+    for i, d in enumerate(documents):
+        text = (d.get("snippet") or d.get("content") or "").strip()
+        if text:
+            valid_docs.append(text)
+            index_map.append(i)
+
+    if not valid_docs:
+        logger.warning("All documents have empty content, skipping reranking")
+        return documents[:top_n]
+
+    try:
+        logger.info(
+            f"Reranking {len(valid_docs)} docs via adapter (model={RERANK_MODEL})"
+        )
+        # Adapter returns list[RerankResult] sorted by score desc
+        ranked = adapter_rerank(query=query, documents=valid_docs, top_n=top_n)
+
+        output: list[dict] = []
+        for item in ranked:
+            orig_idx = index_map[item["index"]]
+            doc = documents[orig_idx].copy()
+            doc["relevance_score"] = item["score"]
+            output.append(doc)
+
+        logger.info(f"Reranked {len(valid_docs)} valid docs → top {len(output)}")
+        return output
+
+    except Exception as e:
+        logger.warning(f"Adapter reranker failed, returning unranked top-{top_n}: {e}")
+        return documents[:top_n]
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
     )
 
-    running_summary = ""
-    max_summary_tokens = int(budget * 0.6)  # Leave room for new chunk in prompt
+    DEMO_QUERY = "latest solid-state battery breakthroughs 2026"
 
-    for chunk in chunks:
-        current_tokens = len(enc.encode(running_summary))
-        chunk_tokens = len(enc.encode(chunk))
+    print("=" * 70)
+    print("🔍 RESEARCH PIPELINE DEMO")
+    print(f"   Query:     {DEMO_QUERY}")
+    print(f"   SearXNG:   {SEARXNG_URL}")
+    print(f"   Reranker:  {RERANK_BASE_URL} ({RERANK_MODEL})")
+    print(f"   LLM:       {LLM_BASE_URL} ({LLM_MODEL})")
+    print("=" * 70)
 
-        # Safety: truncate chunk if it alone exceeds remaining budget
-        available = budget - current_tokens - 200  # 200 for prompt overhead
-        if chunk_tokens > available:
-            chunk = enc.decode(enc.encode(chunk)[:available])
+    # ── STEP 1: Web Search ────────────────────────────────────────────
+    print("\n📡 STEP 1: Web Search via SearXNG")
+    raw_results = web_search(DEMO_QUERY, num_results=10)
+    if not raw_results:
+        print("   ❌ No search results returned. Check SearXNG connectivity.")
+        exit(1)
+    for i, r in enumerate(raw_results, 1):
+        print(f"   [{i}] {r['title'][:60]}... ({r['engine']})")
 
-        resp = await llm.ainvoke(update_prompt.format_messages(
-            summary=running_summary or "(Empty - begin summarizing)",
-            current_tokens=current_tokens,
-            new_text=chunk,
-            max_tokens=max_summary_tokens
-        ))
-        running_summary = resp.content
+    # ── STEP 2: Reranking ─────────────────────────────────────────────
+    print(f"\n🏆 STEP 2: Reranking {len(raw_results)} candidates")
+    ranked_results = rerank_results(DEMO_QUERY, raw_results, top_n=3)
+    for i, r in enumerate(ranked_results, 1):
+        score = r.get("relevance_score", "N/A")
+        score_str = f"{score:.4f}" if isinstance(score, float) else str(score)
+        print(f"   [{i}] Score={score_str} | {r['title'][:50]}...")
+        print(f"       URL: {r['url']}")
 
-        # Compress if running summary grows too large
-        if len(enc.encode(running_summary)) > max_summary_tokens:
-            comp = await llm.ainvoke(compress_prompt.format_messages(
-                summary=running_summary, target=max_summary_tokens
-            ))
-            running_summary = comp.content
+    # ── STEP 3: Content Extraction ────────────────────────────────────
+    extracted_content = ""
+    if ranked_results:
+        best_url = ranked_results[0]["url"]
+        print(f"\n📄 STEP 3: Extracting content from top result")
+        print(f"   URL: {best_url}")
+        extracted_content = read_url(best_url, max_chars=4000)
 
-    # Final polish
-    polish_prompt = ChatPromptTemplate.from_template(
-        "Polish this summary for readability and coherence. "
-        "Fix any artifacts from incremental updating. "
-        "Max {budget} tokens.\n\n{summary}"
-    )
-    final = await llm.ainvoke(polish_prompt.format_messages(
-        summary=running_summary, budget=budget
-    ))
-    return final.content
-```
+        print(f"\n{'─' * 70}")
+        print("📋 EXTRACTED CONTENT PREVIEW (first 1500 chars):")
+        print(f"{'─' * 70}")
+        preview = extracted_content[:1500]
+        if len(extracted_content) > 1500:
+            preview += "\n[... truncated for demo ...]"
+        print(preview)
+        print(f"{'─' * 70}")
+        print(f"✅ Total extracted: {len(extracted_content)} chars")
+    else:
+        print("\n⚠️  No results after reranking. Try a different query.")
+        exit(0)
 
----
+    # ── STEP 4: LLM Synthesis ─────────────────────────────────────────
+    print(f"\n🤖 STEP 4: LLM Synthesis (model={LLM_MODEL})")
+    if extracted_content and not extracted_content.startswith("[ERROR]"):
+        llm_prompt = (
+            f"Based on the following research content, answer this question:\n"
+            f"'{DEMO_QUERY}'\n\n"
+            f"## Research Content\n{extracted_content}\n\n"
+            f"Provide a concise, well-structured summary with key findings."
+        )
+        logger.info(f"Sending {len(llm_prompt)} char prompt to LLM")
+        result = chat(prompt=llm_prompt, model=LLM_MODEL)
 
-### Shared Utilities & Dependencies
+        print(f"\n{'═' * 70}")
+        print("💡 LLM RESPONSE:")
+        print(f"{'═' * 70}")
+        print(result.content)
+        print(f"{'═' * 70}")
+        if result.usage:
+            print(
+                f"📊 Tokens: {result.usage.get('prompt_tokens', '?')} in / "
+                f"{result.usage.get('completion_tokens', '?')} out | "
+                f"Finish: {result.finish_reason}"
+            )
+    else:
+        print("   ⚠️  Skipping LLM step: no valid content to synthesize.")
 
-```bash
-pip install langchain langchain-openai tiktoken trafilatura \
-            sentence-transformers scikit-learn spacy
-python -m spacy download en_core_web_sm
-```
-
-### Key Design Decisions Explained
-
-| Decision | Rationale for Small Context |
-| :--- | :--- |
-| **Frontmatter/Graph pre-filtering** | Eliminates tokens *before* they ever reach the LLM. Cheapest form of compression. |
-| **Dynamic batch sizing in recursive reduce** | Fixed batches fail when summary lengths vary. Budget-aware batching guarantees each reduce step fits. |
-| **Agglomerative clustering over cosine similarity pairs** | O(n²) pairwise comparison is wasteful. Clustering deduplicates transitively in O(n·k). |
-| **Running summary state vs. Map-Reduce for long text** | Map-Reduce loses narrative continuity in plain text. Running summary preserves temporal/causal chains within a bounded window. |
-| **Post-hoc citation verification** | Small models hallucinate citations under pressure. A cheap verification pass catches this without expanding context. |
-| **SpaCy NER for anchoring, not LLM** | Using the LLM to find split points wastes context on meta-tasks. Lightweight NLP handles structural analysis for free. |
-
-> ⚡ **Production Note:** All async functions above should be wrapped with rate limiting (`asyncio.Semaphore`) and retry logic with exponential backoff. Small-context models often require more API calls due to recursive patterns—budget your rate limits accordingly. Add observability (e.g., LangSmith, Phoenix) to track token usage per pipeline stage and identify where compression ratios degrade.
+    print("\n✨ Demo complete. Integrate these functions into ResearchAgent.run()")
