@@ -20,7 +20,6 @@ from openai import AsyncOpenAI
 # --- Configuration for Local llama.cpp Servers ---
 LLM_CLIENT = AsyncOpenAI(base_url=LLM_BASE_URL, api_key="local")
 EMBED_CLIENT = AsyncOpenAI(base_url=EMBED_BASE_URL_LG, api_key="local")
-# NOTE: Reranking uses raw httpx since llama.cpp /rerank is not part of the OpenAI SDK spec
 
 MAX_ITERATIONS = 5
 MAX_PAGES_PER_ITER = 3
@@ -48,16 +47,15 @@ async def get_embeddings(texts: list[str]) -> list[list[float]]:
 
 
 async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
-    """Rerank using local cross-encoder via raw httpx (not OpenAI SDK)."""
+    """Rerank using local cross-encoder via raw httpx."""
     if not chunks:
         return []
 
     docs = [c["content"] for c in chunks]
 
-    # ✅ FIX: Use httpx directly instead of AsyncOpenAI.post()
     async with httpx.AsyncClient(timeout=30) as client:
         resp = await client.post(
-            f"{RERANK_BASE_URL}/rerank",
+            f"{RERANK_BASE_URL.rstrip('/')}/rerank",
             json={
                 "model": RERANK_MODEL,
                 "query": query,
@@ -103,6 +101,43 @@ async def fetch_and_parse(url: str) -> tuple[str, list[str]]:
         return "", []
 
 
+async def stream_llm_completion(
+    prompt: str,
+    max_tokens: int = 2048,
+    temperature: float = 0.3,
+    top_p: float = 0.95,
+    presence_penalty: float = 1.5,
+    response_format: dict | None = None,
+    label: str = "LLM",
+) -> str:
+    """Stream LLM completion with flushed output and enable_thinking disabled."""
+    create_kwargs: dict = {
+        "model": LLM_MODEL,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "top_p": top_p,
+        "presence_penalty": presence_penalty,
+        "stream": True,
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+    }
+    if response_format is not None:
+        create_kwargs["response_format"] = response_format
+
+    full_content = ""
+    print(f"\n[{label}] ", end="", flush=True)
+
+    stream = await LLM_CLIENT.chat.completions.create(**create_kwargs)
+    async for chunk in stream:
+        delta = chunk.choices[0].delta.content if chunk.choices else None
+        if delta:
+            full_content += delta
+            print(delta, end="", flush=True)
+
+    print("", flush=True)  # Newline after stream completes
+    return full_content
+
+
 # --- Graph Nodes ---
 async def retrieve_node(state: WebSwarmState) -> dict:
     """Fetch pending URLs, chunk, embed, and rerank."""
@@ -137,7 +172,7 @@ async def retrieve_node(state: WebSwarmState) -> dict:
 
 
 async def evaluate_node(state: WebSwarmState) -> dict:
-    """LLM evaluates if current KB sufficiently answers the query."""
+    """LLM evaluates if current KB sufficiently answers the query (streamed)."""
     kb_summary = "\n---\n".join(
         f"[{c['url']}] (score:{c['score']:.2f})\n{c['content'][:500]}"
         for c in state["knowledge_base"][:10]
@@ -160,19 +195,19 @@ Rules:
 - "insufficient": Partial answer exists but needs more depth/breadth AND pending_urls remain
 - "irrelevant": Retrieved content is off-topic OR max iterations reached without answer"""
 
-    resp = await LLM_CLIENT.chat.completions.create(
-        model=LLM_MODEL,
-        messages=[{"role": "user", "content": prompt}],
+    content = await stream_llm_completion(
+        prompt=prompt,
         temperature=0,
         response_format={"type": "json_object"},
+        label="EVALUATE",
     )
 
-    result = json.loads(resp.choices[0].message.content)
+    result = json.loads(content)
     return {"evaluation": result.get("evaluation", "insufficient")}
 
 
 async def synthesize_node(state: WebSwarmState) -> dict:
-    """Generate final answer from accumulated knowledge."""
+    """Generate final answer from accumulated knowledge (streamed)."""
     context = "\n\n===SOURCE===".join(
         f"URL: {c['url']}\nRelevance: {c['score']:.2f}\n{c['content']}"
         for c in sorted(
@@ -188,13 +223,13 @@ QUERY: {state["query"]}
 CONTEXT:
 {context}"""
 
-    resp = await LLM_CLIENT.chat.completions.create(
-        model=LLM_MODEL,
-        messages=[{"role": "user", "content": prompt}],
+    content = await stream_llm_completion(
+        prompt=prompt,
         temperature=0.1,
+        label="SYNTHESIZE",
     )
 
-    return {"final_answer": resp.choices[0].message.content}
+    return {"final_answer": content}
 
 
 # --- Conditional Routing ---
