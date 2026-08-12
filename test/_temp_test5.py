@@ -6,6 +6,7 @@ from urllib.parse import urljoin, urlparse
 
 import httpx
 from bs4 import BeautifulSoup
+from jet.adapters.llama_cpp.chunking_utils import truncate_texts
 from jet.adapters.llama_cpp.config import (
     EMBED_BASE_URL_LG,
     EMBED_MODEL_LG,
@@ -18,22 +19,24 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from openai import AsyncOpenAI
 
-# --- Configuration for Local llama.cpp Servers ---
 LLM_CLIENT = AsyncOpenAI(base_url=LLM_BASE_URL, api_key="local")
 EMBED_CLIENT = AsyncOpenAI(base_url=EMBED_BASE_URL_LG, api_key="local")
 
 MAX_ITERATIONS = 5
 MAX_PAGES_PER_ITER = 3
-RELEVANCE_THRESHOLD = 0.10
+RELEVANCE_THRESHOLD = 0.15
 MIN_CHUNKS_TO_KEEP = 3
 APPLY_SIGMOID_NORMALIZATION = True
-
-# ✅ NEW: Allow following redirects to different domains
-# Set to True if root URLs may redirect to external docs sites
 FOLLOW_CROSS_DOMAIN_LINKS = True
+MIN_SCORE_FOR_KB = 0.05
+
+LLM_MAX_TOKENS = 2048
+# ✅ Must match your models.ini ubatch-size for bge-rerank-v2-m3
+RERANK_MAX_TOKENS = 1024
+# Tokens reserved for query in reranker input format
+RERANK_QUERY_TOKEN_RESERVE = 200
 
 
-# --- State Definition ---
 class WebSwarmState(TypedDict):
     query: str
     root_url: str
@@ -46,15 +49,56 @@ class WebSwarmState(TypedDict):
     final_answer: str | None
 
 
-# --- Helper Functions for Local Models ---
+# --- Helper: Token-safe document preparation ---
+def prepare_docs_for_rerank(
+    chunks: list[dict],
+    max_tokens: int = RERANK_MAX_TOKENS,
+    query_reserve: int = RERANK_QUERY_TOKEN_RESERVE,
+) -> list[dict]:
+    """Truncate chunk content to fit within reranker's physical batch size.
+
+    Uses the reranker model's own tokenizer via jet's truncate_texts,
+    which respects sentence boundaries to avoid cutting mid-thought.
+    """
+    if not chunks:
+        return chunks
+
+    effective_max = max(64, max_tokens - query_reserve)
+    contents = [c["content"] for c in chunks]
+
+    truncated = truncate_texts(
+        texts=contents,
+        model=RERANK_MODEL,
+        max_tokens=effective_max,
+        strict_sentences=True,
+        show_progress=False,
+    )
+
+    for chunk, trunc_text in zip(chunks, truncated):
+        original_len = len(chunk["content"])
+        chunk["content"] = trunc_text
+        chunk["original_chars"] = original_len
+        chunk["truncated_chars"] = len(trunc_text)
+
+    truncated_count = sum(
+        1 for c in chunks if c["original_chars"] != c["truncated_chars"]
+    )
+    if truncated_count > 0:
+        print(
+            f"[PREP] Truncated {truncated_count}/{len(chunks)} docs to fit "
+            f"reranker limit ({effective_max} tokens, model={RERANK_MODEL})"
+        )
+
+    return chunks
+
+
+# --- Existing helpers (unchanged) ---
 async def get_embeddings(texts: list[str]) -> list[list[float]]:
-    """Get embeddings from local llama.cpp server."""
     resp = await EMBED_CLIENT.embeddings.create(model=EMBED_MODEL_LG, input=texts)
     return [d.embedding for d in resp.data]
 
 
 def _sigmoid(x: float) -> float:
-    """Numerically stable sigmoid."""
     if x >= 0:
         return 1.0 / (1.0 + math.exp(-x))
     else:
@@ -63,7 +107,6 @@ def _sigmoid(x: float) -> float:
 
 
 async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
-    """Rerank using local cross-encoder via raw httpx with optional sigmoid normalization."""
     if not chunks:
         print("[RERANK] ⚠️  No chunks to rerank")
         return []
@@ -101,16 +144,18 @@ async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
 
     ranked = sorted(chunks, key=lambda x: x["score"], reverse=True)
 
-    # ✅ DEBUG: Per-chunk score breakdown
     if ranked:
         print(
             f"[RERANK] Score distribution ({'normalized' if APPLY_SIGMOID_NORMALIZATION else 'raw'}):"
         )
         for i, c in enumerate(ranked):
             content_preview = c["content"][:80].replace("\n", " ")
+            orig = c.get("original_chars", "?")
+            trunc = c.get("truncated_chars", "?")
+            trunc_info = f" chars({orig}→{trunc})" if orig != trunc else ""
             print(
                 f"  [{i}] score={c['score']:.4f} raw={c.get('raw_score', 'N/A')} "
-                f'url={c["url"]} preview="{content_preview}..."'
+                f'url={c["url"]}{trunc_info} preview="{content_preview}..."'
             )
     else:
         print("[RERANK] ⚠️  No ranked results returned")
@@ -119,7 +164,6 @@ async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
 
 
 async def fetch_and_parse(url: str) -> tuple[str, list[str], dict]:
-    """Fetch page and extract text + internal links. Returns (text, links, metadata)."""
     meta = {
         "url": url,
         "status": None,
@@ -143,7 +187,6 @@ async def fetch_and_parse(url: str) -> tuple[str, list[str], dict]:
         text = soup.get_text(separator="\n", strip=True)[:8000]
         meta["text_len"] = len(text)
 
-        # ✅ DEBUG: Log redirect detection
         if meta["final_url"] != url:
             print(f"[FETCH] ↪ Redirect detected: {url} → {meta['final_url']}")
 
@@ -152,16 +195,14 @@ async def fetch_and_parse(url: str) -> tuple[str, list[str], dict]:
 
         all_links = []
         for a in soup.find_all("a", href=True):
-            full_url = urljoin(str(resp.url), a["href"])  # Use final URL for resolving
+            full_url = urljoin(str(resp.url), a["href"])
             parsed = urlparse(full_url)
             if parsed.scheme in ("http", "https") and full_url not in all_links:
                 all_links.append(full_url)
 
         meta["links_found"] = len(all_links)
 
-        # Filter links based on domain policy
         if FOLLOW_CROSS_DOMAIN_LINKS:
-            # Allow cross-domain but still filter out obvious non-content URLs
             filtered = [
                 l
                 for l in all_links
@@ -191,14 +232,13 @@ async def fetch_and_parse(url: str) -> tuple[str, list[str], dict]:
 
 async def stream_llm_completion(
     prompt: str,
-    max_tokens: int = 2048,
+    max_tokens: int = LLM_MAX_TOKENS,
     temperature: float = 0.3,
     top_p: float = 0.95,
     presence_penalty: float = 1.5,
     response_format: dict | None = None,
     label: str = "LLM",
 ) -> str:
-    """Stream LLM completion with flushed output and enable_thinking disabled."""
     create_kwargs: dict = {
         "model": LLM_MODEL,
         "messages": [{"role": "user", "content": prompt}],
@@ -240,7 +280,6 @@ async def stream_llm_completion(
 
 # --- Graph Nodes ---
 async def retrieve_node(state: WebSwarmState) -> dict:
-    """Fetch pending URLs, chunk, embed, and rerank."""
     pending = state["pending_urls"][:MAX_PAGES_PER_ITER]
     visited = state["visited_urls"] | set(pending)
 
@@ -274,6 +313,10 @@ async def retrieve_node(state: WebSwarmState) -> dict:
         f"[RETRIEVE] Fetched {len(new_chunks)} pages with content, discovered {len(all_new_links)} new links"
     )
 
+    # ✅ TOKEN-SAFE PREPARATION: Truncate using reranker's own tokenizer
+    # BEFORE sending to server. Prevents 500 errors from oversized inputs.
+    new_chunks = prepare_docs_for_rerank(new_chunks)
+
     ranked_chunks = await rerank_chunks(state["query"], new_chunks)
 
     above_threshold = [c for c in ranked_chunks if c["score"] >= RELEVANCE_THRESHOLD]
@@ -288,6 +331,16 @@ async def retrieve_node(state: WebSwarmState) -> dict:
         print(
             f"[RETRIEVE] ✓ {len(relevant)} chunks above threshold ({RELEVANCE_THRESHOLD})"
         )
+
+    if state["knowledge_base"]:
+        before_filter = len(relevant)
+        relevant = [c for c in relevant if c["score"] >= MIN_SCORE_FOR_KB]
+        dropped = before_filter - len(relevant)
+        if dropped > 0:
+            print(
+                f"[RETRIEVE] 🗑️  Dropped {dropped} low-score chunks "
+                f"(below {MIN_SCORE_FOR_KB}) since KB already has content"
+            )
 
     existing_urls = {k["url"] for k in state["knowledge_base"]}
     new_relevant = [c for c in relevant if c["url"] not in existing_urls]
@@ -315,7 +368,6 @@ async def retrieve_node(state: WebSwarmState) -> dict:
 
 
 async def evaluate_node(state: WebSwarmState) -> dict:
-    """LLM evaluates if current KB sufficiently answers the query (streamed)."""
     print(
         f"\n[EVALUATE] Assessing KB size={len(state['knowledge_base'])} at iteration {state['iteration']}"
     )
@@ -344,9 +396,11 @@ Respond with ONLY valid JSON:
 {{"evaluation": "sufficient|insufficient|irrelevant", "reasoning": "brief explanation"}}
 
 Rules:
-- "sufficient": Context directly answers the query with high confidence
-- "insufficient": Partial answer exists but needs more depth/breadth AND pending_urls remain
-- "irrelevant": Retrieved content is off-topic OR max iterations reached without answer"""
+- "sufficient": Context contains SPECIFIC FACTS, DETAILS, or ENUMERATIONS that directly answer the query. A link or mention that information exists elsewhere is NOT sufficient.
+- "insufficient": Context touches on the topic but lacks specific details, OR only provides links/references to where the answer might be found AND pending_urls remain.
+- "irrelevant": Retrieved content is completely off-topic OR max iterations reached without finding relevant content.
+
+CRITICAL: If the query asks "what are the X options/features/types/steps", the context must LIST or DESCRIBE those specific items. A page titled "Overview" or "Introduction" that says "see documentation for details" does NOT satisfy a question asking for those specific details. The context must contain the actual answer, not just a pointer to it."""
 
     content = await stream_llm_completion(
         prompt=prompt,
@@ -364,7 +418,6 @@ Rules:
 
 
 async def synthesize_node(state: WebSwarmState) -> dict:
-    """Generate final answer from accumulated knowledge (streamed)."""
     sorted_kb = sorted(state["knowledge_base"], key=lambda x: x["score"], reverse=True)[
         :8
     ]
@@ -379,6 +432,7 @@ async def synthesize_node(state: WebSwarmState) -> dict:
 
     prompt = f"""Using ONLY the provided context, answer the query comprehensively.
 Cite sources as [URL]. If context is insufficient, say so explicitly.
+Do NOT use any knowledge outside the provided context.
 
 QUERY: {state["query"]}
 
@@ -394,9 +448,7 @@ CONTEXT:
     return {"final_answer": content}
 
 
-# --- Conditional Routing ---
 def should_continue(state: WebSwarmState) -> Literal["retrieve", "synthesize", END]:
-    """Route based on evaluation and iteration limits."""
     decision = None
     reason = ""
 
@@ -423,23 +475,18 @@ def should_continue(state: WebSwarmState) -> Literal["retrieve", "synthesize", E
     return decision
 
 
-# --- Build Graph ---
 def build_webswarm_graph():
     workflow = StateGraph(WebSwarmState)
-
     workflow.add_node("retrieve", retrieve_node)
     workflow.add_node("evaluate", evaluate_node)
     workflow.add_node("synthesize", synthesize_node)
-
     workflow.add_edge(START, "retrieve")
     workflow.add_edge("retrieve", "evaluate")
     workflow.add_conditional_edges("evaluate", should_continue)
     workflow.add_edge("synthesize", END)
-
     return workflow.compile()
 
 
-# --- Execution ---
 async def run_webswarm(query: str, root_url: str):
     app = build_webswarm_graph()
 
@@ -449,7 +496,9 @@ async def run_webswarm(query: str, root_url: str):
     print(
         f"[INIT] Config: max_iter={MAX_ITERATIONS}, pages/iter={MAX_PAGES_PER_ITER}, "
         f"threshold={RELEVANCE_THRESHOLD}, min_keep={MIN_CHUNKS_TO_KEEP}, "
-        f"sigmoid={APPLY_SIGMOID_NORMALIZATION}, cross_domain={FOLLOW_CROSS_DOMAIN_LINKS}"
+        f"min_score_kb={MIN_SCORE_FOR_KB}, sigmoid={APPLY_SIGMOID_NORMALIZATION}, "
+        f"cross_domain={FOLLOW_CROSS_DOMAIN_LINKS}, "
+        f"rerank_max_tokens={RERANK_MAX_TOKENS}"
     )
     print(f"[INIT] LLM: {LLM_MODEL} @ {LLM_BASE_URL}")
     print(f"[INIT] Reranker: {RERANK_MODEL} @ {RERANK_BASE_URL}")
