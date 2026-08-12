@@ -30,7 +30,7 @@ import shutil
 from pathlib import Path
 from typing import List
 
-from jet.adapters.llama_cpp.config import EMBED_MODEL
+from jet.adapters.llama_cpp.config import EMBED_MODEL_LG
 from jet.adapters.llama_cpp.token_utils import count_tokens
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
@@ -62,9 +62,9 @@ def main(
     include_files: List[str],
     exclude_files: List[str],
     max_group_depth: int,
-    embed_model: LLAMACPP_EMBED_KEYS = EMBED_MODEL,
-    chunk_size: int = 256,
-    chunk_overlap: int = 40,
+    embed_model: LLAMACPP_EMBED_KEYS = EMBED_MODEL_LG,
+    chunk_size: int = 500,
+    chunk_overlap: int = 100,
 ) -> None:
     """
     Run file vector search and save results to JSON files.
@@ -318,20 +318,20 @@ def get_args():
         "-m",
         "--embed-model",
         type=str,
-        default=EMBED_MODEL,
-        help=f"Embedding model to use (default: {EMBED_MODEL})",
+        default=EMBED_MODEL_LG,
+        help=f"Embedding model to use (default: {EMBED_MODEL_LG})",
     )
     parser.add_argument(
         "--chunk-size",
         type=int,
-        default=256,
-        help="Size of text chunks for initial search (default: 256)",
+        default=500,
+        help="Size of text chunks for initial search (default: 500)",
     )
     parser.add_argument(
         "--chunk-overlap",
         type=int,
-        default=40,
-        help="Overlap between chunks for initial search (default: 40)",
+        default=100,
+        help="Overlap between chunks for initial search (default: 100)",
     )
     args = parser.parse_args()
 

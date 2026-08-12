@@ -27,7 +27,7 @@ import shutil
 from pathlib import Path
 from typing import get_args
 
-from jet.adapters.llama_cpp.config import EMBED_MODEL
+from jet.adapters.llama_cpp.config import EMBED_MODEL_LG
 from jet.adapters.llama_cpp.rerank_utils import rerank
 
 # from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
@@ -182,10 +182,10 @@ def main(
     directories: list[str],
     extensions: list[str] = [".py"],
     use_cache: bool = False,
-    embed_model_name: str = EMBED_MODEL,
+    embed_model_name: str = EMBED_MODEL_LG,
     top_k: int | None = None,
     threshold: float = 0.0,
-    chunk_size: int = 400,
+    chunk_size: int = 500,
     chunk_overlap: int = 100,
     batch_size: int = 128,
     weights: "Weights" = DEFAULT_WEIGHTS,
@@ -454,7 +454,7 @@ def parse_arguments():
         "-m",
         "--embed-model",
         type=embed_model_type,
-        default=EMBED_MODEL,
+        default=EMBED_MODEL_LG,
         help=f"Embedding model to use ({', '.join(ALLOWED_EMBED_MODELS)})",
     )
 
@@ -474,7 +474,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--chunk-size", type=int, default=400, help="Size of text chunks"
+        "--chunk-size", type=int, default=500, help="Size of text chunks"
     )
 
     parser.add_argument(

@@ -5,6 +5,7 @@ import shutil
 import string
 from collections import defaultdict
 
+from jet.adapters.llama_cpp.config import EMBED_MODEL_LG, LLM_MODEL
 from jet.adapters.llama_cpp.llm import LlamacppLLM
 from jet.adapters.llama_cpp.tasks.evaluate_multiple_contexts_relevance import (
     evaluate_multiple_contexts_relevance,
@@ -365,8 +366,8 @@ def create_url_dict_list(
 
 async def main(query):
     """Main function to demonstrate file search."""
-    embed_model: LLAMACPP_EMBED_KEYS = os.getenv("LLAMA_CPP_EMBED_MODEL")
-    llm_model: LLAMACPP_LLM_KEYS = os.getenv("LLAMA_CPP_LLM_MODEL")
+    embed_model: LLAMACPP_EMBED_KEYS = EMBED_MODEL_LG
+    llm_model: LLAMACPP_LLM_KEYS = LLM_MODEL
     max_tokens = 4000
     use_cache = True
     urls_limit = 10
