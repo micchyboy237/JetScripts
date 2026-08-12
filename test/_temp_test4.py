@@ -1,19 +1,13 @@
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+# HtmlRAG is NOT a crawler. Demonstration of its actual role:
+import requests
+from htmlrag import HtmlRAG
 
-provider = TracerProvider()
+html = requests.get("https://docs.unstructured.io/core/overview/chunking").text
 
-# ⚠️ Note: NO http:// prefix, and insecure=True for plaintext gRPC
-exporter = OTLPSpanExporter(
-    endpoint="192.168.68.151:4317",
-    insecure=True,
-)
-provider.add_span_processor(SimpleSpanProcessor(exporter))
-trace.set_tracer_provider(provider)
+rag = HtmlRAG()
+pruned = rag.prune(html, max_tokens=3000)
+chunks = rag.chunk(pruned, strategy="semantic")
 
-tracer = trace.get_tracer("connectivity-test")
-with tracer.start_as_current_span("test-span") as span:
-    span.set_attribute("project", "mem0-langgraph-dual-scope")
-    print("✅ Span exported successfully")
+print(f"Produced {len(chunks)} chunks from ALREADY-FETCHED page.")
+print(chunks[0][:500])
+# ⚠️ Zero link discovery. Zero query guidance. Zero crawling.

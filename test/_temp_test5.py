@@ -1,274 +1,265 @@
-import logging
-import os
+import asyncio
+import json
+from typing import Annotated, Literal, Sequence, TypedDict
+from urllib.parse import urljoin, urlparse
 
-import requests
-import trafilatura
-
-# Centralized adapters & config
+import httpx
+from bs4 import BeautifulSoup
 from jet.adapters.llama_cpp.config import (
+    EMBED_BASE_URL_LG,
+    EMBED_MODEL_LG,
     LLM_BASE_URL,
     LLM_MODEL,
     RERANK_BASE_URL,
     RERANK_MODEL,
 )
-from jet.adapters.llama_cpp.llm_utils import chat
-from jet.adapters.llama_cpp.rerank_utils import rerank as adapter_rerank
-from trafilatura.settings import use_config
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from openai import AsyncOpenAI
 
-logger = logging.getLogger(__name__)
+# --- Configuration for Local llama.cpp Servers ---
+LLM_CLIENT = AsyncOpenAI(base_url=LLM_BASE_URL, api_key="local")
+EMBED_CLIENT = AsyncOpenAI(base_url=EMBED_BASE_URL_LG, api_key="local")
+# NOTE: Reranking uses raw httpx since llama.cpp /rerank is not part of the OpenAI SDK spec
 
-# SearXNG and Trafilatura have no adapter equivalents; keep local config
-SEARXNG_URL = os.environ.get("SEARXNG_URL", "http://localhost:8888")
-
-TRAFA_CONFIG = use_config()
-TRAFA_CONFIG.set("DEFAULT", "EXTRACTION_TIMEOUT", "30")
-TRAFA_CONFIG.set("DEFAULT", "NO_FALLBACK", "False")
-
-BROWSER_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/125.0.0.0 Safari/537.36"
-    ),
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
-    "Connection": "keep-alive",
-}
+MAX_ITERATIONS = 5
+MAX_PAGES_PER_ITER = 3
+RELEVANCE_THRESHOLD = 0.35
 
 
-def web_search(query: str, num_results: int = 10) -> list[dict]:
-    """
-    Production SearXNG integration with error handling and structured output.
-    Returns results formatted for downstream reranking.
-    """
-    try:
-        resp = requests.get(
-            f"{SEARXNG_URL}/search",
-            params={
-                "q": query,
-                "format": "json",
-                "pageno": 1,
-                "categories": "general",
-                "language": "en",
+# --- State Definition ---
+class WebSwarmState(TypedDict):
+    query: str
+    root_url: str
+    messages: Annotated[Sequence, add_messages]
+    visited_urls: set[str]
+    pending_urls: list[str]
+    knowledge_base: list[dict]
+    iteration: int
+    evaluation: Literal["sufficient", "insufficient", "irrelevant"]
+    final_answer: str | None
+
+
+# --- Helper Functions for Local Models ---
+async def get_embeddings(texts: list[str]) -> list[list[float]]:
+    """Get embeddings from local llama.cpp server."""
+    resp = await EMBED_CLIENT.embeddings.create(model=EMBED_MODEL_LG, input=texts)
+    return [d.embedding for d in resp.data]
+
+
+async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
+    """Rerank using local cross-encoder via raw httpx (not OpenAI SDK)."""
+    if not chunks:
+        return []
+
+    docs = [c["content"] for c in chunks]
+
+    # ✅ FIX: Use httpx directly instead of AsyncOpenAI.post()
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{RERANK_BASE_URL}/rerank",
+            json={
+                "model": RERANK_MODEL,
+                "query": query,
+                "documents": docs,
+                "top_n": len(docs),
             },
-            timeout=15,
-            headers={"Accept": "application/json"},
         )
         resp.raise_for_status()
         data = resp.json()
 
-        results = []
-        for r in data.get("results", [])[:num_results]:
-            results.append(
-                {
-                    "title": r.get("title", ""),
-                    "url": r.get("url", ""),
-                    "snippet": r.get("content", ""),
-                    "engine": r.get("engine", "unknown"),
-                }
-            )
-        logger.info(f"Search returned {len(results)} results for: {query}")
-        return results
+    results = data.get("results", [])
+    for r in results:
+        idx = r["index"]
+        if idx < len(chunks):
+            chunks[idx]["score"] = r["relevance_score"]
 
-    except requests.exceptions.Timeout:
-        logger.error(f"SearXNG timeout for query: {query}")
-        return []
-    except Exception as e:
-        logger.error(f"SearXNG error: {e}")
-        return []
+    return sorted(chunks, key=lambda x: x["score"], reverse=True)
 
 
-def _truncate_content(content: str, max_chars: int) -> str:
-    """Intelligently truncate at paragraph boundaries."""
-    if len(content) <= max_chars:
-        return content.strip()
-
-    truncated = content[:max_chars]
-    last_para = truncated.rfind("\n\n")
-    if last_para > max_chars * 0.7:
-        return truncated[:last_para] + "\n\n[... content truncated ...]"
-    return truncated + "\n\n[... content truncated ...]"
-
-
-def read_url(url: str, max_chars: int = 8000) -> str:
-    """
-    Robust URL extraction with multi-strategy fallback.
-    1. Try trafilatura with default config
-    2. Fallback to raw requests with browser headers + manual parse
-    3. Return structured error if all fail
-    """
-    # Strategy 1: trafilatura fetch_url
+async def fetch_and_parse(url: str) -> tuple[str, list[str]]:
+    """Fetch page and extract text + internal links."""
     try:
-        downloaded = trafilatura.fetch_url(url, config=TRAFA_CONFIG)
-        if downloaded:
-            content = trafilatura.extract(
-                downloaded,
-                config=TRAFA_CONFIG,
-                output_format="markdown",
-                include_tables=True,
-                include_links=True,
-                deduplicate=True,
-            )
-            if content and len(content.strip()) > 100:
-                logger.info(f"[Strategy 1] Extracted {len(content)} chars from {url}")
-                return _truncate_content(content, max_chars)
+        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+            resp = await client.get(url, headers={"User-Agent": "WebSwarmBot/1.0"})
+            resp.raise_for_status()
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        for tag in soup(["script", "style", "nav", "footer"]):
+            tag.decompose()
+
+        text = soup.get_text(separator="\n", strip=True)[:8000]
+
+        base_domain = urlparse(url).netloc
+        links = []
+        for a in soup.find_all("a", href=True):
+            full_url = urljoin(url, a["href"])
+            if urlparse(full_url).netloc == base_domain and full_url not in links:
+                links.append(full_url)
+
+        return text, links[:20]
     except Exception as e:
-        logger.warning(f"[Strategy 1] Failed for {url}: {e}")
+        print(f"[WARN] Failed to fetch {url}: {e}")
+        return "", []
 
-    # Strategy 2: raw requests + trafilatura extract
-    try:
-        logger.info(f"[Strategy 2] Retrying {url} with browser headers")
-        resp = requests.get(
-            url, headers=BROWSER_HEADERS, timeout=20, allow_redirects=True
-        )
-        resp.raise_for_status()
 
-        if not resp.encoding or resp.encoding == "ISO-8859-1":
-            resp.encoding = resp.apparent_encoding
+# --- Graph Nodes ---
+async def retrieve_node(state: WebSwarmState) -> dict:
+    """Fetch pending URLs, chunk, embed, and rerank."""
+    pending = state["pending_urls"][:MAX_PAGES_PER_ITER]
+    visited = state["visited_urls"] | set(pending)
 
-        content = trafilatura.extract(
-            resp.text,
-            output_format="markdown",
-            include_tables=True,
-            include_links=True,
-        )
-        if content and len(content.strip()) > 100:
-            logger.info(f"[Strategy 2] Extracted {len(content)} chars via raw requests")
-            return _truncate_content(content, max_chars)
+    new_chunks = []
+    all_new_links = []
 
-    except Exception as e:
-        logger.warning(f"[Strategy 2] Failed for {url}: {e}")
+    tasks = [fetch_and_parse(url) for url in pending]
+    results = await asyncio.gather(*tasks)
 
-    logger.error(f"All extraction strategies failed for {url}")
-    return (
-        f"[ERROR] Could not extract readable content from {url}. "
-        "Site may require JavaScript rendering or block automated access."
+    for url, (text, links) in zip(pending, results):
+        if text:
+            new_chunks.append({"url": url, "content": text, "score": 0.0})
+            all_new_links.extend([l for l in links if l not in visited])
+
+    ranked_chunks = await rerank_chunks(state["query"], new_chunks)
+    relevant = [c for c in ranked_chunks if c["score"] >= RELEVANCE_THRESHOLD]
+
+    existing_urls = {k["url"] for k in state["knowledge_base"]}
+    merged_kb = state["knowledge_base"] + [
+        c for c in relevant if c["url"] not in existing_urls
+    ]
+
+    return {
+        "knowledge_base": merged_kb,
+        "visited_urls": visited,
+        "pending_urls": list(set(all_new_links) - visited)[:10],
+        "iteration": state["iteration"] + 1,
+    }
+
+
+async def evaluate_node(state: WebSwarmState) -> dict:
+    """LLM evaluates if current KB sufficiently answers the query."""
+    kb_summary = "\n---\n".join(
+        f"[{c['url']}] (score:{c['score']:.2f})\n{c['content'][:500]}"
+        for c in state["knowledge_base"][:10]
     )
 
+    prompt = f"""You are a RAG evaluation agent. Determine if the retrieved context sufficiently answers the query.
 
-def rerank_results(query: str, documents: list[dict], top_n: int = 3) -> list[dict]:
-    """
-    Rerank search results using the centralized llama.cpp rerank adapter.
-    Scores are normalized to 0-1 by the adapter; raw scores preserved.
-    """
-    if not documents:
-        return []
+QUERY: {state["query"]}
+ROOT URL: {state["root_url"]}
+ITERATION: {state["iteration"]}/{MAX_ITERATIONS}
 
-    valid_docs: list[str] = []
-    index_map: list[int] = []
-    for i, d in enumerate(documents):
-        text = (d.get("snippet") or d.get("content") or "").strip()
-        if text:
-            valid_docs.append(text)
-            index_map.append(i)
+RETRIEVED CONTEXT:
+{kb_summary}
 
-    if not valid_docs:
-        logger.warning("All documents have empty content, skipping reranking")
-        return documents[:top_n]
+Respond with ONLY valid JSON:
+{{"evaluation": "sufficient|insufficient|irrelevant", "reasoning": "brief explanation"}}
 
-    try:
-        logger.info(
-            f"Reranking {len(valid_docs)} docs via adapter (model={RERANK_MODEL})"
-        )
-        ranked = adapter_rerank(query=query, documents=valid_docs, top_n=top_n)
+Rules:
+- "sufficient": Context directly answers the query with high confidence
+- "insufficient": Partial answer exists but needs more depth/breadth AND pending_urls remain
+- "irrelevant": Retrieved content is off-topic OR max iterations reached without answer"""
 
-        output: list[dict] = []
-        for item in ranked:
-            orig_idx = index_map[item["index"]]
-            doc = documents[orig_idx].copy()
-            doc["relevance_score"] = item["score"]  # Normalized 0-1
-            doc["relevance_score_raw"] = item["raw_score"]  # Original
-            output.append(doc)
+    resp = await LLM_CLIENT.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0,
+        response_format={"type": "json_object"},
+    )
 
-        logger.info(f"Reranked {len(valid_docs)} valid docs → top {len(output)}")
-        return output
+    result = json.loads(resp.choices[0].message.content)
+    return {"evaluation": result.get("evaluation", "insufficient")}
 
-    except Exception as e:
-        logger.warning(f"Adapter reranker failed, returning unranked top-{top_n}: {e}")
-        return documents[:top_n]
+
+async def synthesize_node(state: WebSwarmState) -> dict:
+    """Generate final answer from accumulated knowledge."""
+    context = "\n\n===SOURCE===".join(
+        f"URL: {c['url']}\nRelevance: {c['score']:.2f}\n{c['content']}"
+        for c in sorted(
+            state["knowledge_base"], key=lambda x: x["score"], reverse=True
+        )[:8]
+    )
+
+    prompt = f"""Using ONLY the provided context, answer the query comprehensively.
+Cite sources as [URL]. If context is insufficient, say so explicitly.
+
+QUERY: {state["query"]}
+
+CONTEXT:
+{context}"""
+
+    resp = await LLM_CLIENT.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.1,
+    )
+
+    return {"final_answer": resp.choices[0].message.content}
+
+
+# --- Conditional Routing ---
+def should_continue(state: WebSwarmState) -> Literal["retrieve", "synthesize", END]:
+    """Route based on evaluation and iteration limits."""
+    if state["evaluation"] == "sufficient":
+        return "synthesize"
+    if state["evaluation"] == "irrelevant" or state["iteration"] >= MAX_ITERATIONS:
+        return "synthesize"
+    if not state["pending_urls"]:
+        return "synthesize"
+    return "retrieve"
+
+
+# --- Build Graph ---
+def build_webswarm_graph():
+    workflow = StateGraph(WebSwarmState)
+
+    workflow.add_node("retrieve", retrieve_node)
+    workflow.add_node("evaluate", evaluate_node)
+    workflow.add_node("synthesize", synthesize_node)
+
+    workflow.add_edge(START, "retrieve")
+    workflow.add_edge("retrieve", "evaluate")
+    workflow.add_conditional_edges("evaluate", should_continue)
+    workflow.add_edge("synthesize", END)
+
+    return workflow.compile()
+
+
+# --- Execution ---
+async def run_webswarm(query: str, root_url: str):
+    app = build_webswarm_graph()
+
+    initial_state = {
+        "query": query,
+        "root_url": root_url,
+        "messages": [],
+        "visited_urls": set(),
+        "pending_urls": [root_url],
+        "knowledge_base": [],
+        "iteration": 0,
+        "evaluation": "insufficient",
+        "final_answer": None,
+    }
+
+    config = {"recursion_limit": MAX_ITERATIONS * 3 + 5}
+    result = await app.ainvoke(initial_state, config=config)
+
+    return {
+        "answer": result["final_answer"],
+        "sources": [k["url"] for k in result["knowledge_base"]],
+        "iterations": result["iteration"],
+        "pages_visited": len(result["visited_urls"]),
+    }
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%H:%M:%S",
-    )
-
-    DEMO_QUERY = "latest solid-state battery breakthroughs 2026"
-
-    print("=" * 70)
-    print("🔍 RESEARCH PIPELINE DEMO")
-    print(f"   Query:     {DEMO_QUERY}")
-    print(f"   SearXNG:   {SEARXNG_URL}")
-    print(f"   Reranker:  {RERANK_BASE_URL} ({RERANK_MODEL})")
-    print(f"   LLM:       {LLM_BASE_URL} ({LLM_MODEL})")
-    print("=" * 70)
-
-    # ── STEP 1: Web Search ────────────────────────────────────────────
-    print("\n📡 STEP 1: Web Search via SearXNG")
-    raw_results = web_search(DEMO_QUERY, num_results=10)
-    if not raw_results:
-        print("   ❌ No search results returned. Check SearXNG connectivity.")
-        exit(1)
-    for i, r in enumerate(raw_results, 1):
-        print(f"   [{i}] {r['title'][:60]}... ({r['engine']})")
-
-    # ── STEP 2: Reranking ─────────────────────────────────────────────
-    print(f"\n🏆 STEP 2: Reranking {len(raw_results)} candidates")
-    ranked_results = rerank_results(DEMO_QUERY, raw_results, top_n=3)
-    for i, r in enumerate(ranked_results, 1):
-        score = r.get("relevance_score", "N/A")
-        score_str = f"{score:.4f}" if isinstance(score, float) else str(score)
-        print(f"   [{i}] Score={score_str} | {r['title'][:50]}...")
-        print(f"       URL: {r['url']}")
-
-    # ── STEP 3: Content Extraction ────────────────────────────────────
-    extracted_content = ""
-    if ranked_results:
-        best_url = ranked_results[0]["url"]
-        print(f"\n📄 STEP 3: Extracting content from top result")
-        print(f"   URL: {best_url}")
-        extracted_content = read_url(best_url, max_chars=4000)
-
-        print(f"\n{'─' * 70}")
-        print("📋 EXTRACTED CONTENT PREVIEW (first 1500 chars):")
-        print(f"{'─' * 70}")
-        preview = extracted_content[:1500]
-        if len(extracted_content) > 1500:
-            preview += "\n[... truncated for demo ...]"
-        print(preview)
-        print(f"{'─' * 70}")
-        print(f"✅ Total extracted: {len(extracted_content)} chars")
-    else:
-        print("\n⚠️  No results after reranking. Try a different query.")
-        exit(0)
-
-    # ── STEP 4: LLM Synthesis ─────────────────────────────────────────
-    print(f"\n🤖 STEP 4: LLM Synthesis (model={LLM_MODEL})")
-    if extracted_content and not extracted_content.startswith("[ERROR]"):
-        llm_prompt = (
-            f"Based on the following research content, answer this question:\n"
-            f"'{DEMO_QUERY}'\n\n"
-            f"## Research Content\n{extracted_content}\n\n"
-            f"Provide a concise, well-structured summary with key findings."
+    result = asyncio.run(
+        run_webswarm(
+            query="What are the deployment options for LangGraph Platform?",
+            root_url="https://langchain-ai.github.io/langgraph/",
         )
-        logger.info(f"Sending {len(llm_prompt)} char prompt to LLM")
-        result = chat(prompt=llm_prompt, model=LLM_MODEL)
-
-        print(f"\n{'═' * 70}")
-        print("💡 LLM RESPONSE:")
-        print(f"{'═' * 70}")
-        print(result.content)
-        print(f"{'═' * 70}")
-        if result.usage:
-            print(
-                f"📊 Tokens: {result.usage.get('prompt_tokens', '?')} in / "
-                f"{result.usage.get('completion_tokens', '?')} out | "
-                f"Finish: {result.finish_reason}"
-            )
-    else:
-        print("   ⚠️  Skipping LLM step: no valid content to synthesize.")
-
-    print("\n✨ Demo complete. Integrate these functions into ResearchAgent.run()")
+    )
+    print(f"\n{'=' * 60}")
+    print(f"ANSWER ({result['iterations']} iters, {result['pages_visited']} pages):")
+    print(result["answer"])
+    print(f"\nSOURCES: {result['sources']}")
