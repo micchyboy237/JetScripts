@@ -1,5 +1,6 @@
 import asyncio
 import json
+import math
 from typing import Annotated, Literal, Sequence, TypedDict
 from urllib.parse import urljoin, urlparse
 
@@ -23,7 +24,16 @@ EMBED_CLIENT = AsyncOpenAI(base_url=EMBED_BASE_URL_LG, api_key="local")
 
 MAX_ITERATIONS = 5
 MAX_PAGES_PER_ITER = 3
-RELEVANCE_THRESHOLD = 0.35
+# ✅ FIX 1: Lowered threshold - BGE-Reranker via llama.cpp often returns
+# scores in 0.0-0.3 range for partially relevant docs. 0.35 was filtering everything.
+RELEVANCE_THRESHOLD = 0.10
+# ✅ FIX 2: Always keep top-N chunks even if below threshold, so the graph
+# never has a completely empty KB on first iteration
+MIN_CHUNKS_TO_KEEP = 3
+
+# Set to True for bge-reranker-v2-m3, ms-marco, etc.
+# Set to False for jina-reranker, cohere-rerank
+APPLY_SIGMOID_NORMALIZATION = True
 
 
 # --- State Definition ---
@@ -46,8 +56,17 @@ async def get_embeddings(texts: list[str]) -> list[list[float]]:
     return [d.embedding for d in resp.data]
 
 
+def _sigmoid(x: float) -> float:
+    """Numerically stable sigmoid."""
+    if x >= 0:
+        return 1.0 / (1.0 + math.exp(-x))
+    else:
+        ez = math.exp(x)
+        return ez / (1.0 + ez)
+
+
 async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
-    """Rerank using local cross-encoder via raw httpx."""
+    """Rerank using local cross-encoder via raw httpx with optional sigmoid normalization."""
     if not chunks:
         return []
 
@@ -70,9 +89,23 @@ async def rerank_chunks(query: str, chunks: list[dict]) -> list[dict]:
     for r in results:
         idx = r["index"]
         if idx < len(chunks):
-            chunks[idx]["score"] = r["relevance_score"]
+            raw_score = r["relevance_score"]
+            chunks[idx]["score"] = (
+                _sigmoid(raw_score) if APPLY_SIGMOID_NORMALIZATION else raw_score
+            )
+            chunks[idx]["raw_score"] = raw_score  # Always preserve for debugging
 
-    return sorted(chunks, key=lambda x: x["score"], reverse=True)
+    ranked = sorted(chunks, key=lambda x: x["score"], reverse=True)
+
+    # Diagnostic: print score range so you can verify normalization
+    if ranked:
+        scores = [c["score"] for c in ranked]
+        print(
+            f"[RERANK] scores={'normalized' if APPLY_SIGMOID_NORMALIZATION else 'raw'} "
+            f"min={scores[-1]:.4f} max={scores[0]:.4f} median={scores[len(scores) // 2]:.4f}"
+        )
+
+    return ranked
 
 
 async def fetch_and_parse(url: str) -> tuple[str, list[str]]:
@@ -134,7 +167,7 @@ async def stream_llm_completion(
             full_content += delta
             print(delta, end="", flush=True)
 
-    print("", flush=True)  # Newline after stream completes
+    print("", flush=True)
     return full_content
 
 
@@ -153,15 +186,37 @@ async def retrieve_node(state: WebSwarmState) -> dict:
     for url, (text, links) in zip(pending, results):
         if text:
             new_chunks.append({"url": url, "content": text, "score": 0.0})
+            # ✅ FIX 3: Always propagate discovered links regardless of
+            # whether this page's content passed the reranker threshold.
+            # Previously, links were only added if text was non-empty,
+            # but we also need links from pages that fetched successfully
+            # even if their content scored low.
             all_new_links.extend([l for l in links if l not in visited])
 
     ranked_chunks = await rerank_chunks(state["query"], new_chunks)
-    relevant = [c for c in ranked_chunks if c["score"] >= RELEVANCE_THRESHOLD]
+
+    # ✅ FIX 4: Keep at least MIN_CHUNKS_TO_KEEP even if below threshold,
+    # OR keep all chunks above threshold, whichever yields more results.
+    above_threshold = [c for c in ranked_chunks if c["score"] >= RELEVANCE_THRESHOLD]
+    if len(above_threshold) < MIN_CHUNKS_TO_KEEP and ranked_chunks:
+        relevant = ranked_chunks[: max(MIN_CHUNKS_TO_KEEP, len(above_threshold))]
+        print(
+            f"[RETRIEVE] Only {len(above_threshold)} chunks above threshold "
+            f"({RELEVANCE_THRESHOLD}), keeping top {len(relevant)} by score"
+        )
+    else:
+        relevant = above_threshold
 
     existing_urls = {k["url"] for k in state["knowledge_base"]}
     merged_kb = state["knowledge_base"] + [
         c for c in relevant if c["url"] not in existing_urls
     ]
+
+    print(
+        f"[RETRIEVE] Iteration {state['iteration'] + 1}: "
+        f"fetched={len(new_chunks)}, relevant={len(relevant)}, "
+        f"kb_total={len(merged_kb)}, pending={len(all_new_links)}"
+    )
 
     return {
         "knowledge_base": merged_kb,
@@ -185,7 +240,7 @@ ROOT URL: {state["root_url"]}
 ITERATION: {state["iteration"]}/{MAX_ITERATIONS}
 
 RETRIEVED CONTEXT:
-{kb_summary}
+{kb_summary if kb_summary else "(No relevant context retrieved yet)"}
 
 Respond with ONLY valid JSON:
 {{"evaluation": "sufficient|insufficient|irrelevant", "reasoning": "brief explanation"}}
@@ -221,7 +276,7 @@ Cite sources as [URL]. If context is insufficient, say so explicitly.
 QUERY: {state["query"]}
 
 CONTEXT:
-{context}"""
+{context if context else "(No relevant context was retrieved during the search.)"}"""
 
     content = await stream_llm_completion(
         prompt=prompt,
