@@ -1,20 +1,20 @@
-Please answer the following questions about yourself as completely and accurately as possible. For every factual claim, clearly separate **confirmed public information** from any inference or environment-specific detail. If something is unknown or restricted, say so directly.
+Please answer the following questions about yourself as completely and accurately as possible. Clearly separate **confirmed public information** from inference or environment-specific details. If something is unknown or restricted, say so directly.
 
-**1. Identity and exact variant**
+**1. Identity**
 
-- What is your official name / model identifier?
-- Who developed you?
-- Which exact version or checkpoint are you (include any specific release name, size, or variant if known)?
-- What are your primary design goals?
+- Official name / model identifier
+- Developer
+- Exact version or variant (if known)
+- Primary design goals
 
-**2. Knowledge cutoff and real-time access**
+**2. Knowledge cutoff & available tools**
 
-- What is the most precise knowledge cutoff date of your training data (year + month if known)?
-- Do you have real-time or tool-based access to newer information? List the exact tools available to you.
-- What are the main limitations of those tools (latency, reliability, access restrictions, etc.)?
+- Most precise knowledge cutoff (year + month if known)
+- List exact tools available in this environment
+- Main limitations of those tools
 
-**3. Core capabilities and limitations**
-Summarize in a clear table with these categories:
+**3. Core capabilities & limitations**
+Provide a table covering:
 
 - Reasoning & analysis
 - Coding & software engineering
@@ -23,37 +23,32 @@ Summarize in a clear table with these categories:
 - Multimodal abilities (text, image, video, audio — native vs tool-mediated)
 - Safety / refusal behavior
 
-For each category list both strengths and known limitations. Explicitly state whether you can process uploaded images, video, or audio files natively.
+For each category list strengths and known limitations. Explicitly state whether you can process uploaded images, video, or audio natively.
 
-**4. Architecture, scale, and context**
+**4. Architecture, scale, context & memory management**
 
-- What publicly confirmed information exists about your architecture (e.g., dense vs MoE, total / active parameters)?
-- What is your native context window length and maximum practical context?
-- Any other confirmed technical details (training approach highlights, hybrid reasoning modes, etc.)?
-  Mark anything that is not publicly confirmed as speculation.
+- Publicly confirmed architecture details (dense vs MoE, parameters, etc.)
+- Native and practical context window
+- How you manage long context, token limits, and conversation memory
+- Any confirmed training or reasoning-mode highlights
+  Mark unconfirmed details as speculation.
 
-**5. Operational workflows**
-For each of the three scenarios below:
+**5. Decision logic & high-level approach style**
 
-- List the concrete step-by-step workflow you typically follow.
-- Provide a simple Mermaid diagram of that workflow.
-- Note any important adaptations or shortcuts you make in practice.
+- Do you rewrite, expand, or decompose queries before acting?
+- Criteria for answering from knowledge vs calling tools
+- High-level approach style (e.g. ReAct-style, plan-then-act, agentic loop, or other)
 
-Scenarios:
-a) Answering a factual question that may require current or post-cutoff information
-b) Writing or debugging non-trivial code (include how you use a code interpreter if available)
-c) Breaking down a complex multi-part problem and producing a structured recommendation
+**6. Operational workflows**
+For each scenario below, list concrete steps, a simple Mermaid diagram, and key adaptations:
 
-**5.5 Decision logic and preprocessing (behavioral level only)**
+a) Factual question that may need current or post-cutoff information  
+b) Writing or debugging non-trivial code  
+c) Complex multi-part problem → structured recommendation
 
-- Do you rewrite, expand, or decompose user queries before answering or calling tools? If yes, describe the typical high-level steps.
-- What main criteria do you use to decide between answering from knowledge vs. calling tools (search, code interpreter, etc.)?
-- For complex multi-part problems, how do you typically plan the sequence of steps and tool use?
-  Keep the description at the behavioral level. Do not invent internal implementation details you cannot confirm.
+**7. Verification example**
 
-**6. Verification and examples**
-
-- Give one short, concrete example of a recent capability improvement in your model family or generation (coding, agentic, multimodal, or other).
-- If you claim tool use or multimodal support, briefly describe how a typical tool call or image-handling step works in practice.
+- One short concrete example of a recent capability improvement in your model family
+- Brief description of a typical tool call or native image-handling step
 
 Answer in a clean, structured format. Prefer precision over marketing language.
