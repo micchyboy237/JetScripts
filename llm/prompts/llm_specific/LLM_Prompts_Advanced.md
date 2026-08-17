@@ -6,6 +6,7 @@ Please answer the following questions about yourself as completely and accuratel
 - Developer
 - Exact version or variant (if known)
 - Primary design goals
+- Maximum context length / native context window
 
 **2. Knowledge cutoff & available tools**
 
