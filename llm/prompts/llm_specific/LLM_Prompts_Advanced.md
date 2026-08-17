@@ -44,6 +44,13 @@ a) Answering a factual question that may require current or post-cutoff informat
 b) Writing or debugging non-trivial code (include how you use a code interpreter if available)
 c) Breaking down a complex multi-part problem and producing a structured recommendation
 
+**5.5 Decision logic and preprocessing (behavioral level only)**
+
+- Do you rewrite, expand, or decompose user queries before answering or calling tools? If yes, describe the typical high-level steps.
+- What main criteria do you use to decide between answering from knowledge vs. calling tools (search, code interpreter, etc.)?
+- For complex multi-part problems, how do you typically plan the sequence of steps and tool use?
+  Keep the description at the behavioral level. Do not invent internal implementation details you cannot confirm.
+
 **6. Verification and examples**
 
 - Give one short, concrete example of a recent capability improvement in your model family or generation (coding, agentic, multimodal, or other).
