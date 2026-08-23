@@ -97,7 +97,7 @@ def sync_example(
         timeout=5000,
         max_retries=3,
         with_screenshot=True,
-        headless=True,
+        headless=False,
         wait_for_js=False,
         use_cache=True,
         scroll_strategy="until_stable",
@@ -157,28 +157,37 @@ def sync_example(
 
 
 if __name__ == "__main__":
-    urls = [
-        # "https://news.microsoft.com/source/features/ai/6-ai-trends-youll-see-more-of-in-2025",
-        # "https://www.morganstanley.com/insights/articles/ai-trends-reasoning-frontier-models-2025-tmt",
-        # "https://winbuzzer.com/2024/02/14/windows-10-how-to-find-and-clear-the-all-recent-files-list-xcxwbt",
-        # "https://cloud.google.com/blog/topics/public-sector/5-ai-trends-shaping-the-future-of-the-public-sector-in-2025",
-        # "https://www.mckinsey.com/capabilities/mckinsey-digital/our-insights/the-top-trends-in-tech"
-        # --- MissAV links --- #
-        # "https://missav.ws/dm223/en",
-        # "https://missav.ws/en/aed-137",
-        # "https://missav.ws/dm13/en/oksn-090",
-        "https://missav.ws/en/juc-743",
-    ]
-    base_url = "https://missav.ws"
-    url_patterns = [
-        "https://missav.ws/*/*-*",  # ← most recommended — clean & readable
-        # or
-        "https://missav.ws/*/*/??-*",  # more strict about the middle segment length
-    ]
+    import argparse
 
-    logger.info("Running sync example...")
-    sync_example(urls, base_url, url_patterns)
+    parser = argparse.ArgumentParser(
+        description="Scrape URLs with Playwright and process results."
+    )
+    parser.add_argument(
+        "urls",
+        nargs="+",
+        help="One or more URLs to scrape.",
+    )
+    parser.add_argument(
+        "-b",
+        "--base_url",
+        default=None,
+        help="Base URL for relative link resolution (default: None).",
+    )
+    parser.add_argument(
+        "-p",
+        "--url_patterns",
+        nargs="*",
+        default=[],
+        help="Patterns to filter extracted links (default: []). Use shell globs, e.g. 'https://site.com/*/*-*'",
+    )
+
+    args = parser.parse_args()
+
+    logger.info(
+        f"Running sync example with urls={args.urls}, base_url={args.base_url}, url_patterns={args.url_patterns}"
+    )
+    sync_example(args.urls, args.base_url, args.url_patterns)
 
     # import asyncio
     # logger.info("Running async example...")
-    # asyncio.run(async_example(urls))
+    # asyncio.run(async_example(args.urls))
