@@ -459,6 +459,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-k",
         "--top-k",
         type=int,
         default=None,
@@ -474,10 +475,11 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "--chunk-size", type=int, default=500, help="Size of text chunks"
+        "-cs", "--chunk-size", type=int, default=500, help="Size of text chunks"
     )
 
     parser.add_argument(
+        "-co",
         "--chunk-overlap",
         type=int,
         default=100,
@@ -485,6 +487,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-bs",
         "--batch-size",
         type=int,
         default=128,
@@ -492,6 +495,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
+        "-w",
         "--weights",
         type=str,
         default="dir:0.0,name:0.25,content:0.75",
