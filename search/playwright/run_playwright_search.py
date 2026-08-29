@@ -104,7 +104,7 @@ async def async_search_example(query: str) -> Dict[str, Any]:
     return result
 
 if __name__ == "__main__":
-    query = "recent advancements in AI 2025"
+    query = "recent advancements in AI 2026"
     
     # Synchronous example
     print("Running synchronous search example...")
