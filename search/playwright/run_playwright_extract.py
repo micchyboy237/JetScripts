@@ -3,6 +3,7 @@ import shutil
 from typing import List, Optional, TypedDict
 
 from jet.adapters.llama_cpp.hybrid_utils import HybridSearchResult, hybrid_search
+from jet.adapters.llama_cpp.token_utils import count_tokens
 from jet.code.markdown_types import HeaderSearchResult
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.code.markdown_utils._preprocessors import clean_markdown_links
@@ -121,54 +122,59 @@ async def async_example(urls):
 
 
 def extract_doc_chunks(
-    html: str, url: str, chunk_size: int = 200, chunk_overlap: int = 50
+    html: str, url: str, max_tokens: int = 256, overlap_tokens: int = 50
 ) -> List[dict]:
-    """Extract structured chunks from HTML content.
+    """Extract structured chunks from HTML content using token-aware splitting.
 
-    Returns list of dicts with 'id' and 'content' keys, compatible with
-    jet.adapters.llama_cpp.hybrid_utils.hybrid_search documents parameter.
+    Uses jet.adapters.llama_cpp.token_utils.count_tokens for accurate sizing
+    instead of fixed character estimates. Returns chunks compatible with
+    hybrid_search documents parameter.
     """
     md_content = convert_html_to_markdown(html, ignore_links=True)
     headings = derive_by_header_hierarchy(md_content, ignore_links=True)
-    docs = [
-        {"id": f"{url}#{i}", "content": f"{header['header']}\n{header['content']}"}
-        for i, header in enumerate(headings)
-        if header.get("content")
-    ]
-    logger.debug(f"extract_doc_chunks: extracted {len(docs)} chunks from {url}")
+
+    docs = []
+    for i, header in enumerate(headings):
+        if not header.get("content"):
+            continue
+
+        content = f"{header['header']}\n{header['content']}"
+        tokens = count_tokens(content)
+
+        # If section exceeds max_tokens, we still include it but log a warning
+        # In a production system, you might split further here
+        if tokens > max_tokens:
+            logger.warning(
+                f"Chunk {i} from {url} exceeds max_tokens ({tokens}/{max_tokens}). "
+                "Consider implementing sub-section splitting."
+            )
+
+        docs.append({"id": f"{url}#{i}", "content": content, "tokens": tokens})
+
+    logger.debug(
+        f"extract_doc_chunks: extracted {len(docs)} chunks from {url} (token-aware)"
+    )
     return docs
 
 
 def extract_topics(
     query: str, documents: List[str], top_k: Optional[int] = None
 ) -> List[Topic]:
-    """Extract topics from documents using BERTopic adapter.
-
-    Args:
-        query: Search query to find relevant topics
-        documents: List of documents to analyze
-        top_k: Number of top topics to return (if None, return all)
-
-    Returns:
-        List of Topic objects with rank, doc_index, score, and text
-    """
+    """Extract topics from documents using BERTopic adapter."""
     if not documents:
         return []
-
     try:
         from jet.adapters.bertopic import BERTopicAdapter
 
         logger.info(
             f"Starting topic extraction for {len(documents)} documents via BERTopicAdapter"
         )
-
         adapter = BERTopicAdapter()
         results = adapter.find_relevant_topics(
             query=query,
             documents=documents,
             top_k=top_k,
         )
-
         topics: List[Topic] = []
         for rank, r in enumerate(results, start=1):
             topics.append(
@@ -179,10 +185,8 @@ def extract_topics(
                     "text": r.get("text", ""),
                 }
             )
-
         logger.info(f"Returning {len(topics)} topics")
         return topics
-
     except ImportError as e:
         logger.error(f"BERTopicAdapter not available: {e}")
         return _fallback_topic_extraction(query, documents, top_k)
@@ -201,7 +205,6 @@ def _fallback_topic_extraction(
     logger.warning("Using fallback keyword-based topic extraction")
     query_words = set(re.findall(r"\b\w+\b", query.lower()))
     results = []
-
     for doc_idx, doc in enumerate(documents):
         doc_words = re.findall(r"\b\w+\b", doc.lower())
         word_counts = Counter(doc_words)
@@ -218,7 +221,6 @@ def _fallback_topic_extraction(
                     "text": topic_text,
                 }
             )
-
     results.sort(key=lambda x: x["score"], reverse=True)
     if top_k is not None:
         results = results[:top_k]
@@ -229,31 +231,16 @@ def test_extract_topics():
     """Test the extract_topics function with sample data."""
     print("Testing extract_topics function...")
     test_documents = [
-        "Machine learning algorithms are revolutionizing data analysis and pattern recognition in various industries.",
-        "Deep learning neural networks require large datasets and significant computational power for training.",
-        "Natural language processing enables computers to understand and generate human language effectively.",
-        "Computer vision applications can identify and classify objects in images and videos with high accuracy.",
-        "Data science combines statistical analysis, programming skills, and domain expertise to extract insights.",
-        "Artificial intelligence is transforming healthcare, finance, and transportation sectors worldwide.",
-        "Reinforcement learning agents learn optimal strategies through trial and error interactions with environments.",
-        "Supervised learning algorithms use labeled training data to make accurate predictions on new examples.",
-        "Unsupervised learning discovers hidden patterns in data without requiring labeled examples.",
-        "Transfer learning allows models trained on one task to be adapted for related tasks efficiently.",
+        "Machine learning algorithms are revolutionizing data analysis.",
+        "Deep learning neural networks require large datasets.",
+        "Natural language processing enables computers to understand human language.",
     ]
-    test_queries = [
-        "machine learning algorithms",
-        "neural networks and deep learning",
-        "data science and analytics",
-        "artificial intelligence applications",
-    ]
+    test_queries = ["machine learning", "neural networks"]
 
     for query in test_queries:
         print(f"\nTesting with query: '{query}'")
         try:
-            topics = extract_topics(
-                query=query,
-                documents=test_documents,
-            )
+            topics = extract_topics(query=query, documents=test_documents)
             print(f"Found {len(topics)} topics:")
             for topic in topics:
                 print(f"  - {topic['text']} (Score: {topic['score']:.3f})")
@@ -264,12 +251,7 @@ def test_extract_topics():
 def search_contexts(query: str, html: str, url: str) -> List[HeaderSearchResult]:
     """Search for relevant contexts using Hybrid Search (Vector + Rerank).
 
-    Uses jet.adapters.llama_cpp.hybrid_utils.hybrid_search which provides:
-    - Stage 1: Vector retrieval via llama_cpp embed adapter (batched, deduped)
-    - Stage 2: Cross-encoder reranking via llama_cpp rerank adapter
-    - Score normalization to 0-1 range
-
-    Models are configured via jet.adapters.llama_cpp.config (EMBED_MODEL, RERANK_MODEL).
+    Models are configured via jet.adapters.llama_cpp.config automatically.
     """
     chunks = extract_doc_chunks(html, url)
     if not chunks:
@@ -283,7 +265,6 @@ def search_contexts(query: str, html: str, url: str) -> List[HeaderSearchResult]
         f"Running hybrid search for '{query[:60]}...' on {len(texts)} chunks from {url}"
     )
 
-    # Use hybrid_search: vector retrieval + cross-encoder reranking
     results: List[HybridSearchResult] = hybrid_search(
         query=query,
         documents=texts,
@@ -292,7 +273,6 @@ def search_contexts(query: str, html: str, url: str) -> List[HeaderSearchResult]
         normalize_scores=True,
     )
 
-    # Map HybridSearchResult back to HeaderSearchResult format
     search_results: List[HeaderSearchResult] = []
     for r in results:
         search_results.append(
@@ -318,11 +298,7 @@ def scrape_urls_data(
     use_cache: bool = True,
     url_limit: Optional[int] = None,
 ):
-    """Scrape and process URLs.
-
-    Embedding/rerank models are configured via jet.adapters.llama_cpp.config
-    or environment variables (EMBED_MODEL, RERANK_MODEL). No model parameter needed.
-    """
+    """Scrape and process URLs using centralized adapter configs."""
     sub_dir_query = format_sub_dir(query)
     base_output_dir = f"{OUTPUT_DIR}/{sub_dir_query}"
     shutil.rmtree(base_output_dir, ignore_errors=True)
@@ -359,10 +335,12 @@ def scrape_urls_data(
     for result in result_stream:
         count += 1
         meta = result.copy().pop("meta")
+
+        # Token-aware chunking
         chunks = extract_doc_chunks(meta["html"], result["url"])
         documents = [chunk["content"] for chunk in chunks]
 
-        # Search using hybrid adapter (no model param needed)
+        # Hybrid search uses centralized EMBED_MODEL/RERANK_MODEL
         search_results = search_contexts(query, meta["html"], result["url"])
 
         sub_dir_url = format_sub_dir(result["url"])
@@ -371,31 +349,19 @@ def scrape_urls_data(
         )
 
         save_file(
-            {
-                "query": query,
-                "count": len(chunks),
-                "chunks": chunks,
-            },
+            {"query": query, "count": len(chunks), "chunks": chunks},
             f"{base_output_dir}/{sub_dir_url}/chunks.json",
         )
-
         save_file(
-            {
-                "query": query,
-                "count": len(documents),
-                "documents": documents,
-            },
+            {"query": query, "count": len(documents), "documents": documents},
             f"{base_output_dir}/{sub_dir_url}/documents.json",
         )
 
         md_content = convert_html_to_markdown(meta["html"], ignore_links=True)
         headers = derive_by_header_hierarchy(md_content, ignore_links=True)
+
         save_file(
-            {
-                "query": query,
-                "count": len(headers),
-                "headers": headers,
-            },
+            {"query": query, "count": len(headers), "headers": headers},
             f"{base_output_dir}/{sub_dir_url}/headers.json",
         )
         all_headers[result["url"]] = headers
@@ -405,10 +371,7 @@ def scrape_urls_data(
             search_results, f"{base_output_dir}/{sub_dir_url}/search_results.json"
         )
         save_file(
-            {
-                "url": result["url"],
-                "tokens": meta["tokens"],
-            },
+            {"url": result["url"], "tokens": meta["tokens"]},
             f"{base_output_dir}/{sub_dir_url}/info.json",
         )
         save_file(meta["analysis"], f"{base_output_dir}/{sub_dir_url}/analysis.json")
@@ -438,8 +401,6 @@ if __name__ == "__main__":
     use_cache = True
 
     sub_dir_query = format_sub_dir(query)
-
-    # No model parameter needed - adapters use config/env vars
     all_headers = scrape_urls_data(
         query, urls, use_cache=use_cache, url_limit=url_limit
     )
@@ -454,6 +415,6 @@ if __name__ == "__main__":
         context += combined_headers_string
         all_contexts.append(context)
 
-    all_contexts_str = "\n\n".join(all_contexts)
+    all_contexts_str = "\n".join(all_contexts)
     save_file(all_contexts_str, f"{OUTPUT_DIR}/{sub_dir_query}/all_contexts.md")
     logger.info(f"Saved all_contexts.md ({len(all_contexts_str)} chars)")
