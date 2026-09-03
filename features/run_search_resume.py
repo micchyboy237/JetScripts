@@ -1,26 +1,27 @@
-from typing import List, Union, Literal
-from sentence_transformers import CrossEncoder
-from jet.models.model_registry.transformers.cross_encoder_model_registry import CrossEncoderRegistry
-from collections import defaultdict
-import re
-from typing import DefaultDict, Dict, TypedDict, List, Optional, Set
 import os
+import re
+from collections import defaultdict
 from pathlib import Path
+from typing import DefaultDict, Dict, List, Literal, Optional, Set, TypedDict, Union
+
 import numpy as np
-from sentence_transformers import SentenceTransformer
 from jet.code.markdown_types.markdown_parsed_types import MarkdownToken
 from jet.code.markdown_utils._markdown_analyzer import analyze_markdown
 from jet.code.markdown_utils._markdown_parser import derive_by_header_hierarchy
 from jet.file.utils import save_file
 from jet.logger import logger
+from jet.models.chunkers import ChunkResult, chunk_headers_by_hierarchy
 from jet.models.embeddings.base import generate_embeddings
-from jet.models.embeddings.chunking import chunk_headers_by_hierarchy, ChunkResult
+from jet.models.model_registry.transformers.cross_encoder_model_registry import (
+    CrossEncoderRegistry,
+)
 from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
-from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
+from jet.models.model_registry.transformers.sentence_transformer_registry import (
+    SentenceTransformerRegistry,
+)
 from jet.models.model_types import EmbedModelType, LLMModelType
-from jet.models.tokenizer.base import get_tokenizer_fn, count_tokens
+from jet.models.tokenizer.base import count_tokens, get_tokenizer_fn
 from jet.utils.text_constants import TEXT_CONTRACTIONS_EN
-
 
 PROMPT_TEMPLATE = """\
 Resume information is below.
@@ -78,15 +79,14 @@ def load_markdown_files(data_path: str) -> List[tuple[str, str]]:
     return markdown_texts
 
 
-def preprocess_markdown_texts(text_file_tuples: List[tuple[str, str]], ignore_links: bool = False) -> List[HeaderDoc]:
+def preprocess_markdown_texts(
+    text_file_tuples: List[tuple[str, str]], ignore_links: bool = False
+) -> List[HeaderDoc]:
     preprocessed_md_texts: List[HeaderDoc] = []
     for text, source in text_file_tuples:
         docs = derive_by_header_hierarchy(text, ignore_links=ignore_links)
         for doc in docs:
-            preprocessed_md_texts.append({
-                **doc,
-                "source": source
-            })
+            preprocessed_md_texts.append({**doc, "source": source})
     return preprocessed_md_texts
 
 
@@ -95,7 +95,8 @@ def get_chunks(docs: List[HeaderDoc], chunk_size: int = 512) -> List[ChunkResult
     all_chunks = []
     for doc_index, doc in enumerate(docs):
         chunks = chunk_headers_by_hierarchy(
-            f"{doc["header"]}\n{doc["content"]}", chunk_size=chunk_size)
+            f"{doc['header']}\n{doc['content']}", chunk_size=chunk_size
+        )
         for chunk in chunks:
             chunk["shared_doc_id"] = doc["doc_id"]
             chunk["doc_index"] = doc_index
@@ -117,20 +118,21 @@ def preprocess_text(
         logger.debug(f"Empty or whitespace-only input text: '{text}'")
         return ""
 
-    text = re.sub(r'\s+', ' ', text.strip())
+    text = re.sub(r"\s+", " ", text.strip())
     for contraction, expanded in TEXT_CONTRACTIONS_EN.items():
-        text = re.sub(r'\b' + contraction + r'\b',
-                      expanded, text, flags=re.IGNORECASE)
+        text = re.sub(r"\b" + contraction + r"\b", expanded, text, flags=re.IGNORECASE)
     text = text.lower()
-    preserve_chars = preserve_chars or {'-', '_'}
-    pattern = r'[^a-z0-9\s' + ''.join(map(re.escape, preserve_chars)) + r']'
-    text = re.sub(pattern, '', text)
-    text = re.sub(r'\s+', ' ', text.strip())
+    preserve_chars = preserve_chars or {"-", "_"}
+    pattern = r"[^a-z0-9\s" + "".join(map(re.escape, preserve_chars)) + r"]"
+    text = re.sub(pattern, "", text)
+    text = re.sub(r"\s+", " ", text.strip())
 
     return text
 
 
-def compute_embeddings(chunks: List[ChunkResult], embed_model: EmbedModelType) -> tuple[np.ndarray, np.ndarray, List[dict]]:
+def compute_embeddings(
+    chunks: List[ChunkResult], embed_model: EmbedModelType
+) -> tuple[np.ndarray, np.ndarray, List[dict]]:
     """Compute embeddings for header and content separately with file name as metadata."""
     header_texts = []
     content_texts = []
@@ -138,48 +140,64 @@ def compute_embeddings(chunks: List[ChunkResult], embed_model: EmbedModelType) -
     for chunk in chunks:
         source = chunk["metadata"]["source"].lower()
         # Only include parent_header if it's not a root header (parent_level != 0)
-        header_text = f"{chunk['parent_header'].lstrip('#')}\n{chunk['header'].lstrip('#')}".strip(
-        ) if chunk['parent_header'] and chunk['parent_level'] != 1 else chunk['header'].lstrip('#').strip()
+        header_text = (
+            f"{chunk['parent_header'].lstrip('#')}\n{chunk['header'].lstrip('#')}".strip()
+            if chunk["parent_header"] and chunk["parent_level"] != 1
+            else chunk["header"].lstrip("#").strip()
+        )
         header_texts.append(header_text)
         content_texts.append(chunk["content"])
-        metadata.append({
-            "source": chunk["metadata"]["source"],
-            "context": source.replace('.md', '').replace('_', ' ').title()
-        })
+        metadata.append(
+            {
+                "source": chunk["metadata"]["source"],
+                "context": source.replace(".md", "").replace("_", " ").title(),
+            }
+        )
     header_texts = [preprocess_text(text) for text in header_texts]
     content_texts = [preprocess_text(text) for text in content_texts]
     all_embeddings = generate_embeddings(
-        header_texts + content_texts, embed_model, return_format="numpy", show_progress=True)
-    header_embeddings = all_embeddings[:len(header_texts)]
-    content_embeddings = all_embeddings[len(header_texts):]
+        header_texts + content_texts,
+        embed_model,
+        return_format="numpy",
+        show_progress=True,
+    )
+    header_embeddings = all_embeddings[: len(header_texts)]
+    content_embeddings = all_embeddings[len(header_texts) :]
     return header_embeddings, content_embeddings, metadata
 
 
-def cosine_similarity(query_embedding: np.ndarray, chunk_embeddings: np.ndarray) -> np.ndarray:
+def cosine_similarity(
+    query_embedding: np.ndarray, chunk_embeddings: np.ndarray
+) -> np.ndarray:
     """Calculate cosine similarity between query and chunk embeddings."""
     dot_product = np.dot(chunk_embeddings, query_embedding.T)
-    norms = np.linalg.norm(chunk_embeddings, axis=1) * \
-        np.linalg.norm(query_embedding)
+    norms = np.linalg.norm(chunk_embeddings, axis=1) * np.linalg.norm(query_embedding)
     # Avoid division by zero
     norms = np.where(norms == 0, 1e-10, norms)
     return dot_product / norms
 
 
-def search_resume(chunks: List[ChunkResult], query: str, embed_model: EmbedModelType = "mxbai-embed-large", top_k: int = 5) -> List[SearchResult]:
+def search_resume(
+    chunks: List[ChunkResult],
+    query: str,
+    embed_model: EmbedModelType = "mxbai-embed-large",
+    top_k: int = 5,
+) -> List[SearchResult]:
     """Perform vector search on resume markdown files."""
     # Initialize model
     SentenceTransformerRegistry.load_model(embed_model)
 
     # Compute embeddings with metadata
     header_embeddings, content_embeddings, metadata = compute_embeddings(
-        chunks, embed_model)
+        chunks, embed_model
+    )
     query_embedding = generate_embeddings(
-        [preprocess_text(query)], embed_model, return_format="numpy")[0]
+        [preprocess_text(query)], embed_model, return_format="numpy"
+    )[0]
 
     # Calculate similarities
     header_similarities = cosine_similarity(query_embedding, header_embeddings)
-    content_similarities = cosine_similarity(
-        query_embedding, content_embeddings)
+    content_similarities = cosine_similarity(query_embedding, content_embeddings)
     # Compute average similarity
     similarities = (header_similarities + content_similarities) / 2
 
@@ -204,8 +222,6 @@ def search_resume(chunks: List[ChunkResult], query: str, embed_model: EmbedModel
                 "doc_index": chunks[i]["doc_index"],
                 "doc_id": chunks[i]["shared_doc_id"],
             },
-
-
         )
         for idx, i in enumerate(top_k_indices)
     ]
@@ -213,7 +229,10 @@ def search_resume(chunks: List[ChunkResult], query: str, embed_model: EmbedModel
     return results
 
 
-def normalize_scores(scores: Union[List[float], np.ndarray], method: Literal["sigmoid", "minmax"] = "minmax") -> List[float]:
+def normalize_scores(
+    scores: Union[List[float], np.ndarray],
+    method: Literal["sigmoid", "minmax"] = "minmax",
+) -> List[float]:
     """Normalize raw cross-encoder scores using specified method.
 
     Args:
@@ -244,15 +263,18 @@ def normalize_scores(scores: Union[List[float], np.ndarray], method: Literal["si
         logger.debug("Applying min-max normalization")
         min_score, max_score = min(scores), max(scores)
         if max_score == min_score:
-            logger.warning(
-                "Max and min scores are equal, returning 0.5 for all scores")
+            logger.warning("Max and min scores are equal, returning 0.5 for all scores")
             return [0.5] * len(scores)
         return [(score - min_score) / (max_score - min_score) for score in scores]
     else:
         raise ValueError(f"Unsupported normalization method: {method}")
 
 
-def rerank_results(results: List[SearchResult], query: str, cross_encoder_model: str = "ms-marco-MiniLM-L6-v2") -> List[SearchResult]:
+def rerank_results(
+    results: List[SearchResult],
+    query: str,
+    cross_encoder_model: str = "ms-marco-MiniLM-L6-v2",
+) -> List[SearchResult]:
     """Rerank search results using a cross-encoder model.
 
     Args:
@@ -268,7 +290,8 @@ def rerank_results(results: List[SearchResult], query: str, cross_encoder_model:
     """
     if not results:
         logger.warning(
-            "Empty results list provided for reranking, returning empty list")
+            "Empty results list provided for reranking, returning empty list"
+        )
         return []
 
     try:
@@ -280,8 +303,7 @@ def rerank_results(results: List[SearchResult], query: str, cross_encoder_model:
         raise ValueError(f"Failed to load cross-encoder model: {str(e)}")
 
     # Create query-document pairs
-    pairs = [(query, f"{result['header']}\n{result['content']}")
-             for result in results]
+    pairs = [(query, f"{result['header']}\n{result['content']}") for result in results]
     logger.info(f"Created {len(pairs)} query-document pairs for reranking")
 
     # Compute cross-encoder scores
@@ -318,7 +340,12 @@ def rerank_results(results: List[SearchResult], query: str, cross_encoder_model:
     return reranked_results
 
 
-def cross_encoder_search(chunks: List[ChunkResult], query: str, cross_encoder_model: str = "ms-marco-MiniLM-L6-v2", top_k: int = 20) -> List[SearchResult]:
+def cross_encoder_search(
+    chunks: List[ChunkResult],
+    query: str,
+    cross_encoder_model: str = "ms-marco-MiniLM-L6-v2",
+    top_k: int = 20,
+) -> List[SearchResult]:
     """Perform search on resume chunks using a cross-encoder model.
 
     Args:
@@ -346,10 +373,8 @@ def cross_encoder_search(chunks: List[ChunkResult], query: str, cross_encoder_mo
         raise ValueError(f"Failed to load cross-encoder model: {str(e)}")
 
     # Create query-document pairs
-    pairs = [(query, f"{chunk['header']}\n{chunk['content']}")
-             for chunk in chunks]
-    logger.info(
-        f"Created {len(pairs)} query-document pairs for cross-encoder search")
+    pairs = [(query, f"{chunk['header']}\n{chunk['content']}") for chunk in chunks]
+    logger.info(f"Created {len(pairs)} query-document pairs for cross-encoder search")
 
     # Compute cross-encoder scores
     try:
@@ -369,26 +394,31 @@ def cross_encoder_search(chunks: List[ChunkResult], query: str, cross_encoder_mo
     # Create search results
     results = []
     for i, chunk in enumerate(chunks):
-        results.append(SearchResult(
-            rank=0,  # Temporary rank, updated after sorting
-            score=float(scores[i]),
-            header_score=float(scores[i]),  # Cross-encoder scores entire pair
-            content_score=float(scores[i]),  # Same score for consistency
-            num_tokens=chunk["num_tokens"],
-            parent_header=chunk["parent_header"],
-            header=chunk["header"],
-            content=chunk["content"],
-            level=chunk["level"],
-            parent_level=chunk["parent_level"],
-            metadata={
-                **chunk["metadata"],
-                "chunk_index": chunk["chunk_index"],
-                "doc_index": chunk["doc_index"],
-                "doc_id": chunk["shared_doc_id"],
-                "source": chunk["metadata"]["source"],
-                "context": chunk["metadata"]["source"].replace('.md', '').replace('_', ' ').title()
-            },
-        ))
+        results.append(
+            SearchResult(
+                rank=0,  # Temporary rank, updated after sorting
+                score=float(scores[i]),
+                header_score=float(scores[i]),  # Cross-encoder scores entire pair
+                content_score=float(scores[i]),  # Same score for consistency
+                num_tokens=chunk["num_tokens"],
+                parent_header=chunk["parent_header"],
+                header=chunk["header"],
+                content=chunk["content"],
+                level=chunk["level"],
+                parent_level=chunk["parent_level"],
+                metadata={
+                    **chunk["metadata"],
+                    "chunk_index": chunk["chunk_index"],
+                    "doc_index": chunk["doc_index"],
+                    "doc_id": chunk["shared_doc_id"],
+                    "source": chunk["metadata"]["source"],
+                    "context": chunk["metadata"]["source"]
+                    .replace(".md", "")
+                    .replace("_", " ")
+                    .title(),
+                },
+            )
+        )
 
     # Sort by score and assign ranks
     results.sort(key=lambda x: x["score"], reverse=True)
@@ -401,13 +431,13 @@ def cross_encoder_search(chunks: List[ChunkResult], query: str, cross_encoder_mo
 
 def group_results_by_source_for_llm_context(
     documents: List[SearchResult],
-    llm_model: 'LLMModelType',
+    llm_model: "LLMModelType",
     max_tokens: int = 2000,
-    buffer: int = 100
+    buffer: int = 100,
 ) -> str:
     def strip_hashtags(text: str) -> str:
         if text:
-            return text.lstrip('#').strip()
+            return text.lstrip("#").strip()
         return text
 
     filtered_documents = []
@@ -423,11 +453,11 @@ def group_results_by_source_for_llm_context(
     documents = filtered_documents
 
     tokenizer = get_tokenizer_fn(
-        llm_model, add_special_tokens=False, remove_pad_tokens=True)
+        llm_model, add_special_tokens=False, remove_pad_tokens=True
+    )
     separator = "\n\n"
     separator_tokens = len(tokenizer.encode(separator))
-    sorted_docs = sorted(
-        documents, key=lambda x: x.get("score", 0), reverse=True)
+    sorted_docs = sorted(documents, key=lambda x: x.get("score", 0), reverse=True)
     filtered_docs = []
     total_tokens = 0
     grouped_temp: DefaultDict[str, List[Dict]] = defaultdict(list)
@@ -443,19 +473,22 @@ def group_results_by_source_for_llm_context(
 
         if not isinstance(text, str):
             logger.debug(
-                f"Non-string content found for source: {source}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string.")
+                f"Non-string content found for source: {source}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string."
+            )
             text = str(text) if text else ""
 
         doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
         header_tokens = 0
 
         if not grouped_temp[source]:
-            header_tokens += len(tokenizer.encode(
-                f"<!-- Source: {source} -->\n\n"))
+            header_tokens += len(tokenizer.encode(f"<!-- Source: {source} -->\n\n"))
             header_tokens += separator_tokens if filtered_docs else 0
 
-        parent_header_key = strip_hashtags(
-            parent_header) if parent_header and parent_header != "None" else None
+        parent_header_key = (
+            strip_hashtags(parent_header)
+            if parent_header and parent_header != "None"
+            else None
+        )
         header_key = strip_hashtags(header) if header else None
 
         if header_key and header_key not in seen_header_text[source] and level >= 0:
@@ -474,10 +507,9 @@ def group_results_by_source_for_llm_context(
         block = f"<!-- Source: {source} -->\n\n"
         block_tokens = len(tokenizer.encode(block))
         seen_header_text_in_block = set()
-        docs = sorted(docs, key=lambda x: (
-            x.get("doc_index", 0),
-            x.get("chunk_index", 0)
-        ))
+        docs = sorted(
+            docs, key=lambda x: (x.get("doc_index", 0), x.get("chunk_index", 0))
+        )
         for doc in docs:
             header = doc.get("header", None)
             parent_header = doc.get("parent_header", "None")
@@ -485,15 +517,18 @@ def group_results_by_source_for_llm_context(
 
             if not isinstance(text, str):
                 logger.debug(
-                    f"Non-string content in block for source: {source}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string.")
+                    f"Non-string content in block for source: {source}, doc_index: {doc.get('doc_index', 0)}, type: {type(text)}. Converting to string."
+                )
                 text = str(text) if text else ""
 
             doc_tokens = doc.get("num_tokens", len(tokenizer.encode(text)))
-            doc_level = doc.get("level", 0) if doc.get(
-                "level") is not None else 0
+            doc_level = doc.get("level", 0) if doc.get("level") is not None else 0
             parent_level = doc.get("parent_level", None)
-            parent_header_key = strip_hashtags(
-                parent_header) if parent_header and parent_header != "None" else None
+            parent_header_key = (
+                strip_hashtags(parent_header)
+                if parent_header and parent_header != "None"
+                else None
+            )
             header_key = strip_hashtags(header) if header else None
 
             has_matching_child = any(
@@ -501,13 +536,22 @@ def group_results_by_source_for_llm_context(
                 for d in docs
                 if d.get("header") and d.get("level", 0) >= 0
             )
-            if parent_header_key and parent_level is not None and not has_matching_child and parent_header_key not in seen_header_text_in_block:
+            if (
+                parent_header_key
+                and parent_level is not None
+                and not has_matching_child
+                and parent_header_key not in seen_header_text_in_block
+            ):
                 parent_header_text = f"{parent_header}\n\n"
                 block += parent_header_text
                 block_tokens += len(tokenizer.encode(parent_header_text))
                 seen_header_text_in_block.add(parent_header_key)
 
-            if header_key and header_key not in seen_header_text_in_block and doc_level >= 0:
+            if (
+                header_key
+                and header_key not in seen_header_text_in_block
+                and doc_level >= 0
+            ):
                 subheader_text = f"{header}\n\n"
                 block += subheader_text
                 block_tokens += len(tokenizer.encode(subheader_text))
@@ -520,8 +564,7 @@ def group_results_by_source_for_llm_context(
             context_blocks.append(block.strip())
             total_tokens += block_tokens
         else:
-            logger.warning(
-                f"Empty block for {source} after processing; skipping.")
+            logger.warning(f"Empty block for {source} after processing; skipping.")
 
     result = "\n\n".join(context_blocks)
     final_token_count = len(tokenizer.encode(result))
@@ -549,23 +592,29 @@ def group_results_by_source_for_llm_context(
                 "parent_level": doc.get("parent_level"),
                 "level": doc.get("level"),
                 "selected_doc_ids": doc.get("selected_doc_ids"),
-                "num_tokens": doc.get("num_tokens")
-            } for doc in filtered_docs
-        ]
+                "num_tokens": doc.get("num_tokens"),
+            }
+            for doc in filtered_docs
+        ],
     }
 
     if final_token_count > max_tokens:
         logger.warning(
-            f"Final context exceeds max_tokens: {final_token_count} > {max_tokens}")
+            f"Final context exceeds max_tokens: {final_token_count} > {max_tokens}"
+        )
     else:
         logger.debug(
-            f"Grouped context created with {final_token_count} tokens for {len(grouped_temp)} sources")
+            f"Grouped context created with {final_token_count} tokens for {len(grouped_temp)} sources"
+        )
     return contexts_data, result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+        os.path.dirname(__file__),
+        "generated",
+        os.path.splitext(os.path.basename(__file__))[0],
+    )
     resume_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/my-resume/complete_jet_resume.md"
 
     query = "Tell me about yourself."
@@ -624,11 +673,14 @@ if __name__ == '__main__':
     # Group results for LLM context
     logger.info("Grouping results for LLM context")
     contexts_data, context_md = group_results_by_source_for_llm_context(
-        results, llm_model, max_tokens=max_tokens)
+        results, llm_model, max_tokens=max_tokens
+    )
     save_file(contexts_data, f"{output_dir}/contexts.json")
     save_file(context_md, f"{output_dir}/context.md")
-    save_file({"num_tokens": count_tokens(llm_model, context_md)},
-              f"{output_dir}/context_info.json")
+    save_file(
+        {"num_tokens": count_tokens(llm_model, context_md)},
+        f"{output_dir}/context_info.json",
+    )
 
     # Generate LLM response
     logger.info("Generating LLM response")

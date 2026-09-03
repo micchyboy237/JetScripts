@@ -15,7 +15,7 @@ from jet.code.markdown_utils._markdown_parser import (
 )
 from jet.code.splitter_markdown_utils import get_md_header_contents
 from jet.file.utils import load_file, save_file
-from jet.models.embeddings.chunking import chunk_headers_by_hierarchy
+from jet.models.chunkers import chunk_headers_by_hierarchy
 from jet.scrapers.header_hierarchy import HtmlHeaderDoc, extract_header_hierarchy
 from jet.scrapers.text_nodes import extract_text_nodes
 from jet.scrapers.utils import (

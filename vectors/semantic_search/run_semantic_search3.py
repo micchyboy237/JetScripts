@@ -1,14 +1,12 @@
 import os
 import shutil
-from typing import Optional, TypedDict, List
-import numpy as np
-from jet.vectors.semantic_search.base import vector_search
+from typing import List, TypedDict
+
 from jet.file.utils import load_file, save_file
-from jet.models.embeddings.base import generate_embeddings
-from jet.models.embeddings.chunking import chunk_docs_by_hierarchy, chunk_headers_by_hierarchy
-from jet.models.model_registry.transformers.mlx_model_registry import MLXModelRegistry
+from jet.models.chunkers import chunk_docs_by_hierarchy
 from jet.models.model_types import EmbedModelType, LLMModelType
 from jet.models.tokenizer.base import get_tokenizer_fn
+from jet.vectors.semantic_search.base import vector_search
 from shared.data_types.job import JobData
 
 
@@ -19,7 +17,10 @@ class SearchResultWithJobData(TypedDict):
 
 
 OUTPUT_DIR = os.path.join(
-    os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -35,22 +36,24 @@ if __name__ == "__main__":
 
     # Create texts and map each text to its JobData ID
     texts = [
-        "\n\n".join([
-            f"{item['title']}",
-            f"{item['company']}",
-            *[
-                f"{key}\n" +
-                "\n".join([f"- {value}" for value in item["entities"][key]])
-                for key in item["entities"]
-            ],
-            f"Keywords\n" +
-            "\n".join([f"- {keyword}" for keyword in item["keywords"]]),
-            f"Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
-            f"Domain\n- {item['domain']}",
-            f"Salary\n- {item['salary'] or 'Not specified'}",
-            f"Job Type\n- {item['job_type'] or 'Not specified'}",
-            f"Hours per Week\n- {item['hours_per_week'] or 'Not specified'}"
-        ])
+        "\n\n".join(
+            [
+                f"{item['title']}",
+                f"{item['company']}",
+                *[
+                    f"{key}\n"
+                    + "\n".join([f"- {value}" for value in item["entities"][key]])
+                    for key in item["entities"]
+                ],
+                f"Keywords\n"
+                + "\n".join([f"- {keyword}" for keyword in item["keywords"]]),
+                f"Tags\n" + "\n".join([f"- {tag}" for tag in item["tags"]]),
+                f"Domain\n- {item['domain']}",
+                f"Salary\n- {item['salary'] or 'Not specified'}",
+                f"Job Type\n- {item['job_type'] or 'Not specified'}",
+                f"Hours per Week\n- {item['hours_per_week'] or 'Not specified'}",
+            ]
+        )
         for item in data
     ]
     text_to_id = {i: item["id"] for i, item in enumerate(data)}
@@ -63,17 +66,18 @@ if __name__ == "__main__":
 
     # Map chunks to their source document ID
     chunk_to_doc = [
-        (chunk["doc_id"], text_to_id[chunk["doc_index"]],
-         f"{chunk['header']}\n{chunk['content']}")
+        (
+            chunk["doc_id"],
+            text_to_id[chunk["doc_index"]],
+            f"{chunk['header']}\n{chunk['content']}",
+        )
         for chunk in chunks
     ]
 
-    texts_to_search = [chunk[2]
-                       for chunk in chunk_to_doc]  # Content for embedding
+    texts_to_search = [chunk[2] for chunk in chunk_to_doc]  # Content for embedding
 
     # Perform vector search
-    search_results = vector_search(
-        query, texts_to_search, embed_model, top_k=None)
+    search_results = vector_search(query, texts_to_search, embed_model, top_k=None)
 
     # Aggregate scores by doc_id, taking the maximum score
     doc_scores = {}
@@ -85,8 +89,7 @@ if __name__ == "__main__":
     final_results: List[SearchResultWithJobData] = []
     job_data_by_id = {item["id"]: item for item in data}
     for rank, (doc_id, info) in enumerate(
-        sorted(doc_scores.items(),
-               key=lambda x: x[1]["score"], reverse=True), 1
+        sorted(doc_scores.items(), key=lambda x: x[1]["score"], reverse=True), 1
     ):
         if top_k is not None and rank > top_k:
             break
@@ -94,10 +97,8 @@ if __name__ == "__main__":
         job_without_details = {
             key: value for key, value in job_data.items() if key != "details"
         }
-        final_results.append({
-            "rank": rank,
-            "score": info["score"],
-            "job": job_without_details
-        })
+        final_results.append(
+            {"rank": rank, "score": info["score"], "job": job_without_details}
+        )
 
     save_file(final_results, f"{OUTPUT_DIR}/search_results.json")
