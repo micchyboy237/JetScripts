@@ -8,7 +8,7 @@ from rich.panel import Panel
 console = Console()
 SCRIPT_NAME = Path(__file__).stem
 OUTPUT_DIR = Path(__file__).parent / "generated" / SCRIPT_NAME
-DATA_PATH = Path(__file__).parent / "data" / "sample2.html"
+DATA_PATH = Path(__file__).parent / "data" / "sample1.html"
 
 # Setup output directory
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
