@@ -27,7 +27,7 @@ import shutil
 from pathlib import Path
 from typing import get_args
 
-from jet.adapters.llama_cpp.config import EMBED_MODEL_LG
+from jet.adapters.llama_cpp.config import EMBED_MODEL
 from jet.adapters.llama_cpp.rerank_utils import rerank
 
 # from jet.models.model_registry.transformers.sentence_transformer_registry import SentenceTransformerRegistry
@@ -182,10 +182,10 @@ def main(
     directories: list[str],
     extensions: list[str] = [".py"],
     use_cache: bool = False,
-    embed_model_name: str = EMBED_MODEL_LG,
+    embed_model_name: str = EMBED_MODEL,
     top_k: int | None = None,
     threshold: float = 0.0,
-    chunk_size: int = 768,
+    chunk_size: int = 400,
     chunk_overlap: int = 100,
     batch_size: int = 128,
     weights: "Weights" = DEFAULT_WEIGHTS,
@@ -454,12 +454,11 @@ def parse_arguments():
         "-m",
         "--embed-model",
         type=embed_model_type,
-        default=EMBED_MODEL_LG,
+        default=EMBED_MODEL,
         help=f"Embedding model to use ({', '.join(ALLOWED_EMBED_MODELS)})",
     )
 
     parser.add_argument(
-        "-k",
         "--top-k",
         type=int,
         default=None,
@@ -475,11 +474,10 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-cs", "--chunk-size", type=int, default=768, help="Size of text chunks"
+        "--chunk-size", type=int, default=400, help="Size of text chunks"
     )
 
     parser.add_argument(
-        "-co",
         "--chunk-overlap",
         type=int,
         default=100,
@@ -487,7 +485,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-bs",
         "--batch-size",
         type=int,
         default=128,
@@ -495,7 +492,6 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-w",
         "--weights",
         type=str,
         default="dir:0.0,name:0.25,content:0.75",
