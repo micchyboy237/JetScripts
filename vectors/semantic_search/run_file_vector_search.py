@@ -185,7 +185,7 @@ def main(
     embed_model_name: str = EMBED_MODEL_LG,
     top_k: int | None = None,
     threshold: float = 0.0,
-    chunk_size: int = 500,
+    chunk_size: int = 768,
     chunk_overlap: int = 100,
     batch_size: int = 128,
     weights: "Weights" = DEFAULT_WEIGHTS,
@@ -475,7 +475,7 @@ def parse_arguments():
     )
 
     parser.add_argument(
-        "-cs", "--chunk-size", type=int, default=500, help="Size of text chunks"
+        "-cs", "--chunk-size", type=int, default=768, help="Size of text chunks"
     )
 
     parser.add_argument(
