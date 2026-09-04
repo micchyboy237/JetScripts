@@ -12,7 +12,7 @@ from jet.vectors.ner import (
 from rich.console import Console
 from rich.progress import track
 from rich.table import Table
-from shared.data_types.job import JobEntity
+from shared.data_types.job import JobEntities
 
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
@@ -128,7 +128,7 @@ def extract_jobs_from_texts(
     for text in track(texts, description="Extracting entities from jobs..."):
         # Optional: clean text more if needed (remove boilerplate, etc.)
         entities: list[Entity] = extract_entities(nlp, text, threshold=threshold)
-        job_entities: JobEntity = extract_entities_from_text(
+        job_entities: JobEntities = extract_entities_from_text(
             nlp, text, threshold=threshold
         )
 
