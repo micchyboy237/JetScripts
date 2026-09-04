@@ -1,3 +1,10 @@
+"""
+# How to use
+
+## Quit Chrome first (Cmd+Q), then run:
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222 --user-data-dir=/tmp/chrome-debug-profile
+"""
+
 import logging
 
 from playwright.sync_api import sync_playwright
