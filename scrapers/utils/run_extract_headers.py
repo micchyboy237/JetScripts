@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 from typing import List
@@ -13,7 +14,17 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    link = "https://docs.tavily.com/documentation/api-reference/endpoint/crawl"
+    parser = argparse.ArgumentParser(
+        description="Extract header hierarchy from a web page."
+    )
+    parser.add_argument(
+        "link",
+        nargs="?",
+        default="https://deepeval.com/docs/metrics-introduction",
+        help="URL to extract header hierarchy from (default: %(default)s)",
+    )
+    args = parser.parse_args()
+    link = args.link
 
     headings: List[HtmlHeaderDoc] = extract_header_hierarchy(link)
     save_file(headings, f"{OUTPUT_DIR}/headings.json")

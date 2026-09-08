@@ -26,6 +26,35 @@
       <!-- Table -->
       <section id="metrics">
         <h2>Key Performance Metrics</h2>
+
+        <section id="latency-metrics">
+          <h3>Latency Improvements</h3>
+          <p>Detailed breakdown of API performance across regions:</p>
+
+          <section id="regional-latency">
+            <h4>Regional Breakdown</h4>
+
+            <div id="us-east">
+              <h5>US East Region</h5>
+              <p>Average latency: 145ms (p99: 167ms)</p>
+
+              <div id="us-east-details">
+                <h6>Edge Node Performance</h6>
+                <ul>
+                  <li>New York: 132ms</li>
+                  <li>Virginia: 128ms</li>
+                  <li>Florida: 156ms</li>
+                </ul>
+              </div>
+            </div>
+
+            <div id="eu-west">
+              <h5>EU West Region</h5>
+              <p>Average latency: 178ms (p99: 203ms)</p>
+            </div>
+          </section>
+        </section>
+
         <table>
           <thead>
             <tr>
@@ -65,41 +94,102 @@
       <!-- ListItem -->
       <section id="features">
         <h2>Shipped Features</h2>
-        <ul>
-          <li>
-            <strong>Real-time Sync Engine:</strong> Sub-second data propagation
-            across all nodes
-          </li>
-          <li>
-            <strong>RBAC v2:</strong> Granular permission model with team-level
-            inheritance
-          </li>
-          <li>
-            <strong>Audit Log Export:</strong> CSV/JSON export with S3
-            destination support
-          </li>
-          <li>
-            <strong>Webhook Retry Logic:</strong> Exponential backoff with
-            dead-letter queue
-          </li>
-        </ul>
+
+        <section id="core-features">
+          <h3>Core Platform Features</h3>
+
+          <div id="sync-engine">
+            <h4>Real-time Sync Engine</h4>
+            <p>Sub-second data propagation across all nodes</p>
+
+            <section id="sync-technical">
+              <h5>Technical Implementation</h5>
+
+              <div id="sync-algorithm">
+                <h6>Conflict Resolution Algorithm</h6>
+                <p>
+                  Uses operational transforms with vector clocks for
+                  deterministic ordering.
+                </p>
+              </div>
+            </section>
+          </div>
+
+          <div id="rbac-v2">
+            <h4>RBAC v2</h4>
+            <p>Granular permission model with team-level inheritance</p>
+          </div>
+        </section>
+
+        <section id="auxiliary-features">
+          <h3>Auxiliary Features</h3>
+
+          <div id="audit-log">
+            <h4>Audit Log Export</h4>
+            <p>CSV/JSON export with S3 destination support</p>
+          </div>
+
+          <div id="webhook-retry">
+            <h4>Webhook Retry Logic</h4>
+            <p>Exponential backoff with dead-letter queue</p>
+
+            <section id="retry-details">
+              <h5>Retry Configuration</h5>
+
+              <div id="backoff-strategy">
+                <h6>Exponential Backoff Parameters</h6>
+                <ul>
+                  <li>Initial delay: 200ms</li>
+                  <li>Multiplier: 2.0x</li>
+                  <li>Max delay: 10 seconds</li>
+                  <li>Max attempts: 5</li>
+                </ul>
+              </div>
+            </section>
+          </div>
+        </section>
       </section>
 
       <!-- Image + FigureCaption -->
       <section id="architecture">
         <h2>System Architecture Overview</h2>
-        <figure>
-          <img
-            src="https://example.com/images/sync-engine-diagram.png"
-            alt="Real-time Sync Engine architecture diagram"
-            width="600"
-            height="400"
-          />
-          <figcaption>
-            Figure 1. High-level architecture of the Real-time Sync Engine
-            introduced in Q3 2025.
-          </figcaption>
-        </figure>
+
+        <section id="sync-architecture">
+          <h3>Sync Engine Architecture</h3>
+          <figure>
+            <img
+              src="https://example.com/images/sync-engine-diagram.png"
+              alt="Real-time Sync Engine architecture diagram"
+              width="600"
+              height="400"
+            />
+            <figcaption>
+              Figure 1. High-level architecture of the Real-time Sync Engine
+              introduced in Q3 2025.
+            </figcaption>
+          </figure>
+
+          <section id="architecture-components">
+            <h4>Key Components</h4>
+
+            <div id="message-broker">
+              <h5>Message Broker Layer</h5>
+              <p>Kafka-based event streaming with exactly-once semantics</p>
+            </div>
+
+            <div id="storage-layer">
+              <h5>Persistent Storage</h5>
+
+              <div id="database-choice">
+                <h6>Database Selection Rationale</h6>
+                <p>
+                  PostgreSQL chosen for ACID compliance and JSONB support for
+                  flexible schema evolution.
+                </p>
+              </div>
+            </div>
+          </section>
+        </section>
       </section>
 
       <!-- Formula -->
@@ -111,6 +201,32 @@
           Latency}}{\text{Q2 Latency}} \times 100\% = 31.8\% \)
         </p>
         <p>Where Q2 Latency = 245 ms and Q3 Latency = 167 ms.</p>
+
+        <section id="formula-breakdown">
+          <h3>Formula Derivation</h3>
+
+          <div id="variables">
+            <h4>Variable Definitions</h4>
+
+            <div id="q2-latency">
+              <h5>Q2 Baseline Latency</h5>
+              <p>Measured across all production endpoints during July 2025</p>
+            </div>
+
+            <div id="q3-latency">
+              <h5>Q3 Optimized Latency</h5>
+              <p>Measured after deployment of sync engine optimizations</p>
+
+              <div id="measurement-methodology">
+                <h6>Measurement Methodology</h6>
+                <p>
+                  Using p99 percentile across 1M+ requests per day to eliminate
+                  outliers.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
       <!-- CodeSnippet -->
@@ -125,6 +241,31 @@ retry_policy:
   max_delay_ms: 10000
   dead_letter_queue: true
         </code></pre>
+
+        <section id="configuration-details">
+          <h3>Configuration Parameters</h3>
+
+          <div id="retry-settings">
+            <h4>Retry Settings Explained</h4>
+
+            <div id="max-attempts">
+              <h5>Maximum Attempts</h5>
+              <p>Set to 5 to balance reliability with resource consumption</p>
+            </div>
+
+            <div id="backoff-settings">
+              <h5>Backoff Strategy</h5>
+
+              <div id="initial-delay">
+                <h6>Initial Delay Rationale</h6>
+                <p>
+                  200ms provides quick retry for transient failures without
+                  overwhelming downstream services.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
       <!-- Address + EmailAddress -->
@@ -141,6 +282,24 @@ retry_policy:
           San Francisco, CA 94107<br />
           United States
         </address>
+
+        <section id="support-tiers">
+          <h3>Support Tiers</h3>
+
+          <div id="enterprise-support">
+            <h4>Enterprise Support</h4>
+            <p>24/7 dedicated support with 1-hour response SLA</p>
+
+            <div id="escalation-path">
+              <h5>Escalation Path</h5>
+
+              <div id="tier-1">
+                <h6>Tier 1: Initial Response</h6>
+                <p>Support engineers available via email and chat</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
       <!-- Form + FormKeysValues / CheckBox-style controls -->
@@ -182,6 +341,30 @@ retry_policy:
 
           <button type="submit">Submit Feedback</button>
         </form>
+
+        <section id="form-help">
+          <h3>Form Help & Guidelines</h3>
+
+          <div id="privacy-notice">
+            <h4>Privacy Notice</h4>
+            <p>
+              Your feedback is stored securely and used only for product
+              improvement
+            </p>
+
+            <div id="data-retention">
+              <h5>Data Retention Policy</h5>
+
+              <div id="retention-period">
+                <h6>Retention Duration</h6>
+                <p>
+                  Feedback data is retained for 24 months before automatic
+                  deletion.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
       <!-- Links (often become NarrativeText or linked text) -->
@@ -195,6 +378,28 @@ retry_policy:
           Architecture decision records:
           <a href="/adr/042-sync-engine">ADR-042</a>
         </p>
+
+        <section id="additional-resources">
+          <h3>Additional Documentation</h3>
+
+          <div id="technical-docs">
+            <h4>Technical Documentation</h4>
+
+            <div id="api-reference">
+              <h5>API Reference Guide</h5>
+              <p>Complete endpoint documentation with examples</p>
+
+              <div id="sdk-downloads">
+                <h6>SDK Downloads</h6>
+                <ul>
+                  <li>Python SDK v2.1.0</li>
+                  <li>JavaScript SDK v1.8.3</li>
+                  <li>Go SDK v0.9.1</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
 
       <!-- Uncategorized / free text block -->
@@ -204,6 +409,23 @@ retry_policy:
           Confidential – do not distribute outside the engineering organization.
           Next review scheduled for September 15, 2025.
         </div>
+
+        <section id="review-process">
+          <h3>Review Process</h3>
+
+          <div id="stakeholders">
+            <h4>Key Stakeholders</h4>
+
+            <div id="engineering-team">
+              <h5>Engineering Leadership</h5>
+
+              <div id="vp-engineering">
+                <h6>VP of Engineering Approval</h6>
+                <p>Final sign-off required before external distribution</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </section>
     </main>
 
