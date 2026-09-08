@@ -13,7 +13,7 @@ from jet.code.markdown_utils import (
 from jet.code.markdown_utils._preprocessors import extract_markdown_links
 from jet.file.utils import save_file
 from jet.logger import logger
-from jet.scrapers.playwright_utils import (
+from jet.scrapers.playwright_utils_with_context import (
     scrape_urls,
     scrape_urls_sync,
     setup_async_browser_session,
