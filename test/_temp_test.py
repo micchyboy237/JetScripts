@@ -1,98 +1,116 @@
-import asyncio
+from collections import defaultdict
 
-# ✅ NEW IMPORT: LLMConfig is now required for provider settings
-from crawl4ai import (
-    AsyncWebCrawler,
-    CacheMode,
-    CrawlerRunConfig,
-    LLMConfig,
-    LLMExtractionStrategy,
-)
+from rank_bm25 import BM25Okapi
+from sentence_transformers import SentenceTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 
-QUERY = "chunking strategies for PDF tables"
-ROOT_URL = "https://docs.unstructured.io"
-MAX_PAGES = 10  # Safety limit
+# -------------------------------------------------
+# 1. Sample Data
+# -------------------------------------------------
+documents = [
+    "The cat sat on the mat in the living room",
+    "A dog played with a ball in the park",
+    "Cats and dogs are popular household pets",
+    "I love eating fresh red apples every morning",
+    "The feline rested comfortably on the soft rug",
+    "Python is a great programming language for AI",
+]
 
+doc_ids = [f"doc_{i}" for i in range(len(documents))]
 
-async def crawl_until_satisfied():
-    config = CrawlerRunConfig(
-        cache_mode=CacheMode.BYPASS,
-        word_count_threshold=200,  # Skip thin pages
-        exclude_external_links=True,  # INNER LINKS ONLY
-        keep_data_attributes=True,
-        extraction_strategy=LLMExtractionStrategy(
-            # ✅ FIX: Wrap provider and api_token in LLMConfig
-            llm_config=LLMConfig(
-                provider="openai/gpt-4o-mini",
-                api_token="YOUR_API_KEY",
-            ),
-            instruction=f"""Extract content relevant to: '{QUERY}'.
-            Return JSON: {{"relevant": bool, "summary": str, "key_points": list}}.
-            If page has NO useful info about this query, set relevant=false.""",
-            schema={
-                "type": "object",
-                "properties": {
-                    "relevant": {"type": "boolean"},
-                    "summary": {"type": "string"},
-                    "key_points": {"type": "array", "items": {"type": "string"}},
-                },
-            },
-            extra_args={
-                "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
-                # You can also pass other LiteLLM params here
-                "max_tokens": 2048,
-                "temperature": 0.3,
-                "top_p": 0.95,
-                "presence_penalty": 1.5,
-            },
-        ),
-    )
+query = "cat sitting on a rug"
 
-    collected_context = []
-    visited = set()
-    queue = [ROOT_URL]
+print("Query:", query)
+print("-" * 60)
 
-    async with AsyncWebCrawler() as crawler:
-        while queue and len(collected_context) < 3 and len(visited) < MAX_PAGES:
-            url = queue.pop(0)
-            if url in visited:
-                continue
-            visited.add(url)
+# -------------------------------------------------
+# 2. Sparse Retrieval (BM25)
+# -------------------------------------------------
+tokenized_docs = [doc.lower().split() for doc in documents]
+bm25 = BM25Okapi(tokenized_docs)
 
-            result = await crawler.arun(url=url, config=config)
-            extracted = result.extracted_content  # Parsed JSON from LLM
+tokenized_query = query.lower().split()
+bm25_scores = bm25.get_scores(tokenized_query)
 
-            if extracted and extracted.get("relevant"):
-                collected_context.append(
-                    {
-                        "url": url,
-                        "markdown": result.markdown[:3000],
-                        "summary": extracted["summary"],
-                        "key_points": extracted["key_points"],
-                    }
-                )
-                print(f"✅ RELEVANT [{len(collected_context)}]: {url}")
-            else:
-                print(f"❌ SKIP: {url}")
+# Get top results from sparse
+sparse_ranked = sorted(zip(doc_ids, bm25_scores), key=lambda x: x[1], reverse=True)
 
-            # Discover inner links for next iteration
-            if result.links and result.links.get("internal"):
-                for link in result.links["internal"]:
-                    href = link.get("href", "")
-                    if href.startswith("/") or ROOT_URL in href:
-                        full = (
-                            href
-                            if href.startswith("http")
-                            else ROOT_URL.rstrip("/") + href
-                        )
-                        if full not in visited:
-                            queue.append(full)
+print("\n Sparse (BM25) Results:")
+for doc_id, score in sparse_ranked:
+    print(f"  {doc_id}: {score:.4f} → {documents[int(doc_id.split('_')[1])]}")
 
-    print(f"\n=== FINAL RAG CONTEXT ({len(collected_context)} pages) ===")
-    for ctx in collected_context:
-        print(f"\n📄 {ctx['url']}")
-        print(f"Summary: {ctx['summary']}")
-        print(f"Key Points: {ctx['key_points']}")
+# -------------------------------------------------
+# 3. Dense Retrieval (Embeddings)
+# -------------------------------------------------
+model = SentenceTransformer("all-MiniLM-L6-v2")
+
+doc_embeddings = model.encode(documents)
+query_embedding = model.encode([query])
+
+dense_scores = cosine_similarity(query_embedding, doc_embeddings).flatten()
+
+dense_ranked = sorted(zip(doc_ids, dense_scores), key=lambda x: x[1], reverse=True)
+
+print("\n Dense Results:")
+for doc_id, score in dense_ranked:
+    print(f"  {doc_id}: {score:.4f} → {documents[int(doc_id.split('_')[1])]}")
 
 
-asyncio.run(crawl_until_satisfied())
+# -------------------------------------------------
+# 4. Reciprocal Rank Fusion (RRF)
+# -------------------------------------------------
+def reciprocal_rank_fusion(ranked_lists, k=60):
+    """
+    ranked_lists: list of lists of doc_ids (already sorted by relevance)
+    """
+    scores = defaultdict(float)
+
+    for ranked_list in ranked_lists:
+        for rank, doc_id in enumerate(ranked_list, start=1):
+            scores[doc_id] += 1.0 / (k + rank)
+
+    # Sort by fused score
+    return sorted(scores.items(), key=lambda x: x[1], reverse=True)
+
+
+# Prepare ranked lists of doc_ids only
+sparse_doc_ids = [doc_id for doc_id, _ in sparse_ranked]
+dense_doc_ids = [doc_id for doc_id, _ in dense_ranked]
+
+rrf_results = reciprocal_rank_fusion([sparse_doc_ids, dense_doc_ids], k=60)
+
+print("\n RRF (Reciprocal Rank Fusion) Results:")
+for doc_id, score in rrf_results:
+    print(f"  {doc_id}: {score:.4f} → {documents[int(doc_id.split('_')[1])]}")
+
+
+# -------------------------------------------------
+# 5. Weighted Score Fusion
+# -------------------------------------------------
+def weighted_fusion(sparse_scores_dict, dense_scores_dict, alpha=0.4):
+    """
+    alpha = weight for sparse score
+    (1 - alpha) = weight for dense score
+    """
+    all_docs = set(sparse_scores_dict.keys()) | set(dense_scores_dict.keys())
+    fused = {}
+
+    for doc_id in all_docs:
+        s_score = sparse_scores_dict.get(doc_id, 0)
+        d_score = dense_scores_dict.get(doc_id, 0)
+        fused[doc_id] = alpha * s_score + (1 - alpha) * d_score
+
+    return sorted(fused.items(), key=lambda x: x[1], reverse=True)
+
+
+# Convert to dictionaries for easy lookup
+sparse_dict = dict(sparse_ranked)
+dense_dict = dict(dense_ranked)
+
+# Note: BM25 scores and cosine scores are on different scales.
+# In real systems you should normalize them first (min-max or z-score).
+weighted_results = weighted_fusion(sparse_dict, dense_dict, alpha=0.4)
+
+print("\n Weighted Fusion Results (alpha=0.4):")
+for doc_id, score in weighted_results:
+    print(f"  {doc_id}: {score:.4f} → {documents[int(doc_id.split('_')[1])]}")

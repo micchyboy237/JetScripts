@@ -159,13 +159,22 @@ def sync_example(
 if __name__ == "__main__":
     import argparse
 
+    DEFAULT_URLS = [
+        "https://web-scraping.dev/testimonials",
+        "https://quotes.toscrape.com/scroll",
+        "https://webscraper.io/test-sites/scroll",
+        "https://the-internet.herokuapp.com/infinite_scroll",
+        "https://scrapethissite.com/pages/ajax",
+    ]
+
     parser = argparse.ArgumentParser(
         description="Scrape URLs with Playwright and process results."
     )
     parser.add_argument(
         "urls",
-        nargs="+",
-        help="One or more URLs to scrape.",
+        nargs="*",
+        default=None,
+        help="One or more URLs to scrape. If not provided, a set of demo/test URLs will be used.",
     )
     parser.add_argument(
         "-b",
@@ -178,16 +187,22 @@ if __name__ == "__main__":
         "--url_patterns",
         nargs="*",
         default=[],
-        help="Patterns to filter extracted links (default: []). Use shell globs, e.g. 'https://site.com/*/*-*'",
+        help=(
+            "Patterns to filter extracted links (default: []). "
+            "Use shell globs, e.g. 'https://site.com/*/*-*'"
+        ),
     )
-
     args = parser.parse_args()
 
+    # Set default URLs if none provided
+    urls = args.urls if args.urls and len(args.urls) > 0 else DEFAULT_URLS
+
     logger.info(
-        f"Running sync example with urls={args.urls}, base_url={args.base_url}, url_patterns={args.url_patterns}"
+        f"Running sync example with urls={urls}, "
+        f"base_url={args.base_url}, url_patterns={args.url_patterns}"
     )
-    sync_example(args.urls, args.base_url, args.url_patterns)
+    sync_example(urls, args.base_url, args.url_patterns)
 
     # import asyncio
     # logger.info("Running async example...")
-    # asyncio.run(async_example(args.urls))
+    # asyncio.run(async_example(urls))
