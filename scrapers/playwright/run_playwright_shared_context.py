@@ -177,11 +177,11 @@ if __name__ == "__main__":
     import argparse
 
     DEFAULT_URLS = [
-        "web-scraping.dev/testimonials",
+        "https://web-scraping.dev/testimonials",
         "https://quotes.toscrape.com/scroll",
-        "webscraper.io/test-sites/scroll",
-        "the-internet.herokuapp.com/infinite_scroll",
-        "scrapethissite.com/pages/ajax",
+        "https://webscraper.io/test-sites/scroll",
+        "https://the-internet.herokuapp.com/infinite_scroll",
+        "https://scrapethissite.com/pages/ajax",
     ]
 
     parser = argparse.ArgumentParser(
