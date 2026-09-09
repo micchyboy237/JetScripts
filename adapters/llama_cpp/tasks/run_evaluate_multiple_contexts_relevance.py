@@ -6,9 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from jet.adapters.llama_cpp.config import LLM_MODEL
-from jet.adapters.llama_cpp.tasks.evaluate_multiple_contexts_relevance import (
-    evaluate_multiple_contexts_relevance,
-)
+from jet.adapters.llama_cpp.tasks import evaluate_multiple_contexts_relevance
 from rich.console import Console
 from rich.table import Table
 

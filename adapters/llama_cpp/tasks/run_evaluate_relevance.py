@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 
 from jet.adapters.llama_cpp.config import EMBED_MODEL
-from jet.adapters.llama_cpp.tasks.evaluate_relevance import evaluate_relevance
+from jet.adapters.llama_cpp.tasks import evaluate_relevance
 from rich.console import Console
 from rich.table import Table
 
