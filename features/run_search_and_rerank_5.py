@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import re
 import shutil
@@ -8,8 +9,8 @@ import uuid
 from collections import defaultdict
 
 from jet.adapters.llama_cpp.config import EMBED_MODEL_LG, LLM_MODEL
-from jet.adapters.llama_cpp.llm import LlamacppLLM
-from jet.adapters.llama_cpp.token_utils import count_tokens, get_tokenizer_fn
+from jet.adapters.llama_cpp.llm_utils_observed import achat
+from jet.adapters.llama_cpp.token_utils import count_tokens
 from jet.adapters.llama_cpp.types import LLAMACPP_EMBED_KEYS, LLAMACPP_LLM_KEYS
 from jet.code.html_utils import preprocess_html
 from jet.code.markdown_types.markdown_parsed_types import HeaderDoc, HeaderSearchResult
@@ -61,7 +62,6 @@ MEDIUM_QUALITY_SCORE = 0.4
 TARGET_HIGH_SCORE_TOKENS = 4000
 TARGET_MEDIUM_SCORE_TOKENS = 10000
 
-# Initialize tracing for this script
 PROJECT_NAME = "search-and-rerank-pipeline"
 try:
     init_tracing(project_name=PROJECT_NAME)
@@ -85,7 +85,6 @@ def format_sub_dir(text: str) -> str:
 
 
 def format_sub_source_dir(source: str) -> str:
-    """Format a source (URL or file path) into a directory name."""
     clean_source = re.sub(r"^(https?://|www\.)|(\?.*)", "", source)
     clean_source = clean_source.replace(os.sep, "_")
     trans_table = str.maketrans({p: "_" for p in string.punctuation})
@@ -110,9 +109,6 @@ def sort_urls_by_high_and_medium_score_tokens(
     url_score_tokens = defaultdict(
         lambda: {"high_score_tokens": 0, "medium_score_tokens": 0}
     )
-
-    # Note: Original logic had an empty url_score_tokens dict here.
-    # Preserving structure but ensuring it uses parameters if populated elsewhere.
     sorted_urls = sorted(
         url_score_tokens.keys(),
         key=lambda url: (
@@ -121,7 +117,6 @@ def sort_urls_by_high_and_medium_score_tokens(
         ),
         reverse=True,
     )
-
     return sorted_urls
 
 
@@ -131,9 +126,6 @@ def sort_search_results_by_url_and_category(
     high_quality_score: float = HIGH_QUALITY_SCORE,
     medium_quality_score: float = MEDIUM_QUALITY_SCORE,
 ):
-    """
-    Sorts results in three stages.
-    """
     url_to_results = {url: [] for url in sorted_urls}
     high_score_results = []
     medium_score_results = []
@@ -163,7 +155,6 @@ def sort_search_results_by_url_and_category(
         medium_score_results, key=lambda r: r["score"], reverse=True
     )
     sorted_low_score = sorted(low_score_results, key=lambda r: r["score"], reverse=True)
-
     return sorted_high_score + sorted_medium_score + sorted_low_score
 
 
@@ -177,13 +168,12 @@ def group_results_by_source_for_llm_context(
             return text.lstrip("#").strip()
         return text
 
+    from jet.adapters.llama_cpp.token_utils import get_tokenizer_fn
+
     tokenizer = get_tokenizer_fn(
         os.getenv("LLAMA_CPP_LLM_MODEL"),
         add_special_tokens=False,
     )
-
-    separator = "\n\n"
-    separator_tokens = len(tokenizer(separator))
 
     url_score_tokens = defaultdict(
         lambda: {"high_score_tokens": 0, "medium_score_tokens": 0}
@@ -220,7 +210,6 @@ def group_results_by_source_for_llm_context(
     for url in sorted_urls:
         docs = sorted(grouped_temp[url], key=lambda x: x["score"], reverse=True)
         block = f"<!-- Source: {url} -->\n\n"
-
         seen_header_text_in_block = set()
 
         grouped_by_header: defaultdict[tuple[int, str], list[HeaderSearchResult]] = (
@@ -428,7 +417,6 @@ def get_args() -> dict:
     )
 
     args = p.parse_args()
-
     query = args.query if args.query else args.query_pos or "Top isekai anime 2026"
 
     kwargs = {
@@ -446,12 +434,10 @@ def get_args() -> dict:
         "target_high_score_tokens": args.target_high_tokens,
         "target_medium_score_tokens": args.target_medium_tokens,
     }
-
     if args.embed_model is not None:
         kwargs["embed_model"] = args.embed_model
     if args.llm_model is not None:
         kwargs["llm_model"] = args.llm_model
-
     return kwargs
 
 
@@ -472,7 +458,7 @@ async def main(
     target_high_score_tokens: int = TARGET_HIGH_SCORE_TOKENS,
     target_medium_score_tokens: int = TARGET_MEDIUM_SCORE_TOKENS,
 ):
-    """Main function to demonstrate file search."""
+    """Main function to demonstrate file search with full observability."""
     session_id = str(uuid.uuid4())
     start_time = time.time()
 
@@ -501,7 +487,6 @@ async def main(
         save_file(
             search_engine_results, f"{query_output_dir}/search_engine_results.json"
         )
-
         urls = [r["url"] for r in search_engine_results][:urls_limit]
 
         html_list = []
@@ -553,7 +538,6 @@ async def main(
                     ]
                     save_file(links, os.path.join(sub_output_dir, "links.json"))
 
-                    # Markdown Conversion
                     doc_markdown = convert_html_to_markdown(html, ignore_links=False)
                     save_file(doc_markdown, f"{sub_output_dir}/page.md")
 
@@ -573,11 +557,11 @@ async def main(
                     for doc in original_docs:
                         doc["source"] = url
 
-                    # Vector Search
+                    # Vector Search with observed embed_batch
                     with embedding_span(
                         name="vector.search_headers",
                         model_name=resolve_model_value(embed_model),
-                        texts=[query],  # Simplified for tracing
+                        texts=[redact(query)],
                     ) as emb_span:
                         sub_results = list(
                             search_headers(
@@ -592,6 +576,7 @@ async def main(
                                 merge_chunks=merge_chunks,
                             )
                         )
+                        emb_span.set_attribute("vector.results_count", len(sub_results))
 
                     all_searched_urls.append(url)
 
@@ -615,31 +600,21 @@ async def main(
                         result["metadata"]["num_tokens"]
                         for result in filtered_sub_results
                     )
-
                     sub_high_score_tokens = sum(
                         result["metadata"]["num_tokens"]
                         for result in filtered_sub_results
-                        if (result["score"] >= high_quality_score)
+                        if result["score"] >= high_quality_score
                     )
-
                     sub_medium_score_tokens = sum(
                         result["metadata"]["num_tokens"]
                         for result in filtered_sub_results
-                        if (
-                            result["score"] >= medium_quality_score
-                            and result["score"] < high_quality_score
-                        )
+                        if medium_quality_score <= result["score"] < high_quality_score
                     )
 
                     sub_mtld_score_values = [
                         calculate_mtld(result["content"])
                         for result in filtered_sub_results
-                        if (
-                            result["score"] >= high_quality_score
-                            and calculate_mtld_category(
-                                calculate_mtld(result["content"])
-                            )
-                        )
+                        if result["score"] >= high_quality_score
                     ]
                     sub_mtld_score_average = (
                         sum(sub_mtld_score_values) / len(sub_mtld_score_values)
@@ -653,12 +628,10 @@ async def main(
                             "url": url,
                             "count": len(filtered_sub_results),
                             "max_score": max(
-                                (result["score"] for result in filtered_sub_results),
-                                default=0.0,
+                                (r["score"] for r in filtered_sub_results), default=0.0
                             ),
                             "min_score": min(
-                                (result["score"] for result in filtered_sub_results),
-                                default=0.0,
+                                (r["score"] for r in filtered_sub_results), default=0.0
                             ),
                             "mtld": calculate_mtld(html),
                             "mtld_category": calculate_mtld_category(
@@ -699,7 +672,7 @@ async def main(
                         )
                         break
 
-        # Cleanup
+        # Cleanup zero-token dirs
         for url in all_completed_urls:
             sub_source_dir = format_sub_source_dir(url)
             sub_output_dir = os.path.join(query_output_dir, "pages", sub_source_dir)
@@ -775,12 +748,8 @@ async def main(
             {
                 "query": query,
                 "count": len(search_results),
-                "max_score": max(
-                    (result["score"] for result in search_results), default=0.0
-                ),
-                "min_score": min(
-                    (result["score"] for result in search_results), default=0.0
-                ),
+                "max_score": max((r["score"] for r in search_results), default=0.0),
+                "min_score": min((r["score"] for r in search_results), default=0.0),
                 "total_tokens": headers_total_tokens,
                 "high_score_tokens": headers_high_score_tokens,
                 "medium_score_tokens": headers_medium_score_tokens,
@@ -806,9 +775,7 @@ async def main(
             high_quality_score=high_quality_score,
             medium_quality_score=medium_quality_score,
         )
-        total_tokens = sum(
-            result["metadata"].get("num_tokens", 0) for result in sorted_results
-        )
+        total_tokens = sum(r["metadata"].get("num_tokens", 0) for r in sorted_results)
 
         save_file(
             {
@@ -820,6 +787,7 @@ async def main(
             f"{query_output_dir}/sorted_search_results.json",
         )
 
+        # Token-limited filtering
         current_tokens = 0
         filtered_results = []
         for result in sorted_results:
@@ -890,28 +858,27 @@ async def main(
 
         save_file(context, f"{query_output_dir}/context.md")
 
-        # Stage 4: LLM Generation
-        llm = LlamacppLLM(
-            model=llm_model, base_url=os.getenv("LLAMA_CPP_LLM_URL"), verbose=True
-        )
+        # Stage 4: LLM Generation using observed achat
         prompt = PROMPT_TEMPLATE.format(query=query, context=context)
-        messages = [
-            {"role": "user", "content": prompt},
-        ]
+        messages = [{"role": "user", "content": prompt}]
         save_file(messages, f"{query_output_dir}/messages.json")
 
-        invocation_params = {"temperature": 0.3, "stream": True}
         with llm_span(
             name="llm.generate_answer",
             model_name=resolve_model_value(llm_model),
             messages=messages,
-            invocation_params=invocation_params,
+            invocation_params={"temperature": 0.3, "stream": True},
             provider="llama_cpp",
         ) as llm_trace_span:
-            llm_response_stream = llm.chat(messages, temperature=0.3, stream=True)
-            llm_response = ""
-            for chunk in llm_response_stream:
-                llm_response += chunk
+            result_obj = await achat(
+                prompt_or_messages=messages,
+                model=llm_model,
+                temperature=0.3,
+                project_name=PROJECT_NAME,
+                capture_content=True,
+                session_id=session_id,
+            )
+            llm_response = result_obj.content
 
             input_tokens = count_tokens(prompt, model=llm_model)
             output_tokens = count_tokens(llm_response, model=llm_model)
@@ -933,7 +900,6 @@ async def main(
             )
 
         save_file(llm_response, f"{query_output_dir}/response.md")
-
         save_file(
             {
                 "input_tokens": input_tokens,
@@ -943,13 +909,27 @@ async def main(
             f"{query_output_dir}/tokens_info.json",
         )
 
+        # 1. Set Status to OK (or ERROR if an exception occurred)
+        from opentelemetry.trace import Status, StatusCode
+
+        root_span.set_status(Status(StatusCode.OK))
+
+        # 2. Populate Output Value (redacted LLM response)
+        root_span.set_attribute(
+            SpanAttributes.OUTPUT_VALUE,
+            redact(llm_response[:4000]),  # Truncate to avoid OTLP payload limits
+        )
+        root_span.set_attribute(SpanAttributes.OUTPUT_MIME_TYPE, "text/plain")
+
+        # 3. Optional: Add pipeline-level metrics to the root span
         elapsed = time.time() - start_time
-        root_span.set_attribute("pipeline.elapsed_seconds", elapsed)
+        root_span.set_attribute("pipeline.elapsed_seconds", round(elapsed, 4))
         root_span.set_attribute("pipeline.total_tokens_processed", headers_total_tokens)
+        root_span.set_attribute("pipeline.urls_scraped", len(all_completed_urls))
+        root_span.set_attribute("pipeline.final_context_tokens", current_tokens)
+
         logger.info(f"Pipeline completed in {elapsed:.2f}s")
 
 
 if __name__ == "__main__":
-    import json
-
     asyncio.run(main(**get_args()))
