@@ -1,67 +1,43 @@
-from urllib.parse import urljoin
+"""
+Demo 2: SPLADE via FastEmbed (ONNX-optimized)
+Model: prithivida/Splade_PP_en_v1
+Strategy: High-throughput sparse encoding with indices/values format
+"""
 
-from openai import OpenAI
-from trafilatura import extract, fetch_url
-
-QUERY = "chunking strategies for PDF tables"
-ROOT_URL = "https://docs.unstructured.io"
-MAX_PAGES = 10
-
-client = OpenAI(api_key="YOUR_API_KEY")
+import numpy as np
+from fastembed import SparseTextEmbedding
 
 
-def is_relevant(text: str) -> dict:
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "user",
-                "content": f"Does this text discuss '{QUERY}'? Reply JSON: {{'relevant': bool, 'summary': str}}",
-            }
-        ],
-        response_format={"type": "json_object"},
-    )
-    return eval(resp.choices[0].message.content)
+def main():
+    # 1. Load model (auto-downloads ONNX weights)
+    model = SparseTextEmbedding(model_name="prithivida/Splade_PP_en_v1")
+
+    documents = [
+        "Apple releases new iPhone with titanium frame",
+        "The weather is lovely and sunny today",
+        "Chandrayaan-3 landed on the Moon in August 2023",
+    ]
+
+    # 2. Batch encode → list of SparseEmbedding objects
+    sparse_embeddings = list(model.embed(documents, batch_size=4))
+
+    # 3. Inspect raw output format (indices + values arrays)
+    for i, emb in enumerate(sparse_embeddings):
+        print(f"[{i}] {documents[i]}")
+        print(f"    Active dimensions: {len(emb.indices)}")
+        print(f"    Indices (vocab IDs): {emb.indices[:8]}...")
+        print(f"    Values  (weights):   {np.round(emb.values[:8], 3)}...")
+        print()
+
+    # 4. Convert to dict format compatible with vector DBs
+    # Many DBs (Qdrant, Pinecone) accept {index: weight} dicts
+    db_ready = [
+        {int(idx): float(val) for idx, val in zip(emb.indices, emb.values)}
+        for emb in sparse_embeddings
+    ]
+    print("DB-ready format (first doc, first 5 entries):")
+    print(dict(list(db_ready[0].items())[:5]))
 
 
-def trafilatura_crawl():
-    collected, visited, queue = [], set(), [ROOT_URL]
-
-    while queue and len(collected) < 3 and len(visited) < MAX_PAGES:
-        url = queue.pop(0)
-        if url in visited:
-            continue
-        visited.add(url)
-
-        downloaded = fetch_url(url)
-        if not downloaded:
-            continue
-
-        text = extract(downloaded, include_tables=True, output_format="markdown")
-        if not text or len(text) < 200:
-            continue
-
-        check = is_relevant(text)
-        if check["relevant"]:
-            collected.append(
-                {"url": url, "content": text[:3000], "summary": check["summary"]}
-            )
-            print(f"✅ RELEVANT [{len(collected)}]: {url}")
-        else:
-            print(f"❌ SKIP: {url}")
-
-        # MANUAL link discovery (trafilatura doesn't do this)
-        from bs4 import BeautifulSoup
-
-        soup = BeautifulSoup(downloaded, "html.parser")
-        for a in soup.find_all("a", href=True):
-            full = urljoin(url, a["href"])
-            if full.startswith(ROOT_URL) and full not in visited:
-                queue.append(full)
-
-    print(f"\n=== FINAL CONTEXT ({len(collected)} pages) ===")
-    for c in collected:
-        print(f"\n📄 {c['url']}\n{c['summary']}")
-
-
-trafilatura_crawl()
+if __name__ == "__main__":
+    main()
