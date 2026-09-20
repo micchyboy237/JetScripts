@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import re
 import shutil
@@ -30,7 +29,6 @@ from jet.observability import (
     get_tracer,
     hash_prompt,
     init_tracing,
-    llm_span,
     redact,
     tool_span,
 )
@@ -863,42 +861,19 @@ async def main(
         messages = [{"role": "user", "content": prompt}]
         save_file(messages, f"{query_output_dir}/messages.json")
 
-        with llm_span(
-            name="llm.generate_answer",
-            model_name=resolve_model_value(llm_model),
-            messages=messages,
-            invocation_params={"temperature": 0.3, "stream": True},
-            provider="llama_cpp",
-        ) as llm_trace_span:
-            result_obj = await achat(
-                prompt_or_messages=messages,
-                model=llm_model,
-                temperature=0.3,
-                project_name=PROJECT_NAME,
-                capture_content=True,
-                session_id=session_id,
-            )
-            llm_response = result_obj.content
+        result_obj = await achat(
+            prompt_or_messages=messages,
+            model=llm_model,
+            temperature=0.3,
+            project_name=PROJECT_NAME,
+            capture_content=True,
+            session_id=session_id,
+        )
+        llm_response = result_obj.content
+        input_tokens = count_tokens(prompt, model=llm_model)
+        output_tokens = count_tokens(llm_response, model=llm_model)
 
-            input_tokens = count_tokens(prompt, model=llm_model)
-            output_tokens = count_tokens(llm_response, model=llm_model)
-
-            llm_trace_span.set_attribute(
-                SpanAttributes.LLM_TOKEN_COUNT_PROMPT, input_tokens
-            )
-            llm_trace_span.set_attribute(
-                SpanAttributes.LLM_TOKEN_COUNT_COMPLETION, output_tokens
-            )
-            llm_trace_span.set_attribute(
-                SpanAttributes.LLM_TOKEN_COUNT_TOTAL, input_tokens + output_tokens
-            )
-            llm_trace_span.set_attribute(
-                SpanAttributes.LLM_OUTPUT_MESSAGES,
-                json.dumps(
-                    [{"role": "assistant", "content": redact(llm_response[:2000])}]
-                ),
-            )
-
+        # Keep local file saves (these are pipeline artifacts, not observability)
         save_file(llm_response, f"{query_output_dir}/response.md")
         save_file(
             {
