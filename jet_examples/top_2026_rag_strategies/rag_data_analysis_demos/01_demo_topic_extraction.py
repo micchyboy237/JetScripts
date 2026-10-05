@@ -1,11 +1,20 @@
 """
 01_demo_topic_extraction.py
-
 Extract topics from text documents using BERTopic with local embeddings.
-Uses reusable factory functions from jet.adapters.bertopic.factory.
+Saves config, inputs, and results to OUTPUT_DIR.
 """
 
+import json
+import logging
+import shutil
+from pathlib import Path
+
+import numpy as np
 from jet.libs.bertopic.monkey_patches.add_check_array import init_patch
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.table import Table
 
 init_patch()
 
@@ -18,6 +27,21 @@ from jet.adapters.bertopic.factory import (
     sanity_check_embedder,
 )
 
+# --- Output Directory Setup ---
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# --- Rich Logging Setup ---
+logging.basicConfig(
+    level="INFO",
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(rich_tracebacks=True, markup=True)],
+)
+logger = logging.getLogger("rich")
+console = Console()
+
 
 def run_topic_extraction_demo(
     documents: List[str],
@@ -26,50 +50,92 @@ def run_topic_extraction_demo(
 ) -> TopicExtractionResult:
     """
     Demonstrate topic extraction using the reusable factory functions.
-
-    Args:
-        documents: List of text documents to analyze
-        min_topic_size: Minimum documents per topic
-        top_n_words: Number of keywords to extract per topic
-
-    Returns:
-        Structured topic extraction results
     """
-    # Create embedder using factory (reads config from environment)
-    embedder = create_bertopic_embedder()
+    # 1. Save Inputs
+    input_path = OUTPUT_DIR / "inputs.json"
+    with open(input_path, "w", encoding="utf-8") as f:
+        json.dump({"documents": documents}, f, indent=2, ensure_ascii=False)
+    logger.info(
+        f"Saved [cyan]{len(documents)}[/cyan] input documents to {input_path.name}"
+    )
 
-    # Verify the embedding server is working
+    # 2. Save Config
+    config = {
+        "min_topic_size": min_topic_size,
+        "top_n_words": top_n_words,
+        "embedder": "llama_cpp_local",
+    }
+    config_path = OUTPUT_DIR / "config.json"
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2)
+    logger.info(f"Saved configuration to {config_path.name}")
+
+    # 3. Run Extraction
+    embedder = create_bertopic_embedder()
     sanity_check_embedder(embedder)
 
-    # Extract topics using the high-level function
+    logger.info("Starting topic extraction...")
     result = extract_topics(
         documents=documents,
         embedder=embedder,
         min_topic_size=min_topic_size,
         top_n_words=top_n_words,
-        verbose=True,
+        verbose=False,  # We handle logging via rich
     )
 
-    # Display results
-    print(f"\nExtracted {len(result['topics'])} topics from {len(documents)} documents")
-    print(f"Embedding shape: {result['embeddings'].shape}")
+    # 4. Save Outputs
+    # Save serializable topic data
+    topics_out_path = OUTPUT_DIR / "topics.json"
+    with open(topics_out_path, "w", encoding="utf-8") as f:
+        json.dump(result["topics"], f, indent=2, ensure_ascii=False)
 
-    for topic in result["topics"]:
-        print(f"\n  Topic {topic['topic_id']}: {topic['name']}")
-        print(f"    Size: {topic['size']} documents")
-        print(f"    Keywords: {', '.join(topic['keywords'])}")
-        print(f"    Representative: {topic['representative_doc'][:100]}...")
+    # Save embeddings as binary
+    emb_path = OUTPUT_DIR / "embeddings.npy"
+    np.save(emb_path, result["embeddings"])
 
+    # Save topic info dataframe
+    info_path = OUTPUT_DIR / "topic_info.csv"
+    result["topic_info"].to_csv(info_path, index=False)
+
+    logger.info(f"Extracted [green]{len(result['topics'])}[/green] topics")
     return result
 
-
-# ---------------------------------------------------------------------------
-# Example usage (if run directly)
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     from mocks import DOCS
 
     sample_docs = DOCS
-
     result = run_topic_extraction_demo(sample_docs)
+
+    # --- Final Summary ---
+    table = Table(
+        title="Generated Artifacts", show_header=True, header_style="bold magenta"
+    )
+    table.add_column("File", style="cyan", no_wrap=True)
+    table.add_column("Type", style="green")
+    table.add_column("Description")
+
+    artifacts = [
+        ("inputs.json", "Input", f"{len(sample_docs)} source documents"),
+        ("config.json", "Config", "Extraction parameters"),
+        ("topics.json", "Output", "Structured topic keywords & docs"),
+        (
+            "embeddings.npy",
+            "Output",
+            f"Document embeddings {result['embeddings'].shape}",
+        ),
+        ("topic_info.csv", "Output", "BERTopic summary statistics"),
+    ]
+
+    for fname, ftype, desc in artifacts:
+        link = f"file://{OUTPUT_DIR / fname}"
+        table.add_row(f"[link={link}]{fname}[/link]", ftype, desc)
+
+    console.print()
+    console.print(
+        Panel(
+            table,
+            title=f"[bold]Results: {Path(__file__).stem}[/bold]",
+            border_style="blue",
+        )
+    )
