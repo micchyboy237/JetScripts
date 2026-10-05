@@ -1,13 +1,18 @@
-from jet.libs.bertopic.examples.mock import load_sample_data, load_sample_jobs
-from jet.wordnet.keywords.helpers import preprocess_texts
 import os
 import shutil
+
 from jet.file.utils import save_file
+from jet.libs.bertopic.examples.mock import load_sample_jobs
+
+# from jet.wordnet.pos_tagger import POSTagger
+from jet.logger import logger
+from jet.wordnet.keywords.helpers import preprocess_texts
 from jet.wordnet.n_grams import (
     calculate_n_gram_diversity,
     count_ngrams,
-    extract_ngrams,
     count_ngrams_with_texts,
+    extract_ngrams,
+    filter_and_sort_sentences_by_ngrams,
     filter_texts_by_multi_ngram_count,
     get_common_texts,
     get_most_common_ngrams,
@@ -18,20 +23,19 @@ from jet.wordnet.n_grams import (
     get_total_counts_of_ngrams,
     get_total_unique_ngrams,
     group_sentences_by_ngram,
-    filter_and_sort_sentences_by_ngrams,
     n_gram_frequency,
+    nwise,
     separate_ngram_lines,
     sort_sentences,
-    nwise,
 )
 
-# from jet.wordnet.pos_tagger import POSTagger
-
-from jet.logger import logger
-
 OUTPUT_DIR = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+
 
 def main_run_ngram_examples(texts, output_dir):
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -43,61 +47,67 @@ def main_run_ngram_examples(texts, output_dir):
     save_file(texts, f"{output_dir}/1_preprocessed_texts.json")
 
     # Existing function calls
-    all_ngrams = count_ngrams([text.lower()
-                               for text in texts], min_words=1)
+    all_ngrams = count_ngrams([text.lower() for text in texts], min_words=1)
     save_file(all_ngrams, f"{output_dir}/2_all_ngrams_count.json")
 
-    filtered_ngrams = count_ngrams(
-        [text.lower() for text in texts], min_count=2)
-    save_file(filtered_ngrams,
-              f"{output_dir}/3_filtered_ngrams_min_count_2.json")
+    filtered_ngrams = count_ngrams([text.lower() for text in texts], min_count=2)
+    save_file(filtered_ngrams, f"{output_dir}/3_filtered_ngrams_min_count_2.json")
 
     result = get_most_common_ngrams([text.lower() for text in texts])
     save_file(result, f"{output_dir}/4_most_common_ngrams.json")
 
     result = get_common_texts(
-        [text.lower() for text in texts], includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"],)
+        [text.lower() for text in texts],
+        includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"],
+    )
     save_file(result, f"{output_dir}/5_common_texts.json")
 
     result = group_sentences_by_ngram(
-        [text.lower() for text in texts], is_start_ngrams=False, top_n=10, includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"])
+        [text.lower() for text in texts],
+        is_start_ngrams=False,
+        top_n=10,
+        includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"],
+    )
     save_file(result, f"{output_dir}/6_grouped_sentences.json")
 
     lowered_ngrams_count = count_ngrams(
-        [text.lower() for text in texts], min_words=1, max_words=3)
-    save_file(lowered_ngrams_count,
-              f"{output_dir}/7_lowered_ngrams_count.json")
+        [text.lower() for text in texts], min_words=1, max_words=3
+    )
+    save_file(lowered_ngrams_count, f"{output_dir}/7_lowered_ngrams_count.json")
 
-    range_results = list(get_ngrams_by_range(
-        texts, min_words=1, max_words=3, count=(2,), show_count=True))
+    range_results = list(
+        get_ngrams_by_range(
+            texts, min_words=1, max_words=3, count=(2,), show_count=True
+        )
+    )
     save_file(range_results, f"{output_dir}/8_ngrams_by_range.json")
 
-    count_results = list(get_ngrams_by_range(
-        texts, min_words=2, count=2, show_count=True))
+    count_results = list(
+        get_ngrams_by_range(texts, min_words=2, count=2, show_count=True)
+    )
     save_file(count_results, f"{output_dir}/9_ngrams_by_count.json")
 
     results = filter_texts_by_multi_ngram_count(
-        texts, min_words=1, count=(2,), count_all_ngrams=True)
+        texts, min_words=1, count=(2,), count_all_ngrams=True
+    )
     save_file(results, f"{output_dir}/10_filtered_texts.json")
 
     # Calculate n-gram frequency
-    ngram_freq = n_gram_frequency(
-        " ".join([text.lower() for text in texts]), n=2)
+    ngram_freq = n_gram_frequency(" ".join([text.lower() for text in texts]), n=2)
     save_file(ngram_freq, f"{output_dir}/11_ngram_frequency.json")
 
     # Calculate n-gram diversity
     diversity = calculate_n_gram_diversity(ngram_freq)
-    save_file({"diversity": diversity},
-              f"{output_dir}/12_ngram_diversity.json")
+    save_file({"diversity": diversity}, f"{output_dir}/12_ngram_diversity.json")
 
     # Separate n-gram lines
     separated_lines = separate_ngram_lines(
-        [text.lower() for text in texts], punctuations_split=[',', '/', ':'])
+        [text.lower() for text in texts], punctuations_split=[",", "/", ":"]
+    )
     save_file(separated_lines, f"{output_dir}/13_separated_ngram_lines.json")
 
     # Get n-grams
-    ngrams_list = get_ngrams([text.lower()
-                             for text in texts], min_words=1, max_words=2)
+    ngrams_list = get_ngrams([text.lower() for text in texts], min_words=1, max_words=2)
     save_file(ngrams_list, f"{output_dir}/14_ngrams_list.json")
 
     # Get n-gram weight for the first sentence
@@ -105,48 +115,46 @@ def main_run_ngram_examples(texts, output_dir):
     save_file(sentence_ngrams, f"{output_dir}/15_extract_ngrams.json")
 
     previous_ngrams = set()  # Empty for example; adjust based on context
-    weight = get_ngram_weight(
-        all_ngrams, sentence_ngrams, previous_ngrams)
+    weight = get_ngram_weight(all_ngrams, sentence_ngrams, previous_ngrams)
     save_file({"weight": weight}, f"{output_dir}/16_ngram_weight.json")
 
     ngram_results = count_ngrams_with_texts(
-        texts=[text.lower() for text in texts],
-        min_words=1,
-        min_count=2,
-        max_words=2
+        texts=[text.lower() for text in texts], min_words=1, min_count=2, max_words=2
     )
     output_path = f"{output_dir}/17_ngrams_with_texts.json"
     save_file(ngram_results, output_path)
 
     # Sort sentences
-    sorted_sentences = sort_sentences(
-        [text.lower() for text in texts], n=2)
+    sorted_sentences = sort_sentences([text.lower() for text in texts], n=2)
     save_file(sorted_sentences, f"{output_dir}/18_sorted_sentences.json")
 
     # Filter and sort sentences by n-grams
     filtered_sorted_sentences = filter_and_sort_sentences_by_ngrams(
         [text.lower() for text in texts], n=2, top_n=2, is_start_ngrams=False
     )
-    save_file(filtered_sorted_sentences,
-              f"{output_dir}/19_filtered_sorted_sentences.json")
+    save_file(
+        filtered_sorted_sentences, f"{output_dir}/19_filtered_sorted_sentences.json"
+    )
 
     # Get total unique n-grams
     total_unique = get_total_unique_ngrams(all_ngrams)
-    save_file({"total_unique_ngrams": total_unique},
-              f"{output_dir}/20_total_unique_ngrams.json")
+    save_file(
+        {"total_unique_ngrams": total_unique},
+        f"{output_dir}/20_total_unique_ngrams.json",
+    )
 
     # Get total counts of n-grams
     total_counts = get_total_counts_of_ngrams(all_ngrams)
-    save_file({"total_ngram_counts": total_counts},
-              f"{output_dir}/21_total_ngram_counts.json")
+    save_file(
+        {"total_ngram_counts": total_counts}, f"{output_dir}/21_total_ngram_counts.json"
+    )
 
     # Get specific n-gram count (using first n-gram as example)
     specific_ngram = next(iter(all_ngrams))
-    specific_count = get_specific_ngram_count(
-        all_ngrams, specific_ngram)
+    specific_count = get_specific_ngram_count(all_ngrams, specific_ngram)
     save_file(
         {"ngram": specific_ngram, "count": specific_count},
-        f"{output_dir}/22_specific_ngram_count.json"
+        f"{output_dir}/22_specific_ngram_count.json",
     )
 
     # Use nwise to generate sliding window n-grams
@@ -154,10 +162,10 @@ def main_run_ngram_examples(texts, output_dir):
     save_file(nwise_ngrams, f"{output_dir}/23_nwise_ngrams.json")
 
 
-if __name__ == '__main__':
-    texts = load_sample_data()
-    sub_output_dir = f"{OUTPUT_DIR}/anime"
-    main_run_ngram_examples(texts, sub_output_dir)
+if __name__ == "__main__":
+    # texts = load_sample_data()
+    # sub_output_dir = f"{OUTPUT_DIR}/anime"
+    # main_run_ngram_examples(texts, sub_output_dir)
 
     texts = load_sample_jobs()
     sub_output_dir = f"{OUTPUT_DIR}/jobs"

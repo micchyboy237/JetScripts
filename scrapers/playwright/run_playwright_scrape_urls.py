@@ -197,12 +197,15 @@ if __name__ == "__main__":
     # Set default URLs if none provided
     urls = args.urls if args.urls and len(args.urls) > 0 else DEFAULT_URLS
 
+    # Example 1: Sync
     logger.info(
         f"Running sync example with urls={urls}, "
         f"base_url={args.base_url}, url_patterns={args.url_patterns}"
     )
     sync_example(urls, args.base_url, args.url_patterns)
 
+    # Example 2: Async
     # import asyncio
+
     # logger.info("Running async example...")
     # asyncio.run(async_example(urls))

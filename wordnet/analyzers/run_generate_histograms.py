@@ -1,7 +1,8 @@
-import shutil
 import os
+import shutil
+
 from jet.file.utils import save_file
-from jet.libs.bertopic.examples.mock import load_sample_data, load_sample_jobs
+from jet.libs.bertopic.examples.mock import load_sample_jobs
 from jet.wordnet.histogram import TextAnalysis
 
 
@@ -9,7 +10,7 @@ def main_text_analysis(texts, output_dir):
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    save_file(texts, os.path.join(output_dir, 'texts.json'))
+    save_file(texts, os.path.join(output_dir, "texts.json"))
 
     ta = TextAnalysis(texts)
 
@@ -71,13 +72,17 @@ def main_text_analysis(texts, output_dir):
     )
     save_file(top_documents, f"{output_dir}/top_documents_n_3_6.json")
 
-if __name__ == '__main__':
-    output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
 
-    texts = load_sample_data()
-    sub_output_dir = f"{output_dir}/anime"
-    main_text_analysis(texts, sub_output_dir)
+if __name__ == "__main__":
+    output_dir = os.path.join(
+        os.path.dirname(__file__),
+        "generated",
+        os.path.splitext(os.path.basename(__file__))[0],
+    )
+
+    # texts = load_sample_data()
+    # sub_output_dir = f"{output_dir}/anime"
+    # main_text_analysis(texts, sub_output_dir)
 
     texts = load_sample_jobs()
     sub_output_dir = f"{output_dir}/jobs"
