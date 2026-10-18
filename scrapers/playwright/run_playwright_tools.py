@@ -558,7 +558,7 @@ class LocalAgent:
         self.registry = registry
 
     async def think_and_act(
-        self, goal: str, current_state: str, max_steps: int = 10, **kwargs
+        self, goal: str, current_state: str, max_steps: int = 15, **kwargs
     ) -> str:
         if not self.registry:
             raise Exception("Registry not set")
@@ -706,7 +706,7 @@ def get_args():
     parser.add_argument(
         "--max-steps",
         type=int,
-        default=10,
+        default=15,
         help="Maximum number of steps the agent can take",
     )
 
