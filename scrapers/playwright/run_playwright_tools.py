@@ -1,3 +1,35 @@
+"""
+Autonomous Playwright Browser Agent
+
+This script uses an LLM to autonomously interact with a web page using Playwright.
+It navigates, clicks, types, and extracts information based on a provided goal.
+
+Definition Summary:
+- PlaywrightToolbox: Handles browser interactions (navigation, clicking, typing, snapshots).
+- PlaywrightToolRegistry: Maps tool names to their Pydantic models and descriptions for the LLM.
+- LocalAgent: Manages the LLM interaction, sending snapshots and receiving tool execution decisions.
+- final_answer: A special tool that allows the agent to provide a final result and stop early.
+
+Usage Examples:
+
+1. Default behavior (Summarize https://ph.talent.com):
+   python run_playwright_tools.py
+
+2. Custom URL and Goal:
+   python run_playwright_tools.py -u "https://example.com" -g "Find the title of the page"
+
+3. Complex Multi-step Task:
+   python run_playwright_tools.py -u "https://ph.talent.com" -g "
+Step 1: Type these inputs: 'Software Developer' and 'Taguig City'.
+Step 2: Click the search button.
+Step 3: Take a screenshot of the results page.
+Step 4: Summarize job listings.
+"
+
+4. Headless Mode with Custom Model:
+   python run_playwright_tools.py -H -m "llama-3.2-3b-instruct" -g "Count the number of links on the page"
+"""
+
 import asyncio
 import json
 import re
@@ -684,12 +716,14 @@ def get_args():
 
     # Browser & Navigation
     parser.add_argument(
+        "-u",
         "--url",
         type=str,
         default=DEFAULT_URL,
         help="The URL to navigate to initially",
     )
     parser.add_argument(
+        "-H",
         "--headless",
         action="store_true",
         default=False,
@@ -698,12 +732,14 @@ def get_args():
 
     # Agent Configuration
     parser.add_argument(
+        "-g",
         "--goal",
         type=str,
         default=DEFAULT_GOAL,
         help="The goal for the agent to achieve",
     )
     parser.add_argument(
+        "-n",
         "--max-steps",
         type=int,
         default=15,
@@ -712,6 +748,7 @@ def get_args():
 
     # Output & Logging
     parser.add_argument(
+        "-o",
         "--output-dir",
         type=Path,
         default=OUTPUT_DIR,
@@ -720,12 +757,14 @@ def get_args():
 
     # LLM Configuration (Optional overrides)
     parser.add_argument(
+        "-a",
         "--api-base",
         type=str,
         default=LLM_BASE_URL,
         help="Base URL for the LLM API",
     )
     parser.add_argument(
+        "-m",
         "--model",
         type=str,
         default=LLM_MODEL,
