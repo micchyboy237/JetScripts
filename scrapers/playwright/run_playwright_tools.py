@@ -18,22 +18,19 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_URL = "https://ph.talent.com"
-ACTION_TIMEOUT = 10000  # Increased timeout for stability
+ACTION_TIMEOUT = 10000
 NAVIGATION_TIMEOUT = 15000
 
 SYSTEM_PROMPT_TEMPLATE = """
 You are an autonomous browser agent powered by Playwright. Your goal is to: {goal}
-
 Available Tools:
 {tools_json}
-
 CRITICAL RULES FOR INTERACTION:
 1. USE REFS DIRECTLY: When the snapshot shows an element like `- textbox "Job title" [ref=e39]`, use "e39" as the target.
 2. HANDLE DIALOGS: If you see a cookie banner or dialog, use `browser_click` on its close button first.
 3. NO UNNECESSARY CLICKS: For text inputs, use `browser_type` directly. It handles focusing and filling.
-4. ONE STEP AT A TIME: Perform one action per step. 
+4. ONE STEP AT A TIME: Perform one action per step.
 5. REQUIRED TOOL: You MUST provide a `tool` name in your response unless `finished` is true. Do not just provide thoughts.
-
 RESPONSE FORMAT:
 You must respond using the provided JSON schema.
 """
@@ -41,7 +38,6 @@ You must respond using the provided JSON schema.
 USER_PROMPT_TEMPLATE = """
 Current Page Snapshot:
 {snapshot}
-
 Previous Action Result:
 {last_result}
 """
@@ -94,10 +90,6 @@ class FindArgs(BaseModel):
     maxResults: Optional[int] = Field(None, description="Max results")
 
 
-class FillFormArgs(BaseModel):
-    fields: List[Dict[str, Any]] = Field(description="Fields to fill in")
-
-
 class SelectOptionArgs(BaseModel):
     target: str = Field(description="Target element ref")
     values: List[str] = Field(description="Values to select")
@@ -125,7 +117,7 @@ class ScreenshotArgs(BaseModel):
 
 class AgentDecision(BaseModel):
     thought: str = Field(description="Brief reasoning")
-    tool: str = Field(description="Name of the tool to execute")  # Made required
+    tool: str = Field(description="Name of the tool to execute")
     arguments: Optional[Dict[str, Any]] = Field(
         None, description="Arguments for the tool"
     )
@@ -139,6 +131,13 @@ def _get_decision_schema() -> Dict[str, Any]:
         "strict": True,
         "schema": schema,
     }
+
+
+def get_step_dir(step_index: int) -> Path:
+    """Returns the directory path for a specific step."""
+    step_dir = OUTPUT_DIR / "steps" / f"step_{step_index}"
+    step_dir.mkdir(parents=True, exist_ok=True)
+    return step_dir
 
 
 class PlaywrightToolbox:
@@ -181,18 +180,14 @@ class PlaywrightToolbox:
         return self.page
 
     def _resolve_target(self, target: str) -> str:
-        # Try to resolve ref from last snapshot
         if self.last_snapshot and re.match(r"^e\d+$", target):
             pattern = rf"- (\w+) \"([^\"]+)\" \[ref={re.escape(target)}\]"
             match = re.search(pattern, self.last_snapshot)
             if match:
                 role, name = match.groups()
                 return f"internal:role={role}[name='{name}'i]"
-
-        # Fallback: If it looks like a ref but wasn't found, try aria-ref selector
         if re.match(r"^e\d+$", target):
             return f"aria-ref={target}"
-
         return target
 
     async def browser_navigate(self, url: str):
@@ -211,14 +206,23 @@ class PlaywrightToolbox:
         filename: Optional[str] = None,
         depth: Optional[int] = None,
         boxes: Optional[bool] = False,
+        step_dir: Optional[Path] = None,
     ):
         page = await self._ensure_page()
         snapshot = await page.aria_snapshot(mode="ai", depth=depth, boxes=boxes)
         self.last_snapshot = snapshot
-        output_path = self.output_dir / (filename or "snapshot.md")
-        with open(output_path, "w", encoding="utf-8") as f:
+
+        # Determine save path
+        if step_dir:
+            save_path = step_dir / (filename or "snapshot.md")
+        else:
+            save_path = self.output_dir / (filename or "snapshot.md")
+
+        with open(save_path, "w", encoding="utf-8") as f:
             f.write(snapshot)
-        console.print(f"[green]Snapshot saved to {output_path.name}[/green]")
+        console.print(
+            f"[green]Snapshot saved to {save_path.relative_to(OUTPUT_DIR)}[/green]"
+        )
         return snapshot
 
     async def browser_click(
@@ -289,17 +293,6 @@ class PlaywrightToolbox:
             return "Search completed in snapshot."
         return "No snapshot available."
 
-    async def browser_fill_form(self, fields: List[Dict[str, Any]]):
-        page = await self._ensure_page()
-        for field in fields:
-            target = field.get("target")
-            value = field.get("value")
-            if target and value is not None:
-                resolved = self._resolve_target(target)
-                locator = page.locator(resolved).first
-                await locator.fill(str(value))
-                console.print(f"[green]Filled {target} with {value}[/green]")
-
     async def browser_select_option(self, target: str, values: List[str]):
         page = await self._ensure_page()
         resolved = self._resolve_target(target)
@@ -344,12 +337,23 @@ class PlaywrightToolbox:
             raise e
 
     async def browser_take_screenshot(
-        self, filename: Optional[str] = None, fullPage: bool = False, type: str = "png"
+        self,
+        filename: Optional[str] = None,
+        fullPage: bool = False,
+        type: str = "png",
+        step_dir: Optional[Path] = None,
     ):
         page = await self._ensure_page()
-        output_path = self.output_dir / (filename or f"screenshot.{type}")
+
+        if step_dir:
+            output_path = step_dir / (filename or f"screenshot.{type}")
+        else:
+            output_path = self.output_dir / (filename or f"screenshot.{type}")
+
         await page.screenshot(path=str(output_path), full_page=fullPage, type=type)
-        console.print(f"[green]Screenshot saved to {output_path.name}[/green]")
+        console.print(
+            f"[green]Screenshot saved to {output_path.relative_to(OUTPUT_DIR)}[/green]"
+        )
         return str(output_path)
 
     async def browser_close(self):
@@ -372,10 +376,6 @@ class PlaywrightToolRegistry:
             "browser_press_key": {"model": PressKeyArgs, "desc": "Press a key"},
             "browser_hover": {"model": HoverArgs, "desc": "Hover over an element"},
             "browser_find": {"model": FindArgs, "desc": "Find text in snapshot"},
-            "browser_fill_form": {
-                "model": FillFormArgs,
-                "desc": "Fill multiple fields",
-            },
             "browser_select_option": {
                 "model": SelectOptionArgs,
                 "desc": "Select dropdown option",
@@ -393,7 +393,10 @@ class PlaywrightToolRegistry:
                 "model": ScreenshotArgs,
                 "desc": "Take screenshot",
             },
-            "browser_close": {"model": BaseModel, "desc": "Close browser"},
+            "browser_close": {
+                "model": BaseModel,
+                "desc": "Close the browser. Use this tool when the goal has been achieved or if you need to restart.",
+            },
         }
 
     def get_tool_schema(self) -> List[Dict]:
@@ -410,7 +413,9 @@ class PlaywrightToolRegistry:
             )
         return schemas
 
-    async def execute_tool(self, name: str, arguments: Dict) -> Any:
+    async def execute_tool(
+        self, name: str, arguments: Dict, step_dir: Optional[Path] = None
+    ) -> Any:
         if name not in self.tool_map:
             raise ValueError(f"Tool {name} not found")
 
@@ -420,6 +425,11 @@ class PlaywrightToolRegistry:
             if model_class == BaseModel
             else model_class(**arguments).model_dump(exclude_none=True)
         )
+
+        # Inject step_dir for tools that support it
+        if step_dir:
+            if name in ["browser_snapshot", "browser_take_screenshot"]:
+                validated_args["step_dir"] = step_dir
 
         method = getattr(self.toolbox, name, None)
         if not method:
@@ -446,19 +456,37 @@ class LocalAgent:
         tools_json = json.dumps(self.registry.get_tool_schema(), indent=2)
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(goal=goal, tools_json=tools_json)
         last_result = "None"
-
         decision_schema = _get_decision_schema()
         response_format = {"type": "json_schema", "json_schema": decision_schema}
 
         for i in range(max_steps):
-            console.print(f"[bold cyan]Step {i + 1}:[/bold cyan] Thinking...")
-            user_prompt = USER_PROMPT_TEMPLATE.format(
+            step_index = i + 1  # Start steps from 1, assuming 0 is init
+            step_dir = get_step_dir(step_index)
+
+            console.print(f"[bold cyan]Step {step_index}:[/bold cyan] Thinking...")
+
+            user_prompt_content = USER_PROMPT_TEMPLATE.format(
                 snapshot=current_state[:4000], last_result=last_result
             )
+
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
+                {"role": "user", "content": user_prompt_content},
             ]
+
+            # Save Input
+            input_data = {
+                "system_prompt": system_prompt,
+                "user_prompt": user_prompt_content,
+                "messages": messages,
+            }
+            with open(step_dir / "llm_input.json", "w", encoding="utf-8") as f:
+                json.dump(input_data, f, indent=2)
+
+            # Save current snapshot as input context if available
+            if current_state:
+                with open(step_dir / "input_snapshot.md", "w", encoding="utf-8") as f:
+                    f.write(current_state)
 
             try:
                 stream = await self.client.chat.completions.create(
@@ -482,30 +510,57 @@ class LocalAgent:
                     content = content[:-3]
                 content = content.strip()
 
+                # Save Raw Response
+                with open(
+                    step_dir / "llm_raw_response.txt", "w", encoding="utf-8"
+                ) as f:
+                    f.write(content)
+
                 decision = AgentDecision.model_validate_json(content)
+
+                # Save Parsed Decision
+                with open(step_dir / "llm_decision.json", "w", encoding="utf-8") as f:
+                    json.dump(decision.model_dump(), f, indent=2)
+
                 console.print(f"\n[dim]Thought: {decision.thought}[/dim]")
 
                 if decision.finished:
+                    console.print("[bold green]Goal achieved.[/bold green]")
                     return "Goal achieved."
 
                 console.print(f"[bold yellow]Executing:[/bold yellow] {decision.tool}")
                 try:
                     await self.registry.execute_tool(
-                        decision.tool, decision.arguments or {}
+                        decision.tool, decision.arguments or {}, step_dir=step_dir
                     )
                     last_result = f"Successfully executed {decision.tool}"
-                    # Always update snapshot after successful action
-                    current_state = await self.registry.toolbox.browser_snapshot()
+
+                    # Capture new state after action
+                    current_state = await self.registry.toolbox.browser_snapshot(
+                        step_dir=step_dir
+                    )
+
                 except Exception as exec_err:
                     console.print(f"[red]Execution error: {exec_err}[/red]")
                     last_result = f"Error executing {decision.tool}: {str(exec_err)}"
-                    # On error, take a snapshot anyway to see if the page changed (e.g. error modal)
-                    current_state = await self.registry.toolbox.browser_snapshot()
+
+                    # Capture state even on error if possible
+                    try:
+                        current_state = await self.registry.toolbox.browser_snapshot(
+                            step_dir=step_dir
+                        )
+                    except:
+                        pass
 
             except Exception as e:
                 console.print(f"[bold red]API Error:[/bold red] {e}")
                 last_result = f"Error: {str(e)}"
 
+                # Save Error
+                with open(step_dir / "error.log", "w", encoding="utf-8") as f:
+                    f.write(str(e))
+
+        console.print("[bold yellow]Max steps reached.[/bold yellow]")
         return "Max steps reached."
 
 
@@ -517,14 +572,37 @@ async def main():
 
     try:
         await toolbox.start()
+
+        # Step 0: Initialization
+        step_0_dir = get_step_dir(0)
+
         await toolbox.browser_navigate(DEFAULT_URL)
-        initial_snapshot = await toolbox.browser_snapshot(filename="initial.md")
+
+        # Save initial navigation info
+        with open(step_0_dir / "action.json", "w") as f:
+            json.dump({"action": "navigate", "url": DEFAULT_URL}, f, indent=2)
+
+        initial_snapshot = await toolbox.browser_snapshot(
+            filename="initial.md", step_dir=step_0_dir
+        )
+
+        goal = """
+Step 1: Find the job search bar (textbox "Job title").
+Step 2: Type 'Software Developer' into the job search bar.
+Step 3: Find the location search bar (textbox "Where?").
+Step 4: Select 'Taguig City' in the location search bar.
+Step 5: Click the 'Find jobs' button.
+Step 6: Find results.
+"""
+
         await agent.think_and_act(
-            "Find the job search bar, type 'Software Developer', select 'Muntinlupa City' in location, and click Find jobs.",
+            goal,
             initial_snapshot,
         )
     finally:
-        await toolbox.close()
+        # Ensure closure if something went wrong before agent took over
+        if toolbox.browser:
+            await toolbox.close()
 
 
 if __name__ == "__main__":
