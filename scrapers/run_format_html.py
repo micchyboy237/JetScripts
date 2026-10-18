@@ -38,7 +38,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "html_file",
         nargs="?",
-        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/missav_ws_dm223_en/sync_results/page.html",
+        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html",
         help="Path to the HTML file to process",
     )
     args = parser.parse_args()
