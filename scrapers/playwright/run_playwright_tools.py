@@ -418,10 +418,20 @@ class PlaywrightToolbox:
         step_dir: Optional[Path] = None,
     ):
         page = await self._ensure_page()
+
+        # Determine base filename
+        base_name = filename or f"screenshot"
+
+        # Ensure the file has the correct extension
+        if not base_name.endswith(f".{type}"):
+            # Remove existing extension if it doesn't match the requested type
+            name_without_ext = Path(base_name).stem
+            base_name = f"{name_without_ext}.{type}"
+
         if step_dir:
-            output_path = step_dir / (filename or f"screenshot.{type}")
+            output_path = step_dir / base_name
         else:
-            output_path = self.output_dir / (filename or f"screenshot.{type}")
+            output_path = self.output_dir / base_name
 
         await page.screenshot(path=str(output_path), full_page=fullPage, type=type)
         console.print(
