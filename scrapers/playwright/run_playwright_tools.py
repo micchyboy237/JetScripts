@@ -1,22 +1,20 @@
 """
 Autonomous Playwright Browser Agent
-
 This script uses an LLM to autonomously interact with a web page using Playwright.
 It navigates, clicks, types, and extracts information based on a provided goal.
-
 Definition Summary:
 - PlaywrightToolbox: Handles browser interactions (navigation, clicking, typing, snapshots).
 - PlaywrightToolRegistry: Maps tool names to their Pydantic models and descriptions for the LLM.
 - LocalAgent: Manages the LLM interaction, sending snapshots and receiving tool execution decisions.
 - final_answer: A special tool that allows the agent to provide a final result and stop early.
-
 Usage Examples:
 1. Default behavior (Summarize https://ph.talent.com):
 python run_playwright_tools.py
-2. Custom URL and Goal:
-python run_playwright_tools.py -u "https://example.com" -g "Find the title of the page"
+2. Custom URL or File and Goal:
+python run_playwright_tools.py "https://example.com" -g "Find the title of the page"
+python run_playwright_tools.py "data/__sample.html" -g "Find the main heading"
 3. Complex Multi-step Task (Generate JSON):
-python run_playwright_tools.py -u "https://ph.talent.com" -g "
+python run_playwright_tools.py "https://ph.talent.com" -g "
 Step 1: Type these inputs: 'Software Developer' and 'Taguig City'.
 Step 2: Click the search button.
 Step 3: Take a screenshot of the results page.
@@ -45,7 +43,7 @@ OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-DEFAULT_URL = "https://ph.talent.com"
+DEFAULT_INPUT = "https://ph.talent.com"
 DEFAULT_GOAL = "Summarize the content of the current page."
 
 ACTION_TIMEOUT = 10000
@@ -53,7 +51,6 @@ NAVIGATION_TIMEOUT = 15000
 
 SYSTEM_PROMPT_TEMPLATE = """
 You are an autonomous browser agent powered by Playwright. Your goal is to: {goal}
-
 Available Tools:
 {tools_json}
 
@@ -267,6 +264,12 @@ class PlaywrightToolbox:
         await page.goto(url)
         self.last_snapshot = None
 
+    async def browser_set_content(self, html: str):
+        page = await self._ensure_page()
+        console.print("[bold blue]Setting page content from HTML string...[/bold blue]")
+        await page.set_content(html)
+        self.last_snapshot = None
+
     async def browser_navigate_back(self):
         page = await self._ensure_page()
         await page.go_back()
@@ -283,7 +286,6 @@ class PlaywrightToolbox:
         snapshot = await page.aria_snapshot(mode="ai", depth=depth, boxes=boxes)
         self.last_snapshot = snapshot
 
-        # Save Accessibility Snapshot
         if step_dir:
             save_path = step_dir / (filename or "snapshot.md")
         else:
@@ -295,14 +297,12 @@ class PlaywrightToolbox:
             f"[green]Snapshot saved:[/green] [link=file://{save_path.resolve()}]{save_path.name}[/link]"
         )
 
-        # Save HTML Snapshot
         try:
             html_content = await page.content()
             if step_dir:
                 html_path = step_dir / "snapshot.html"
             else:
                 html_path = self.output_dir / "snapshot.html"
-
             with open(html_path, "w", encoding="utf-8") as f:
                 f.write(html_content)
             console.print(
@@ -367,7 +367,6 @@ class PlaywrightToolbox:
                     f"[yellow]Skipping field {i + 1}: No target specified[/yellow]"
                 )
                 continue
-
             resolved = self._resolve_target(target)
             locator = page.locator(resolved).first
             try:
@@ -376,7 +375,6 @@ class PlaywrightToolbox:
                 console.print(f"[green]Filled {target} with '{value}'[/green]")
             except Exception as e:
                 console.print(f"[red]Failed to fill {target}: {e}[/red]")
-
         console.print("[green]Form filling completed[/green]")
 
     async def browser_wait_for(
@@ -486,30 +484,24 @@ class PlaywrightToolbox:
         Provide the final answer. Supports strings, JSON objects, arrays, etc.
         """
         console.print(f"[bold green]Final Answer Received[/bold green]")
-
-        # Determine how to save/display the result
         if isinstance(result, str):
             display_content = result
             save_content = result
             file_ext = "txt"
         else:
-            # Serialize non-string results (like JSON objects/arrays)
             try:
                 save_content = json.dumps(result, indent=2)
                 display_content = save_content
                 file_ext = "json"
             except TypeError:
-                # Fallback if not serializable
                 save_content = str(result)
                 display_content = save_content
                 file_ext = "txt"
 
         console.print(display_content)
-
         answer_path = self.output_dir / f"final_answer.{file_ext}"
         with open(answer_path, "w", encoding="utf-8") as f:
             f.write(save_content)
-
         console.print(
             f"[green]Answer saved:[/green] [link=file://{answer_path.resolve()}]{answer_path.name}[/link]"
         )
@@ -648,7 +640,6 @@ class LocalAgent:
 
         tools_json = json.dumps(self.registry.get_tool_schema(), indent=2)
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(goal=goal, tools_json=tools_json)
-
         last_result = "None"
         decision_schema = _get_decision_schema()
         response_format = {"type": "json_schema", "json_schema": decision_schema}
@@ -687,7 +678,6 @@ class LocalAgent:
                     response_format=response_format,
                     **kwargs,
                 )
-
                 content = ""
                 async for part in stream:
                     if part.choices and part.choices[0].delta.content:
@@ -707,7 +697,6 @@ class LocalAgent:
                     f.write(content)
 
                 decision = AgentDecision.model_validate_json(content)
-
                 with open(step_dir / "llm_decision.json", "w", encoding="utf-8") as f:
                     json.dump(decision.model_dump(), f, indent=2)
 
@@ -736,7 +725,6 @@ class LocalAgent:
                         return "Browser closed."
 
                     last_result = f"Successfully executed {decision.tool}"
-
                     if not self.registry.toolbox.is_closed:
                         current_state = await self.registry.toolbox.browser_snapshot(
                             step_dir=step_dir
@@ -770,11 +758,11 @@ def get_args():
 
     parser = argparse.ArgumentParser(description="Autonomous Playwright Browser Agent")
     parser.add_argument(
-        "-u",
-        "--url",
+        "url_or_file",
         type=str,
-        default=DEFAULT_URL,
-        help="The URL to navigate to initially",
+        nargs="?",
+        default=DEFAULT_INPUT,
+        help="URL or path to an HTML file to process",
     )
     parser.add_argument(
         "-H",
@@ -830,11 +818,26 @@ async def main():
 
     try:
         await toolbox.start()
-
         step_0_dir = get_step_dir(0)
-        await toolbox.browser_navigate(args.url)
+
+        input_source = args.url_or_file
+        input_path = Path(input_source)
+
+        if input_path.is_file():
+            console.print(
+                f"[bold blue]Reading HTML from file:[/bold blue] {input_path}"
+            )
+            with open(input_path, "r", encoding="utf-8") as f:
+                html_content = f.read()
+            await toolbox.browser_set_content(html_content)
+            action_log = {"action": "set_content", "file": str(input_path)}
+        else:
+            console.print(f"[bold blue]Navigating to URL:[/bold blue] {input_source}")
+            await toolbox.browser_navigate(input_source)
+            action_log = {"action": "navigate", "url": input_source}
+
         with open(step_0_dir / "action.json", "w") as f:
-            json.dump({"action": "navigate", "url": args.url}, f, indent=2)
+            json.dump(action_log, f, indent=2)
 
         initial_snapshot = await toolbox.browser_snapshot(
             filename="initial.md", step_dir=step_0_dir
