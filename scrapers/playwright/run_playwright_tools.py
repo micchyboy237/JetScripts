@@ -283,6 +283,7 @@ class PlaywrightToolbox:
         snapshot = await page.aria_snapshot(mode="ai", depth=depth, boxes=boxes)
         self.last_snapshot = snapshot
 
+        # Save Accessibility Snapshot
         if step_dir:
             save_path = step_dir / (filename or "snapshot.md")
         else:
@@ -291,8 +292,25 @@ class PlaywrightToolbox:
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(snapshot)
         console.print(
-            f"[green]Snapshot saved to {save_path.relative_to(OUTPUT_DIR)}[/green]"
+            f"[green]Snapshot saved:[/green] [link=file://{save_path.resolve()}]{save_path.name}[/link]"
         )
+
+        # Save HTML Snapshot
+        try:
+            html_content = await page.content()
+            if step_dir:
+                html_path = step_dir / "snapshot.html"
+            else:
+                html_path = self.output_dir / "snapshot.html"
+
+            with open(html_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
+            console.print(
+                f"[green]HTML snapshot saved:[/green] [link=file://{html_path.resolve()}]{html_path.name}[/link]"
+            )
+        except Exception as e:
+            console.print(f"[yellow]Failed to save HTML snapshot: {e}[/yellow]")
+
         return snapshot
 
     async def browser_click(
@@ -456,7 +474,7 @@ class PlaywrightToolbox:
 
         await page.screenshot(path=str(output_path), full_page=fullPage, type=type)
         console.print(
-            f"[green]Screenshot saved to {output_path.relative_to(OUTPUT_DIR)}[/green]"
+            f"[green]Screenshot saved:[/green] [link=file://{output_path.resolve()}]{output_path.name}[/link]"
         )
         return str(output_path)
 
@@ -493,7 +511,7 @@ class PlaywrightToolbox:
             f.write(save_content)
 
         console.print(
-            f"[green]Answer saved to {answer_path.relative_to(OUTPUT_DIR)}[/green]"
+            f"[green]Answer saved:[/green] [link=file://{answer_path.resolve()}]{answer_path.name}[/link]"
         )
         return result
 
