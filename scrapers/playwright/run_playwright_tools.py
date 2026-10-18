@@ -134,6 +134,10 @@ class ScreenshotArgs(BaseModel):
     type: Literal["png", "jpeg", "webp"] = Field("png", description="Image format")
 
 
+class FinalAnswerArgs(BaseModel):
+    result: str = Field(description="The final answer or summary of the task")
+
+
 class AgentDecision(BaseModel):
     thought: str = Field(description="Brief reasoning")
     tool: str = Field(description="Name of the tool to execute")
@@ -444,6 +448,17 @@ class PlaywrightToolbox:
     async def browser_close(self):
         await self.close()
 
+    async def final_answer(self, result: str):
+        console.print(f"[bold green]Final Answer:[/bold green] {result}")
+        # Save the final answer to a file for persistence
+        answer_path = self.output_dir / "final_answer.txt"
+        with open(answer_path, "w", encoding="utf-8") as f:
+            f.write(result)
+        console.print(
+            f"[green]Answer saved to {answer_path.relative_to(OUTPUT_DIR)}[/green]"
+        )
+        return result
+
 
 class PlaywrightToolRegistry:
     def __init__(self, toolbox: PlaywrightToolbox):
@@ -486,6 +501,10 @@ class PlaywrightToolRegistry:
                 "model": BaseModel,
                 "desc": "Close the browser. Use this tool when the goal has been achieved and all results have been captured.",
             },
+            "final_answer": {
+                "model": FinalAnswerArgs,
+                "desc": "Provide the final answer or summary. Use this when the goal is achieved.",
+            },
         }
 
     def get_tool_schema(self) -> List[Dict]:
@@ -509,8 +528,6 @@ class PlaywrightToolRegistry:
             raise ValueError(f"Tool {name} not found")
 
         model_class = self.tool_map[name]["model"]
-
-        # Handle empty arguments for BaseModel tools
         if model_class == BaseModel:
             validated_args = {}
         else:
@@ -548,7 +565,6 @@ class LocalAgent:
 
         tools_json = json.dumps(self.registry.get_tool_schema(), indent=2)
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(goal=goal, tools_json=tools_json)
-
         last_result = "None"
         decision_schema = _get_decision_schema()
         response_format = {"type": "json_schema", "json_schema": decision_schema}
@@ -556,13 +572,11 @@ class LocalAgent:
         for i in range(max_steps):
             step_index = i + 1
             step_dir = get_step_dir(step_index)
-
             console.print(f"[bold cyan]Step {step_index}:[/bold cyan] Thinking...")
 
             user_prompt_content = USER_PROMPT_TEMPLATE.format(
                 snapshot=current_state[:4000], last_result=last_result
             )
-
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt_content},
@@ -589,7 +603,6 @@ class LocalAgent:
                     response_format=response_format,
                     **kwargs,
                 )
-
                 content = ""
                 async for part in stream:
                     if part.choices and part.choices[0].delta.content:
@@ -609,7 +622,6 @@ class LocalAgent:
                     f.write(content)
 
                 decision = AgentDecision.model_validate_json(content)
-
                 with open(step_dir / "llm_decision.json", "w", encoding="utf-8") as f:
                     json.dump(decision.model_dump(), f, indent=2)
 
@@ -620,11 +632,17 @@ class LocalAgent:
                     return "Goal achieved."
 
                 console.print(f"[bold yellow]Executing:[/bold yellow] {decision.tool}")
-
                 try:
-                    await self.registry.execute_tool(
+                    result = await self.registry.execute_tool(
                         decision.tool, decision.arguments or {}, step_dir=step_dir
                     )
+
+                    # Check if the tool was final_answer to exit early
+                    if decision.tool == "final_answer":
+                        console.print(
+                            "[bold green]Final answer provided. Stopping iteration.[/bold green]"
+                        )
+                        return result
 
                     if self.registry.toolbox.is_closed:
                         console.print(
@@ -633,12 +651,10 @@ class LocalAgent:
                         return "Browser closed."
 
                     last_result = f"Successfully executed {decision.tool}"
-
                     if not self.registry.toolbox.is_closed:
                         current_state = await self.registry.toolbox.browser_snapshot(
                             step_dir=step_dir
                         )
-
                 except Exception as exec_err:
                     console.print(f"[red]Execution error: {exec_err}[/red]")
                     last_result = f"Error executing {decision.tool}: {str(exec_err)}"
@@ -651,7 +667,6 @@ class LocalAgent:
                             )
                         except:
                             pass
-
             except Exception as e:
                 console.print(f"[bold red]API Error:[/bold red] {e}")
                 last_result = f"Error: {str(e)}"
