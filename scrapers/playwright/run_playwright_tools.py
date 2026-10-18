@@ -679,10 +679,9 @@ async def main():
         )
 
         goal = """
-        Step 1: Type 'Software Developer' into the job search bar and 'Taguig City' in the location search bar.
-        Step 2: Click the search button.
-        Step 3: Display the results by taking a screenshot and capturing a snapshot of the job listings.
-        Step 4: Close the browser.
+        Step 1: Search 'Software Developer' jobs in 'Taguig City'.
+        Step 2: Display the results by taking a screenshot and capturing a snapshot of the job listings.
+        Step 3: Close the browser.
         """
 
         await agent.think_and_act(
