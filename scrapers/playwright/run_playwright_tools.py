@@ -18,6 +18,8 @@ shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 DEFAULT_URL = "https://ph.talent.com"
+DEFAULT_GOAL = "Summarize the content of the current page."
+
 ACTION_TIMEOUT = 10000
 NAVIGATION_TIMEOUT = 15000
 
@@ -660,35 +662,89 @@ class LocalAgent:
         return "Max steps reached."
 
 
+def get_args():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Autonomous Playwright Browser Agent")
+
+    # Browser & Navigation
+    parser.add_argument(
+        "--url",
+        type=str,
+        default=DEFAULT_URL,
+        help="The URL to navigate to initially",
+    )
+    parser.add_argument(
+        "--headless",
+        action="store_true",
+        default=False,
+        help="Run browser in headless mode",
+    )
+
+    # Agent Configuration
+    parser.add_argument(
+        "--goal",
+        type=str,
+        default=DEFAULT_GOAL,
+        help="The goal for the agent to achieve",
+    )
+    parser.add_argument(
+        "--max-steps",
+        type=int,
+        default=10,
+        help="Maximum number of steps the agent can take",
+    )
+
+    # Output & Logging
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=OUTPUT_DIR,
+        help="Directory for output files",
+    )
+
+    # LLM Configuration (Optional overrides)
+    parser.add_argument(
+        "--api-base",
+        type=str,
+        default=LLM_BASE_URL,
+        help="Base URL for the LLM API",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default=LLM_MODEL,
+        help="Model name to use",
+    )
+
+    return parser.parse_args()
+
+
 async def main():
-    toolbox = PlaywrightToolbox(headless=False)
+    args = get_args()
+
+    toolbox = PlaywrightToolbox(headless=args.headless, output_dir=args.output_dir)
     registry = PlaywrightToolRegistry(toolbox)
-    agent = LocalAgent(model=LLM_MODEL)
+    agent = LocalAgent(api_base=args.api_base, model=args.model)
     agent.set_registry(registry)
 
     try:
         await toolbox.start()
-
         step_0_dir = get_step_dir(0)
-        await toolbox.browser_navigate(DEFAULT_URL)
+        await toolbox.browser_navigate(args.url)
+
         with open(step_0_dir / "action.json", "w") as f:
-            json.dump({"action": "navigate", "url": DEFAULT_URL}, f, indent=2)
+            json.dump({"action": "navigate", "url": args.url}, f, indent=2)
 
         initial_snapshot = await toolbox.browser_snapshot(
             filename="initial.md", step_dir=step_0_dir
         )
 
-        goal = """
-        Step 1: Search 'Software Developer' jobs in 'Taguig City'.
-        Step 2: Display the results by taking a screenshot and capturing a snapshot of the job listings.
-        Step 3: Close the browser.
-        """
-
         await agent.think_and_act(
-            goal,
+            args.goal,
             initial_snapshot,
+            max_steps=args.max_steps,
         )
-
     finally:
         if not toolbox.is_closed:
             await toolbox.close()
