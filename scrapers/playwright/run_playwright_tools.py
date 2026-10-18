@@ -11,23 +11,19 @@ Definition Summary:
 - final_answer: A special tool that allows the agent to provide a final result and stop early.
 
 Usage Examples:
-
 1. Default behavior (Summarize https://ph.talent.com):
-   python run_playwright_tools.py
-
+python run_playwright_tools.py
 2. Custom URL and Goal:
-   python run_playwright_tools.py -u "https://example.com" -g "Find the title of the page"
-
-3. Complex Multi-step Task:
-   python run_playwright_tools.py -u "https://ph.talent.com" -g "
+python run_playwright_tools.py -u "https://example.com" -g "Find the title of the page"
+3. Complex Multi-step Task (Generate JSON):
+python run_playwright_tools.py -u "https://ph.talent.com" -g "
 Step 1: Type these inputs: 'Software Developer' and 'Taguig City'.
 Step 2: Click the search button.
 Step 3: Take a screenshot of the results page.
 Step 4: Summarize job listings.
 "
-
 4. Headless Mode with Custom Model:
-   python run_playwright_tools.py -H -m "llama-3.2-3b-instruct" -g "Count the number of links on the page"
+python run_playwright_tools.py -H -m "llama-3.2-3b-instruct" -g "Count the number of links on the page"
 """
 
 import asyncio
@@ -63,11 +59,11 @@ Available Tools:
 
 CRITICAL RULES FOR INTERACTION:
 1. USE REFS DIRECTLY: When the snapshot shows an element like `- textbox "Job title" [ref=e39]`, use "e39" as the target.
-2. HANDLE DIALOGS: If you see a cookie banner or dialog, use `browser_click` on its close button first.
-3. EFFICIENT FORM FILLING: Use `browser_fill_form` to fill multiple fields at once. You MUST provide the 'fields' argument as a list of objects, each with 'target' and 'value'. Example: {{"fields": [{{"target": "e39", "value": "Software Developer"}}, {{"target": "e45", "value": "Taguig City"}}]}}.
-4. NO UNNECESSARY CLICKS: For text inputs, use `browser_type` or `browser_fill_form` directly. They handle focusing and filling.
-5. ONE STEP AT A TIME: Perform one logical action per step.
-6. REQUIRED TOOL: You MUST provide a `tool` name AND valid `arguments` in your response unless `finished` is true. Do not just provide thoughts.
+2. IMMEDIATE FINAL ANSWER: As soon as you have the information required by the goal, call `final_answer` immediately. Do not take extra steps like screenshots unless explicitly requested.
+3. NO REDUNDANT ACTIONS: If a form is already filled or a button has been clicked, do not repeat the action. Check the snapshot state carefully.
+4. EFFICIENT FORM FILLING: Use `browser_fill_form` to fill multiple fields at once. Example: {{"fields": [{{"target": "e39", "value": "Software Developer"}}, {{"target": "e45", "value": "Taguig City"}}]}}.
+5. STRUCTURED OUTPUT: If the goal asks for structured data (like JSON), pass the raw JSON object/array directly to the `result` argument of `final_answer`.
+6. ONE STEP AT A TIME: Perform one logical action per step.
 
 RESPONSE FORMAT:
 You must respond using the provided JSON schema. Ensure all required arguments for the chosen tool are present.
@@ -167,7 +163,9 @@ class ScreenshotArgs(BaseModel):
 
 
 class FinalAnswerArgs(BaseModel):
-    result: str = Field(description="The final answer or summary of the task")
+    result: Any = Field(
+        description="The final answer. Can be a string, JSON object, array, or number."
+    )
 
 
 class AgentDecision(BaseModel):
@@ -259,10 +257,8 @@ class PlaywrightToolbox:
             if match:
                 role, name = match.groups()
                 return f"internal:role={role}[name='{name}'i]"
-
         if re.match(r"^e\d+$", target):
             return f"aria-ref={target}"
-
         return target
 
     async def browser_navigate(self, url: str):
@@ -294,7 +290,6 @@ class PlaywrightToolbox:
 
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(snapshot)
-
         console.print(
             f"[green]Snapshot saved to {save_path.relative_to(OUTPUT_DIR)}[/green]"
         )
@@ -309,7 +304,6 @@ class PlaywrightToolbox:
         page = await self._ensure_page()
         resolved = self._resolve_target(target)
         locator = page.locator(resolved).first
-
         try:
             await locator.wait_for(state="visible", timeout=5000)
             if doubleClick:
@@ -327,7 +321,6 @@ class PlaywrightToolbox:
         page = await self._ensure_page()
         resolved = self._resolve_target(target)
         locator = page.locator(resolved).first
-
         try:
             await locator.wait_for(state="visible", timeout=5000)
             await locator.fill(text)
@@ -348,11 +341,9 @@ class PlaywrightToolbox:
         console.print(
             f"[bold blue]Filling form with {len(fields)} fields...[/bold blue]"
         )
-
         for i, field_data in enumerate(fields):
             target = field_data.get("target")
             value = field_data.get("value", "")
-
             if not target:
                 console.print(
                     f"[yellow]Skipping field {i + 1}: No target specified[/yellow]"
@@ -361,14 +352,12 @@ class PlaywrightToolbox:
 
             resolved = self._resolve_target(target)
             locator = page.locator(resolved).first
-
             try:
                 await locator.wait_for(state="visible", timeout=5000)
                 await locator.fill(value)
                 console.print(f"[green]Filled {target} with '{value}'[/green]")
             except Exception as e:
                 console.print(f"[red]Failed to fill {target}: {e}[/red]")
-                # Continue with other fields even if one fails
 
         console.print("[green]Form filling completed[/green]")
 
@@ -433,7 +422,6 @@ class PlaywrightToolbox:
             result = await locator.evaluate(function)
         else:
             result = await page.evaluate(function)
-
         console.print(f"[green]Evaluated JS. Result: {result}[/green]")
         return result
 
@@ -456,13 +444,8 @@ class PlaywrightToolbox:
         step_dir: Optional[Path] = None,
     ):
         page = await self._ensure_page()
-
-        # Determine base filename
         base_name = filename or f"screenshot"
-
-        # Ensure the file has the correct extension
         if not base_name.endswith(f".{type}"):
-            # Remove existing extension if it doesn't match the requested type
             name_without_ext = Path(base_name).stem
             base_name = f"{name_without_ext}.{type}"
 
@@ -480,12 +463,35 @@ class PlaywrightToolbox:
     async def browser_close(self):
         await self.close()
 
-    async def final_answer(self, result: str):
-        console.print(f"[bold green]Final Answer:[/bold green] {result}")
-        # Save the final answer to a file for persistence
-        answer_path = self.output_dir / "final_answer.txt"
+    async def final_answer(self, result: Any):
+        """
+        Provide the final answer. Supports strings, JSON objects, arrays, etc.
+        """
+        console.print(f"[bold green]Final Answer Received[/bold green]")
+
+        # Determine how to save/display the result
+        if isinstance(result, str):
+            display_content = result
+            save_content = result
+            file_ext = "txt"
+        else:
+            # Serialize non-string results (like JSON objects/arrays)
+            try:
+                save_content = json.dumps(result, indent=2)
+                display_content = save_content
+                file_ext = "json"
+            except TypeError:
+                # Fallback if not serializable
+                save_content = str(result)
+                display_content = save_content
+                file_ext = "txt"
+
+        console.print(display_content)
+
+        answer_path = self.output_dir / f"final_answer.{file_ext}"
         with open(answer_path, "w", encoding="utf-8") as f:
-            f.write(result)
+            f.write(save_content)
+
         console.print(
             f"[green]Answer saved to {answer_path.relative_to(OUTPUT_DIR)}[/green]"
         )
@@ -498,44 +504,71 @@ class PlaywrightToolRegistry:
         self.tool_map = {
             "browser_navigate": {
                 "model": NavigateArgs,
-                "desc": "Navigate to a specific URL",
+                "desc": "Navigate the browser to a new URL. Use this when the goal requires visiting a specific website or changing pages entirely.",
             },
-            "browser_navigate_back": {"model": BaseModel, "desc": "Go back"},
-            "browser_snapshot": {"model": SnapshotArgs, "desc": "Get page snapshot"},
-            "browser_click": {"model": ClickArgs, "desc": "Click an element"},
-            "browser_type": {"model": TypeArgs, "desc": "Type text into an input"},
+            "browser_navigate_back": {
+                "model": BaseModel,
+                "desc": "Go back to the previous page in the browser history. Use this if you navigated too far or need to return to a previous state.",
+            },
+            "browser_snapshot": {
+                "model": SnapshotArgs,
+                "desc": "Capture the current page's accessibility tree (ARIA snapshot). Use this to 'see' the page structure, find element refs (e.g., [ref=e39]), and extract text content. This is the primary tool for understanding the current state.",
+            },
+            "browser_click": {
+                "model": ClickArgs,
+                "desc": "Click a specific element identified by its ref or selector. Use for buttons, links, checkboxes, or any interactive element that requires a mouse click.",
+            },
+            "browser_type": {
+                "model": TypeArgs,
+                "desc": "Type text into a single input field. Use this for search bars, login forms, or any textbox where you need to enter specific characters. Supports optional 'submit' to press Enter.",
+            },
             "browser_fill_form": {
                 "model": FillFormArgs,
-                "desc": "Fill multiple form fields at once. Provide a list of objects with 'target' and 'value' in the 'fields' argument.",
+                "desc": "Fill multiple form fields simultaneously. More efficient than multiple 'browser_type' calls. Provide a list of objects with 'target' and 'value' in the 'fields' argument. Use this when completing a multi-field form like a registration or search filter.",
             },
-            "browser_wait_for": {"model": WaitForArgs, "desc": "Wait for time/text"},
-            "browser_press_key": {"model": PressKeyArgs, "desc": "Press a key"},
-            "browser_hover": {"model": HoverArgs, "desc": "Hover over an element"},
-            "browser_find": {"model": FindArgs, "desc": "Find text in snapshot"},
+            "browser_wait_for": {
+                "model": WaitForArgs,
+                "desc": "Pause execution for a specified time or until specific text appears. Use this after clicking a button that triggers a slow load or navigation to ensure the page is ready before interacting further.",
+            },
+            "browser_press_key": {
+                "model": PressKeyArgs,
+                "desc": "Press a specific keyboard key (e.g., 'Enter', 'Escape', 'ArrowDown'). Use this for keyboard shortcuts or dismissing dialogs that don't have clickable close buttons.",
+            },
+            "browser_hover": {
+                "model": HoverArgs,
+                "desc": "Hover the mouse over an element. Use this to reveal hidden menus, tooltips, or dropdowns that only appear on hover.",
+            },
+            "browser_find": {
+                "model": FindArgs,
+                "desc": "Search for specific text or a regex pattern within the last captured snapshot. Use this to quickly locate an element's ref or verify if certain content is present without re-scanning the whole page.",
+            },
             "browser_select_option": {
                 "model": SelectOptionArgs,
-                "desc": "Select dropdown option",
+                "desc": "Select one or more options from a <select> dropdown menu. Use this instead of clicking when dealing with standard HTML dropdowns.",
             },
             "browser_handle_dialog": {
                 "model": HandleDialogArgs,
-                "desc": "Handle dialog",
+                "desc": "Handle JavaScript dialogs (alert, confirm, prompt). Use this to accept or dismiss popups that block interaction with the main page.",
             },
-            "browser_evaluate": {"model": EvaluateArgs, "desc": "Evaluate JS"},
+            "browser_evaluate": {
+                "model": EvaluateArgs,
+                "desc": "Execute JavaScript code in the context of the page or a specific element. Use this for advanced interactions not covered by other tools, such as reading complex properties or triggering custom events.",
+            },
             "browser_run_code_unsafe": {
                 "model": RunCodeArgs,
-                "desc": "Run unsafe code",
+                "desc": "Execute arbitrary Playwright/JS code in the browser context. Use this as a last resort for complex automation tasks that cannot be achieved with standard tools. Warning: This bypasses safety checks.",
             },
             "browser_take_screenshot": {
                 "model": ScreenshotArgs,
-                "desc": "Take a screenshot of the current page to capture visual results.",
+                "desc": "Take a visual screenshot (PNG/JPEG) of the page. Use this only when visual verification is explicitly required by the goal. Do NOT use this to extract text or data; use 'browser_snapshot' for that.",
             },
             "browser_close": {
                 "model": BaseModel,
-                "desc": "Close the browser. Use this tool when the goal has been achieved and all results have been captured.",
+                "desc": "Close the browser window. Use this only when the task is completely finished and no further interaction is needed.",
             },
             "final_answer": {
                 "model": FinalAnswerArgs,
-                "desc": "Provide the final answer or summary. Use this when the goal is achieved.",
+                "desc": "Provide the final result of the task. Use this immediately when you have gathered all required information. The 'result' can be a string summary, a JSON object, an array, or any other structured data format requested by the goal.",
             },
         }
 
@@ -597,6 +630,7 @@ class LocalAgent:
 
         tools_json = json.dumps(self.registry.get_tool_schema(), indent=2)
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(goal=goal, tools_json=tools_json)
+
         last_result = "None"
         decision_schema = _get_decision_schema()
         response_format = {"type": "json_schema", "json_schema": decision_schema}
@@ -635,6 +669,7 @@ class LocalAgent:
                     response_format=response_format,
                     **kwargs,
                 )
+
                 content = ""
                 async for part in stream:
                     if part.choices and part.choices[0].delta.content:
@@ -654,6 +689,7 @@ class LocalAgent:
                     f.write(content)
 
                 decision = AgentDecision.model_validate_json(content)
+
                 with open(step_dir / "llm_decision.json", "w", encoding="utf-8") as f:
                     json.dump(decision.model_dump(), f, indent=2)
 
@@ -669,7 +705,6 @@ class LocalAgent:
                         decision.tool, decision.arguments or {}, step_dir=step_dir
                     )
 
-                    # Check if the tool was final_answer to exit early
                     if decision.tool == "final_answer":
                         console.print(
                             "[bold green]Final answer provided. Stopping iteration.[/bold green]"
@@ -683,10 +718,12 @@ class LocalAgent:
                         return "Browser closed."
 
                     last_result = f"Successfully executed {decision.tool}"
+
                     if not self.registry.toolbox.is_closed:
                         current_state = await self.registry.toolbox.browser_snapshot(
                             step_dir=step_dir
                         )
+
                 except Exception as exec_err:
                     console.print(f"[red]Execution error: {exec_err}[/red]")
                     last_result = f"Error executing {decision.tool}: {str(exec_err)}"
@@ -699,6 +736,7 @@ class LocalAgent:
                             )
                         except:
                             pass
+
             except Exception as e:
                 console.print(f"[bold red]API Error:[/bold red] {e}")
                 last_result = f"Error: {str(e)}"
@@ -713,8 +751,6 @@ def get_args():
     import argparse
 
     parser = argparse.ArgumentParser(description="Autonomous Playwright Browser Agent")
-
-    # Browser & Navigation
     parser.add_argument(
         "-u",
         "--url",
@@ -729,8 +765,6 @@ def get_args():
         default=False,
         help="Run browser in headless mode",
     )
-
-    # Agent Configuration
     parser.add_argument(
         "-g",
         "--goal",
@@ -745,8 +779,6 @@ def get_args():
         default=15,
         help="Maximum number of steps the agent can take",
     )
-
-    # Output & Logging
     parser.add_argument(
         "-o",
         "--output-dir",
@@ -754,8 +786,6 @@ def get_args():
         default=OUTPUT_DIR,
         help="Directory for output files",
     )
-
-    # LLM Configuration (Optional overrides)
     parser.add_argument(
         "-a",
         "--api-base",
@@ -770,13 +800,11 @@ def get_args():
         default=LLM_MODEL,
         help="Model name to use",
     )
-
     return parser.parse_args()
 
 
 async def main():
     args = get_args()
-
     toolbox = PlaywrightToolbox(headless=args.headless, output_dir=args.output_dir)
     registry = PlaywrightToolRegistry(toolbox)
     agent = LocalAgent(api_base=args.api_base, model=args.model)
@@ -784,9 +812,9 @@ async def main():
 
     try:
         await toolbox.start()
+
         step_0_dir = get_step_dir(0)
         await toolbox.browser_navigate(args.url)
-
         with open(step_0_dir / "action.json", "w") as f:
             json.dump({"action": "navigate", "url": args.url}, f, indent=2)
 
