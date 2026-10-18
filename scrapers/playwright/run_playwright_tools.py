@@ -23,21 +23,26 @@ NAVIGATION_TIMEOUT = 15000
 
 SYSTEM_PROMPT_TEMPLATE = """
 You are an autonomous browser agent powered by Playwright. Your goal is to: {goal}
+
 Available Tools:
 {tools_json}
+
 CRITICAL RULES FOR INTERACTION:
 1. USE REFS DIRECTLY: When the snapshot shows an element like `- textbox "Job title" [ref=e39]`, use "e39" as the target.
 2. HANDLE DIALOGS: If you see a cookie banner or dialog, use `browser_click` on its close button first.
-3. NO UNNECESSARY CLICKS: For text inputs, use `browser_type` directly. It handles focusing and filling.
-4. ONE STEP AT A TIME: Perform one action per step.
-5. REQUIRED TOOL: You MUST provide a `tool` name in your response unless `finished` is true. Do not just provide thoughts.
+3. EFFICIENT FORM FILLING: Use `browser_fill_form` to fill multiple fields at once. You MUST provide the 'fields' argument as a list of objects, each with 'target' and 'value'. Example: {{"fields": [{{"target": "e39", "value": "Software Developer"}}, {{"target": "e45", "value": "Taguig City"}}]}}.
+4. NO UNNECESSARY CLICKS: For text inputs, use `browser_type` or `browser_fill_form` directly. They handle focusing and filling.
+5. ONE STEP AT A TIME: Perform one logical action per step.
+6. REQUIRED TOOL: You MUST provide a `tool` name AND valid `arguments` in your response unless `finished` is true. Do not just provide thoughts.
+
 RESPONSE FORMAT:
-You must respond using the provided JSON schema.
+You must respond using the provided JSON schema. Ensure all required arguments for the chosen tool are present.
 """
 
 USER_PROMPT_TEMPLATE = """
 Current Page Snapshot:
 {snapshot}
+
 Previous Action Result:
 {last_result}
 """
@@ -68,6 +73,18 @@ class TypeArgs(BaseModel):
     text: str = Field(description="Text to type")
     submit: Optional[bool] = Field(
         False, description="Whether to press Enter after typing"
+    )
+
+
+class FillFormArgs(BaseModel):
+    class FormField(BaseModel):
+        target: str = Field(
+            description="Target element ref (e.g., e39) or selector for the input field"
+        )
+        value: str = Field(description="Value to fill into the field")
+
+    fields: List[FormField] = Field(
+        description="List of fields to fill in the form. Each field must have a 'target' and a 'value'."
     )
 
 
@@ -149,6 +166,7 @@ class PlaywrightToolbox:
         self.context: Optional[BrowserContext] = None
         self.page: Optional[Page] = None
         self.last_snapshot: Optional[str] = None
+        self.is_closed = False
 
     async def start(self):
         console.print("[bold blue]Initializing Playwright...[/bold blue]")
@@ -163,17 +181,34 @@ class PlaywrightToolbox:
         console.print("[green]Browser ready[/green]")
 
     async def close(self):
+        if self.is_closed:
+            return
+        self.is_closed = True
         if self.page:
-            await self.page.close()
+            try:
+                await self.page.close()
+            except:
+                pass
         if self.context:
-            await self.context.close()
+            try:
+                await self.context.close()
+            except:
+                pass
         if self.browser:
-            await self.browser.close()
+            try:
+                await self.browser.close()
+            except:
+                pass
         if self.playwright:
-            await self.playwright.stop()
+            try:
+                await self.playwright.stop()
+            except:
+                pass
         console.print("[green]Browser closed[/green]")
 
     async def _ensure_page(self) -> Page:
+        if self.is_closed:
+            raise Exception("Browser is closed")
         if not self.page or self.page.is_closed():
             self.page = await self.context.new_page()
             self.page.set_default_timeout(ACTION_TIMEOUT)
@@ -186,8 +221,10 @@ class PlaywrightToolbox:
             if match:
                 role, name = match.groups()
                 return f"internal:role={role}[name='{name}'i]"
+
         if re.match(r"^e\d+$", target):
             return f"aria-ref={target}"
+
         return target
 
     async def browser_navigate(self, url: str):
@@ -212,7 +249,6 @@ class PlaywrightToolbox:
         snapshot = await page.aria_snapshot(mode="ai", depth=depth, boxes=boxes)
         self.last_snapshot = snapshot
 
-        # Determine save path
         if step_dir:
             save_path = step_dir / (filename or "snapshot.md")
         else:
@@ -220,6 +256,7 @@ class PlaywrightToolbox:
 
         with open(save_path, "w", encoding="utf-8") as f:
             f.write(snapshot)
+
         console.print(
             f"[green]Snapshot saved to {save_path.relative_to(OUTPUT_DIR)}[/green]"
         )
@@ -234,6 +271,7 @@ class PlaywrightToolbox:
         page = await self._ensure_page()
         resolved = self._resolve_target(target)
         locator = page.locator(resolved).first
+
         try:
             await locator.wait_for(state="visible", timeout=5000)
             if doubleClick:
@@ -251,6 +289,7 @@ class PlaywrightToolbox:
         page = await self._ensure_page()
         resolved = self._resolve_target(target)
         locator = page.locator(resolved).first
+
         try:
             await locator.wait_for(state="visible", timeout=5000)
             await locator.fill(text)
@@ -260,6 +299,40 @@ class PlaywrightToolbox:
         except Exception as e:
             console.print(f"[red]Type failed: {e}[/red]")
             raise e
+
+    async def browser_fill_form(self, fields: List[Dict[str, str]]):
+        """
+        Fill multiple form fields at once.
+        Args:
+            fields: List of dicts with 'target' and 'value' keys.
+        """
+        page = await self._ensure_page()
+        console.print(
+            f"[bold blue]Filling form with {len(fields)} fields...[/bold blue]"
+        )
+
+        for i, field_data in enumerate(fields):
+            target = field_data.get("target")
+            value = field_data.get("value", "")
+
+            if not target:
+                console.print(
+                    f"[yellow]Skipping field {i + 1}: No target specified[/yellow]"
+                )
+                continue
+
+            resolved = self._resolve_target(target)
+            locator = page.locator(resolved).first
+
+            try:
+                await locator.wait_for(state="visible", timeout=5000)
+                await locator.fill(value)
+                console.print(f"[green]Filled {target} with '{value}'[/green]")
+            except Exception as e:
+                console.print(f"[red]Failed to fill {target}: {e}[/red]")
+                # Continue with other fields even if one fails
+
+        console.print("[green]Form filling completed[/green]")
 
     async def browser_wait_for(
         self, time: Optional[float] = None, text: Optional[str] = None
@@ -322,6 +395,7 @@ class PlaywrightToolbox:
             result = await locator.evaluate(function)
         else:
             result = await page.evaluate(function)
+
         console.print(f"[green]Evaluated JS. Result: {result}[/green]")
         return result
 
@@ -344,7 +418,6 @@ class PlaywrightToolbox:
         step_dir: Optional[Path] = None,
     ):
         page = await self._ensure_page()
-
         if step_dir:
             output_path = step_dir / (filename or f"screenshot.{type}")
         else:
@@ -372,6 +445,10 @@ class PlaywrightToolRegistry:
             "browser_snapshot": {"model": SnapshotArgs, "desc": "Get page snapshot"},
             "browser_click": {"model": ClickArgs, "desc": "Click an element"},
             "browser_type": {"model": TypeArgs, "desc": "Type text into an input"},
+            "browser_fill_form": {
+                "model": FillFormArgs,
+                "desc": "Fill multiple form fields at once. Provide a list of objects with 'target' and 'value' in the 'fields' argument.",
+            },
             "browser_wait_for": {"model": WaitForArgs, "desc": "Wait for time/text"},
             "browser_press_key": {"model": PressKeyArgs, "desc": "Press a key"},
             "browser_hover": {"model": HoverArgs, "desc": "Hover over an element"},
@@ -391,11 +468,11 @@ class PlaywrightToolRegistry:
             },
             "browser_take_screenshot": {
                 "model": ScreenshotArgs,
-                "desc": "Take screenshot",
+                "desc": "Take a screenshot of the current page to capture visual results.",
             },
             "browser_close": {
                 "model": BaseModel,
-                "desc": "Close the browser. Use this tool when the goal has been achieved or if you need to restart.",
+                "desc": "Close the browser. Use this tool when the goal has been achieved and all results have been captured.",
             },
         }
 
@@ -420,13 +497,17 @@ class PlaywrightToolRegistry:
             raise ValueError(f"Tool {name} not found")
 
         model_class = self.tool_map[name]["model"]
-        validated_args = (
-            {}
-            if model_class == BaseModel
-            else model_class(**arguments).model_dump(exclude_none=True)
-        )
 
-        # Inject step_dir for tools that support it
+        # Handle empty arguments for BaseModel tools
+        if model_class == BaseModel:
+            validated_args = {}
+        else:
+            try:
+                validated_args = model_class(**arguments).model_dump(exclude_none=True)
+            except Exception as e:
+                console.print(f"[red]Validation error for {name}: {e}[/red]")
+                raise e
+
         if step_dir:
             if name in ["browser_snapshot", "browser_take_screenshot"]:
                 validated_args["step_dir"] = step_dir
@@ -455,12 +536,13 @@ class LocalAgent:
 
         tools_json = json.dumps(self.registry.get_tool_schema(), indent=2)
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(goal=goal, tools_json=tools_json)
+
         last_result = "None"
         decision_schema = _get_decision_schema()
         response_format = {"type": "json_schema", "json_schema": decision_schema}
 
         for i in range(max_steps):
-            step_index = i + 1  # Start steps from 1, assuming 0 is init
+            step_index = i + 1
             step_dir = get_step_dir(step_index)
 
             console.print(f"[bold cyan]Step {step_index}:[/bold cyan] Thinking...")
@@ -474,7 +556,6 @@ class LocalAgent:
                 {"role": "user", "content": user_prompt_content},
             ]
 
-            # Save Input
             input_data = {
                 "system_prompt": system_prompt,
                 "user_prompt": user_prompt_content,
@@ -483,7 +564,6 @@ class LocalAgent:
             with open(step_dir / "llm_input.json", "w", encoding="utf-8") as f:
                 json.dump(input_data, f, indent=2)
 
-            # Save current snapshot as input context if available
             if current_state:
                 with open(step_dir / "input_snapshot.md", "w", encoding="utf-8") as f:
                     f.write(current_state)
@@ -497,6 +577,7 @@ class LocalAgent:
                     response_format=response_format,
                     **kwargs,
                 )
+
                 content = ""
                 async for part in stream:
                     if part.choices and part.choices[0].delta.content:
@@ -510,7 +591,6 @@ class LocalAgent:
                     content = content[:-3]
                 content = content.strip()
 
-                # Save Raw Response
                 with open(
                     step_dir / "llm_raw_response.txt", "w", encoding="utf-8"
                 ) as f:
@@ -518,7 +598,6 @@ class LocalAgent:
 
                 decision = AgentDecision.model_validate_json(content)
 
-                # Save Parsed Decision
                 with open(step_dir / "llm_decision.json", "w", encoding="utf-8") as f:
                     json.dump(decision.model_dump(), f, indent=2)
 
@@ -529,34 +608,41 @@ class LocalAgent:
                     return "Goal achieved."
 
                 console.print(f"[bold yellow]Executing:[/bold yellow] {decision.tool}")
+
                 try:
                     await self.registry.execute_tool(
                         decision.tool, decision.arguments or {}, step_dir=step_dir
                     )
+
+                    if self.registry.toolbox.is_closed:
+                        console.print(
+                            "[bold green]Browser closed by tool. Stopping iteration.[/bold green]"
+                        )
+                        return "Browser closed."
+
                     last_result = f"Successfully executed {decision.tool}"
 
-                    # Capture new state after action
-                    current_state = await self.registry.toolbox.browser_snapshot(
-                        step_dir=step_dir
-                    )
+                    if not self.registry.toolbox.is_closed:
+                        current_state = await self.registry.toolbox.browser_snapshot(
+                            step_dir=step_dir
+                        )
 
                 except Exception as exec_err:
                     console.print(f"[red]Execution error: {exec_err}[/red]")
                     last_result = f"Error executing {decision.tool}: {str(exec_err)}"
-
-                    # Capture state even on error if possible
-                    try:
-                        current_state = await self.registry.toolbox.browser_snapshot(
-                            step_dir=step_dir
-                        )
-                    except:
-                        pass
+                    if not self.registry.toolbox.is_closed:
+                        try:
+                            current_state = (
+                                await self.registry.toolbox.browser_snapshot(
+                                    step_dir=step_dir
+                                )
+                            )
+                        except:
+                            pass
 
             except Exception as e:
                 console.print(f"[bold red]API Error:[/bold red] {e}")
                 last_result = f"Error: {str(e)}"
-
-                # Save Error
                 with open(step_dir / "error.log", "w", encoding="utf-8") as f:
                     f.write(str(e))
 
@@ -573,12 +659,8 @@ async def main():
     try:
         await toolbox.start()
 
-        # Step 0: Initialization
         step_0_dir = get_step_dir(0)
-
         await toolbox.browser_navigate(DEFAULT_URL)
-
-        # Save initial navigation info
         with open(step_0_dir / "action.json", "w") as f:
             json.dump({"action": "navigate", "url": DEFAULT_URL}, f, indent=2)
 
@@ -587,21 +669,19 @@ async def main():
         )
 
         goal = """
-Step 1: Find the job search bar (textbox "Job title").
-Step 2: Type 'Software Developer' into the job search bar.
-Step 3: Find the location search bar (textbox "Where?").
-Step 4: Select 'Taguig City' in the location search bar.
-Step 5: Click the 'Find jobs' button.
-Step 6: Find results.
-"""
+        Step 1: Type 'Software Developer' into the job search bar and 'Taguig City' in the location search bar.
+        Step 2: Click the search button.
+        Step 3: Display the results by taking a screenshot and capturing a snapshot of the job listings.
+        Step 4: Close the browser.
+        """
 
         await agent.think_and_act(
             goal,
             initial_snapshot,
         )
+
     finally:
-        # Ensure closure if something went wrong before agent took over
-        if toolbox.browser:
+        if not toolbox.is_closed:
             await toolbox.close()
 
 
