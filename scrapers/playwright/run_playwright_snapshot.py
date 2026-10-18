@@ -145,6 +145,36 @@ async def capture_snapshot(
             console.print("[green]Browser closed[/green]")
 
 
+async def capture_html_snapshot(
+    html_string: str,
+    timeout: float = 30000,
+    depth: int | None = None,
+    mode: Literal["ai", "default"] = "ai",
+    boxes: bool = False,
+    headless: bool = False,
+) -> str:
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=headless)
+        page = await browser.new_page()
+
+        # 1. Load the HTML string into the page
+        await page.set_content(html_string)
+
+        # 2. Wait for any potential JS to execute (optional but recommended)
+        await page.wait_for_load_state("networkidle")
+
+        # 3. Capture the ARIA snapshot
+        snapshot = await page.aria_snapshot(
+            timeout=timeout,
+            depth=depth,
+            mode=mode,
+            boxes=boxes,
+        )
+
+        await browser.close()
+        return snapshot
+
+
 def main():
     """Main entry point."""
     args = get_args()
@@ -158,16 +188,21 @@ def main():
 
     try:
         # Capture snapshot
-        snapshot = asyncio.run(
-            capture_snapshot(
-                url=args.url,
-                timeout=args.timeout,
-                depth=args.depth,
-                mode=args.mode,
-                boxes=args.boxes,
-                headless=args.headless,
-            )
-        )
+        # snapshot = asyncio.run(
+        #     capture_snapshot(
+        #         url=args.url,
+        #         timeout=args.timeout,
+        #         depth=args.depth,
+        #         mode=args.mode,
+        #         boxes=args.boxes,
+        #         headless=args.headless,
+        #     )
+        # )
+
+        html_file_path = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/test/__sample.html"
+        with open(html_file_path, "r", encoding="utf-8") as file:
+            html = file.read()
+        snapshot = asyncio.run(capture_html_snapshot(html))
 
         # Save snapshot to file
         snapshot_path = args.output_dir / args.filename

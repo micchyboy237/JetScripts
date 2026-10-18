@@ -504,35 +504,35 @@ class PlaywrightToolRegistry:
         self.tool_map = {
             "browser_navigate": {
                 "model": NavigateArgs,
-                "desc": "Navigate the browser to a new URL. Use this when the goal requires visiting a specific website or changing pages entirely.",
+                "desc": "Navigate to a new URL. Use this only when you need to go to a completely different page or start over.",
             },
             "browser_navigate_back": {
                 "model": BaseModel,
-                "desc": "Go back to the previous page in the browser history. Use this if you navigated too far or need to return to a previous state.",
+                "desc": "Go back to the previous page in browser history. Use this if you clicked a link by mistake or need to return to search results.",
             },
             "browser_snapshot": {
                 "model": SnapshotArgs,
-                "desc": "Capture the current page's accessibility tree (ARIA snapshot). Use this to 'see' the page structure, find element refs (e.g., [ref=e39]), and extract text content. This is the primary tool for understanding the current state.",
+                "desc": "Get a fresh accessibility snapshot of the current page. Use this when the page state has changed (e.g., after clicking or waiting) and you need to see updated elements and refs.",
             },
             "browser_click": {
                 "model": ClickArgs,
-                "desc": "Click a specific element identified by its ref or selector. Use for buttons, links, checkboxes, or any interactive element that requires a mouse click.",
+                "desc": "Click an element like a button, link, or checkbox. Use the 'target' ref from the snapshot. Do NOT use this for text inputs; use browser_type instead.",
             },
             "browser_type": {
                 "model": TypeArgs,
-                "desc": "Type text into a single input field. Use this for search bars, login forms, or any textbox where you need to enter specific characters. Supports optional 'submit' to press Enter.",
+                "desc": "Type text into a single input field (textbox, textarea, or combobox). Use this for filling one field at a time. Set 'submit' to true if you need to press Enter after typing.",
             },
             "browser_fill_form": {
                 "model": FillFormArgs,
-                "desc": "Fill multiple form fields simultaneously. More efficient than multiple 'browser_type' calls. Provide a list of objects with 'target' and 'value' in the 'fields' argument. Use this when completing a multi-field form like a registration or search filter.",
+                "desc": "Efficiently fill multiple input fields at once. Use this when you need to type into several fields (e.g., username and password) in one step. Provide a list of {'target': ref, 'value': text} objects.",
             },
             "browser_wait_for": {
                 "model": WaitForArgs,
-                "desc": "Pause execution for a specified time or until specific text appears. Use this after clicking a button that triggers a slow load or navigation to ensure the page is ready before interacting further.",
+                "desc": "Wait for a specific amount of time or for specific text to appear on the page. Use this after clicking a search button or loading content to ensure elements are visible before interacting.",
             },
             "browser_press_key": {
                 "model": PressKeyArgs,
-                "desc": "Press a specific keyboard key (e.g., 'Enter', 'Escape', 'ArrowDown'). Use this for keyboard shortcuts or dismissing dialogs that don't have clickable close buttons.",
+                "desc": "Press a specific key (e.g., 'Enter', 'ArrowDown', 'Escape'). Use this for keyboard navigation or submitting forms without a visible button.",
             },
             "browser_hover": {
                 "model": HoverArgs,
@@ -540,35 +540,35 @@ class PlaywrightToolRegistry:
             },
             "browser_find": {
                 "model": FindArgs,
-                "desc": "Search for specific text or a regex pattern within the last captured snapshot. Use this to quickly locate an element's ref or verify if certain content is present without re-scanning the whole page.",
+                "desc": "Search for specific text within the current snapshot. Use this to quickly locate information without scanning the entire snapshot manually.",
             },
             "browser_select_option": {
                 "model": SelectOptionArgs,
-                "desc": "Select one or more options from a <select> dropdown menu. Use this instead of clicking when dealing with standard HTML dropdowns.",
+                "desc": "Select one or more options from a <select> dropdown menu. Use this when the target is a native dropdown, not a custom combobox.",
             },
             "browser_handle_dialog": {
                 "model": HandleDialogArgs,
-                "desc": "Handle JavaScript dialogs (alert, confirm, prompt). Use this to accept or dismiss popups that block interaction with the main page.",
+                "desc": "Handle JavaScript dialogs like alerts, confirms, or prompts. Use this immediately if a dialog blocks interaction with the page.",
             },
             "browser_evaluate": {
                 "model": EvaluateArgs,
-                "desc": "Execute JavaScript code in the context of the page or a specific element. Use this for advanced interactions not covered by other tools, such as reading complex properties or triggering custom events.",
+                "desc": "Execute JavaScript in the page context and return the result. Use this for complex data extraction or interactions that standard tools cannot handle.",
             },
             "browser_run_code_unsafe": {
                 "model": RunCodeArgs,
-                "desc": "Execute arbitrary Playwright/JS code in the browser context. Use this as a last resort for complex automation tasks that cannot be achieved with standard tools. Warning: This bypasses safety checks.",
+                "desc": "Execute arbitrary JavaScript code in the page. Use this as a last resort for advanced automation tasks.",
             },
             "browser_take_screenshot": {
                 "model": ScreenshotArgs,
-                "desc": "Take a visual screenshot (PNG/JPEG) of the page. Use this only when visual verification is explicitly required by the goal. Do NOT use this to extract text or data; use 'browser_snapshot' for that.",
+                "desc": "Take a visual screenshot of the page. Use this ONLY if the goal explicitly requires visual verification or saving an image. Do NOT use this for extracting text or data.",
             },
             "browser_close": {
                 "model": BaseModel,
-                "desc": "Close the browser window. Use this only when the task is completely finished and no further interaction is needed.",
+                "desc": "Close the browser. Use this ONLY when the task is completely finished and no further actions are needed.",
             },
             "final_answer": {
                 "model": FinalAnswerArgs,
-                "desc": "Provide the final result of the task. Use this immediately when you have gathered all required information. The 'result' can be a string summary, a JSON object, an array, or any other structured data format requested by the goal.",
+                "desc": "Provide the final result of the task. Call this IMMEDIATELY once you have the required information. The 'result' can be a string, JSON object, or array depending on the goal.",
             },
         }
 
