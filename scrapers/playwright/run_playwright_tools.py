@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Literal, Optional
 import openai
 from jet.adapters.llama_cpp.config import LLM_BASE_URL, LLM_MODEL
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
+from pydantic import BaseModel, Field
 from rich.console import Console
 
 console = Console()
@@ -34,13 +35,7 @@ CRITICAL RULES FOR INTERACTION:
 5. ONE STEP AT A TIME: Perform one action per step. Wait for the next snapshot to confirm the result.
 
 RESPONSE FORMAT:
-Return ONLY a valid JSON object with no markdown formatting:
-{{
-  "thought": "Brief reasoning about the current state and next action",
-  "tool": "name_of_the_tool",
-  "arguments": {{ ... }},
-  "finished": false
-}}
+You must respond using the provided JSON schema. Do not include markdown formatting or extra text outside the JSON object.
 """
 
 USER_PROMPT_TEMPLATE = """
@@ -50,6 +45,66 @@ Current Page Snapshot:
 Previous Action Result:
 {last_result}
 """
+
+
+class NavigateArgs(BaseModel):
+    url: str = Field(description="The URL to navigate to")
+
+
+class SnapshotArgs(BaseModel):
+    filename: Optional[str] = Field(
+        None, description="Optional filename to save the snapshot"
+    )
+    depth: Optional[int] = Field(None, description="Depth of the snapshot tree")
+    boxes: Optional[bool] = Field(False, description="Include bounding boxes")
+
+
+class ClickArgs(BaseModel):
+    target: str = Field(description="Target element ref (e.g., e39) or selector")
+    doubleClick: Optional[bool] = Field(False, description="Whether to double click")
+    button: Literal["left", "right", "middle"] = Field(
+        "left", description="Mouse button to use"
+    )
+
+
+class TypeArgs(BaseModel):
+    target: str = Field(description="Target element ref (e.g., e39) or selector")
+    text: str = Field(description="Text to type")
+    submit: Optional[bool] = Field(
+        False, description="Whether to press Enter after typing"
+    )
+
+
+class WaitForArgs(BaseModel):
+    time: Optional[float] = Field(None, description="Time to wait in seconds")
+    text: Optional[str] = Field(None, description="Text to wait for")
+
+
+class ToolDefinition(BaseModel):
+    name: str
+    description: str
+    parameters: Dict[str, Any]
+
+
+class AgentDecision(BaseModel):
+    thought: str = Field(
+        description="Brief reasoning about the current state and next action"
+    )
+    tool: Optional[str] = Field(None, description="Name of the tool to execute")
+    arguments: Optional[Dict[str, Any]] = Field(
+        None, description="Arguments for the tool"
+    )
+    finished: bool = Field(False, description="Whether the goal has been achieved")
+
+
+def _get_decision_schema() -> Dict[str, Any]:
+    """Generate a strict JSON schema from the AgentDecision Pydantic model."""
+    schema = AgentDecision.model_json_schema()
+    return {
+        "name": "AgentDecision",
+        "strict": True,
+        "schema": schema,
+    }
 
 
 class PlaywrightToolbox:
@@ -133,7 +188,7 @@ class PlaywrightToolbox:
     ):
         page = await self._ensure_page()
         resolved = self._resolve_target(target)
-        locator = page.locator(resolved).first  # Use .first to avoid strict mode errors
+        locator = page.locator(resolved).first
         try:
             if doubleClick:
                 await locator.dblclick(button=button)
@@ -173,70 +228,57 @@ class PlaywrightToolbox:
 class PlaywrightToolRegistry:
     def __init__(self, toolbox: PlaywrightToolbox):
         self.toolbox = toolbox
-        self.tools = {
+        # Map tool names to their argument models and descriptions
+        self.tool_map = {
             "browser_navigate": {
-                "name": "browser_navigate",
-                "description": "Navigate to URL",
-                "parameters": {
-                    "type": "object",
-                    "properties": {"url": {"type": "string"}},
-                    "required": ["url"],
-                },
+                "model": NavigateArgs,
+                "desc": "Navigate to a specific URL",
             },
             "browser_snapshot": {
-                "name": "browser_snapshot",
-                "description": "Get page structure",
-                "parameters": {
-                    "type": "object",
-                    "properties": {"filename": {"type": "string"}},
-                },
+                "model": SnapshotArgs,
+                "desc": "Get the accessibility snapshot of the page",
             },
             "browser_click": {
-                "name": "browser_click",
-                "description": "Click element by ref",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "target": {"type": "string"},
-                        "doubleClick": {"type": "boolean"},
-                    },
-                    "required": ["target"],
-                },
+                "model": ClickArgs,
+                "desc": "Click an element on the page",
             },
             "browser_type": {
-                "name": "browser_type",
-                "description": "Fill input by ref. No click needed.",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "target": {"type": "string"},
-                        "text": {"type": "string"},
-                        "submit": {"type": "boolean"},
-                    },
-                    "required": ["target", "text"],
-                },
+                "model": TypeArgs,
+                "desc": "Type text into an input field",
             },
             "browser_wait_for": {
-                "name": "browser_wait_for",
-                "description": "Wait for time/text",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "time": {"type": "number"},
-                        "text": {"type": "string"},
-                    },
-                },
+                "model": WaitForArgs,
+                "desc": "Wait for a specific time or text to appear",
             },
         }
 
     def get_tool_schema(self) -> List[Dict]:
-        return list(self.tools.values())
+        schemas = []
+        for name, info in self.tool_map.items():
+            model = info["model"]
+            schema = model.model_json_schema()
+            schemas.append(
+                {"name": name, "description": info["desc"], "parameters": schema}
+            )
+        return schemas
 
     async def execute_tool(self, name: str, arguments: Dict) -> Any:
+        if name not in self.tool_map:
+            raise ValueError(f"Tool {name} not found")
+
+        model_class = self.tool_map[name]["model"]
+        try:
+            # Validate arguments using Pydantic
+            validated_args = model_class(**arguments)
+        except Exception as e:
+            raise ValueError(f"Invalid arguments for {name}: {str(e)}")
+
         method = getattr(self.toolbox, name, None)
         if not method:
-            raise ValueError(f"Tool {name} not found")
-        return await method(**arguments)
+            raise ValueError(f"Method {name} not implemented in toolbox")
+
+        # Pass validated model fields as kwargs
+        return await method(**validated_args.model_dump(exclude_none=True))
 
 
 class LocalAgent:
@@ -249,7 +291,11 @@ class LocalAgent:
         self.registry = registry
 
     async def think_and_act(
-        self, goal: str, current_state: str, max_steps: int = 10
+        self,
+        goal: str,
+        current_state: str,
+        max_steps: int = 10,
+        **kwargs,
     ) -> str:
         if not self.registry:
             raise Exception("Registry not set")
@@ -258,43 +304,107 @@ class LocalAgent:
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(goal=goal, tools_json=tools_json)
         last_result = "None"
 
+        # Generate strict schema for response format
+        decision_schema = _get_decision_schema()
+        response_format = {
+            "type": "json_schema",
+            "json_schema": decision_schema,
+        }
+
         for i in range(max_steps):
             console.print(f"[bold cyan]Step {i + 1}:[/bold cyan] Thinking...")
             user_prompt = USER_PROMPT_TEMPLATE.format(
                 snapshot=current_state[:4000], last_result=last_result
             )
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ]
 
             try:
-                response = await self.client.chat.completions.create(
+                create_kwargs = dict(
                     model=self.model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    response_format={"type": "json_object"},
-                    temperature=0.2,
+                    messages=messages,
+                    temperature=0.3,
+                    top_p=0.95,
+                    presence_penalty=1.5,
+                    stream_options={"include_usage": True},
+                    extra_body={
+                        "chat_template_kwargs": {
+                            "enable_thinking": False,
+                        },
+                    },
+                    stream=True,
+                    response_format=response_format,
+                    **kwargs,
                 )
+                stream = await self.client.chat.completions.create(**create_kwargs)
+                content = ""
+                async for part in stream:
+                    if part.choices and part.choices[0].delta:
+                        delta = part.choices[0].delta
+                        if (
+                            hasattr(delta, "reasoning_content")
+                            and delta.reasoning_content
+                        ):
+                            print(delta.reasoning_content, end="", flush=True)
+                        elif hasattr(delta, "content") and delta.content:
+                            content += delta.content
+                            print(delta.content, end="", flush=True)
 
-                content = response.choices[0].message.content
-                decision = json.loads(content)
-                console.print(f"[dim]Thought: {decision.get('thought')}[/dim]")
+                    usage = getattr(part, "usage", None)
+                    if usage is not None:
+                        print(
+                            f"\n\nUsage Info:"
+                            f"\nPrompt tokens: {usage.prompt_tokens}"
+                            f"\nCompletion tokens: {usage.completion_tokens}"
+                            f"\nTotal tokens: {usage.total_tokens}"
+                        )
 
-                if decision.get("finished"):
+                # Clean content just in case
+                content = content.strip()
+                if content.startswith("```json"):
+                    content = content[7:]
+                if content.endswith("```"):
+                    content = content[:-3]
+                content = content.strip()
+
+                # Use Pydantic to parse and validate the decision
+                try:
+                    decision = AgentDecision.model_validate_json(content)
+                except Exception as parse_err:
+                    console.print(
+                        f"[red]Failed to parse LLM response: {parse_err}[/red]"
+                    )
+                    console.print(f"[dim]Raw content: {content[:200]}...[/dim]")
+                    last_result = f"Error: Invalid response format from LLM"
+                    continue
+
+                console.print(f"[dim]Thought: {decision.thought}[/dim]")
+
+                if decision.finished:
                     return "Goal achieved."
 
-                tool_name = decision.get("tool")
-                args = decision.get("arguments", {})
+                if decision.tool:
+                    console.print(
+                        f"[bold yellow]Executing:[/bold yellow] {decision.tool}"
+                    )
+                    try:
+                        result = await self.registry.execute_tool(
+                            decision.tool, decision.arguments or {}
+                        )
+                        last_result = f"Successfully executed {decision.tool}"
+                    except Exception as exec_err:
+                        console.print(f"[red]Execution error: {exec_err}[/red]")
+                        last_result = (
+                            f"Error executing {decision.tool}: {str(exec_err)}"
+                        )
 
-                if tool_name:
-                    console.print(f"[bold yellow]Executing:[/bold yellow] {tool_name}")
-                    result = await self.registry.execute_tool(tool_name, args)
-                    last_result = f"Executed {tool_name}"
-
-                    # Always refresh state after action
+                    # Always take a new snapshot after an action to update state
                     current_state = await self.registry.toolbox.browser_snapshot()
 
             except Exception as e:
-                console.print(f"[bold red]Error:[/bold red] {e}")
+                console.print(f"[bold red]API Error:[/bold red] {e}")
                 last_result = f"Error: {str(e)}"
 
         return "Max steps reached."
@@ -311,7 +421,8 @@ async def main():
         await toolbox.browser_navigate(DEFAULT_URL)
         initial_snapshot = await toolbox.browser_snapshot(filename="initial.md")
         await agent.think_and_act(
-            "Find the job search bar and type 'Software Developer'", initial_snapshot
+            "Find the job search bar, type 'Software Developer' and submit",
+            initial_snapshot,
         )
     finally:
         await toolbox.close()

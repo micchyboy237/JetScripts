@@ -32,7 +32,11 @@ def get_args():
         "-s", "--slowly", action="store_true", help="Type character by character"
     )
     parser.add_argument(
-        "-S", "--submit", action="store_true", help="Press Enter after typing"
+        "-S",
+        "--submit",
+        action="store_true",
+        default=True,
+        help="Press Enter after typing (default: True)",
     )
     parser.add_argument(
         "-H",
@@ -48,7 +52,7 @@ async def type_text_demo(
     url: str,
     text: str,
     slowly: bool = False,
-    submit: bool = False,
+    submit: bool = True,
     headless: bool = False,
 ):
     console.print(f"[bold blue]Starting type demo for:[/bold blue] {url}")
@@ -93,8 +97,9 @@ async def type_text_demo(
             if submit:
                 console.print("[bold blue]Submitting search...[/bold blue]")
                 await locator.press("Enter")
+                console.print("[dim]Waiting for results to load...[/dim]")
                 await page.wait_for_load_state("networkidle")
-                await asyncio.sleep(2)  # Delay to see results load
+                await asyncio.sleep(3)  # Delay to see results load
 
             console.print("[green]Typing complete![/green]")
 
