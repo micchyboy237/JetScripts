@@ -628,7 +628,11 @@ async def main():
         await toolbox.browser_navigate(DEFAULT_URL)
         initial_snapshot = await toolbox.browser_snapshot(filename="initial.md")
         await agent.think_and_act(
-            "Find the job search bar, type 'Software Developer' and submit",
+            """
+Find the job search input, type 'Software Developer'.
+Select 'Muntinlupa City'.
+Submit search.
+            """.strip(),
             initial_snapshot,
         )
     finally:
