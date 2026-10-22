@@ -1,6 +1,7 @@
 """
 Autonomous Playwright Browser Agent - Entry Point
 Orchestrates the agent workflow based on CLI arguments.
+
 Usage Examples:
 
 python run_playwright_agent.py https://ph.indeed.com -g "
@@ -68,6 +69,14 @@ def get_args():
     parser.add_argument(
         "-m", "--model", type=str, default=LLM_MODEL, help="Model name to use"
     )
+    # UPDATED: Changed from max-snapshot-chars to max-snapshot-tokens
+    parser.add_argument(
+        "-C",
+        "--max-snapshot-tokens",
+        type=int,
+        default=8000,
+        help="Maximum tokens of snapshot to send to LLM",
+    )
     parser.add_argument(
         "-s",
         "--auto-scroll",
@@ -82,14 +91,6 @@ def get_args():
         default=5,
         help="Maximum number of scroll jumps when auto-scrolling",
     )
-    parser.add_argument(
-        "-C",
-        "--max-snapshot-chars",
-        type=int,
-        default=20000,
-        help="Maximum characters of snapshot to send to LLM",
-    )
-    # New Scroll Configuration Args
     parser.add_argument(
         "-d",
         "--scroll-delay",
@@ -131,12 +132,14 @@ async def main():
         scroll_mode=args.scroll_mode,
     )
     registry = PlaywrightToolRegistry(toolbox)
+
+    # UPDATED: Pass max_snapshot_tokens instead of max_snapshot_chars
     agent = LocalAgent(
         api_base=args.api_base,
         model=args.model,
         registry=registry,
         output_dir=output_dir,
-        max_snapshot_chars=args.max_snapshot_chars,
+        max_snapshot_tokens=args.max_snapshot_tokens,
     )
 
     try:
@@ -144,6 +147,7 @@ async def main():
         step_0_dir = get_step_dir(0, output_dir)
         input_source = args.url_or_file
         input_path = Path(input_source)
+
         if input_path.is_file():
             console.print(
                 f"[bold blue]Reading HTML from file:[/bold blue] {input_path}"
@@ -168,7 +172,9 @@ async def main():
         initial_snapshot = await toolbox.browser_snapshot(
             filename="initial_snapshot.md", step_dir=step_0_dir
         )
+
         await agent.think_and_act(args.goal, initial_snapshot, max_steps=args.max_steps)
+
     finally:
         if not toolbox.is_closed:
             await toolbox.close()
