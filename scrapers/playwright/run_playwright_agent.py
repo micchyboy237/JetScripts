@@ -4,7 +4,7 @@ Orchestrates the agent workflow based on CLI arguments.
 Usage Examples:
 python run_playwright_agent.py https://ph.indeed.com -g "
 1. Search 'AI Engineer' in 'Remote' location, and click 'Find jobs' button.
-2. Display all the job titles and links in the first page
+2. Display all the job titles and links in the first page as JSON.
 "
 """
 
