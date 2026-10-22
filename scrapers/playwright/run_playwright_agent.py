@@ -15,10 +15,8 @@ from jet.scrapers.browser.agent.utils import get_step_dir, save_json
 from rich.console import Console
 
 console = Console()
-
 DEFAULT_INPUT = "https://ph.talent.com"
 DEFAULT_GOAL = "Summarize the content of the current page."
-
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 
 
@@ -63,31 +61,52 @@ def get_args():
     parser.add_argument(
         "-m", "--model", type=str, default=LLM_MODEL, help="Model name to use"
     )
+    parser.add_argument(
+        "-s",
+        "--auto-scroll",
+        action="store_true",
+        default=True,
+        help="Automatically scroll to bottom after page load to trigger lazy loading",
+    )
+    parser.add_argument(
+        "-S",
+        "--max-scrolls",
+        type=int,
+        default=5,
+        help="Maximum number of scroll jumps when auto-scrolling",
+    )
+    parser.add_argument(
+        "-C",
+        "--max-snapshot-chars",
+        type=int,
+        default=20000,
+        help="Maximum characters of snapshot to send to LLM",
+    )
     return parser.parse_args()
 
 
 async def main():
     args = get_args()
-
     output_dir = args.output_dir
     shutil.rmtree(output_dir, ignore_errors=True)
     output_dir.mkdir(parents=True, exist_ok=True)
-
-    # Setup components
-    toolbox = PlaywrightToolbox(headless=args.headless, output_dir=output_dir)
+    toolbox = PlaywrightToolbox(
+        headless=args.headless,
+        output_dir=output_dir,
+        auto_scroll=args.auto_scroll,
+        max_scrolls=args.max_scrolls,
+    )
     registry = PlaywrightToolRegistry(toolbox)
     agent = LocalAgent(
         api_base=args.api_base,
         model=args.model,
         registry=registry,
         output_dir=output_dir,
+        max_snapshot_chars=args.max_snapshot_chars,
     )
-
     try:
         await toolbox.start()
         step_0_dir = get_step_dir(0, output_dir)
-
-        # Handle initial navigation or file loading
         input_source = args.url_or_file
         input_path = Path(input_source)
         if input_path.is_file():
@@ -108,12 +127,17 @@ async def main():
                 step_0_dir / "action.json", {"action": "navigate", "url": input_source}
             )
 
-        # Get initial state and start agent loop
-        initial_snapshot = await toolbox.browser_snapshot(
-            filename="initial.md", step_dir=step_0_dir
+        # Take initial screenshot
+        await toolbox.browser_take_screenshot(
+            filename="initial_screenshot.png", step_dir=step_0_dir
         )
-        await agent.think_and_act(args.goal, initial_snapshot, max_steps=args.max_steps)
 
+        # Save initial snapshot with renamed filename
+        initial_snapshot = await toolbox.browser_snapshot(
+            filename="initial_snapshot.md", step_dir=step_0_dir
+        )
+
+        await agent.think_and_act(args.goal, initial_snapshot, max_steps=args.max_steps)
     finally:
         if not toolbox.is_closed:
             await toolbox.close()
