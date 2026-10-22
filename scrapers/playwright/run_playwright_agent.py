@@ -2,9 +2,10 @@
 Autonomous Playwright Browser Agent - Entry Point
 Orchestrates the agent workflow based on CLI arguments.
 Usage Examples:
+
 python run_playwright_agent.py https://ph.indeed.com -g "
 1. Search 'AI Engineer' in 'Remote' location, and click 'Find jobs' button.
-2. Display all the links in the first page
+2. Display all the result links in the first page
 "
 """
 
