@@ -669,15 +669,24 @@ class LocalAgent:
                 with open(step_dir / "input_snapshot.md", "w", encoding="utf-8") as f:
                     f.write(current_state)
 
+            create_kwargs = dict(
+                model=self.model,
+                messages=messages,
+                seed=42,
+                temperature=0.3,
+                stream_options={"include_usage": True},
+                extra_body={
+                    "chat_template_kwargs": {
+                        "enable_thinking": False,
+                    },
+                },
+                stream=True,
+                response_format=response_format,
+                **kwargs,
+            )
+
             try:
-                stream = await self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    temperature=0.3,
-                    stream=True,
-                    response_format=response_format,
-                    **kwargs,
-                )
+                stream = await self.client.chat.completions.create(**create_kwargs)
                 content = ""
                 async for part in stream:
                     if part.choices and part.choices[0].delta.content:
