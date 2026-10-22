@@ -1,9 +1,7 @@
 """
 Autonomous Playwright Browser Agent - Entry Point
 Orchestrates the agent workflow based on CLI arguments.
-
 Usage Examples:
-
 python run_playwright_agent.py https://ph.indeed.com -g "
 1. Search 'AI Engineer' in 'Remote' location, and click 'Find jobs' button.
 2. Display all the links in the first page
@@ -22,6 +20,7 @@ from jet.scrapers.browser.agent.utils import get_step_dir, save_json
 from rich.console import Console
 
 console = Console()
+
 DEFAULT_INPUT = "https://ph.talent.com"
 DEFAULT_GOAL = "Summarize the content of the current page."
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
@@ -89,6 +88,29 @@ def get_args():
         default=20000,
         help="Maximum characters of snapshot to send to LLM",
     )
+    # New Scroll Configuration Args
+    parser.add_argument(
+        "-d",
+        "--scroll-delay",
+        type=int,
+        default=1400,
+        help="Delay between scrolls in ms",
+    )
+    parser.add_argument(
+        "-t",
+        "--scroll-timeout",
+        type=int,
+        default=45000,
+        help="Overall scroll timeout in ms",
+    )
+    parser.add_argument(
+        "-M",
+        "--scroll-mode",
+        type=str,
+        choices=["jump", "increment"],
+        default="increment",
+        help="Scroll mode: 'jump' to bottom or 'increment' by viewport",
+    )
     return parser.parse_args()
 
 
@@ -97,11 +119,15 @@ async def main():
     output_dir = args.output_dir
     shutil.rmtree(output_dir, ignore_errors=True)
     output_dir.mkdir(parents=True, exist_ok=True)
+
     toolbox = PlaywrightToolbox(
         headless=args.headless,
         output_dir=output_dir,
         auto_scroll=args.auto_scroll,
         max_scrolls=args.max_scrolls,
+        scroll_delay_ms=args.scroll_delay,
+        scroll_timeout_ms=args.scroll_timeout,
+        scroll_mode=args.scroll_mode,
     )
     registry = PlaywrightToolRegistry(toolbox)
     agent = LocalAgent(
@@ -111,6 +137,7 @@ async def main():
         output_dir=output_dir,
         max_snapshot_chars=args.max_snapshot_chars,
     )
+
     try:
         await toolbox.start()
         step_0_dir = get_step_dir(0, output_dir)
@@ -134,16 +161,12 @@ async def main():
                 step_0_dir / "action.json", {"action": "navigate", "url": input_source}
             )
 
-        # Take initial screenshot
         await toolbox.browser_take_screenshot(
             filename="initial_screenshot.png", step_dir=step_0_dir
         )
-
-        # Save initial snapshot with renamed filename
         initial_snapshot = await toolbox.browser_snapshot(
             filename="initial_snapshot.md", step_dir=step_0_dir
         )
-
         await agent.think_and_act(args.goal, initial_snapshot, max_steps=args.max_steps)
     finally:
         if not toolbox.is_closed:
