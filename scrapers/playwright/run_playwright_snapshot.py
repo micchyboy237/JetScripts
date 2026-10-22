@@ -1,38 +1,20 @@
+#!/usr/bin/env python3
 """
-Playwright ARIA Snapshot Generator
-
-Captures ARIA snapshots from live URLs or local HTML files using Playwright.
-This tool is useful for generating accessibility trees for AI analysis, testing,
-or documentation purposes. It supports both remote webpages and local HTML strings,
-allowing for flexible snapshot generation in headless or headed modes.
-
-Usage Examples:
-    # Capture snapshot from a single URL
-    python run_playwright_snapshot.py https://ph.talent.com
-
-    # Capture snapshot from a local HTML file
-    python run_playwright_snapshot.py data/__sample.html
-
-    # Capture snapshots from multiple sources (URLs and files)
-    python run_playwright_snapshot.py https://ph.talent.com data/__sample.html
-
-    # Custom output directory and filename
-    python run_playwright_snapshot.py https://example.com -o ./output -f my_snapshot.md
-
-    # Use default mode and include bounding boxes
-    python run_playwright_snapshot.py https://example.com -m default -b
-
-    # Run in headed mode (visible browser) with custom timeout
-    python run_playwright_snapshot.py https://example.com -H -t 60000
+Run Playwright ARIA Snapshot Generator
+CLI tool to capture ARIA snapshots from URLs or local HTML files using Playwright.
 """
 
 import argparse
 import asyncio
 import shutil
+import sys
 from pathlib import Path
-from typing import Literal
 
-from playwright.async_api import async_playwright
+from jet.adapters.llama_cpp.config import LLM_MODEL
+from jet.adapters.llama_cpp.token_utils import count_tokens
+from jet.scrapers.browser.playwright.snapshot import (
+    capture_snapshot,
+)
 from rich.console import Console
 
 console = Console()
@@ -40,294 +22,178 @@ console = Console()
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 
 
-def get_args():
-    """Parse command-line arguments."""
+def parse_args():
+    """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Capture ARIA snapshots of webpages or HTML files using Playwright."
+        description="Capture ARIA snapshots from URLs or local HTML files using Playwright",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Capture snapshot from URL
+  python run_playwright_snapshot.py https://www.python.org
+  
+  # Capture snapshot from local HTML file
+  python run_playwright_snapshot.py ./page.html
+  
+  # Capture interactive elements only
+  python run_playwright_snapshot.py https://news.ycombinator.com --filter interactives
+  
+  # Use default mode instead of AI mode
+  python run_playwright_snapshot.py https://docs.python.org --mode default
+  
+  # Show bounding boxes
+  python run_playwright_snapshot.py https://github.com --boxes
+  
+  # Specify custom output directory
+  python run_playwright_snapshot.py https://stackoverflow.com --output-dir ./my_snapshots
+        """,
     )
+
     parser.add_argument(
-        "url_or_file",
+        "source",
         type=str,
-        nargs="+",
-        help="One or more URLs or paths to HTML files to capture snapshots from.",
+        help="URL or path to local HTML file",
     )
+
     parser.add_argument(
-        "-o",
-        "--output-dir",
-        type=Path,
-        default=OUTPUT_DIR,
-        help=f"Directory to save the snapshots (default: {OUTPUT_DIR})",
-    )
-    parser.add_argument(
-        "-f",
-        "--filename",
-        type=str,
-        default=None,
-        help="Base filename for the snapshots. If multiple inputs are provided, an index will be appended (e.g., snapshot_0.md). Default: 'snapshot.md' or auto-generated based on input.",
-    )
-    parser.add_argument(
-        "-t",
         "--timeout",
         type=float,
         default=30000,
-        help="Maximum time in milliseconds to wait for each snapshot (default: 30000)",
+        help="Maximum time in milliseconds to wait for page load (default: 30000)",
     )
+
     parser.add_argument(
-        "-d",
         "--depth",
         type=int,
         default=None,
-        help="Limit the depth of the snapshot hierarchy (default: None/unlimited)",
+        help="Maximum depth of the accessibility tree to capture (default: None/unlimited)",
     )
+
     parser.add_argument(
-        "-m",
         "--mode",
         type=str,
         choices=["ai", "default"],
         default="ai",
-        help="Snapshot mode: 'ai' for AI-optimized, 'default' for standard (default: ai)",
+        help="Snapshot mode: 'ai' for AI-optimized or 'default' (default: ai)",
     )
+
     parser.add_argument(
-        "-b",
         "--boxes",
         action="store_true",
-        default=False,
-        help="Include bounding box coordinates in the snapshot (default: False)",
+        help="Include bounding box information in the snapshot",
     )
+
     parser.add_argument(
-        "-H",
         "--headless",
         action="store_true",
-        default=False,
-        help="Run browser in headless mode (default: False)",
+        help="Run browser in headless mode (default: False/shows browser)",
     )
+
+    parser.add_argument(
+        "--filter",
+        type=str,
+        choices=["all", "interactives", "non-interactives", "links", "rag", "fields"],
+        default="all",
+        help="Filter type for snapshot content (default: all)",
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default=str(OUTPUT_DIR),
+        help=f"Directory to save snapshot outputs (default: {OUTPUT_DIR})",
+    )
+
     return parser.parse_args()
 
 
-async def capture_snapshot_from_url(
-    url: str,
-    timeout: float = 30000,
-    depth: int | None = None,
-    mode: Literal["ai", "default"] = "ai",
-    boxes: bool = False,
-    headless: bool = False,
-) -> str:
-    """
-    Capture ARIA snapshot of a webpage from a URL.
+async def main():
+    """Main entry point for the snapshot capture tool."""
+    args = parse_args()
 
-    Args:
-        url: URL of the webpage to capture snapshot from.
-        timeout: Maximum time in milliseconds to wait for snapshot.
-        depth: Limit the depth of the snapshot hierarchy.
-        mode: Snapshot mode ('ai' or 'default').
-        boxes: Include bounding box coordinates in the snapshot.
-        headless: Run browser in headless mode.
+    # Validate source
+    source_path = Path(args.source)
+    if not source_path.is_file() and not args.source.startswith(
+        ("http://", "https://")
+    ):
+        console.print(
+            f"[bold red]Error:[/bold red] Source must be a valid URL or existing file path"
+        )
+        console.print(f"Provided: {args.source}")
+        sys.exit(1)
 
-    Returns:
-        The ARIA snapshot as a string.
-    """
-    console.print(f"[bold blue]Starting snapshot capture for URL:[/bold blue] {url}")
-    console.print(
-        f"[dim]Parameters: timeout={timeout}ms, depth={depth}, mode={mode}, boxes={boxes}, headless={headless}[/dim]"
-    )
+    if source_path.is_file():
+        console.print(f"[dim]Source type: Local file[/dim]")
+        console.print(f"[dim]File path: {source_path.absolute()}[/dim]")
+    else:
+        console.print(f"[dim]Source type: URL[/dim]")
+        console.print(f"[dim]URL: {args.source}[/dim]")
 
-    async with async_playwright() as p:
-        console.print("[bold blue]Launching browser...[/bold blue]")
-        browser = await p.chromium.launch(headless=headless)
-        page = await browser.new_page()
+    console.print("\n[bold blue]Configuration:[/bold blue]")
+    console.print(f"  Timeout: {args.timeout}ms")
+    console.print(f"  Depth: {args.depth if args.depth is not None else 'unlimited'}")
+    console.print(f"  Mode: {args.mode}")
+    console.print(f"  Boxes: {args.boxes}")
+    console.print(f"  Headless: {args.headless}")
+    console.print(f"  Filter: {args.filter}")
+    console.print(f"  Output Dir: {args.output_dir}")
+    console.print()
 
-        try:
-            # Navigate to the page
-            console.print(f"[bold blue]Navigating to:[/bold blue] {url}")
-            await page.goto(url, timeout=timeout)
-            console.print("[green]Page loaded successfully[/green]")
+    # Handle output directory
+    output_dir_path = Path(args.output_dir)
+    if output_dir_path.exists():
+        shutil.rmtree(output_dir_path)
+        console.print(
+            f"[bold yellow]Resetting output directory:[/bold yellow] {output_dir_path}"
+        )
+        console.print(f"[dim]Deleted existing directory[/dim]")
 
-            # Wait for page to stabilize (optional, helps with dynamic content)
-            await page.wait_for_load_state("networkidle", timeout=timeout)
-            console.print("[dim]Page network idle state reached[/dim]")
-
-            # Capture ARIA snapshot
-            console.print("[bold blue]Capturing ARIA snapshot...[/bold blue]")
-            snapshot = await page.aria_snapshot(
-                timeout=timeout,
-                depth=depth,
-                mode=mode,
-                boxes=boxes,
-            )
-            console.print("[green]ARIA snapshot captured successfully[/green]")
-            console.print(f"[dim]Snapshot size: {len(snapshot)} characters[/dim]")
-
-            return snapshot
-
-        except Exception as e:
-            console.print(f"[bold red]Error during snapshot capture:[/bold red] {e}")
-            raise
-        finally:
-            console.print("[bold blue]Closing browser...[/bold blue]")
-            await browser.close()
-            console.print("[green]Browser closed[/green]")
-
-
-async def capture_snapshot_from_html(
-    html_string: str,
-    timeout: float = 30000,
-    depth: int | None = None,
-    mode: Literal["ai", "default"] = "ai",
-    boxes: bool = False,
-    headless: bool = False,
-) -> str:
-    """
-    Capture ARIA snapshot from an HTML string.
-
-    Args:
-        html_string: The HTML content to load.
-        timeout: Maximum time in milliseconds to wait for snapshot.
-        depth: Limit the depth of the snapshot hierarchy.
-        mode: Snapshot mode ('ai' or 'default').
-        boxes: Include bounding box coordinates in the snapshot.
-        headless: Run browser in headless mode.
-
-    Returns:
-        The ARIA snapshot as a string.
-    """
-    console.print("[bold blue]Starting snapshot capture from HTML string[/bold blue]")
-    console.print(
-        f"[dim]Parameters: timeout={timeout}ms, depth={depth}, mode={mode}, boxes={boxes}, headless={headless}[/dim]"
-    )
-
-    async with async_playwright() as p:
-        console.print("[bold blue]Launching browser...[/bold blue]")
-        browser = await p.chromium.launch(headless=headless)
-        page = await browser.new_page()
-
-        try:
-            # Load the HTML string into the page
-            console.print("[bold blue]Loading HTML content...[/bold blue]")
-            await page.set_content(html_string)
-            console.print("[green]HTML content loaded successfully[/green]")
-
-            # Wait for any potential JS to execute
-            await page.wait_for_load_state("networkidle", timeout=timeout)
-            console.print("[dim]Page network idle state reached[/dim]")
-
-            # Capture ARIA snapshot
-            console.print("[bold blue]Capturing ARIA snapshot...[/bold blue]")
-            snapshot = await page.aria_snapshot(
-                timeout=timeout,
-                depth=depth,
-                mode=mode,
-                boxes=boxes,
-            )
-            console.print("[green]ARIA snapshot captured successfully[/green]")
-            console.print(f"[dim]Snapshot size: {len(snapshot)} characters[/dim]")
-
-            return snapshot
-
-        except Exception as e:
-            console.print(f"[bold red]Error during snapshot capture:[/bold red] {e}")
-            raise
-        finally:
-            console.print("[bold blue]Closing browser...[/bold blue]")
-            await browser.close()
-            console.print("[green]Browser closed[/green]")
-
-
-def main():
-    """Main entry point."""
-    args = get_args()
-
-    # Clean and recreate output directory
-    console.print(
-        f"[bold blue]Cleaning output directory:[/bold blue] {args.output_dir}"
-    )
-    shutil.rmtree(args.output_dir, ignore_errors=True)
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    output_dir_path.mkdir(parents=True, exist_ok=True)
+    console.print(f"[green]Output directory ready:[/green] {output_dir_path}")
 
     try:
-        for index, input_source in enumerate(args.url_or_file):
-            console.print(
-                f"\n[bold cyan]Processing input {index + 1}/{len(args.url_or_file)}:[/bold cyan] {input_source}"
-            )
+        # Capture the snapshot
+        snapshot = await capture_snapshot(
+            source=args.source,
+            timeout=args.timeout,
+            depth=args.depth,
+            mode=args.mode,
+            boxes=args.boxes,
+            headless=args.headless,
+            filter_type=args.filter,
+        )
 
-            # Determine if input is a file path or URL
-            input_path = Path(input_source)
-            if input_path.is_file():
-                # It's a file path
-                console.print(
-                    f"[bold blue]Reading HTML from file:[/bold blue] {input_path}"
-                )
-                with open(input_path, "r", encoding="utf-8") as file:
-                    html = file.read()
-                snapshot = asyncio.run(
-                    capture_snapshot_from_html(
-                        html_string=html,
-                        timeout=args.timeout,
-                        depth=args.depth,
-                        mode=args.mode,
-                        boxes=args.boxes,
-                        headless=args.headless,
-                    )
-                )
-                # Determine filename
-                if args.filename:
-                    base_name = Path(args.filename).stem
-                    ext = Path(args.filename).suffix or ".md"
-                    if len(args.url_or_file) > 1:
-                        final_filename = f"{base_name}_{index}{ext}"
-                    else:
-                        final_filename = f"{base_name}{ext}"
-                else:
-                    if len(args.url_or_file) > 1:
-                        final_filename = f"snapshot_{index}.md"
-                    else:
-                        final_filename = f"{input_path.stem}_snapshot.md"
-            else:
-                # Assume it's a URL
-                snapshot = asyncio.run(
-                    capture_snapshot_from_url(
-                        url=input_source,
-                        timeout=args.timeout,
-                        depth=args.depth,
-                        mode=args.mode,
-                        boxes=args.boxes,
-                        headless=args.headless,
-                    )
-                )
-                # Determine filename
-                if args.filename:
-                    base_name = Path(args.filename).stem
-                    ext = Path(args.filename).suffix or ".md"
-                    if len(args.url_or_file) > 1:
-                        final_filename = f"{base_name}_{index}{ext}"
-                    else:
-                        final_filename = f"{base_name}{ext}"
-                else:
-                    # Create a safe filename from URL
-                    safe_url = (
-                        input_source.replace("://", "_")
-                        .replace("/", "_")
-                        .replace(":", "_")
-                    )
-                    if len(args.url_or_file) > 1:
-                        final_filename = f"{safe_url[:50]}_{index}.md"
-                    else:
-                        final_filename = f"{safe_url[:50]}.md"
+        # Generate default filename based on source
+        if source_path.is_file():
+            base_name = source_path.stem
+        else:
+            # Extract domain from URL
+            from urllib.parse import urlparse
 
-            # Save snapshot to file
-            snapshot_path = args.output_dir / final_filename
-            with open(snapshot_path, "w", encoding="utf-8") as f:
-                f.write(snapshot)
+            parsed = urlparse(args.source)
+            base_name = parsed.netloc.replace(".", "_")
 
-            # Display saved path as resource link
-            console.print(
-                f"[green]📄 Snapshot saved:[/green] "
-                f"[link=file://{snapshot_path.resolve()}]{snapshot_path.name}[/link]"
-            )
+        output_path = output_dir_path / f"{base_name}_snapshot.yaml"
+
+        # Save the snapshot
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(snapshot)
+        console.print(
+            f"\n[green]✓ Snapshot saved to:[/green] [link=file://{output_path.absolute()}]{output_path.stem}[/link]"
+        )
+
+        snapshot_tokens = count_tokens(snapshot, model=LLM_MODEL)
+        console.print(f"[bold green]Tokens: {snapshot_tokens}[/bold green]")
+
+        return 0
 
     except Exception as e:
-        console.print(f"[bold red]Failed to capture snapshot:[/bold red] {e}")
-        raise
+        console.print(f"\n[bold red]Error capturing snapshot:[/bold red] {e}")
+        console.print_exception()
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    exit_code = asyncio.run(main())
+    sys.exit(exit_code)
