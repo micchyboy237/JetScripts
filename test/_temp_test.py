@@ -47,7 +47,12 @@ def extract_structured_links(html_string: str, url: str = None) -> dict:
             links.append({"url": href, "text": text})
 
     # Extract main content without links
-    content = extract(html_string, url=url, include_links=False, favor_precision=True)
+    content = extract(
+        html_string,
+        url=url,
+        include_links=False,
+        # favor_precision=True,
+    )
 
     return {
         "content": content,

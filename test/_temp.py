@@ -36,6 +36,7 @@ if __name__ == "__main__":
         include_links=True,
         include_formatting=True,
         url="https://ph.indeed.com",
+        with_metadata=True,
         # favor_precision=True,
     )
     print(result)
