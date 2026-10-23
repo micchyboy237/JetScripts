@@ -89,10 +89,10 @@ if __name__ == "__main__":
     headings2: list[HtmlHeaderDoc] = extract_header_hierarchy(html_str)
     save_file(headings2, f"{output_dir}/headings2.json")
 
-    headings3 = derive_by_header_hierarchy(doc_markdown, ignore_links=True)
+    headings3 = derive_by_header_hierarchy(html_str, ignore_links=False)
     save_file(headings3, f"{output_dir}/headings3.json")
 
-    headings4 = get_md_header_contents(html_str, ignore_links=True)
+    headings4 = get_md_header_contents(html_str, ignore_links=False)
     save_file(headings4, f"{output_dir}/headings4.json")
 
     header_texts = []
@@ -236,7 +236,7 @@ if __name__ == "__main__":
     leaf_nodes = get_leaf_nodes(tree_elements, with_text=True)
     save_file(leaf_nodes, f"{output_dir}/leaf_nodes.json")
 
-    parents_with_common_class = get_parents_with_common_class(tree_elements)
+    parents_with_common_class = get_parents_with_common_class(html_str)
     save_file(parents_with_common_class, f"{output_dir}/parents_with_common_class.json")
 
     flattened_parents_with_most_children = get_flattened_parents_with_most_children(

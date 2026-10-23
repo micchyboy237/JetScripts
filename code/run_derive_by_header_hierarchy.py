@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 
@@ -13,7 +14,18 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/jet_python_modules/jet/libs/smolagents/tools/generated/visit_webpage_tool/visit_webpage_tool_logs/call_0001/page.html"
+    parser = argparse.ArgumentParser(
+        description="Format, preprocess, and analyze an HTML file."
+    )
+    parser.add_argument(
+        "html_file",
+        nargs="?",
+        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html",
+        help="Path to the HTML file to process",
+    )
+    args = parser.parse_args()
+    html_file = args.html_file
+
     html = load_file(html_file)
     html = convert_dl_blocks_to_md(html)
 
@@ -27,14 +39,14 @@ if __name__ == "__main__":
     )
     save_file(results_with_links, f"{OUTPUT_DIR}/results_with_links.json")
 
-    results_ignore_links = derive_by_header_hierarchy(
-        html, ignore_links=True, valid_sentences_only=True
-    )
-    save_file(
-        results_ignore_links, f"{OUTPUT_DIR}/results_ignore_links_valid_sents.json"
-    )
+    # results_ignore_links = derive_by_header_hierarchy(
+    #     html, ignore_links=True, valid_sentences_only=True
+    # )
+    # save_file(
+    #     results_ignore_links, f"{OUTPUT_DIR}/results_ignore_links_valid_sents.json"
+    # )
 
-    results_with_links = derive_by_header_hierarchy(
-        html, ignore_links=False, valid_sentences_only=True
-    )
-    save_file(results_with_links, f"{OUTPUT_DIR}/results_with_links_valid_sents.json")
+    # results_with_links = derive_by_header_hierarchy(
+    #     html, ignore_links=False, valid_sentences_only=True
+    # )
+    # save_file(results_with_links, f"{OUTPUT_DIR}/results_with_links_valid_sents.json")
