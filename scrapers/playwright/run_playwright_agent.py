@@ -24,7 +24,7 @@ console = Console()
 DEFAULT_INPUT = "https://ph.talent.com"
 DEFAULT_GOAL = """
 1. Search 'AI Engineer' in 'Remote' location, and click 'Find jobs' button.
-2. Display all the result links in the first page
+2. Display all the job titles and links in the first page as JSON.
 """
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 
