@@ -24,7 +24,7 @@ if __name__ == "__main__":
         help="Path to the HTML file to process",
     )
     args = parser.parse_args()
-    html_str = args.html_file
+    html_file = args.html_file
 
     output_dir = OUTPUT_DIR
 
