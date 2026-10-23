@@ -1,3 +1,4 @@
+import argparse
 import os
 import shutil
 
@@ -13,7 +14,17 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 if __name__ == "__main__":
-    html_file = "/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_scrape_urls_playwright/missav_ws_dm223_en/sync_results/page.html"
+    parser = argparse.ArgumentParser(
+        description="Format, preprocess, and analyze an HTML file."
+    )
+    parser.add_argument(
+        "html_file",
+        nargs="?",
+        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html",
+        help="Path to the HTML file to process",
+    )
+    args = parser.parse_args()
+    html_str = args.html_file
 
     output_dir = OUTPUT_DIR
 
