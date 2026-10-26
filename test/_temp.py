@@ -9,7 +9,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "html_file",
         nargs="?",
-        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/node_extraction/sample.html",
+        default="/Users/jethroestrada/Desktop/External_Projects/Jet_Projects/JetScripts/scrapers/playwright/generated/run_playwright_agent/steps/step_2/snapshot.html",
         help="Path to an HTML file to process",
     )
     args = parser.parse_args()
