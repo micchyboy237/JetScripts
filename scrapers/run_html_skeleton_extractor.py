@@ -3,6 +3,8 @@ import json
 import shutil
 from pathlib import Path
 
+from jet.adapters.llama_cpp.config import LLM_MODEL
+from jet.adapters.llama_cpp.token_utils import count_tokens
 from jet.scrapers.html_skeleton_extractor import build_block_tree, extract_skeleton
 from rich.console import Console
 
@@ -32,17 +34,34 @@ def main():
     with open(html_file, "r", encoding="utf-8") as f:
         html_str = f.read()
 
-    skeleton = extract_skeleton(html_str)
+    skeleton, url_map = extract_skeleton(html_str)
     tree = build_block_tree(html_str, max_words=9999)
+
+    html_tokens = count_tokens(html_str, model=LLM_MODEL)
+    skeleton_tokens = count_tokens(skeleton, model=LLM_MODEL)
+    tokens_saved = html_tokens - skeleton_tokens
+    meta = {
+        "html_tokens": html_tokens,
+        "skeleton_tokens": skeleton_tokens,
+        "tokens_saved": tokens_saved,
+    }
 
     html_file = OUTPUT_DIR / "page.html"
     skeleton_file = OUTPUT_DIR / "skeleton.html"
+    url_map_file = OUTPUT_DIR / "url_map.json"
     tree_file = OUTPUT_DIR / "tree.json"
+    meta_file = OUTPUT_DIR / "meta.json"
 
     html_file.write_text(html_str, encoding="utf-8")
     skeleton_file.write_text(skeleton, encoding="utf-8")
+    url_map_file.write_text(
+        json.dumps(url_map, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     tree_file.write_text(
         json.dumps(tree, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
+    meta_file.write_text(
+        json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
     )
 
     console.print(
@@ -52,7 +71,13 @@ def main():
         f"✅ Skeletal structure saved to [bold blue][link=file://{skeleton_file}]{skeleton_file.name}[/link][/bold blue]"
     )
     console.print(
+        f"✅ URL map saved to [bold blue][link=file://{url_map_file}]{url_map_file.name}[/link][/bold blue]"
+    )
+    console.print(
         f"✅ Block tree saved to [bold blue][link=file://{tree_file}]{tree_file.name}[/link][/bold blue]"
+    )
+    console.print(
+        f"✅ Metadata saved to [bold blue][link=file://{meta_file}]{meta_file.name}[/link][/bold blue]"
     )
 
 

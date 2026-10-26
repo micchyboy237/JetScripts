@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 
-from jet.code.html_utils import convert_dl_blocks_to_md, preprocess_html
 from jet.file.utils import load_file, save_file
 from jet.scrapers.utils import extract_by_heading_hierarchy
 
@@ -50,8 +49,12 @@ def main():
     if os.path.isfile(url_or_file):
         # Load and preprocess local HTML file
         html_str: str = load_file(url_or_file)
-        html_str = convert_dl_blocks_to_md(html_str)
-        html_str = preprocess_html(html_str, excludes=excludes)
+
+        # from jet.code.html_utils import convert_dl_blocks_to_md, preprocess_html
+
+        # html_str = convert_dl_blocks_to_md(html_str)
+        # html_str = preprocess_html(html_str, excludes=excludes)
+
         save_file(html_str, f"{OUTPUT_DIR}/page.html")
     else:
         # For URLs, skip preprocessing and let extract_by_heading_hierarchy handle it
