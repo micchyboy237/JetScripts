@@ -81,7 +81,7 @@ def get_args():
         "-mst",
         "--max-snapshot-tokens",
         type=int,
-        default=3000,
+        default=3500,
         help="Maximum tokens of snapshot to send to LLM",
     )
     parser.add_argument(
