@@ -1,12 +1,16 @@
 import os
 import shutil
+
 from jet.file.utils import save_file
-from jet.libs.bertopic.examples.mock import load_sample_data, load_sample_jobs
+from jet.libs.bertopic.examples.mock import load_sample_jobs_ai_llm_python
 from jet.logger import logger
 from jet.wordnet.phrase_detector import PhraseDetector
 
 OUTPUT_DIR = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+    os.path.dirname(__file__),
+    "generated",
+    os.path.splitext(os.path.basename(__file__))[0],
+)
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
@@ -70,11 +74,11 @@ def main_phrase_detection(texts, output_dir):
     save_file(phrase_grams, f"{output_dir}/phrase_grams.json")
 
 
-if __name__ == '__main__':
-    texts = load_sample_data()
-    sub_output_dir = f"{OUTPUT_DIR}/anime"
-    main_phrase_detection(texts, sub_output_dir)
+if __name__ == "__main__":
+    # texts = load_sample_data()
+    # sub_output_dir = f"{OUTPUT_DIR}/anime"
+    # main_phrase_detection(texts, sub_output_dir)
 
-    texts = load_sample_jobs()
+    texts = load_sample_jobs_ai_llm_python()
     sub_output_dir = f"{OUTPUT_DIR}/jobs"
     main_phrase_detection(texts, sub_output_dir)
