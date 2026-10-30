@@ -1,5 +1,6 @@
-import shutil
 import os
+import shutil
+
 from jet.file.utils import save_file
 from jet.libs.bertopic.examples.mock import load_sample_jobs_ai_llm_python
 from jet.wordnet.histogram import TextAnalysis
@@ -9,7 +10,7 @@ def main_text_analysis(texts, output_dir):
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
-    save_file(texts, os.path.join(output_dir, 'texts.json'))
+    save_file(texts, os.path.join(output_dir, "texts.json"))
 
     ta = TextAnalysis(texts)
 
@@ -54,26 +55,30 @@ def main_text_analysis(texts, output_dir):
     save_file(least_common_any, f"{output_dir}/least_common_any.json")
 
     top_documents = ta.filter_top_documents_by_tfidf_and_collocations(
-        ngram_range=(1, 2),
+        ngram_range=(1, 3),
         # weight_tfidf=0.6,
         # weight_collocation=0.4,
         top_n=None,
         show_progress=True,
     )
-    save_file(top_documents, f"{output_dir}/top_documents_n_1_2.json")
+    save_file(top_documents, f"{output_dir}/top_documents_n_1_3.json")
 
     top_documents = ta.filter_top_documents_by_tfidf_and_collocations(
-        ngram_range=(3, 6),
+        ngram_range=(4, 6),
         # weight_tfidf=0.6,
         # weight_collocation=0.4,
         top_n=None,
         show_progress=True,
     )
-    save_file(top_documents, f"{output_dir}/top_documents_n_3_6.json")
+    save_file(top_documents, f"{output_dir}/top_documents_n_4_6.json")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     output_dir = os.path.join(
-        os.path.dirname(__file__), "generated", os.path.splitext(os.path.basename(__file__))[0])
+        os.path.dirname(__file__),
+        "generated",
+        os.path.splitext(os.path.basename(__file__))[0],
+    )
 
     texts = load_sample_jobs_ai_llm_python()
     sub_output_dir = f"{output_dir}/jobs"
