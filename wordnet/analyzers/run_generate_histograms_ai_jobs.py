@@ -12,6 +12,8 @@ def main_text_analysis(texts, output_dir):
 
     save_file(texts, os.path.join(output_dir, "texts.json"))
 
+    top_n = 200
+
     ta = TextAnalysis(texts)
 
     most_common_start = ta.generate_histogram(
@@ -20,7 +22,7 @@ def main_text_analysis(texts, output_dir):
         apply_tfidf=True,
         remove_stopwords=True,
         ngram_ranges=[(1, 1), (2, 3)],
-        top_n=200,
+        top_n=top_n,
     )
     save_file(most_common_start, f"{output_dir}/most_common_start.json")
 
@@ -30,7 +32,7 @@ def main_text_analysis(texts, output_dir):
         apply_tfidf=True,
         remove_stopwords=True,
         ngram_ranges=[(1, 1), (2, 3)],
-        top_n=200,
+        top_n=top_n,
     )
     save_file(least_common_start, f"{output_dir}/least_common_start.json")
 
@@ -40,7 +42,7 @@ def main_text_analysis(texts, output_dir):
         apply_tfidf=True,
         remove_stopwords=True,
         ngram_ranges=[(1, 3), (4, 6)],
-        top_n=200,
+        top_n=top_n,
     )
     save_file(most_common_any, f"{output_dir}/most_common_any.json")
 
@@ -50,7 +52,7 @@ def main_text_analysis(texts, output_dir):
         apply_tfidf=True,
         remove_stopwords=True,
         ngram_ranges=[(1, 3), (4, 6)],
-        top_n=200,
+        top_n=top_n,
     )
     save_file(least_common_any, f"{output_dir}/least_common_any.json")
 
