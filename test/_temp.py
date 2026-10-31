@@ -17,6 +17,7 @@ import asyncio
 import logging
 import os
 import random
+import shutil
 import time
 from datetime import datetime
 from pathlib import Path
@@ -24,6 +25,10 @@ from typing import Any, Dict, List, Optional, Union
 
 from playwright.async_api import Frame, Page, async_playwright
 from playwright_stealth import Stealth  # Updated import
+
+OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
+shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
@@ -492,8 +497,8 @@ Examples:
     parser.add_argument(
         "--output-dir",
         "-o",
-        default="./output",
-        help="Base directory to save screenshots and snapshots (default: ./output)",
+        default=str(OUTPUT_DIR),
+        help="Base directory to save screenshots and snapshots",
     )
 
     parser.add_argument(
