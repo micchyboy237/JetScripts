@@ -160,7 +160,7 @@ class CloudflareDetector:
         return None
 
     @staticmethod
-    def extract_sitekey_from_page(page: Page) -> Optional[str]:
+    async def extract_sitekey_from_page(page: Page) -> Optional[str]:
         """Extract Turnstile sitekey from page."""
         try:
             sitekey_el = page.locator("[data-sitekey]").first
