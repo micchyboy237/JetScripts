@@ -1,13 +1,15 @@
 """
 Robust LLM Agent Playwright inspect_page tool with CLI interface.
+Reuses jet.scrapers.browser.playwright_helpers for browser setup.
 
 Saves:
 1. Full page screenshot (PNG)
 2. Cleaned HTML structure (YAML-like accessibility snapshot)
-3. Raw HTML (optional, for debugging)
+3. Cleaned Raw HTML (pruned of scripts, styles, dynamic attrs)
+4. Original Raw HTML (for debugging)
 
 Usage:
-    python inspect_agent.py https://example.com -m both -c
+    python run_playwright_inspect_page.py https://example.com -m both -c
 """
 
 import argparse
@@ -16,9 +18,10 @@ import shutil
 from pathlib import Path
 from typing import Literal, Optional
 
-from playwright.sync_api import Page, sync_playwright
+# Reuse helpers from the existing module
+from jet.scrapers.browser.playwright_helpers import setup_sync_browser_session
+from playwright.sync_api import BrowserContext, Page
 
-# --- Configuration ---
 OUTPUT_DIR = Path(__file__).parent / "generated" / Path(__file__).stem
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -29,11 +32,7 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description="Inspect a webpage and generate LLM-friendly skeletal structure."
     )
-
-    # Positional argument
     parser.add_argument("url", help="The URL to inspect")
-
-    # Keyword arguments with shorthands
     parser.add_argument(
         "-m",
         "--mode",
@@ -42,7 +41,6 @@ def parse_args():
         default="both",
         help="Content mode: interactive, text, or both (default: both)",
     )
-
     parser.add_argument(
         "-t",
         "--exclude-tags",
@@ -50,7 +48,6 @@ def parse_args():
         default=["script", "style", "meta", "link", "noscript"],
         help="HTML tags to exclude from the structure (default: script style meta link noscript)",
     )
-
     parser.add_argument(
         "-s",
         "--exclude-selectors",
@@ -58,14 +55,12 @@ def parse_args():
         default=[],
         help="CSS selectors to exclude (e.g., .ad-banner #sidebar)",
     )
-
     parser.add_argument(
         "-b",
         "--include-boxes",
         action="store_true",
         help="Include bounding box coordinates [box=x,y,w,h] in output",
     )
-
     parser.add_argument(
         "-d",
         "--max-depth",
@@ -73,14 +68,12 @@ def parse_args():
         default=None,
         help="Maximum depth of DOM tree to traverse",
     )
-
     parser.add_argument(
         "-c",
         "--clean-html",
         action="store_true",
         help="Remove dynamic/unreliable attributes like auto-generated classes/IDs",
     )
-
     parser.add_argument(
         "-w",
         "--wait",
@@ -88,14 +81,12 @@ def parse_args():
         default=2000,
         help="Milliseconds to wait after page load for dynamic content (default: 2000)",
     )
-
     parser.add_argument(
         "-f",
         "--full-screenshot",
         action="store_true",
         help="Take full-page screenshot instead of viewport only",
     )
-
     return parser.parse_args()
 
 
@@ -113,19 +104,15 @@ def inspect_page(
     """
     if exclude_tags is None:
         exclude_tags = ["script", "style", "meta", "link", "noscript"]
-
     if exclude_selectors is None:
         exclude_selectors = []
 
-    # Step 1: Pre-clean the DOM
     _prune_dom(page, exclude_tags, exclude_selectors, clean_html)
 
-    # Step 2: Get AI-optimized accessibility snapshot
     options = {
         "mode": "ai",
         "boxes": include_boxes,
     }
-
     if max_depth is not None:
         options["depth"] = max_depth
 
@@ -135,7 +122,6 @@ def inspect_page(
         print(f"Warning: aria_snapshot failed, using fallback. Error: {e}")
         snapshot = _extract_fallback_dom(page, mode, exclude_tags, exclude_selectors)
 
-    # Step 3: Post-process based on mode
     if mode == "interactive":
         snapshot = _filter_interactive_only(snapshot)
     elif mode == "text":
@@ -144,11 +130,118 @@ def inspect_page(
     return snapshot
 
 
+def _get_cleaned_html(
+    page: Page, exclude_tags: list[str], exclude_selectors: list[str], clean_html: bool
+) -> str:
+    """
+    Returns the HTML content after applying the same pruning logic as inspect_page,
+    but without permanently altering the live page state (uses a clone).
+    """
+    js_code = """
+    () => {
+        // Clone the document to avoid affecting the live page for subsequent actions
+        const clone = document.documentElement.cloneNode(true);
+        
+        // 1. Remove Excluded Tags
+        const excludedTags = %s;
+        excludedTags.forEach(tag => {
+            clone.querySelectorAll(tag).forEach(el => el.remove());
+        });
+        
+        // 2. Remove Excluded Selectors
+        const excludedSelectors = %s;
+        excludedSelectors.forEach(selector => {
+            try {
+                clone.querySelectorAll(selector).forEach(el => el.remove());
+            } catch (e) {}
+        });
+        
+        // 3. Clean Dynamic/Unreliable Attributes
+        if (%s) {
+            const allElements = clone.querySelectorAll('*');
+            allElements.forEach(el => {
+                // Clean Classes
+                if (el.className && typeof el.className === 'string') {
+                    const classes = el.className.split(' ').filter(cls => {
+                        const autoGeneratedPatterns = [
+                            /^css-[a-z0-9]+$/,           
+                            /^_[a-zA-Z0-9]{6,}$/,        
+                            /^sc-[a-zA-Z0-9]+$/,         
+                            /^Mui[a-zA-Z]+-root-\d+$/,   
+                            /^[a-z]+-[a-f0-9]{8}$/,      
+                            /^jss-\d+$/,                 
+                            /^makeStyles-\d+$/,          
+                        ];
+                        return !autoGeneratedPatterns.some(pattern => pattern.test(cls));
+                    });
+                    
+                    if (classes.length === 0) {
+                        el.removeAttribute('class');
+                    } else if (classes.length !== el.className.split(' ').length) {
+                        el.className = classes.join(' ');
+                    }
+                }
+
+                // Clean IDs
+                if (el.id) {
+                    const autoIdPatterns = [
+                        /^ember\d+$/,                    
+                        /^react-\d+$/,                   
+                        /^\$[a-zA-Z0-9]+$/,             
+                        /^[a-z]+_\d+_[a-f0-9]+$/,       
+                    ];
+                    if (autoIdPatterns.some(pattern => pattern.test(el.id))) {
+                        el.removeAttribute('id');
+                    }
+                }
+
+                // Clean Data Attributes
+                if (el.attributes) {
+                    const attrsToRemove = [];
+                    for (let i = 0; i < el.attributes.length; i++) {
+                        const attr = el.attributes[i];
+                        if (
+                            attr.name.startsWith('data-react') ||
+                            attr.name.startsWith('data-v-') ||
+                            attr.name.startsWith('data-angular')
+                        ) {
+                            attrsToRemove.push(attr.name);
+                        }
+                    }
+                    attrsToRemove.forEach(attrName => el.removeAttribute(attrName));
+                }
+            });
+        }
+        
+        // 4. Remove HTML Comments from Clone
+        const walker = document.createTreeWalker(
+            clone,
+            NodeFilter.SHOW_COMMENT
+        );
+        let comment;
+        while (comment = walker.nextNode()) {
+            comment.remove();
+        }
+
+        return clone.outerHTML;
+    }
+    """ % (
+        repr(exclude_tags),
+        repr(exclude_selectors),
+        "true" if clean_html else "false",
+    )
+
+    try:
+        return page.evaluate(js_code)
+    except Exception as e:
+        print(f"Warning: Could not generate cleaned HTML. Error: {e}")
+        return page.content()  # Fallback to raw content
+
+
 def _prune_dom(
     page: Page, exclude_tags: list[str], exclude_selectors: list[str], clean_html: bool
 ) -> None:
     """Prune the DOM by removing unwanted elements and cleaning attributes."""
-
     js_code = """
     () => {
         // Remove excluded tags
@@ -232,7 +325,6 @@ def _prune_dom(
         repr(exclude_selectors),
         "true" if clean_html else "false",
     )
-
     try:
         page.evaluate(js_code)
     except Exception as e:
@@ -260,21 +352,17 @@ def _filter_interactive_only(snapshot: str) -> str:
         "option",
         "treeitem",
     }
-
     lines = snapshot.split("\n")
     filtered_lines = []
-
     for line in lines:
         stripped = line.strip()
         if not stripped or stripped.startswith("- text:"):
             continue
-
         role_match = re.match(r"^\s*-\s+(\w+)", stripped)
         if role_match:
             role = role_match.group(1).lower()
             if role in interactive_roles or role == "generic":
                 filtered_lines.append(line)
-
     return "\n".join(filtered_lines)
 
 
@@ -303,25 +391,20 @@ def _filter_text_only(snapshot: str) -> str:
         "strong",
         "emphasis",
     }
-
     lines = snapshot.split("\n")
     filtered_lines = []
-
     for line in lines:
         stripped = line.strip()
         if not stripped:
             continue
-
         if stripped.startswith("- text:"):
             filtered_lines.append(line)
             continue
-
         role_match = re.match(r"^\s*-\s+(\w+)", stripped)
         if role_match:
             role = role_match.group(1).lower()
             if role in content_roles:
                 filtered_lines.append(line)
-
     return "\n".join(filtered_lines)
 
 
@@ -333,7 +416,6 @@ def _extract_fallback_dom(
     () => {
         function getElementInfo(el, depth = 0) {
             if (depth > 20) return null;
-            
             const tag = el.tagName.toLowerCase();
             const excludedTags = %s;
             if (excludedTags.includes(tag)) return null;
@@ -374,15 +456,12 @@ def _extract_fallback_dom(
                     info.children.push(childInfo);
                 }
             }
-            
             return info;
         }
-        
         const tree = getElementInfo(document.body);
         return JSON.stringify(tree, null, 2);
     }
     """ % repr(exclude_tags)
-
     try:
         dom_tree = page.evaluate(js_code)
         return _json_to_yaml(dom_tree, mode)
@@ -402,32 +481,24 @@ def _json_to_yaml(tree_json: str, mode: str) -> str:
     def node_to_yaml(node, indent=0):
         if not node:
             return ""
-
         prefix = "  " * indent
         lines = []
-
         role = node.get("role", node.get("tag", "unknown"))
         name = node.get("name", "")
-
         if name:
             line = f'{prefix}- {role} "{name}"'
         else:
             line = f"{prefix}- {role}"
-
         if mode != "text" and node.get("interactive"):
             line += " [interactive]"
-
         lines.append(line)
-
         text = node.get("text", "")
         if text:
             lines.append(f'{prefix}  - text: "{text}"')
-
         for child in node.get("children", []):
             child_yaml = node_to_yaml(child, indent + 1)
             if child_yaml:
                 lines.append(child_yaml)
-
         return "\n".join(lines)
 
     return node_to_yaml(tree)
@@ -439,54 +510,67 @@ def main():
     # Define output paths
     screenshot_path = OUTPUT_DIR / "screenshot.png"
     html_path = OUTPUT_DIR / "structure.yaml"
+    cleaned_html_path = OUTPUT_DIR / "cleaned.html"
     raw_html_path = OUTPUT_DIR / "raw.html"
 
     print(f"Inspecting: {args.url}")
     print(f"Output directory: {OUTPUT_DIR}")
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+    # Reuse playwright_helpers for robust browser setup
+    context: BrowserContext = setup_sync_browser_session(headless=False)
 
+    try:
+        page = context.new_page()
+
+        # Navigate to URL
+        page.goto(args.url, wait_until="domcontentloaded")
+
+        # Wait for dynamic content if specified
+        if args.wait > 0:
+            page.wait_for_timeout(args.wait)
+
+        # 1. Take Screenshot
+        page.screenshot(path=str(screenshot_path), full_page=args.full_screenshot)
+        print(f"Screenshot saved to: {screenshot_path}")
+
+        # 2. Save Raw HTML (Original)
+        raw_html = page.content()
+        raw_html_path.write_text(raw_html, encoding="utf-8")
+        print(f"Raw HTML saved to: {raw_html_path}")
+
+        # 3. Generate and Save Cleaned HTML
+        # We get this BEFORE pruning the live DOM so we can use the clone method
+        cleaned_html = _get_cleaned_html(
+            page, args.exclude_tags, args.exclude_selectors, args.clean_html
+        )
+        cleaned_html_path.write_text(cleaned_html, encoding="utf-8")
+        print(f"Cleaned HTML saved to: {cleaned_html_path}")
+
+        # 4. Generate and Save Cleaned Structure (YAML)
+        # This prunes the live DOM for the aria_snapshot
+        structure = inspect_page(
+            page=page,
+            mode=args.mode,
+            exclude_tags=args.exclude_tags,
+            exclude_selectors=args.exclude_selectors,
+            include_boxes=args.include_boxes,
+            max_depth=args.max_depth,
+            clean_html=args.clean_html,
+        )
+
+        html_path.write_text(structure, encoding="utf-8")
+        print(f"Structure saved to: {html_path}")
+        print(f"Structure size: {len(structure)} chars (~{len(structure) // 4} tokens)")
+
+    except Exception as e:
+        print(f"Error during inspection: {e}")
+        raise
+    finally:
+        # Cleanup context properly
         try:
-            # Navigate to URL
-            page.goto(args.url, wait_until="domcontentloaded")
-
-            # Wait for dynamic content if specified
-            if args.wait > 0:
-                page.wait_for_timeout(args.wait)
-
-            # 1. Take Screenshot [[1]][[3]]
-            page.screenshot(path=str(screenshot_path), full_page=args.full_screenshot)
-            print(f"Screenshot saved to: {screenshot_path}")
-
-            # 2. Save Raw HTML (for debugging/reference) [[12]][[14]]
-            raw_html = page.content()
-            raw_html_path.write_text(raw_html, encoding="utf-8")
-            print(f"Raw HTML saved to: {raw_html_path}")
-
-            # 3. Generate and Save Cleaned Structure
-            structure = inspect_page(
-                page=page,
-                mode=args.mode,
-                exclude_tags=args.exclude_tags,
-                exclude_selectors=args.exclude_selectors,
-                include_boxes=args.include_boxes,
-                max_depth=args.max_depth,
-                clean_html=args.clean_html,
-            )
-
-            html_path.write_text(structure, encoding="utf-8")
-            print(f"Structure saved to: {html_path}")
-            print(
-                f"Structure size: {len(structure)} chars (~{len(structure) // 4} tokens)"
-            )
-
-        except Exception as e:
-            print(f"Error during inspection: {e}")
-            raise
-        finally:
-            browser.close()
+            context.close()
+        except:
+            pass
 
     print("\nDone! Files generated in:", OUTPUT_DIR)
 
