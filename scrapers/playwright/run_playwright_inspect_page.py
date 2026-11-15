@@ -20,8 +20,8 @@ from pathlib import Path
 from typing import Literal, Optional
 
 from bs4 import BeautifulSoup, Comment
-
-# Reuse helpers from the existing module
+from jet.adapters.llama_cpp.config import LLM_MODEL
+from jet.adapters.llama_cpp.token_utils import count_tokens
 from jet.scrapers.browser.playwright_helpers import setup_sync_browser_session
 from playwright.sync_api import BrowserContext, Page
 
@@ -68,7 +68,7 @@ def parse_args():
         "-t",
         "--exclude-tags",
         nargs="+",
-        default=["script", "style", "meta", "link", "noscript"],
+        default=["script", "style", "meta", "link", "noscript", "nav", "footer"],
         help="HTML tags to exclude",
     )
     parser.add_argument(
@@ -510,8 +510,10 @@ def main():
             clean_html=args.clean_html,
         )
         html_path.write_text(structure, encoding="utf-8")
-        print(f"Structure saved to: {html_path}")
-        print(f"Structure size: {len(structure)} chars (~{len(structure) // 4} tokens)")
+
+        tokens = count_tokens(structure, model=LLM_MODEL)
+        line_count = len(structure.splitlines())
+        print(f"Structure size: {line_count} lines (~{tokens} tokens)")
 
     except Exception as e:
         print(f"Error during inspection: {e}")
