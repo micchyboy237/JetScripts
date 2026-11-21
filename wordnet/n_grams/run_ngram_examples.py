@@ -103,11 +103,11 @@ def main_run_ngram_examples(texts, output_dir):
     save_file(separated_lines, f"{output_dir}/12_separated_ngram_lines.json")
 
     # Get n-grams
-    ngrams_list = get_ngrams([text.lower() for text in texts], min_words=1, max_words=2)
+    ngrams_list = get_ngrams([text.lower() for text in texts], min_words=1, max_words=3)
     save_file(ngrams_list, f"{output_dir}/13_ngrams_list.json")
 
     # Get n-gram weight for the first sentence
-    sentence_ngrams = extract_ngrams(texts, min_words=1, max_words=2)
+    sentence_ngrams = extract_ngrams(texts, min_words=1, max_words=3)
     save_file(sentence_ngrams, f"{output_dir}/14_extract_ngrams.json")
 
     previous_ngrams = set()  # Empty for example; adjust based on context
@@ -115,7 +115,7 @@ def main_run_ngram_examples(texts, output_dir):
     save_file({"weight": weight}, f"{output_dir}/15_ngram_weight.json")
 
     ngram_results = count_ngrams_with_texts(
-        texts=[text.lower() for text in texts], min_words=1, min_count=2, max_words=2
+        texts=[text.lower() for text in texts], min_words=1, min_count=2, max_words=3
     )
     output_path = f"{output_dir}/16_ngrams_with_texts.json"
     save_file(ngram_results, output_path)
