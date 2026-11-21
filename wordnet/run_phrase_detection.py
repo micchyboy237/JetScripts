@@ -2,7 +2,7 @@ import os
 import shutil
 
 from jet.file.utils import save_file
-from jet.libs.bertopic.examples.mock import load_sample_jobs_ai_llm_python
+from jet.libs.bertopic.examples.mock import load_missav_videos
 from jet.logger import logger
 from jet.wordnet.phrase_detector import PhraseDetector
 
@@ -14,14 +14,18 @@ OUTPUT_DIR = os.path.join(
 shutil.rmtree(OUTPUT_DIR, ignore_errors=True)
 
 
-def main_phrase_detection(texts, output_dir):
+def main_phrase_detection(texts, output_dir, embeddings):
     shutil.rmtree(output_dir, ignore_errors=True)
     os.makedirs(output_dir, exist_ok=True)
 
     print(f"Number of texts: {len(texts)}")
     save_file(texts, f"{output_dir}/texts.json")
 
-    detector = PhraseDetector(texts)
+    detector = PhraseDetector(
+        texts,
+        reset_cache=True,
+        # doc_embeddings=embeddings,
+    )
 
     # sentences_for_analysis = [
     #     "Remote WFH Snr Backend Javascript/React Developer\nJob Description\nAt least 4 years experience with backend Javascript and React (React Native, Graphql, SQL and Firebase experience also desirable)\nDesirable - Experience with backend programming for uploading flat files to mall servers, and experience with accounting, BIR and tax calculations such as VAT, NON-VAT, Service charge and discounts\nIn-depth knowledge of modern, JavaScript, Material-ui, Git, ES6, React hooks\nExperience with using Git and working in teams, making Pull Requests\nExperience of providing tech solutions to customer problems with emphasis on user experience\nExperience in optimizing components for maximum performance across a vast array of web-capable devices and browsers\nExperience with automated testing\nAbility to work independently and excellent problem-solving skills\nWe will be reaching out to you via email if you have been shortlisted, so we kindly ask that you check both your email inbox and spam folder.\nNote:\nSalary is negotiable.\n\n## Employer questions\nYour application will include the following questions:\n* What's your expected monthly basic salary?\n* How many years' experience do you have as a React Developer?\n* Which of the following programming languages are you experienced in?\n* Which of the following front end development libraries and frameworks are you proficient in?\n* Which of the following Relational Database Management Systems (RDBMS) are you experienced with?\n* How would you rate your English language skills?",
@@ -79,6 +83,10 @@ if __name__ == "__main__":
     # sub_output_dir = f"{OUTPUT_DIR}/anime"
     # main_phrase_detection(texts, sub_output_dir)
 
-    texts = load_sample_jobs_ai_llm_python()
-    sub_output_dir = f"{OUTPUT_DIR}/jobs"
-    main_phrase_detection(texts, sub_output_dir)
+    # texts = load_sample_jobs_ai_llm_python()
+    # sub_output_dir = f"{OUTPUT_DIR}/jobs"
+    # main_phrase_detection(texts, sub_output_dir)
+
+    texts, embeddings = load_missav_videos(code=["gvh"], include_embeddings=True)
+    sub_output_dir = f"{OUTPUT_DIR}/missav_videos"
+    main_phrase_detection(texts, sub_output_dir, embeddings=embeddings)
