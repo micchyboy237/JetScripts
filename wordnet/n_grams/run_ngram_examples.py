@@ -2,7 +2,7 @@ import os
 import shutil
 
 from jet.file.utils import save_file
-from jet.libs.bertopic.examples.mock import load_sample_jobs
+from jet.libs.bertopic.examples.mock import load_missav_videos
 
 # from jet.wordnet.pos_tagger import POSTagger
 from jet.logger import logger
@@ -43,24 +43,31 @@ def main_run_ngram_examples(texts, output_dir):
 
     logger.debug(f"Loaded {len(texts)} documents")
 
+    save_file(texts, f"{output_dir}/0_texts.json")
+
     texts = preprocess_texts(texts)
     save_file(texts, f"{output_dir}/1_preprocessed_texts.json")
 
     # Existing function calls
-    all_ngrams = count_ngrams([text.lower() for text in texts], min_words=1)
-    save_file(all_ngrams, f"{output_dir}/2_all_ngrams_count.json")
+    # all_ngrams = count_ngrams([text.lower() for text in texts], min_words=1)
+    # save_file(all_ngrams, f"{output_dir}/2_all_ngrams_count.json")
 
-    filtered_ngrams = count_ngrams([text.lower() for text in texts], min_count=2)
-    save_file(filtered_ngrams, f"{output_dir}/3_filtered_ngrams_min_count_2.json")
+    # filtered_ngrams = count_ngrams([text.lower() for text in texts], min_count=2)
+    # save_file(filtered_ngrams, f"{output_dir}/3_filtered_ngrams_min_count_2.json")
 
     result = get_most_common_ngrams([text.lower() for text in texts])
     save_file(result, f"{output_dir}/4_most_common_ngrams.json")
+
+    lowered_ngrams_count = count_ngrams(
+        [text.lower() for text in texts], min_words=1, max_words=3
+    )
+    save_file(lowered_ngrams_count, f"{output_dir}/5_lowered_ngrams_count.json")
 
     result = get_common_texts(
         [text.lower() for text in texts],
         includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"],
     )
-    save_file(result, f"{output_dir}/5_common_texts.json")
+    save_file(result, f"{output_dir}/6_common_texts.json")
 
     result = group_sentences_by_ngram(
         [text.lower() for text in texts],
@@ -68,12 +75,7 @@ def main_run_ngram_examples(texts, output_dir):
         top_n=10,
         includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"],
     )
-    save_file(result, f"{output_dir}/6_grouped_sentences.json")
-
-    lowered_ngrams_count = count_ngrams(
-        [text.lower() for text in texts], min_words=1, max_words=3
-    )
-    save_file(lowered_ngrams_count, f"{output_dir}/7_lowered_ngrams_count.json")
+    save_file(result, f"{output_dir}/7_grouped_sentences.json")
 
     range_results = list(
         get_ngrams_by_range(
@@ -167,6 +169,10 @@ if __name__ == "__main__":
     # sub_output_dir = f"{OUTPUT_DIR}/anime"
     # main_run_ngram_examples(texts, sub_output_dir)
 
-    texts = load_sample_jobs()
-    sub_output_dir = f"{OUTPUT_DIR}/jobs"
+    # texts = load_sample_jobs()
+    # sub_output_dir = f"{OUTPUT_DIR}/jobs"
+    # main_run_ngram_examples(texts, sub_output_dir)
+
+    texts = load_missav_videos(code=["gvh"])
+    sub_output_dir = f"{OUTPUT_DIR}/missav_videos"
     main_run_ngram_examples(texts, sub_output_dir)
