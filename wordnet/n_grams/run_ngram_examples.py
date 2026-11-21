@@ -79,12 +79,12 @@ def main_run_ngram_examples(texts, output_dir):
     save_file(range_results, f"{output_dir}/7_ngrams_by_range.json")
 
     count_results = list(
-        get_ngrams_by_range(texts, min_words=2, count=2, show_count=True)
+        get_ngrams_by_range(texts, min_words=1, max_words=3, count=2, show_count=True)
     )
     save_file(count_results, f"{output_dir}/8_ngrams_by_count.json")
 
     results = filter_texts_by_multi_ngram_count(
-        texts, min_words=1, count=(2,), count_all_ngrams=True
+        texts, min_words=1, max_words=3, count=(2,), count_all_ngrams=True
     )
     save_file(results, f"{output_dir}/9_filtered_texts.json")
 
