@@ -12,7 +12,6 @@ from jet.wordnet.n_grams import (
     count_ngrams,
     count_ngrams_with_texts,
     extract_ngrams,
-    filter_and_sort_sentences_by_ngrams,
     filter_texts_by_multi_ngram_count,
     get_ngram_weight,
     get_ngrams,
@@ -126,12 +125,12 @@ def main_run_ngram_examples(texts, output_dir):
     # save_file(sorted_sentences, f"{output_dir}/17_sorted_sentences.json")
 
     # Filter and sort sentences by n-grams
-    filtered_sorted_sentences = filter_and_sort_sentences_by_ngrams(
-        [text.lower() for text in texts], n=2, top_n=2, is_start_ngrams=False
-    )
-    save_file(
-        filtered_sorted_sentences, f"{output_dir}/18_filtered_sorted_sentences.json"
-    )
+    # filtered_sorted_sentences = filter_and_sort_sentences_by_ngrams(
+    #     [text.lower() for text in texts], n=2, top_n=2, is_start_ngrams=False
+    # )
+    # save_file(
+    #     filtered_sorted_sentences, f"{output_dir}/18_filtered_sorted_sentences.json"
+    # )
 
     # Get total unique n-grams
     total_unique = get_total_unique_ngrams(all_ngrams)
