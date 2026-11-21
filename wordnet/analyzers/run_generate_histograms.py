@@ -12,7 +12,7 @@ def main_text_analysis(texts, output_dir):
 
     save_file(texts, os.path.join(output_dir, "texts.json"))
 
-    ta = TextAnalysis(texts)
+    ta = TextAnalysis(texts, lowercase=True)
 
     # most_common_start = ta.generate_histogram(
     #     is_top=True,
