@@ -167,6 +167,6 @@ if __name__ == "__main__":
     # sub_output_dir = f"{OUTPUT_DIR}/jobs"
     # main_run_ngram_examples(texts, sub_output_dir)
 
-    texts = load_missav_videos(code=["gvh"])
+    texts = load_missav_videos(code=["juc"])
     sub_output_dir = f"{OUTPUT_DIR}/missav_videos"
     main_run_ngram_examples(texts, sub_output_dir)
