@@ -22,6 +22,7 @@ from jet.wordnet.n_grams import (
     group_sentences_by_ngram,
     n_gram_frequency,
     nwise,
+    score_documents_by_ngrams,
     separate_ngram_lines,
 )
 
@@ -62,6 +63,24 @@ def main_run_ngram_examples(texts, output_dir):
     #     includes_pos=["PROPN", "NOUN", "VERB", "ADJ", "ADV"],
     # )
     # save_file(result, f"{output_dir}/5_common_texts.json")
+
+    result = score_documents_by_ngrams(
+        texts,
+        min_words=1,
+        max_words=3,
+        min_doc_count=2,
+        normalize=False,
+    )
+    save_file(result, f"{output_dir}/6.1_scored_documents.json")
+
+    result = score_documents_by_ngrams(
+        texts,
+        min_words=1,
+        max_words=3,
+        min_doc_count=2,
+        normalize=True,
+    )
+    save_file(result, f"{output_dir}/6.2_scored_documents_normalized.json")
 
     result = group_sentences_by_ngram(
         [text.lower() for text in texts],
