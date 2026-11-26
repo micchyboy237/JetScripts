@@ -69,18 +69,13 @@ def main_run_ngram_examples(texts, output_dir):
         min_words=1,
         max_words=3,
         min_doc_count=2,
-        normalize=False,
     )
     save_file(result, f"{output_dir}/6.1_scored_documents.json")
 
     result = score_documents_by_ngrams(
-        texts,
-        min_words=1,
-        max_words=3,
-        min_doc_count=2,
-        normalize=True,
+        texts, min_doc_count=2, ngrams=["husband", "wife", "mother", "son"]
     )
-    save_file(result, f"{output_dir}/6.2_scored_documents_normalized.json")
+    save_file(result, f"{output_dir}/6.2_scored_documents_with_ngrams.json")
 
     result = group_sentences_by_ngram(
         [text.lower() for text in texts],
