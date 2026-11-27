@@ -1,8 +1,8 @@
 import os
 import shutil
 
+from jet.adapters.turftopic.missav import get_missav_videos_by_code_videos
 from jet.file.utils import save_file
-from jet.libs.bertopic.examples.mock import load_missav_videos
 from jet.logger import logger
 from jet.wordnet.phrase_detector import PhraseDetector
 
@@ -87,6 +87,8 @@ if __name__ == "__main__":
     # sub_output_dir = f"{OUTPUT_DIR}/jobs"
     # main_phrase_detection(texts, sub_output_dir)
 
-    texts, embeddings = load_missav_videos(code=["gvh"], include_embeddings=True)
+    texts, embeddings = get_missav_videos_by_code_videos(
+        code=["gvh"], include_embeddings=True
+    )
     sub_output_dir = f"{OUTPUT_DIR}/missav_videos"
     main_phrase_detection(texts, sub_output_dir, embeddings=embeddings)

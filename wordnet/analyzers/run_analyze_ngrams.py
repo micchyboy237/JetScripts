@@ -1,8 +1,8 @@
 import os
 import shutil
 
+from jet.adapters.turftopic.missav import get_missav_videos_by_code_videos
 from jet.file.utils import save_file
-from jet.libs.bertopic.examples.mock import load_missav_videos
 from jet.wordnet.analyzers.analyze_ngrams import analyze_ngrams
 
 
@@ -48,6 +48,6 @@ if __name__ == "__main__":
     # sub_output_dir = f"{output_dir}/jobs"
     # main_pos_tagger(texts, sub_output_dir)
 
-    texts = load_missav_videos(code=["gvh"])
+    texts = get_missav_videos_by_code_videos(code=["gvh"])
     sub_output_dir = f"{output_dir}/missav_videos"
     main_pos_tagger(texts, sub_output_dir)
